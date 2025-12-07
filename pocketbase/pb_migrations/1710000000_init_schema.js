@@ -128,6 +128,7 @@ migrate((db) => {
         name: "kimpay",
         type: "relation",
         required: true,
+        maxSelect: 1,
         options: {
           collectionId: savedKimpays.id,
           cascadeDelete: true,
@@ -138,6 +139,7 @@ migrate((db) => {
         name: "payer",
         type: "relation",
         required: true,
+        maxSelect: 1,
         options: {
           collectionId: savedParticipants.id,
           cascadeDelete: false,
@@ -148,6 +150,7 @@ migrate((db) => {
         name: "created_by",
         type: "relation",
         required: false,
+        maxSelect: 1,
         options: {
           collectionId: savedParticipants.id,
           cascadeDelete: false,
