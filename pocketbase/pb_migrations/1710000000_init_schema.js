@@ -69,11 +69,11 @@ migrate((db) => {
         }
       }
     ],
-    listRule: "id != ''",
-    viewRule: "id != ''",
-    createRule: "id != ''",
-    updateRule: "id != ''",
-    deleteRule: "id != ''"
+    listRule: "",
+    viewRule: "",
+    createRule: "",
+    updateRule: "",
+    deleteRule: ""
   });
 
   // Create expenses collection
