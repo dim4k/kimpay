@@ -241,6 +241,7 @@
                                 value={kimpayIcon} 
                                 readonly 
                                 onclick={() => isEmojiPickerOpen = !isEmojiPickerOpen} 
+                                aria-label="Group Icon"
                             />
                             
                             {#if isEmojiPickerOpen}
@@ -284,7 +285,7 @@
                         placeholder={$t('home.create.participants_placeholder')} 
                         onkeydown={(e) => e.key === 'Enter' && addParticipant()}
                     />
-                    <Button variant="outline" size="icon" onclick={addParticipant} disabled={!newParticipantName.trim()}>
+                    <Button variant="outline" size="icon" onclick={addParticipant} disabled={!newParticipantName.trim()} aria-label={$t('home.create.participants_placeholder')}>
                         <Plus class="h-4 w-4" />
                     </Button>
                 </div>
@@ -294,7 +295,7 @@
                         {#each otherParticipants as p, i}
                             <div class="bg-slate-100 dark:bg-slate-800 text-sm px-3 py-1 rounded-full flex items-center gap-1 group transition-colors">
                                 {p}
-                                <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500">
+                                <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500" aria-label="Remove participant">
                                     <X class="h-3 w-3" />
                                 </button>
                             </div>
@@ -366,6 +367,7 @@
                                 class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                                 onclick={(e) => requestLeave(k.id, e)}
                                 title={$t('home.history.leave_tooltip')}
+                                aria-label={$t('home.history.leave_tooltip')}
                             >
                                 <LogOut class="h-4 w-4" />
                             </button>
