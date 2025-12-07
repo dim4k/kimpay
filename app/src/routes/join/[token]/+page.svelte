@@ -28,7 +28,9 @@
       });
 
       // Auto-join if already known
-      const storedLocalId = localStorage.getItem(`kimpay_user_${kimpay.id}`);
+      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+      const storedLocalId = myKimpays[kimpay.id] || localStorage.getItem(`kimpay_user_${kimpay.id}`);
+      
       if (storedLocalId) {
           // Verify it matches?
           const me = participants.find(p => p.local_id === storedLocalId);

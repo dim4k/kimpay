@@ -31,9 +31,9 @@
       participants = pRes;
       expenses = eRes;
 
-      const storedParticipantId = localStorage.getItem(`kimpay_user_${kimpayId}`);
-      if (storedParticipantId) {
-          myId = storedParticipantId;
+      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+      if (myKimpays[kimpayId]) {
+          myId = myKimpays[kimpayId];
       }
 
       transactions = calculateDebts(expenses, participants);

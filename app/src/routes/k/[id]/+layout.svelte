@@ -19,7 +19,9 @@
   async function checkIdentity() {
       if (!kimpayId) return;
       
-      const storedUser = localStorage.getItem(`kimpay_user_${kimpayId}`);
+      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+      const storedUser = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
+      
       if (!storedUser) {
           showIdentityModal = true;
           loadParticipants();
