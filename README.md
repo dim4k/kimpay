@@ -2,7 +2,7 @@
 
 **Kimpay** is a modern expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
 
-![Kimpay Screenshot](docs/screenshot.jpg)
+![Kimpay Screenshot](app/static/screenshot.jpg)
 
 ## ✨ Features
 
