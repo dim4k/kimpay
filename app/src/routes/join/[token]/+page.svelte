@@ -7,6 +7,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Loader2, ArrowRight } from "lucide-svelte";
+  import { generateUUID } from '$lib/utils';
 
   let token = $derived($page.params.token);
   let name = $state("");
@@ -59,7 +60,7 @@
     if (!name || !kimpay) return;
     isLoading = true;
     try {
-        const local_id = crypto.randomUUID();
+        const local_id = generateUUID();
         const participant = await pb.collection('participants').create({
             name,
             kimpay: kimpay.id,
@@ -77,7 +78,7 @@
   async function claimParticipant(p: any) {
       isLoading = true;
       try {
-          const local_id = crypto.randomUUID();
+          const local_id = generateUUID();
           // Claims the participant by setting the local_id
           // Note: If it already had one, we are overwriting it. 
           // In a "real" app we'd warn, but here "claiming" implies I am this person on this device.

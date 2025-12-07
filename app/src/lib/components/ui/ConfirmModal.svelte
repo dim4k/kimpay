@@ -14,8 +14,8 @@
     onCancel
   } = $props();
 
-  function handleBackdropClick() {
-      if (!isProcessing) onCancel();
+  function handleBackdropClick(e: MouseEvent) {
+      if (!isProcessing && e.target === e.currentTarget) onCancel();
   }
 </script>
 
@@ -31,7 +31,6 @@
         <div 
             class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-6 dark:border dark:border-slate-800 transition-colors" 
             transition:scale={{ start: 0.95, opacity: 0 }}
-            onclick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             tabindex="-1"

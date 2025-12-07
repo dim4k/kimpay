@@ -1,9 +1,10 @@
 import { pb } from '$lib/pocketbase';
 import { goto } from '$app/navigation';
+import { generateUUID } from '$lib/utils';
 
 export async function createKimpay(name: string, icon: string, creatorName: string, otherParticipants: string[] = []) {
   try {
-    const invite_token = crypto.randomUUID();
+    const invite_token = generateUUID();
     
     // 1. Create Kimpay (Updated with icon and created_by placeholder)
     const kimpayRecord = await pb.collection('kimpays').create({
@@ -17,7 +18,7 @@ export async function createKimpay(name: string, icon: string, creatorName: stri
     const creatorRecord = await pb.collection('participants').create({
       name: creatorName,
       kimpay: kimpayRecord.id,
-      local_id: crypto.randomUUID() // Generate a local ID for the creator
+      local_id: generateUUID() // Generate a local ID for the creator
     });
     
     // 2b. Update Kimpay with created_by
