@@ -224,7 +224,22 @@
     
     <div class="space-y-2">
         <Label>{$t('expense.form.amount_label')}</Label>
-        <Input class="text-lg font-semibold" type="number" step="0.01" bind:value={amount} placeholder={$t('expense.form.amount_placeholder')} />
+        <Input 
+            class="text-lg font-semibold" 
+            type="number" 
+            step="0.01" 
+            bind:value={amount} 
+            placeholder={$t('expense.form.amount_placeholder')}
+            max="99999"
+            oninput={(e) => {
+                const el = e.target as HTMLInputElement;
+                if (el.value.length > 8) el.value = el.value.slice(0, 8);
+                if (el.value.includes('.')) {
+                    const parts = el.value.split('.');
+                    if (parts[1].length > 2) el.value = `${parts[0]}.${parts[1].slice(0, 2)}`;
+                }
+            }}
+        />
     </div>
 
 

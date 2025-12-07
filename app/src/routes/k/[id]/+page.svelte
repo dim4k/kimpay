@@ -7,7 +7,7 @@
   import { Pencil, Share2, Check, Trash2, Image as ImageIcon } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
-  import { fly } from 'svelte/transition';
+
   import { t } from '$lib/i18n';
   
   let kimpayId = $derived($page.params.id);
@@ -44,7 +44,11 @@
           
           // Extract expenses and sort client-side (Db sort not available on expand)
           expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-          expenses.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          expenses.sort((a: any, b: any) => {
+              const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+              if (dateDiff !== 0) return dateDiff;
+              return new Date(b.created).getTime() - new Date(a.created).getTime();
+          });
 
           // Extract participants for count/display
           const participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
@@ -130,17 +134,17 @@
         </div>
     {:else}
         <div class="space-y-3">
-            {#each expenses as expense, i}
+            {#each expenses as expense, i (expense.id)}
                 <div 
-                    in:fly={{ y: 20, duration: 400, delay: i * 50 }}
-                    class="flex justify-between items-center p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                    class="expense-item flex justify-between items-center p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                    style="animation-delay: {i * 50}ms;"
                 >
                     <div class="flex items-center gap-4">
                         <div class="h-10 w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl border border-slate-100 dark:border-slate-700 transition-colors">
                              {expense.icon || '💸'}
                         </div>
                         <div class="flex flex-col">
-                            <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors">{expense.description}</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate max-w-[160px] sm:max-w-[250px]">{expense.description}</span>
                             <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
                                 <span>{$t('expense.list.paid_by')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span></span>
                                 <span>•</span>
@@ -190,3 +194,20 @@
       onClose={() => galleryOpen = false}
   />
 </main>
+
+<style>
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .expense-item {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+</style>

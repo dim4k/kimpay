@@ -8,6 +8,7 @@
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { createReimbursement } from '$lib/api';
   import { t } from '$lib/i18n';
+  import CountUp from '$lib/components/ui/CountUp.svelte';
 
   let kimpayId = $derived($page.params.id);
   let isLoading = $state(true);
@@ -90,7 +91,7 @@
     {:else}
         
         {#if transactions.length === 0}
-            <div class="bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200" transition:fly={{ y: 20 }}>
+            <div class="pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200">
                 <CheckCircle class="h-16 w-16 mx-auto mb-4 text-white/90" />
                 <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
                 <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
@@ -212,14 +213,14 @@
                             <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
                             <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
-                                {myDebts.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2)}<span class="text-sm align-top opacity-60">€</span>
+                                <CountUp value={myDebts.reduce((sum, tx) => sum + tx.amount, 0)} /><span class="text-sm align-top opacity-60">€</span>
                             </div>
                         </div>
                          <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
                             <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
                             <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
-                                {myCredit.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2)}<span class="text-sm align-top opacity-60">€</span>
+                                <CountUp value={myCredit.reduce((sum, tx) => sum + tx.amount, 0)} /><span class="text-sm align-top opacity-60">€</span>
                             </div>
                         </div>
                      </div>
@@ -230,3 +231,20 @@
 
     {/if}
 </main>
+
+<style>
+  @keyframes popIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.9) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .pop-in {
+    animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+</style>

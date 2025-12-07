@@ -67,7 +67,7 @@
 
 <div class="p-6 flex flex-col items-center justify-center min-h-[80vh] space-y-8 text-center">
     
-    <div class="space-y-2">
+    <div class="space-y-2 animate-pop-in" style="animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards;">
         <div class="w-20 h-20 mx-auto bg-indigo-100 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner">
             {kimpay?.icon || '✈️'}
         </div>
@@ -78,7 +78,8 @@
     </div>
 
     <!-- QR Code Block -->
-    <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 relative group overflow-hidden">
+    <!-- QR Code Block -->
+    <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 relative group overflow-hidden animate-slide-up" style="animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards;">
         <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         {#if qrDataUrl}
@@ -95,7 +96,7 @@
         </div>
     </div>
 
-    <div class="flex flex-col gap-3 w-full max-w-xs">
+    <div class="flex flex-col gap-3 w-full max-w-xs animate-slide-up" style="animation-delay: 300ms; opacity: 0; animation-fill-mode: forwards;">
         <button 
             class="w-full py-4 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
             onclick={shareNative}

@@ -197,6 +197,7 @@
                     <Input 
                         placeholder={$t('identity.new_name_placeholder')} 
                         bind:value={newParticipantName}
+                        maxlength="15"
                         class="dark:bg-slate-800 dark:border-slate-700"
                     />
                     <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
