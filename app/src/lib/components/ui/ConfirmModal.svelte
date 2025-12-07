@@ -32,9 +32,9 @@
             class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-6 dark:border dark:border-slate-800 transition-colors" 
             transition:scale={{ start: 0.95, opacity: 0 }}
             onclick={(e) => e.stopPropagation()}
-            role="document"
+            role="dialog"
+            aria-modal="true"
             tabindex="-1"
-            onkeydown={() => {}} 
         >
             <div class="text-center space-y-2">
                  <div class={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${variant === 'destructive' ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'}`}>

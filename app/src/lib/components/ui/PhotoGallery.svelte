@@ -44,7 +44,7 @@
             {#key currentIndex}
                 <img 
                     src={getUrl(photos[currentIndex])} 
-                    alt="Expense photo" 
+                    alt="Expense attachment" 
                     class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain"
                     transition:scale={{ start: 0.95, opacity: 0, duration: 200 }}
                 />
