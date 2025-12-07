@@ -129,7 +129,8 @@ migrate((db) => {
         required: true,
         options: {
           collectionId: savedKimpays.id,
-          cascadeDelete: true
+          cascadeDelete: true,
+          maxSelect: 1
         }
       },
       {
@@ -138,7 +139,8 @@ migrate((db) => {
         required: true,
         options: {
           collectionId: savedParticipants.id,
-          cascadeDelete: false
+          cascadeDelete: false,
+          maxSelect: 1
         }
       },
       {
@@ -147,7 +149,8 @@ migrate((db) => {
         required: false,
         options: {
           collectionId: savedParticipants.id,
-          cascadeDelete: false
+          cascadeDelete: false,
+          maxSelect: 1
         }
       },
       {
