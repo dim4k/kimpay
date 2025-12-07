@@ -69,8 +69,9 @@ migrate((db) => {
         type: "relation",
         required: true,
         options: {
-          collectionId: savedKimpays.id,  // Use the saved collection's ID
-          cascadeDelete: true
+          collectionId: savedKimpays.id,
+          cascadeDelete: true,
+          maxSelect: 1  // Single relation, not multi
         }
       }
     ],
