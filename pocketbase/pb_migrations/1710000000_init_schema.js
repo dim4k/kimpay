@@ -1,5 +1,5 @@
-/// <reference path="../pb_data/types.d.ts" />
-migrate((app) => {
+/// <reference path="../pocketbase/pb_data/types.d.ts" />
+migrate((db) => {
   const snapshot = [
     {
       "createRule": null,
@@ -1057,7 +1057,8 @@ migrate((app) => {
     }
   ];
 
-  return app.importCollections(snapshot, false);
-}, (app) => {
+  const dao = new Dao(db);
+  return dao.importCollections(snapshot, true, null);
+}, (db) => {
   return null;
 })
