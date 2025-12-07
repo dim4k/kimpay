@@ -22,7 +22,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build and push app Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./app
@@ -31,3 +31,13 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:${{ github.sha }}
+
+      - name: Build and push PocketBase Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./pocketbase/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:${{ github.sha }}
