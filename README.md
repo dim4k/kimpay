@@ -40,20 +40,6 @@ The entire project is containerized. You only need Docker installed.
    - Frontend: [http://localhost:3000](http://localhost:3000)
    - Backend (PocketBase Admin): [http://localhost:8090/_/](http://localhost:8090/_/)
 
-## 📦 Project Structure
-
-```
-kimpay/
-├── app/                    # SvelteKit frontend application
-│   ├── src/
-│   │   ├── lib/           # Shared components, utilities, and stores
-│   │   └── routes/        # SvelteKit routes and pages
-│   └── Dockerfile         # Frontend container configuration
-├── pb_migrations/         # PocketBase database schema migrations
-├── docker-compose.yml     # Development environment setup
-└── docs/                  # Documentation and assets
-```
-
 ## 🛡️ Accessibility & Quality
 
 - **A11y**: Compliant with accessibility standards (keyboard navigation, ARIA roles)
