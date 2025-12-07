@@ -10,8 +10,6 @@
   onMount(() => {
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
       // Stash the event so it can be triggered later.
       deferredPrompt = e;
       
@@ -19,6 +17,8 @@
       // BUT ONLY ON MOBILE
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
+          // Prevent the mini-infobar from appearing on mobile
+          e.preventDefault();
           showPrompt = true;
       }
     });
