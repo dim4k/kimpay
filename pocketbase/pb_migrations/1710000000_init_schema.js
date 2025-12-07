@@ -2,7 +2,9 @@
 migrate((db) => {
   const dao = new Dao(db);
 
-  // Step 1: Create collections without relations
+  // Create all collections with complete schemas
+  // We'll use the collection names as strings for collectionId
+  
   const kimpays = new Collection({
     name: "kimpays",
     type: "base",
@@ -57,6 +59,15 @@ migrate((db) => {
           maxSize: 0,
           mimeTypes: ["image/jpeg", "image/png", "image/webp"]
         }
+      },
+      {
+        name: "kimpay",
+        type: "relation",
+        required: true,
+        options: {
+          collectionId: "kimpays",  // Use string name
+          cascadeDelete: true
+        }
       }
     ],
     listRule: "",
@@ -100,6 +111,43 @@ migrate((db) => {
         type: "text",
         required: false,
         options: { max: 10 }
+      },
+      {
+        name: "kimpay",
+        type: "relation",
+        required: true,
+        options: {
+          collectionId: "kimpays",  // Use string name
+          cascadeDelete: true
+        }
+      },
+      {
+        name: "payer",
+        type: "relation",
+        required: true,
+        options: {
+          collectionId: "participants",  // Use string name
+          cascadeDelete: false
+        }
+      },
+      {
+        name: "created_by",
+        type: "relation",
+        required: false,
+        options: {
+          collectionId: "participants",  // Use string name
+          cascadeDelete: false
+        }
+      },
+      {
+        name: "involved",
+        type: "relation",
+        required: false,
+        options: {
+          collectionId: "participants",  // Use string name
+          cascadeDelete: false,
+          maxSelect: 50
+        }
       }
     ],
     listRule: "",
@@ -109,73 +157,23 @@ migrate((db) => {
     deleteRule: ""
   });
 
-  // Step 2: Save collections to generate IDs
+  // Save all collections
   dao.saveCollection(kimpays);
   dao.saveCollection(participants);
   dao.saveCollection(expenses);
 
-  // Step 3: Add relation fields now that IDs exist
-  participants.schema.addField(new SchemaField({
-    name: "kimpay",
-    type: "relation",
-    required: true,
-    options: {
-      collectionId: kimpays.id,
-      cascadeDelete: true
-    }
-  }));
-  dao.saveCollection(participants);
-
+  // Add created_by to kimpays after participants exists
   kimpays.schema.addField(new SchemaField({
     name: "created_by",
     type: "relation",
     required: false,
     options: {
-      collectionId: participants.id,
+      collectionId: "participants",  // Use string name
       cascadeDelete: false,
       maxSelect: 1
     }
   }));
   dao.saveCollection(kimpays);
-
-  expenses.schema.addField(new SchemaField({
-    name: "kimpay",
-    type: "relation",
-    required: true,
-    options: {
-      collectionId: kimpays.id,
-      cascadeDelete: true
-    }
-  }));
-  expenses.schema.addField(new SchemaField({
-    name: "payer",
-    type: "relation",
-    required: true,
-    options: {
-      collectionId: participants.id,
-      cascadeDelete: false
-    }
-  }));
-  expenses.schema.addField(new SchemaField({
-    name: "created_by",
-    type: "relation",
-    required: false,
-    options: {
-      collectionId: participants.id,
-      cascadeDelete: false
-    }
-  }));
-  expenses.schema.addField(new SchemaField({
-    name: "involved",
-    type: "relation",
-    required: false,
-    options: {
-      collectionId: participants.id,
-      cascadeDelete: false,
-      maxSelect: 50
-    }
-  }));
-  dao.saveCollection(expenses);
 
   return null;
 }, (db) => {
