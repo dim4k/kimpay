@@ -27,11 +27,11 @@ migrate((db) => {
     indexes: [
       "CREATE UNIQUE INDEX idx_invite_token ON kimpays (invite_token)"
     ],
-    listRule: "id != ''",
-    viewRule: "id != ''",
-    createRule: "id != ''",
-    updateRule: "id != ''",
-    deleteRule: "id != ''"
+    listRule: "",
+    viewRule: "",
+    createRule: "",
+    updateRule: "",
+    deleteRule: ""
   });
 
   // Create participants collection
