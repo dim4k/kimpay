@@ -33,9 +33,10 @@
   async function loadParticipants() {
       isLoadingParticipants = true;
       try {
-          participants = await pb.collection('participants').getFullList({
-              filter: `kimpay="${kimpayId}"`
+          const res = await pb.collection('kimpays').getOne(kimpayId, {
+              expand: 'participants_via_kimpay'
           });
+          participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
       } catch (e) {
           console.error("Failed to load participants", e);
       } finally {

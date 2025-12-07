@@ -71,7 +71,11 @@
           if (validIds.length > 0) {
               const filter = validIds.map(id => `id='${id}'`).join(' || ');
               try {
-                  const items = await pb.collection('kimpays').getFullList({ filter: filter });
+                  const promises = validIds.map(id => 
+                      pb.collection('kimpays').getOne(id).catch(() => null)
+                  );
+                  const items = (await Promise.all(promises)).filter(i => i !== null);
+                  
                   recentKimpays = items;
                   
                    // Cleanup
@@ -163,10 +167,13 @@
              // 2. Check if involved in expenses (only if not already blocked)
              if (canDelete) {
                  try {
-                    const expenses = await pb.collection('expenses').getList(1, 1, {
-                        filter: `kimpay="${kimpayToLeave}" && (payer="${participantId}" || involved~"${participantId}")`
+                    const res = await pb.collection('kimpays').getOne(kimpayToLeave, {
+                        expand: 'expenses_via_kimpay'
                     });
-                    if (expenses.totalItems > 0) {
+                    const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
+                    const isUsed = allExpenses.some((e: any) => e.payer === participantId || (e.involved && e.involved.includes(participantId)));
+                    
+                    if (isUsed) {
                         canDelete = false;
                     }
                  } catch (e) {

@@ -33,24 +33,40 @@
 
   async function loadParticipants() {
       try {
-           participants = await pb.collection('participants').getFullList({
-              filter: `kimpay="${kimpayId}"`
+           const res = await pb.collection('kimpays').getOne(kimpayId, {
+               expand: 'participants_via_kimpay'
            });
+           participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+           return res;
       } catch (e) {
           console.error("Failed to load participants", e);
+          return null;
+      }
+  }
+
+  async function checkUsage(pId: string): Promise<boolean> {
+      try {
+          const res = await pb.collection('kimpays').getOne(kimpayId, {
+               expand: 'expenses_via_kimpay'
+          });
+          const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
+          return allExpenses.some((e: any) => e.payer === pId || (e.involved && e.involved.includes(pId)));
+      } catch(e) {
+          console.warn("Could not check expenses", e);
+          return true; // Fail safe
       }
   }
 
   onMount(async () => {
       try {
-          // 1. Get Kimpay info
-          kimpay = await pb.collection('kimpays').getOne(kimpayId);
+          // 1. Get Kimpay info & Participants
+          const res = await loadParticipants();
           
-          editName = kimpay.name;
-          editIcon = kimpay.icon || "✈️";
-
-          // 2. Get Participants explicitely
-          await loadParticipants();
+          if (res) {
+              kimpay = res;
+              editName = kimpay.name;
+              editIcon = kimpay.icon || "✈️";
+          }
 
           const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
           currentParticipantId = myKimpays[kimpayId];
@@ -109,12 +125,10 @@
   async function handleDeleteParticipant(pId: string) {
       isDeletingParticipant = pId;
       try {
-           // Check for usage in expenses
-           const used = await pb.collection('expenses').getList(1, 1, {
-               filter: `kimpay="${kimpayId}" && (payer="${pId}" || involved~"${pId}")`
-           });
+           // Check for usage in expenses (Client-side check)
+           const isUsed = await checkUsage(pId);
            
-           if (used.totalItems > 0) {
+           if (isUsed) {
                modals.alert({ message: $t('error.participant.used') });
                isDeletingParticipant = null;
                return;
@@ -164,10 +178,8 @@
              if (isCreator) canDelete = false;
 
              if (canDelete && participantId) {
-                 const expenses = await pb.collection('expenses').getList(1, 1, {
-                    filter: `kimpay="${kimpayId}" && (payer="${participantId}" || involved~"${participantId}")`
-                 });
-                 if (expenses.totalItems > 0) canDelete = false;
+                 const isUsed = await checkUsage(participantId);
+                 if (isUsed) canDelete = false;
              }
              
              if (canDelete && participantId) {

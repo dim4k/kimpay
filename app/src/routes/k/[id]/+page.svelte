@@ -35,24 +35,25 @@
 
   async function loadExpenses() {
       try {
-          expenses = await pb.collection('expenses').getFullList({
-              filter: `kimpay="${kimpayId}"`,
-              sort: '-date',
-              expand: 'payer,involved'
+          // Fetch Kimpay with all related data (reverse expansion)
+          const res = await pb.collection('kimpays').getOne(kimpayId, {
+              expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
           });
-          // Load kimpay details
-          kimpay = await pb.collection('kimpays').getOne(kimpayId);
+          
+          kimpay = res;
+          
+          // Extract expenses and sort client-side (Db sort not available on expand)
+          expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
+          expenses.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-          // Workaround: fetch participants count separately since reverse expand might not be reliable or configured
-          const participantsList = await pb.collection('participants').getList(1, 1, {
-              filter: `kimpay="${kimpayId}"`,
-              fields: 'id' // minimally fetch
-          });
-          // Attach to kimpay object to satisfy existing template logic or updated logic
+          // Extract participants for count/display
+          const participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
           if (!kimpay.expand) kimpay.expand = {};
-          kimpay.expand.participants = { length: participantsList.totalItems };
+          kimpay.expand.participants = participants;
+
       } catch (e) {
           console.error(e);
+          // If 404, maybe redirect?
       } finally {
           isLoading = false;
       }

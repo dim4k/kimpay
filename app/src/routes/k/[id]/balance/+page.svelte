@@ -23,13 +23,12 @@
   async function loadBalance() {
     isLoading = true;
     try {
-      const [pRes, eRes] = await Promise.all([
-        pb.collection('participants').getFullList({ filter: `kimpay="${kimpayId}"` }),
-        pb.collection('expenses').getFullList({ filter: `kimpay="${kimpayId}"` })
-      ]);
+      const res = await pb.collection('kimpays').getOne(kimpayId, {
+          expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
+      });
 
-      participants = pRes;
-      expenses = eRes;
+      participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+      expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
 
       const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
       if (myKimpays[kimpayId]) {

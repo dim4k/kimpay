@@ -25,6 +25,12 @@
             navigator.serviceWorker.register('/service-worker.js');
         }
     });
+
+    locale.subscribe((val) => {
+        if (typeof document !== 'undefined') {
+            document.documentElement.lang = val;
+        }
+    });
 </script>
 
 <svelte:head>

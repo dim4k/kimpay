@@ -52,10 +52,16 @@
          }
       }
 
-      participants = await pb.collection('participants').getFullList({
-          filter: `kimpay="${kimpayId}"`,
-          sort: 'name'
-      });
+      try {
+          const res = await pb.collection('kimpays').getOne(kimpayId, {
+            expand: 'participants_via_kimpay'
+          });
+          participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+          // Sort manually since we can't sort via expand easily without a view
+          participants.sort((a,b) => a.name.localeCompare(b.name));
+      } catch (e) {
+         console.error(e);
+      }
       
       if (!initialData && involved.length === 0) {
           involved = participants.map(p => p.id);
@@ -130,10 +136,12 @@
           const newP = await addParticipant(kimpayId, name);
           
           // Refresh participants list
-           participants = await pb.collection('participants').getFullList({
-              filter: `kimpay="${kimpayId}"`,
-              sort: 'name'
-          });
+           // Refresh participants list via GetOne
+           const res = await pb.collection('kimpays').getOne(kimpayId, {
+              expand: 'participants_via_kimpay'
+           });
+           participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+           participants.sort((a,b) => a.name.localeCompare(b.name));
 
           // Auto-select new participant
           payer = newP.id;

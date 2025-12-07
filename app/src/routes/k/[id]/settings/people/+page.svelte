@@ -12,10 +12,11 @@
 
   async function loadPeople() {
     try {
-      participants = await pb.collection('participants').getFullList({
-        filter: `kimpay="${kimpayId}"`,
-        sort: 'created'
+      const res = await pb.collection('kimpays').getOne(kimpayId, {
+        expand: 'participants_via_kimpay'
       });
+      participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+      participants.sort((a: any, b: any) => new Date(a.created).getTime() - new Date(b.created).getTime());
     } catch (e) {
       console.error(e);
     }
