@@ -10,6 +10,8 @@
   import { LogOut, Trash2, ArrowLeft, Save, UserPlus, Users, ArrowRightLeft } from "lucide-svelte";
   import { modals } from '$lib/stores/modals';
   import { t } from '$lib/i18n';
+  import { installPrompt, install } from '$lib/stores/install';
+  import { Download } from 'lucide-svelte';
   
   let kimpayId = $derived($page.params.id);
   let kimpay = $state<any>(null);
@@ -353,6 +355,29 @@
                 </div>
             </div>
         </div>
+
+        {#if $installPrompt}
+            <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+                <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
+                    <Download class="h-4 w-4" />
+                    Installation
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex flex-col gap-2">
+                        <p class="text-sm text-muted-foreground dark:text-slate-400">
+                             Installez l'application Kimpay sur votre appareil pour un accès plus rapide et une meilleure expérience hors-ligne.
+                        </p>
+                        <Button 
+                            class="w-full justify-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" 
+                            onclick={install}
+                        >
+                            <Download class="h-4 w-4" />
+                            Installer Kimpay
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        {/if}
 
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.actions.title')}</h2>

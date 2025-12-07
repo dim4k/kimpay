@@ -3,20 +3,22 @@
   import { X, Download } from 'lucide-svelte';
   import { fade, fly } from 'svelte/transition';
   import { t } from '$lib/i18n';
+  import { installPrompt, install } from '$lib/stores/install';
 
-  let deferredPrompt: any = $state(null);
   let showPrompt = $state(false);
 
   onMount(() => {
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
       // Stash the event so it can be triggered later.
-      deferredPrompt = e;
+      installPrompt.set(e);
       
       // Update UI notify the user they can install the PWA
       // BUT ONLY ON MOBILE
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
+      const isDismissed = localStorage.getItem('kimpay_install_dismissed') === 'true';
+
+      if (isMobile && !isDismissed) {
           // Prevent the mini-infobar from appearing on mobile
           e.preventDefault();
           showPrompt = true;
@@ -26,22 +28,14 @@
     // Optionally check if already installed to not show (though event usually handles this)
   });
 
-  async function install() {
-    if (!deferredPrompt) return;
-    
-    // Show the install prompt
-    deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    
-    // We've used the prompt, and can't use it again, discard it
-    deferredPrompt = null;
+  async function handleInstall() {
+    await install();
+    localStorage.setItem('kimpay_install_dismissed', 'true');
     showPrompt = false;
   }
 
   function dismiss() {
+    localStorage.setItem('kimpay_install_dismissed', 'true');
     showPrompt = false;
   }
 </script>
@@ -63,7 +57,7 @@
     
     <div class="flex items-center gap-2">
         <button 
-            onclick={install}
+            onclick={handleInstall}
             class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-md"
         >
             Installer
