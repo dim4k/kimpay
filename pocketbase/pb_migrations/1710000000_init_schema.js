@@ -161,6 +161,19 @@ migrate((db) => {
   dao.saveCollection(participants);
   dao.saveCollection(expenses);
 
+  // Now add created_by field to kimpays (after participants exists)
+  kimpays.schema.addField(new SchemaField({
+    name: "created_by",
+    type: "relation",
+    required: false,
+    options: {
+      collectionId: participants.id,
+      cascadeDelete: false,
+      maxSelect: 1
+    }
+  }));
+  dao.saveCollection(kimpays);
+
   return null;
 }, (db) => {
   const dao = new Dao(db);
