@@ -1,50 +1,90 @@
 # ✈️ Kimpay
 
-**Kimpay** est une application web moderne de partage de dépenses (type Tricount) conçue pour être simple, rapide et agréable à utiliser.
+**Kimpay** is a modern expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
 
-![Kimpay Home](https://via.placeholder.com/800x400?text=Kimpay+Screenshot)
+![Kimpay Screenshot](docs/screenshot.jpg)
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-- **Création Express** : Créez un groupe en quelques secondes avec un emoji et un nom.
-- **Partage Facile** : Invitez des amis via un code court (6 caractères) ou un lien direct.
-- **Gestion des Dépenses** : Ajoutez des dépenses en précisant qui a payé et pour qui.
-- **Équilibrage Automatique** : Algorithme intelligent pour minimiser les remboursements (“Qui doit à qui”).
-- **International** : Disponible en Français 🇫🇷 et Anglais 🇬🇧.
-- **Mode Sombre** : Interface élégante supportant le mode clair et sombre.
-- **Fun & Réactif** : Animations fluides, emojis et design soigné.
+- **Quick Setup**: Create a group in seconds with an emoji and a name
+- **Easy Sharing**: Invite friends via a short 6-character code or direct link
+- **Expense Management**: Add expenses specifying who paid and for whom
+- **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom")
+- **Multilingual**: Available in French 🇫🇷 and English 🇬🇧
+- **Dark Mode**: Elegant interface supporting both light and dark themes
+- **Delightful UX**: Smooth animations, emojis, and polished design
+- **PWA Ready**: Install as a Progressive Web App on any device
 
-## 🛠️ Stack Technique
+## 🛠️ Tech Stack
 
-- **Frontend** : [SvelteKit](https://kit.svelte.dev/) (SSR/CSR) + [TailwindCSS](https://tailwindcss.com/)
-- **Backend** : [PocketBase](https://pocketbase.io/) (Base de données SQLite temps réel + Auth)
-- **Déploiement** : [Docker Compose](https://docs.docker.com/compose/)
+- **Frontend**: [SvelteKit](https://kit.svelte.dev/) (SSR/CSR) + [TailwindCSS](https://tailwindcss.com/)
+- **Backend**: [PocketBase](https://pocketbase.io/) (Real-time SQLite database + Auth)
+- **Deployment**: [Docker Compose](https://docs.docker.com/compose/)
 
-## 🚀 Installation & Démarrage
+## 🚀 Quick Start
 
-Le projet est entièrement conteneurisé. Vous avez juste besoin de Docker.
+The entire project is containerized. You only need Docker installed.
 
-1. **Cloner le projet**
+1. **Clone the repository**
    ```bash
-   git clone <votre-repo>
+   git clone <your-repo>
    cd kimpay
    ```
 
-2. **Lancer l'application**
+2. **Start the application**
    ```bash
    docker compose up -d --build
    ```
 
-3. **Accéder à l'application**
-   - Frontend : [http://localhost:3000](http://localhost:3000)
-   - Backend (PocketBase) : [http://localhost:8090/_/](http://localhost:8090/_/)
+3. **Access the application**
+   - Frontend: [http://localhost:3000](http://localhost:3000)
+   - Backend (PocketBase Admin): [http://localhost:8090/_/](http://localhost:8090/_/)
 
+## 📦 Project Structure
 
-## 🛡️ Accessibilité & Qualité
+```
+kimpay/
+├── app/                    # SvelteKit frontend application
+│   ├── src/
+│   │   ├── lib/           # Shared components, utilities, and stores
+│   │   └── routes/        # SvelteKit routes and pages
+│   └── Dockerfile         # Frontend container configuration
+├── pb_migrations/         # PocketBase database schema migrations
+├── docker-compose.yml     # Development environment setup
+└── docs/                  # Documentation and assets
+```
 
-- **A11y** : Conforme aux standards d'accessibilité (navigation clavier, rôles ARIA).
-- **Responsive** : Fonctionne parfaitement sur mobile, tablette et desktop.
+## 🛡️ Accessibility & Quality
+
+- **A11y**: Compliant with accessibility standards (keyboard navigation, ARIA roles)
+- **Responsive**: Works perfectly on mobile, tablet, and desktop
+- **Type-Safe**: Built with TypeScript for better developer experience
+
+## 🔧 Development
+
+### Local Development (without Docker)
+
+1. **Start PocketBase**
+   ```bash
+   docker compose up -d pb
+   ```
+
+2. **Install dependencies and run dev server**
+   ```bash
+   cd app
+   npm install
+   npm run dev
+   ```
+
+### Environment Variables
+
+- `PUBLIC_POCKETBASE_URL`: PocketBase API URL (default: `http://localhost:8090`)
+- `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
+
+## 📝 License
+
+This project is open source and available under the MIT License.
 
 ---
 
-*Fait avec ❤️ pour simplifier vos vacances.*
+*Made with ❤️ to simplify your group expenses.*
