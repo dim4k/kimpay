@@ -1,0 +1,183 @@
+<script lang="ts">
+  import { page } from '$app/stores';
+  import { Button } from "$lib/components/ui/button"; 
+  import { pb } from '$lib/pocketbase';
+  import { deleteExpense } from '$lib/api';
+  import { onMount } from 'svelte';
+  import { Pencil, Share2, Check, Trash2, Image as ImageIcon } from "lucide-svelte"; 
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
+  import { fly } from 'svelte/transition';
+  import { t } from '$lib/i18n';
+  
+  let kimpayId = $derived($page.params.id);
+  let expenses = $state<any[]>([]);
+  let isLoading = $state(true);
+  let kimpay = $state<any>({}); 
+  let showTick = $state(false); 
+
+  // Modal State
+  let expenseToDelete = $state<string | null>(null);
+  let isDeleting = $state(false);
+
+  // Gallery State
+  let galleryOpen = $state(false);
+  let galleryPhotos = $state<string[]>([]);
+  let galleryRecord = $state<any>(null);
+
+  function openGallery(expense: any) {
+      if (expense.photos && expense.photos.length > 0) {
+          galleryPhotos = expense.photos;
+          galleryRecord = expense;
+          galleryOpen = true;
+      }
+  }
+
+  async function loadExpenses() {
+      try {
+          expenses = await pb.collection('expenses').getFullList({
+              filter: `kimpay="${kimpayId}"`,
+              sort: '-date',
+              expand: 'payer,involved'
+          });
+          // Load kimpay details
+          kimpay = await pb.collection('kimpays').getOne(kimpayId);
+
+          // Workaround: fetch participants count separately since reverse expand might not be reliable or configured
+          const participantsList = await pb.collection('participants').getList(1, 1, {
+              filter: `kimpay="${kimpayId}"`,
+              fields: 'id' // minimally fetch
+          });
+          // Attach to kimpay object to satisfy existing template logic or updated logic
+          if (!kimpay.expand) kimpay.expand = {};
+          kimpay.expand.participants = { length: participantsList.totalItems };
+      } catch (e) {
+          console.error(e);
+      } finally {
+          isLoading = false;
+      }
+  }
+
+  function requestDelete(id: string) {
+      expenseToDelete = id;
+  }
+
+  async function confirmDelete() {
+      if (!expenseToDelete) return;
+      isDeleting = true;
+      try {
+          await deleteExpense(expenseToDelete);
+          await loadExpenses();
+          expenseToDelete = null;
+      } catch (e) {
+          console.error("Failed to delete", e);
+          alert("Failed to delete expense"); 
+      } finally {
+          isDeleting = false;
+      }
+  }
+
+  async function copyLink() {
+      try {
+          await navigator.clipboard.writeText(window.location.href);
+          showTick = true;
+          setTimeout(() => showTick = false, 2000);
+      } catch (err) {
+          console.error('Failed to copy: ', err);
+      }
+  }
+
+  onMount(loadExpenses);
+</script>
+
+<main class="container p-4">
+  <!-- Kimpay Title Section -->
+  <header class="space-y-1 mb-6 mt-2">
+      <div class="flex items-center gap-3">
+        {#if kimpay.icon}
+            <div class="text-2xl filter drop-shadow-sm transform -translate-y-[1px]">
+                {kimpay.icon}
+            </div>
+        {/if}
+        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 leading-tight">
+            {kimpay.name || "Kimpay"}
+        </h1>
+      </div>
+      <p class="text-slate-500 font-medium dark:text-slate-400 text-sm ml-[1px]">
+          <span class="font-semibold text-slate-700 dark:text-slate-300">{expenses.length}</span> {$t('expense.list.items')}
+          <span class="mx-1">•</span>
+          <span class="font-semibold text-slate-700 dark:text-slate-300">{kimpay.expand?.participants?.length || 0}</span> {$t('settings.participants').toLowerCase()}
+      </p>
+  </header>
+
+  <div class="flex flex-col gap-4">
+    <!-- Expenses List -->
+    {#if isLoading}
+        <div class="text-center py-8 text-slate-500 dark:text-slate-400">{$t('common.loading')}</div>
+    {:else if expenses.length === 0}
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-8 text-center dark:bg-slate-900 dark:border-slate-800 transition-colors">
+           <div class="text-4xl mb-3">💸</div>
+           <p class="text-muted-foreground font-medium dark:text-slate-400">{$t('expense.list.empty')}</p>
+        </div>
+    {:else}
+        <div class="space-y-3">
+            {#each expenses as expense, i}
+                <div 
+                    in:fly={{ y: 20, duration: 400, delay: i * 50 }}
+                    class="flex justify-between items-center p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                >
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl border border-slate-100 dark:border-slate-700 transition-colors">
+                             {expense.icon || '💸'}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors">{expense.description}</span>
+                            <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
+                                <span>{$t('expense.list.paid_by')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span></span>
+                                <span>•</span>
+                                <span>{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="font-bold text-lg text-slate-900 dark:text-slate-100 transition-colors">
+                            {expense.amount.toFixed(2)} €
+                        </div>
+                        <div class="flex gap-1 transition-opacity">
+                            {#if expense.photos && expense.photos.length > 0}
+                                <button class="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => openGallery(expense)}>
+                                    <ImageIcon class="h-4 w-4" />
+                                </button>
+                            {/if}
+                            <a href="/k/{kimpayId}/edit/{expense.id}" class="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg">
+                                <Pencil class="h-4 w-4" />
+                            </a>
+                            <button class="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => requestDelete(expense.id)}>
+                                <Trash2 class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    {/if}
+  </div>
+
+  <ConfirmModal 
+      isOpen={!!expenseToDelete}
+      title={$t('modal.delete_expense.title')}
+      description={$t('modal.delete_expense.desc')}
+      confirmText={$t('modal.delete_expense.confirm')}
+      variant="destructive"
+      isProcessing={isDeleting}
+      onConfirm={confirmDelete}
+      onCancel={() => expenseToDelete = null}
+  />
+  
+  <PhotoGallery 
+      isOpen={galleryOpen}
+      photos={galleryPhotos}
+      record={galleryRecord}
+      onClose={() => galleryOpen = false}
+  />
+</main>
