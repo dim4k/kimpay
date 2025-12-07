@@ -30,7 +30,37 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
     <link rel="manifest" href="/manifest.json" />
-    <title>Kimpay</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Kimpay - Simple Expense Sharing for Groups</title>
+    <meta name="title" content="Kimpay - Simple Expense Sharing for Groups" />
+    <meta name="description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations. Free, fast, and delightful to use." />
+    <meta name="keywords" content="expense sharing, split bills, group expenses, travel expenses, shared costs, tricount alternative, splitwise, expense tracker, debt calculator" />
+    <meta name="author" content="Kimpay" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://kimpay.io" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kimpay.io" />
+    <meta property="og:title" content="Kimpay - Simple Expense Sharing for Groups" />
+    <meta property="og:description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
+    <meta property="og:image" content="https://kimpay.io/og-image.png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://kimpay.io" />
+    <meta property="twitter:title" content="Kimpay - Simple Expense Sharing for Groups" />
+    <meta property="twitter:description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
+    <meta property="twitter:image" content="https://kimpay.io/og-image.png" />
+    
+    <!-- PWA Theme -->
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>
 
 <div class="flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
