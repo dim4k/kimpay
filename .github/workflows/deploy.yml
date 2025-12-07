@@ -30,4 +30,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:latest
-            ${{ secrets.DOCKERDOCKERHUB_USERNAME_USERNAME }}/kimpay-app:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:${{ github.sha }}
