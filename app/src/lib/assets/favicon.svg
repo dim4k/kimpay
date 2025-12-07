@@ -4,7 +4,8 @@
   viewBox="0 0 1024 1024"
   preserveAspectRatio="xMidYMid meet"
 >
-  <g transform="translate(0,1024) scale(0.1,-0.1)" fill="#818cf8" stroke="none">
+  <rect width="1024" height="1024" rx="256" fill="#ffffff" />
+  <g transform="translate(0,1024) scale(0.1,-0.1)" fill="#743BE8" stroke="none">
     <path d="M3220 8694 c-14 -2 -52 -9 -85 -15 -377 -65 -691 -359 -787 -735
     l-23 -89 0 -2760 0 -2760 27 -97 c54 -196 151 -360 292 -496 182 -175 372
     -264 622 -293 169 -20 366 14 530 90 308 144 525 426 589 764 12 65 15 188 15
