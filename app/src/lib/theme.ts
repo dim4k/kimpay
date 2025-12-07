@@ -16,10 +16,32 @@ function createThemeStore() {
                 set(stored);
                 if (stored === 'dark') {
                     document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
                 }
-            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                set('dark');
-                document.documentElement.classList.add('dark');
+            } else {
+                // If no stored preference, use system preference (Default to Light if no system preference)
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                
+                const applySystem = (matches: boolean) => {
+                    if (matches) {
+                        set('dark');
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        set('light');
+                        document.documentElement.classList.remove('dark');
+                    }
+                };
+                
+                applySystem(mediaQuery.matches);
+                
+                // Listen for system changes
+                mediaQuery.addEventListener('change', (e) => {
+                    // Only apply if user hasn't manually overridden
+                    if (!localStorage.getItem('theme')) {
+                        applySystem(e.matches);
+                    }
+                });
             }
         },
         toggle: () => {
