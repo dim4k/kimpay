@@ -1,11 +1,3 @@
-# PocketBase Data
-pb_data/
-
-# Environment Variables
-.env
-.env.*
-
-# Node
 node_modules/
 npm-debug.log
 yarn-error.log

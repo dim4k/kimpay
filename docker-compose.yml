@@ -1,3 +1,19 @@
+services:
+  pocketbase:
+    build:
+      context: .
+      dockerfile: pocketbase/Dockerfile
+    container_name: kimpay-pb
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pocketbase/pb_data:/pb_data
+
+  app:
+    build: 
+      context: ./app
+      dockerfile: Dockerfile
     container_name: kimpay-app
     ports:
       - "3000:3000"

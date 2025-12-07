@@ -13,7 +13,7 @@ RUN wget https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSIO
     && rm pocketbase_${PB_VERSION}_linux_amd64.zip
 
 # Copy migrations
-COPY pb_migrations /pb_migrations
+COPY pocketbase/pb_migrations /pb_migrations
 
 # Expose port
 EXPOSE 8090
