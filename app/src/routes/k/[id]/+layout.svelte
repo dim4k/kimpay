@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { House, ChartPie, Settings, Plus, Share2, UserPlus, Check } from "lucide-svelte";
   import { t } from '$lib/i18n';
-  import { onMount } from 'svelte';
+  import { onMount, setContext } from 'svelte';
   import { pb } from '$lib/pocketbase';
   import { addParticipant } from '$lib/api';
   import { Input } from "$lib/components/ui/input";
@@ -15,6 +15,11 @@
   let participants = $state<any[]>([]);
   let newParticipantName = $state("");
   let isLoadingParticipants = $state(false);
+  
+  // Context for child pages to know when to refresh data
+  let refreshSignal = $state({ count: 0 });
+  setContext('refreshSignal', refreshSignal);
+
   
   async function checkIdentity() {
       if (!kimpayId) return;
@@ -51,6 +56,9 @@
       const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
       myKimpays[kimpayId] = participantId;
       localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
+      
+      // Signal children to refresh
+      refreshSignal.count++;
 
       showIdentityModal = false;
   }

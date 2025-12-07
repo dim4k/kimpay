@@ -3,7 +3,7 @@
   import { Button } from "$lib/components/ui/button"; 
   import { pb } from '$lib/pocketbase';
   import { deleteExpense } from '$lib/api';
-  import { onMount } from 'svelte';
+  import { onMount, getContext } from 'svelte';
   import { Pencil, Share2, Check, Trash2, Image as ImageIcon } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
@@ -89,6 +89,14 @@
   }
 
   onMount(loadExpenses);
+
+  const refreshSignal = getContext<{ count: number }>('refreshSignal');
+  $effect(() => {
+    // This will run when refreshSignal.count changes (triggered by layout)
+    if (refreshSignal && refreshSignal.count > 0) {
+        loadExpenses();
+    }
+  });
 </script>
 
 <main class="container p-4">
