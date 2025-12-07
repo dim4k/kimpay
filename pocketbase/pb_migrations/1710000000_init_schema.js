@@ -68,10 +68,11 @@ migrate((db) => {
         name: "kimpay",
         type: "relation",
         required: true,
+        maxSelect: 1, // Try top-level too
         options: {
           collectionId: savedKimpays.id,
           cascadeDelete: true,
-          maxSelect: 1  // Single relation, not multi
+          maxSelect: 1
         }
       }
     ],
