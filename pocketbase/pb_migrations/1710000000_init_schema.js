@@ -2,7 +2,7 @@
 migrate((db) => {
   const dao = new Dao(db);
 
-  // Step 1: Create kimpays without any relations
+  // Step 1: Create and save kimpays
   const kimpays = new Collection({
     name: "kimpays",
     type: "base",
@@ -35,8 +35,11 @@ migrate((db) => {
   });
   
   dao.saveCollection(kimpays);
+  
+  // Retrieve the saved collection to get the real ID
+  const savedKimpays = dao.findCollectionByNameOrId("kimpays");
 
-  // Step 2: Create participants with relation to kimpays (now it has an ID)
+  // Step 2: Create participants with relation
   const participants = new Collection({
     name: "participants",
     type: "base",
@@ -66,7 +69,7 @@ migrate((db) => {
         type: "relation",
         required: true,
         options: {
-          collectionId: kimpays.id,  // Now kimpays.id exists
+          collectionId: savedKimpays.id,  // Use the saved collection's ID
           cascadeDelete: true
         }
       }
@@ -79,8 +82,11 @@ migrate((db) => {
   });
   
   dao.saveCollection(participants);
+  
+  // Retrieve the saved participants collection
+  const savedParticipants = dao.findCollectionByNameOrId("participants");
 
-  // Step 3: Create expenses with relations
+  // Step 3: Create expenses
   const expenses = new Collection({
     name: "expenses",
     type: "base",
@@ -121,7 +127,7 @@ migrate((db) => {
         type: "relation",
         required: true,
         options: {
-          collectionId: kimpays.id,
+          collectionId: savedKimpays.id,
           cascadeDelete: true
         }
       },
@@ -130,7 +136,7 @@ migrate((db) => {
         type: "relation",
         required: true,
         options: {
-          collectionId: participants.id,
+          collectionId: savedParticipants.id,
           cascadeDelete: false
         }
       },
@@ -139,7 +145,7 @@ migrate((db) => {
         type: "relation",
         required: false,
         options: {
-          collectionId: participants.id,
+          collectionId: savedParticipants.id,
           cascadeDelete: false
         }
       },
@@ -148,7 +154,7 @@ migrate((db) => {
         type: "relation",
         required: false,
         options: {
-          collectionId: participants.id,
+          collectionId: savedParticipants.id,
           cascadeDelete: false,
           maxSelect: 50
         }
@@ -164,17 +170,17 @@ migrate((db) => {
   dao.saveCollection(expenses);
 
   // Step 4: Add created_by to kimpays
-  kimpays.schema.addField(new SchemaField({
+  savedKimpays.schema.addField(new SchemaField({
     name: "created_by",
     type: "relation",
     required: false,
     options: {
-      collectionId: participants.id,
+      collectionId: savedParticipants.id,
       cascadeDelete: false,
       maxSelect: 1
     }
   }));
-  dao.saveCollection(kimpays);
+  dao.saveCollection(savedKimpays);
 
   return null;
 }, (db) => {
