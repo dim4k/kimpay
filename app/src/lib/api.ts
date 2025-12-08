@@ -72,7 +72,18 @@ export async function updateKimpay(id: string, data: { name?: string; icon?: str
 }
 
 export async function deleteExpense(id: string) {
-    await pb.collection('expenses').delete(id);
+    try {
+        const expense = await pb.collection('expenses').getOne(id);
+        await pb.collection('expenses').delete(id);
+        
+        // Touch the kimpay to trigger realtime update for other users
+        if (expense.kimpay) {
+            await pb.collection('kimpays').update(expense.kimpay, { updated: new Date() });
+        }
+    } catch (e) {
+        console.error("Error deleting expense", e);
+        throw e;
+    }
 }
 
 export async function createReimbursement(kimpayId: string, fromId: string, toId: string, amount: number) {

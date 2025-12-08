@@ -4,7 +4,7 @@
   import { Button } from "$lib/components/ui/button"; 
   import { pb } from '$lib/pocketbase';
   import { deleteExpense } from '$lib/api';
-  import { onMount, getContext } from 'svelte';
+  import { onMount, getContext, onDestroy } from 'svelte';
   import { Pencil, Share2, Check, Trash2, Image as ImageIcon, Wallet } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
@@ -93,7 +93,30 @@
       }
   }
 
-  onMount(loadExpenses);
+  
+  let unsubscribe: () => void;
+
+  onMount(async () => {
+      await loadExpenses();
+
+      try {
+        // Subscribe to the KIMPAY record (secure, requires ID)
+        // We will trigger a 'touch' on the Kimpay record whenever an expense is added/modified
+        unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record }) => {
+             if (action === 'update') {
+                 // Reload expenses significantly simplifies the logic (no manual expansion handling)
+                 // and is efficient enough for this use case
+                 await loadExpenses();
+             }
+        });
+      } catch (e) {
+        console.error("Failed to subscribe", e);
+      }
+  });
+
+  onDestroy(() => {
+     unsubscribe?.();
+  });
 
   const refreshSignal = getContext<{ count: number }>('refreshSignal');
   $effect(() => {

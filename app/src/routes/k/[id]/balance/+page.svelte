@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { pb } from '$lib/pocketbase';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
   import { Loader2, ArrowRight, Wallet, CheckCircle } from "lucide-svelte";
   import { fade, fly } from 'svelte/transition';
@@ -17,12 +17,14 @@
   let expenses = $state<any[]>([]);
   let transactions = $state<Transaction[]>([]);
   let myId = $state<string | null>(null);
+  let unsubscribe: () => void;
 
   // Modal State
   // Removed local state in favor of global modals
 
   async function loadBalance() {
-    isLoading = true;
+    // Only show loading spinner on initial load to avoid flicker on realtime updates
+    if (participants.length === 0) isLoading = true;
     try {
       const res = await pb.collection('kimpays').getOne(kimpayId, {
           expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
@@ -45,7 +47,20 @@
     }
   }
 
-  onMount(loadBalance);
+  onMount(async () => {
+      await loadBalance();
+      try {
+          unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record }) => {
+              await loadBalance();
+          });
+      } catch (e) {
+          console.error("Failed to subscribe", e);
+      }
+  });
+
+  onDestroy(() => {
+    unsubscribe?.();
+  });
 
   function openSettleModal(tx: Transaction) {
       modals.confirm({
@@ -149,22 +164,39 @@
             {#if myId}
                 {@const myDebts = transactions.filter(tx => tx.from === myId)}
                 {@const myCredit = transactions.filter(tx => tx.to === myId)}
+                {@const totalDebit = myDebts.reduce((sum, tx) => sum + tx.amount, 0)}
+                {@const totalCredit = myCredit.reduce((sum, tx) => sum + tx.amount, 0)}
+                {@const netBalance = totalCredit - totalDebit}
+                {@const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount)||0), 0)}
                 
                 <div class="mt-8 space-y-3" transition:fade>
                      <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.your_summary')}</h2>
                      <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/50 relative overflow-hidden transition-colors">
-                            <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                            <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
-                            <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={myDebts.reduce((sum, tx) => sum + tx.amount, 0)} /><span class="text-sm align-top opacity-60">€</span>
+                        <!-- Block 1: Net Position -->
+                        {#if netBalance < -0.01}
+                            <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/50 relative overflow-hidden transition-colors">
+                                <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
+                                <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
+                                <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
+                                    <CountUp value={Math.abs(netBalance)} /><span class="text-sm align-top opacity-60">€</span>
+                                </div>
                             </div>
-                        </div>
-                         <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
-                            <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
-                            <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={myCredit.reduce((sum, tx) => sum + tx.amount, 0)} /><span class="text-sm align-top opacity-60">€</span>
+                        {:else}
+                             <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
+                                <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
+                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
+                                <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
+                                    <CountUp value={netBalance} /><span class="text-sm align-top opacity-60">€</span>
+                                </div>
+                            </div>
+                        {/if}
+
+                         <!-- Block 2: Total Expenses -->
+                         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50 relative overflow-hidden transition-colors">
+                            <div class="absolute -right-4 -top-4 bg-blue-200/50 dark:bg-blue-800/20 w-24 h-24 rounded-full blur-2xl"></div>
+                            <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold tracking-wider relative z-10">{$t('balance.total_group')}</span>
+                            <div class="text-2xl font-black text-blue-600/90 dark:text-blue-400 mt-1 relative z-10 tracking-tight">
+                                <CountUp value={totalExpenses} /><span class="text-sm align-top opacity-60">€</span>
                             </div>
                         </div>
                      </div>

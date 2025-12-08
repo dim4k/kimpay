@@ -203,6 +203,9 @@
           } else {
                await pb.collection('expenses').create(formData);
           }
+          
+          // Touch the kimpay to trigger realtime update for other users
+          await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
            goto(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);

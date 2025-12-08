@@ -111,7 +111,8 @@ export const locales = {
     "balance.payer": "Payer",
     "balance.receiver": "Receiver",
     "balance.pays": "pays",
-    "balance.your_summary": "Your Summary",
+    "balance.your_summary": "Summary",
+    "balance.total_group": "TOTAL EXPENSES",
     "balance.you_owe": "YOU OWE",
     "balance.owed_to_you": "YOU ARE OWED",
     
@@ -248,7 +249,8 @@ export const locales = {
     "balance.payer": "Payeur",
     "balance.receiver": "Receveur",
     "balance.pays": "paie",
-    "balance.your_summary": "Votre résumé",
+    "balance.your_summary": "Résumé",
+    "balance.total_group": "DÉPENSES TOTALES",
     "balance.you_owe": "VOUS DEVEZ",
     "balance.owed_to_you": "ON VOUS DOIT",
     
