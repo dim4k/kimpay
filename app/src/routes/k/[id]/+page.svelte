@@ -268,9 +268,15 @@
                                         <div class="flex flex-wrap gap-1 mt-1">
                                             {#if expense.expand?.involved}
                                                 {#each expense.expand.involved as p}
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                                        {p.name}
-                                                    </span>
+                                                    {#if currentUserId && p.id === currentUserId}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                            {$t('common.you')}
+                                                        </span>
+                                                    {:else}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                                                            {p.name}
+                                                        </span>
+                                                    {/if}
                                                 {/each}
                                             {:else}
                                                 <span class="text-slate-400 italic">No participants</span>
