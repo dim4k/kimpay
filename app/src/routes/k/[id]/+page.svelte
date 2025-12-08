@@ -4,7 +4,7 @@
   import { pb } from '$lib/pocketbase';
   import { deleteExpense } from '$lib/api';
   import { onMount, getContext } from 'svelte';
-  import { Pencil, Share2, Check, Trash2, Image as ImageIcon } from "lucide-svelte"; 
+  import { Pencil, Share2, Check, Trash2, Image as ImageIcon, Wallet } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
 
@@ -103,20 +103,20 @@
   });
 </script>
 
-<main class="container p-4">
+<main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors min-h-[calc(100vh-4rem)]">
   <!-- Kimpay Title Section -->
-  <header class="space-y-1 mb-6 mt-2">
+  <header class="space-y-1">
       <div class="flex items-center gap-3">
         {#if kimpay.icon}
             <div class="text-2xl filter drop-shadow-sm transform -translate-y-[1px]">
                 {kimpay.icon}
             </div>
         {/if}
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 leading-tight">
+        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
             {kimpay.name || "Kimpay"}
         </h1>
       </div>
-      <p class="text-slate-500 font-medium dark:text-slate-400 text-sm ml-[1px]">
+      <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">
           <span class="font-semibold text-slate-700 dark:text-slate-300">{expenses.length}</span> {$t('expense.list.items')}
           <span class="mx-1">•</span>
           <span class="font-semibold text-slate-700 dark:text-slate-300">{kimpay.expand?.participants?.length || 0}</span> {$t('settings.participants').toLowerCase()}
@@ -128,9 +128,11 @@
     {#if isLoading}
         <div class="text-center py-8 text-slate-500 dark:text-slate-400">{$t('common.loading')}</div>
     {:else if expenses.length === 0}
-        <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-8 text-center dark:bg-slate-900 dark:border-slate-800 transition-colors">
-           <div class="text-4xl mb-3">💸</div>
-           <p class="text-muted-foreground font-medium dark:text-slate-400">{$t('expense.list.empty')}</p>
+
+        <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors animate-pop-in">
+           <Wallet class="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+           <p class="text-slate-500 font-medium dark:text-slate-400">{$t('expense.list.empty.title')}</p>
+           <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{$t('expense.list.empty.desc')}</p>
         </div>
     {:else}
         <div class="space-y-3">

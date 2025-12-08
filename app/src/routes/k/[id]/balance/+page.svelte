@@ -74,7 +74,7 @@
 
 <main class="container p-4 pb-24 space-y-6 bg-slate-50 dark:bg-background transition-colors">
     <header class="space-y-1">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">{$t('balance.title')}</h1>
+        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
     </header>
 
@@ -83,7 +83,7 @@
             <Loader2 class="h-10 w-10 animate-spin text-indigo-500" />
         </div>
     {:else if expenses.length === 0}
-         <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors">
+         <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors animate-pop-in">
             <Wallet class="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
             <p class="text-slate-500 font-medium dark:text-slate-400">{$t('balance.empty.title')}</p>
             <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{$t('balance.empty.desc')}</p>
@@ -91,7 +91,7 @@
     {:else}
         
         {#if transactions.length === 0}
-            <div class="pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200">
+            <div class="animate-pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200">
                 <CheckCircle class="h-16 w-16 mx-auto mb-4 text-white/90" />
                 <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
                 <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
@@ -233,18 +233,4 @@
 </main>
 
 <style>
-  @keyframes popIn {
-    0% {
-      opacity: 0;
-      transform: scale(0.9) translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  .pop-in {
-    animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
 </style>

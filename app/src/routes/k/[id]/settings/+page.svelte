@@ -236,7 +236,7 @@
 <div class="flex flex-col bg-slate-50 dark:bg-background transition-colors">
     <main class="container p-4 space-y-6">
         <header class="space-y-1">
-            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">{$t('settings.title')}</h1>
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('settings.title')}</h1>
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
         </header>
 

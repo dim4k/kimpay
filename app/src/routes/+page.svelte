@@ -8,7 +8,7 @@
   import { Plus, X, Loader2, History, ArrowRight, LogOut, Languages } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
+  import { fade, slide } from 'svelte/transition';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import Background from '$lib/components/ui/Background.svelte';
   import { t, locale } from '$lib/i18n';
@@ -22,6 +22,18 @@
   // Leave/Delete State
   let kimpayToLeave = $state<string | null>(null);
   let isLeaving = $state(false);
+  
+  // Fast check for initial render to avoid flash if possible
+  import { browser } from '$app/environment';
+  let showHero = $state(false);
+  
+  if (browser) {
+       const raw = localStorage.getItem('my_kimpays');
+       // Only show hero if we are SURE there is no data
+       if (!raw || raw === "{}") {
+           showHero = true;
+       }
+  }
 
   // Creation State
   let kimpayName = $state("");
@@ -53,8 +65,9 @@
                         ids.push(kId);
                         saveNeeded = true;
                     } catch (err: any) {
-                         console.warn('Could not recover kimpay', kId, err.status);
-                        if (err.status === 404) {
+                        // 404: Not found (deleted)
+                        // 403: Forbidden (not allowed to see, likely invalid association)
+                        if (err.status === 404 || err.status === 403) {
                              localStorage.removeItem(key);
                         }
                     }
@@ -87,6 +100,11 @@
                           localStorage.removeItem(`kimpay_user_${id}`);
                       });
                       localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
+                  }
+                  
+                  // Re-evaluate hero visibility after checking real data validity
+                  if (items.length > 0) {
+                      showHero = false;
                   }
 
               } catch (e) {
@@ -213,19 +231,21 @@
 <!-- Background -->
 <Background />
 
-<div class="relative z-10 flex flex-col items-center p-4 pb-12 w-full max-w-md mx-auto mt-8">
+<div class="relative z-10 flex flex-col items-center p-4 pb-12 w-full max-w-md mx-auto mt-4 md:mt-8">
 
-    <div class="text-center space-y-4 mb-10">
-        <!-- Hero Logo (Larger) -->
-        <div class="inline-flex items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl shadow-indigo-100 dark:shadow-none mb-4 transition-all duration-500 hover:scale-105">
-            <Logo class="w-20 h-20 text-indigo-700 dark:text-indigo-400" />
+    {#if showHero}
+        <div class="text-center space-y-2 md:space-y-4 mb-6 md:mb-10" transition:slide={{ axis: 'y', duration: 300 }}>
+            <!-- Hero Logo (Larger) -->
+            <div class="inline-flex items-center justify-center p-4 md:p-6 bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl shadow-indigo-100 dark:shadow-none mb-2 md:mb-4 transition-all duration-500 hover:scale-105">
+                <Logo class="w-12 h-12 md:w-20 md:h-20 text-indigo-700 dark:text-indigo-400" />
+            </div>
+            <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">{$t('app.name')}</h1>
+            <p class="text-sm md:text-lg text-muted-foreground max-w-[280px] mx-auto leading-relaxed">{$t('app.slogan')}</p>
         </div>
-        <h1 class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">{$t('app.name')}</h1>
-        <p class="text-lg text-muted-foreground max-w-[280px] mx-auto leading-relaxed">{$t('app.slogan')}</p>
-    </div>
+    {/if}
     
-    <div class="bg-card p-6 rounded-2xl shadow-sm border space-y-6 w-full transition-colors">
-        <div class="space-y-4">
+    <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors">
+        <div class="space-y-3 md:space-y-4">
             <h2 class="font-semibold text-lg flex items-center gap-2">
                 <div class="w-1 h-6 bg-primary rounded-full"></div>
                 {$t('home.create.title')}
@@ -349,11 +369,15 @@
 
     <!-- History Section -->
     {#if !loadingHistory && recentKimpays.length > 0}
-        <div class="space-y-4 pt-8 w-full" transition:fade>
-            <h3 class="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">
-                <History class="h-3 w-3" />
-                {$t('home.history.title')}
-            </h3>
+        <div class="w-full pt-8 pb-8" transition:fade>
+            <div class="flex items-center py-6">
+                <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                <span class="px-4 text-xs uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-2">
+                    <History class="h-4 w-4" />
+                    {$t('home.history.title')}
+                </span>
+                <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+            </div>
             
             <div class="grid gap-3">
                 {#each recentKimpays as k}
@@ -364,7 +388,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button 
-                                class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                 onclick={(e) => requestLeave(k.id, e)}
                                 title={$t('home.history.leave_tooltip')}
                                 aria-label={$t('home.history.leave_tooltip')}
