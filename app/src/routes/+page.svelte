@@ -15,6 +15,8 @@
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import ScannerModal from "$lib/components/ui/ScannerModal.svelte";
 
+  import { appState } from '$lib/stores/appState.svelte';
+
   let code = $state("");
   let joinError = $state("");
   let isLoading = $state(false);
@@ -28,14 +30,6 @@
   import { browser } from '$app/environment';
   let showHero = $state(false);
   
-  if (browser) {
-       const raw = localStorage.getItem('my_kimpays');
-       // Only show hero if we are SURE there is no data
-       if (!raw || raw === "{}") {
-           showHero = true;
-       }
-  }
-
   // Creation State
   let kimpayName = $state("");
   let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); // Default icon
@@ -44,101 +38,25 @@
   let otherParticipants = $state<string[]>([]);
   let creatorEmail = $state("");
   
-  // History State
-  let recentKimpays = $state<any[]>([]);
-  let loadingHistory = $state(true);
+  // Removed local state: recentKimpays, loadingHistory
+  // We use store: recentKimpays.items, recentKimpays.loading (optional)
+
+  // Determine if we should show hero based on store
+  $effect(() => {
+      if (appState.initializedRecentKimpays) {
+          showHero = appState.recentKimpays.length === 0;
+      } else if (browser) {
+          // Fallback optimistic check while loading
+           const raw = localStorage.getItem('my_kimpays');
+           if (!raw || raw === "{}") {
+               showHero = true;
+           }
+      }
+  });
 
   onMount(async () => {
-      try {
-          const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          let ids = Object.keys(myKimpays);
-          let saveNeeded = false;
-
-          // Migration: Recover lost kimpays from kimpay_user_ keys
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith('kimpay_user_')) {
-                const kId = key.replace('kimpay_user_', '');
-                if (!ids.includes(kId)) {
-                    const localId = localStorage.getItem(key);
-                    try {
-                        const p = await pb.collection('participants').getFirstListItem(`kimpay="${kId}" && local_id="${localId}"`);
-                        myKimpays[kId] = p.id;
-                        ids.push(kId);
-                        saveNeeded = true;
-                    } catch (err: any) {
-                        // 404: Not found (deleted)
-                        // 403: Forbidden (not allowed to see, likely invalid association)
-                        if (err.status === 404 || err.status === 403) {
-                             localStorage.removeItem(key);
-                        }
-                    }
-                }
-            }
-          }
-
-          if (saveNeeded) {
-              localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-          }
-          
-          const validIds = [...new Set(ids)].filter(id => id && /^[a-zA-Z0-9]{15}$/.test(id));
-          
-          if (validIds.length > 0) {
-              const filter = validIds.map(id => `id='${id}'`).join(' || ');
-              try {
-                  const promises = validIds.map(async id => {
-                      try {
-                          const record = await pb.collection('kimpays').getOne(id, { requestKey: null });
-                          return { id, data: record, status: 'found' };
-                      } catch (err: any) {
-                          if (err.status === 404 || err.status === 403) {
-                              return { id, status: 'missing' };
-                          }
-                          return { id, status: 'error' };
-                      }
-                  });
-
-                  const results = await Promise.all(promises);
-                  const items = results.filter(r => r.status === 'found').map(r => r.data);
-                  
-                  recentKimpays = items;
-                  
-                   // Cleanup ONLY if explicitly missing (404/403)
-                  const missingIds = results.filter(r => r.status === 'missing').map(r => r.id);
-                  const errorIds = results.filter(r => r.status === 'error').map(r => r.id);
-
-                  if (errorIds.length > 0) {
-                      console.warn("Some kimpays could not be loaded due to errors (network?):", errorIds);
-                      // Do NOT delete them
-                  }
-
-                  if (missingIds.length > 0) {
-                      missingIds.forEach(id => {
-                          delete myKimpays[id];
-                          localStorage.removeItem(`kimpay_user_${id}`);
-                      });
-                      localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-                  }
-                  
-                  // Re-evaluate hero visibility
-                  // Show hero only if we have no items AND no errors (if error, we maybe shouldn't show hero but show existing partial list or loading state?)
-                  // Actually if items.length > 0 we hide hero.
-                  if (items.length > 0) {
-                      showHero = false;
-                  } else if (errorIds.length > 0) {
-                     // If we have errors and no items, maybe keep hero hidden or show it?
-                     // Safe default: leave as is (false if we started false, or true if started true)
-                     // But initialization logic sets showHero based on localStorage raw check.
-                  }
-              } catch (e) {
-                   console.error("Error fetching recent kimpays", e);
-              }
-          }
-      } catch (e: any) {
-          console.error("Failed to load history", e);
-      } finally {
-          loadingHistory = false;
-      }
+      // Store init handles deduplication
+      appState.initRecentKimpays();
   });
 
   async function join() {
@@ -207,6 +125,9 @@
     try {
       const record = await createKimpay(kimpayName, kimpayIcon, creatorName, otherParticipants);
       
+      // Update store immediately
+      appState.addRecentKimpay(record);
+      
       if (creatorEmail && creatorEmail.trim()) {
         const kimpayUrl = `${window.location.origin}/k/${record.id}`;
         
@@ -241,7 +162,7 @@
       try {
           const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
           const participantId = myKimpays[kimpayToLeave];
-          const kimpay = recentKimpays.find(k => k.id === kimpayToLeave);
+          const kimpay = appState.recentKimpays.find(k => k.id === kimpayToLeave);
 
           if (participantId) {
              let canDelete = true;
@@ -282,7 +203,7 @@
           localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
           localStorage.removeItem(`kimpay_user_${kimpayToLeave}`); // Add cleanup here to prevent re-adding on refresh
 
-          recentKimpays = recentKimpays.filter(k => k.id !== kimpayToLeave);
+          appState.removeRecentKimpay(kimpayToLeave);
           kimpayToLeave = null;
 
       } catch (e) {
@@ -462,7 +383,7 @@
     </div>
 
     <!-- History Section -->
-    {#if !loadingHistory && recentKimpays.length > 0}
+    {#if !appState.loadingRecentKimpays && appState.recentKimpays.length > 0}
         <div class="w-full pt-8 pb-8" transition:fade>
             <div class="flex items-center py-6">
                 <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
@@ -474,8 +395,8 @@
             </div>
             
             <div class="grid gap-3">
-                {#each recentKimpays as k}
-                    <a href="/k/{k.id}" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
+                {#each appState.recentKimpays as k}
+                    <a href="/k/{k.id}" data-sveltekit-preload-data="off" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                         <div class="flex items-center gap-3">
                             <span class="text-2xl">{k.icon || "📁"}</span>
                             <span class="font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">{k.name}</span>

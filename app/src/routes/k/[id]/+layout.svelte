@@ -8,7 +8,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
 
-  import { appState } from '$lib/state.svelte';
+  import { appState } from '$lib/stores/appState.svelte';
   import { modals } from '$lib/stores/modals';
   
   let { children, data } = $props();

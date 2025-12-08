@@ -8,15 +8,21 @@
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
+  import { appState } from '$lib/stores/appState.svelte';
 
   let kimpayId = $derived($page.params.id ?? '');
-  let kimpay = $state<any>(null);
+  let kimpay = $derived(appState.kimpay);
   let inviteLink = $state("");
   let copied = $state(false);
   let qrDataUrl = $state<string | null>(null);
 
   onMount(async () => {
       inviteLink = window.location.href.replace('/share', ''); // Clean URL
+      
+      // Init app state (deduplicated internally)
+      if (kimpayId) {
+          appState.init(kimpayId);
+      }
       
       // Generate QR immediately with the link
       try {
@@ -30,12 +36,6 @@
            });
       } catch (err) {
           console.error("QR Generation failed", err);
-      }
-
-      try {
-          kimpay = await pb.collection('kimpays').getOne(kimpayId);
-      } catch (e) {
-          console.error(e);
       }
   });
 

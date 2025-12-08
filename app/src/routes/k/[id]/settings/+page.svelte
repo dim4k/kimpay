@@ -12,6 +12,8 @@
   import { t } from '$lib/i18n';
   import { installPrompt, install } from '$lib/stores/install';
   import { Download, FileText, Table } from 'lucide-svelte';
+  import { appState } from '$lib/stores/appState.svelte';
+  
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   
   let kimpayId = $derived($page.params.id ?? '');
@@ -27,8 +29,6 @@
   
   // Feedback State
   let saveFeedback = $state("");
-
-
 
   let participants = $state<any[]>([]);
 
@@ -84,10 +84,14 @@
       isSaving = true;
       saveFeedback = "";
       try {
-          await updateKimpay(kimpayId, {
+          const updatedKimpay = await updateKimpay(kimpayId, {
               name: editName,
               icon: editIcon
           });
+          
+          // Update store
+          appState.updateRecentKimpay(updatedKimpay);
+
           saveFeedback = "updated";
           setTimeout(() => saveFeedback = "", 2000);
       } catch (e) {

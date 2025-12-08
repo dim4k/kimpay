@@ -7,7 +7,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Check } from "lucide-svelte";
   import { onMount } from 'svelte';
-  import { appState } from '$lib/state.svelte';
+  import { appState } from '$lib/stores/appState.svelte';
   import { invalidateAll } from '$app/navigation';
   
   let { isOpen } = $props();

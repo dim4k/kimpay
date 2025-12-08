@@ -11,17 +11,20 @@
     import { onMount } from 'svelte';
     import { pb } from '$lib/pocketbase';
     import { page } from '$app/stores';
-    import { appState } from '$lib/state.svelte';
+    import { appState } from '$lib/stores/appState.svelte';
     import Avatar from '$lib/components/ui/Avatar.svelte';
     import { updateParticipant } from '$lib/api';
     import { modals } from '$lib/stores/modals';
     import { Camera, RefreshCw } from "lucide-svelte";
     import { invalidateAll } from '$app/navigation';
 
-	let { children, data } = $props();
+    // import { recentKimpays } from '$lib/stores/recentKimpays.svelte'; // Removed
+
+    let { children, data } = $props();
     let isMenuOpen = $state(false);
     let isLangOptionsOpen = $state(false);
-    let recentKimpays = $state<any[]>([]);
+    // let recentKimpays = $state<any[]>([]); // Replaced by store usage
+    
     let menuRef = $state<HTMLElement | null>(null);
     let triggerRef = $state<HTMLElement | null>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
@@ -76,36 +79,9 @@
         }
     }
 
-    async function loadGroups() {
-        try {
-             // Only run in browser
-            if (typeof localStorage === 'undefined') return;
-
-            const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-            // Filter only valid IDs (15 chars)
-            const ids = Object.keys(myKimpays).filter(id => id && /^[a-zA-Z0-9]{15}$/.test(id));
-            
-            if (ids.length === 0) {
-                recentKimpays = [];
-                return;
-            }
-
-            // Fetch safely
-            const promises = ids.map(id => pb.collection('kimpays').getOne(id, { requestKey: null }).catch(() => null));
-            const items = (await Promise.all(promises)).filter(i => i !== null);
-            
-            // Sort by updated? Or just keeping order is fine. 
-            // Reverse to show newest? Localstorage keys order is undefined mostly.
-            // Let's rely on the fetch order which matches keys order.
-            recentKimpays = items;
-        } catch (e) {
-            console.error("Failed to load groups in layout", e);
-        }
-    }
-
     onMount(() => {
         theme.init();
-        loadGroups();
+        appState.initRecentKimpays();
 
         if ('serviceWorker' in navigator && import.meta.env.PROD) {
             navigator.serviceWorker.register('/service-worker.js');
@@ -113,10 +89,9 @@
     });
 
     // Re-load groups on navigation (in case a new one was created)
-    // We can use the page store to detect path changes
     $effect(() => {
         if ($page.url.pathname) {
-            loadGroups();
+            appState.initRecentKimpays();
             
             // Reset app state if we leave the kimpay context
             if (!$page.url.pathname.startsWith('/k/')) {
@@ -242,15 +217,16 @@
                                     {$t('home.history.title')}
                                 </div>
                                 
-                                {#if recentKimpays.length === 0}
+                                {#if appState.recentKimpays.length === 0}
                                     <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
                                         {$t('expense.list.empty.title')}
                                     </div>
                                 {:else}
-                                    {@const filteredKimpays = recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                                    {@const filteredKimpays = appState.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
                                     {#each filteredKimpays as k}
                                         <a 
                                             href="/k/{k.id}" 
+                                            data-sveltekit-preload-data="off"
                                             class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                             onclick={() => isMenuOpen = false}
                                         >
