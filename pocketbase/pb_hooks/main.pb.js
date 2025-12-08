@@ -41,22 +41,35 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         // 1. Fetch Template
         let template;
         try {
-             // findFirstRecordByFilter allows multiple conditions
-             template = $app.dao().findFirstRecordByFilter(
+             // Use findRecordsByFilter to be safe, creating a query to limit to 1
+             const records = $app.dao().findRecordsByFilter(
                  "email_templates", 
                  "slug = {:slug} && locale = {:locale}",
+                 "-created", // sort
+                 1, // limit
+                 0, // offset
                  { slug: "share_kimpay", locale: locale }
              );
+             if (records && records.length > 0) {
+                 template = records[0];
+             }
         } catch(e) {
+            console.log("Error fetching template for locale " + locale + ":", e);
             // Fallback to English
             try {
-                 template = $app.dao().findFirstRecordByFilter(
+                 const recordsEn = $app.dao().findRecordsByFilter(
                      "email_templates", 
                      "slug = {:slug} && locale = 'en'",
+                     "-created",
+                     1,
+                     0,
                      { slug: "share_kimpay" }
                  );
+                 if (recordsEn && recordsEn.length > 0) {
+                    template = recordsEn[0];
+                 }
             } catch(e2) {
-                console.log("No email template found for share_kimpay");
+                console.log("No email template found for share_kimpay (fallback failed)", e2);
             }
         }
 
