@@ -320,13 +320,24 @@
 
                                 <!-- Action Bar -->
                                 <div class="grid grid-cols-3 gap-2">
-                                     <button 
-                                        class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active:scale-95"
-                                        onclick={(e) => { e.stopPropagation(); goto(`/k/${kimpayId}/edit/${expense.id}`); }}
-                                     >
-                                        <Pencil class="h-4 w-4" />
-                                        {$t('common.edit')}
-                                     </button>
+                                     {#if expense.is_reimbursement}
+                                         <button 
+                                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 font-medium text-sm cursor-not-allowed"
+                                            disabled
+                                            title="Reimbursements cannot be edited"
+                                         >
+                                            <Pencil class="h-4 w-4" />
+                                            {$t('common.edit')}
+                                         </button>
+                                     {:else}
+                                         <button 
+                                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active:scale-95"
+                                            onclick={(e) => { e.stopPropagation(); goto(`/k/${kimpayId}/edit/${expense.id}`); }}
+                                         >
+                                            <Pencil class="h-4 w-4" />
+                                            {$t('common.edit')}
+                                         </button>
+                                     {/if}
 
                                      {#if expense.photos && expense.photos.length > 0}
                                         <button 
