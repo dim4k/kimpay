@@ -5,7 +5,7 @@
   import { createKimpay } from '$lib/api';
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
-  import { Plus, X, Loader2, History, ArrowRight, LogOut, Languages } from "lucide-svelte";
+  import { Plus, X, Loader2, History, ArrowRight, LogOut, Languages, QrCode } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { onMount } from 'svelte';
   import { fade, slide } from 'svelte/transition';
@@ -13,6 +13,7 @@
   import Background from '$lib/components/ui/Background.svelte';
   import { t, locale } from '$lib/i18n';
   import { EMOJIS } from '$lib/constants';
+  import ScannerModal from "$lib/components/ui/ScannerModal.svelte";
 
   let code = $state("");
   let joinError = $state("");
@@ -125,13 +126,45 @@
     
     try {
         // Validate existence first
-        await pb.collection('kimpays').getOne(code);
-        goto(`/k/${code}`); 
+        // Simple cleanup if full url pasted
+        const cleanCode = code.includes('/k/') ? code.split('/k/')[1].split('/')[0] : code;
+        await pb.collection('kimpays').getOne(cleanCode);
+        goto(`/k/${cleanCode}`); 
     } catch (e) {
         joinError = $t('home.join.error_not_found');
     } finally {
         isLoading = false;
     }
+  }
+  
+  // Scanner Logic
+  let isScannerOpen = $state(false);
+
+  function handleScan(decodedText: string) {
+      if (!decodedText) return;
+      
+      let foundId = "";
+      
+      // 1. Try URL Regex
+      // Matches .../k/RECORDID...
+      const urlMatch = decodedText.match(/\/k\/([a-zA-Z0-9]{15})/);
+      if (urlMatch && urlMatch[1]) {
+          foundId = urlMatch[1];
+      } 
+      // 2. Check if raw ID (PocketBase standard: 15 chars alphanumeric)
+      else if (/^[a-zA-Z0-9]{15}$/.test(decodedText)) {
+          foundId = decodedText;
+      }
+
+      if (foundId) {
+          code = foundId;
+          isScannerOpen = false;
+          join(); // Auto join
+      } else {
+          // Feedback could be improved, but for now just close and fill text
+          alert("QR Code invalide ou lien Kimpay non reconnu.");
+          isScannerOpen = false;
+      }
   }
 
   function addParticipant() {
@@ -349,16 +382,28 @@
                 <Input 
                     bind:value={code} 
                     placeholder={$t('home.join.placeholder')} 
-                    class="text-center tracking-widest uppercase font-mono {joinError ? 'border-red-500 ring-red-500' : ''}" 
+                    class="text-center font-bold uppercase placeholder:font-normal {joinError ? 'border-red-500 ring-red-500' : ''}" 
                     oninput={() => joinError = ""}
                     onkeydown={(e) => e.key === 'Enter' && join()}
                 />
+                
                 <Button onclick={join} variant="secondary" disabled={isLoading}>
                     {#if isLoading}
                         <Loader2 class="h-4 w-4 animate-spin" />
                     {:else}
                         {$t('home.join.button')}
                     {/if}
+                </Button>
+
+                <!-- Mobile Scan Button -->
+                <Button 
+                  variant="outline"
+                  size="icon"
+                  class="md:hidden aspect-square shrink-0"
+                  onclick={() => isScannerOpen = true}
+                  aria-label="Scan QR Code"
+                >
+                   <QrCode class="h-4 w-4" />
                 </Button>
             </div>
             {#if joinError}
@@ -412,6 +457,12 @@
       isProcessing={isLeaving}
       onConfirm={confirmLeave}
       onCancel={() => kimpayToLeave = null}
+  />
+
+  <ScannerModal 
+      isOpen={isScannerOpen} 
+      onScan={handleScan} 
+      onClose={() => isScannerOpen = false} 
   />
 </div>
 
