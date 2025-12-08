@@ -101,6 +101,8 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
             to:      [{ address: email }],
             subject: subject,
             html:    html,
+            // Add plaintext version for better deliverability score
+            text:    `${subject}\n\n${kimpayName}\n${url}`,
         });
 
         try {
