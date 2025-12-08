@@ -96,26 +96,37 @@
   
   let unsubscribe: () => void;
 
-  onMount(async () => {
+  async function initPage() {
+      isLoading = true;
+      
+      // Cleanup previous subscription if any
+      if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = undefined!;
+      }
+
       await loadExpenses();
 
       try {
-        // Subscribe to the KIMPAY record (secure, requires ID)
-        // We will trigger a 'touch' on the Kimpay record whenever an expense is added/modified
         unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record }) => {
              if (action === 'update') {
-                 // Reload expenses significantly simplifies the logic (no manual expansion handling)
-                 // and is efficient enough for this use case
                  await loadExpenses();
              }
         });
       } catch (e) {
         console.error("Failed to subscribe", e);
       }
+  }
+
+  $effect(() => {
+      // Reactively run initPage when kimpayId changes
+      if (kimpayId) {
+          initPage();
+      }
   });
 
   onDestroy(() => {
-     unsubscribe?.();
+     if (unsubscribe) unsubscribe();
   });
 
   const refreshSignal = getContext<{ count: number }>('refreshSignal');
