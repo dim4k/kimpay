@@ -127,11 +127,15 @@
       }
   }
 
+  let currentUserId = $state<string | null>(null);
+
   $effect(() => {
-      // Reactively run initPage when kimpayId changes
-      if (kimpayId) {
-          initPage();
-      }
+    if (kimpayId) {
+        // Read user ID from storage
+        const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+        currentUserId = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
+        initPage();
+    }
   });
 
   onDestroy(() => {
@@ -142,6 +146,9 @@
   $effect(() => {
     // This will run when refreshSignal.count changes (triggered by layout)
     if (refreshSignal && refreshSignal.count > 0) {
+        // Re-read user ID in case it changed (e.g. identify modal)
+        const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+        currentUserId = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
         loadExpenses();
     }
   });
@@ -211,7 +218,14 @@
                                 </span>
                                 {#if expandedId !== expense.id}
                                     <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors" transition:slide={{ axis: 'y', duration: 200 }}>
-                                        <span class="truncate">{$t('expense.list.paid_by')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span></span>
+                                        <span class="truncate">
+                                            {$t('expense.list.paid_by')} 
+                                            {#if currentUserId && expense.payer === currentUserId}
+                                                <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
+                                            {:else}
+                                                <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
+                                            {/if}
+                                        </span>
                                         <span>•</span>
                                         <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
                                     </div>
@@ -237,9 +251,15 @@
                                     <div>
                                         <span>{$t('expense.list.paid_by')}:</span>
                                         <div class="mt-1">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                                {expense.expand?.payer?.name || $t('common.unknown')}
-                                            </span>
+                                            {#if currentUserId && expense.payer === currentUserId}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                    {$t('common.you')}
+                                                </span>
+                                            {:else}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                                                    {expense.expand?.payer?.name || $t('common.unknown')}
+                                                </span>
+                                            {/if}
                                         </div>
                                     </div>
 
