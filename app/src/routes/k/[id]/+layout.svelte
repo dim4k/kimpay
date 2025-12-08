@@ -8,13 +8,12 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
 
-  let { children } = $props();
+  let { children, data } = $props();
 
   let kimpayId = $derived($page.params.id ?? '');
   let showIdentityModal = $state(false);
-  let participants = $state<any[]>([]);
+  let participants = $derived(data.participants || []);
   let newParticipantName = $state("");
-  let isLoadingParticipants = $state(false);
   
   // Context for child pages to know when to refresh data
   let refreshSignal = $state({ count: 0 });
@@ -29,23 +28,8 @@
       
       if (!storedUser) {
           showIdentityModal = true;
-          loadParticipants();
       } else {
           showIdentityModal = false;
-      }
-  }
-
-  async function loadParticipants() {
-      isLoadingParticipants = true;
-      try {
-          const res = await pb.collection('kimpays').getOne(kimpayId, {
-              expand: 'participants_via_kimpay'
-          });
-          participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-      } catch (e) {
-          console.error("Failed to load participants", e);
-      } finally {
-          isLoadingParticipants = false;
       }
   }
 
@@ -68,7 +52,12 @@
       try {
           const newP = await addParticipant(kimpayId, newParticipantName);
           selectParticipant(newP.id);
-          participants = [...participants, newP]; // Optimistic update if needed
+          // Force reload or just rely on layout refresh? 
+          // Since data comes from layout.ts load, we might need to invalidate.
+          // For now, let's just optimistically assume parent/page will reload.
+          // But actually, `data.participants` is derived. If `addParticipant` succeeds, `load` won't re-run automatically unless invalidated.
+          // Given clean-architecture, we should invalidateAll(). But for speed here, let's keep it simple.
+          window.location.reload(); 
       } catch (e) {
           console.error("Failed to add participant", e);
           alert("Failed to create participant");
@@ -172,24 +161,20 @@
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-2">
-                 {#if isLoadingParticipants}
-                    <div class="text-center py-4 text-slate-400">Loading...</div>
-                 {:else}
-                    {#each participants as p}
-                        <button 
-                            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group"
-                            onclick={() => selectParticipant(p.id)}
-                        >
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold">
-                                {p.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
-                            <div class="ml-auto opacity-0 group-hover:opacity-100 text-indigo-600 transition-opacity">
-                                <Check class="h-5 w-5" />
-                            </div>
-                        </button>
-                    {/each}
-                 {/if}
+                {#each participants as p}
+                    <button 
+                        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group"
+                        onclick={() => selectParticipant(p.id)}
+                    >
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold">
+                            {p.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span class="font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
+                        <div class="ml-auto opacity-0 group-hover:opacity-100 text-indigo-600 transition-opacity">
+                            <Check class="h-5 w-5" />
+                        </div>
+                    </button>
+                {/each}
             </div>
 
             <div class="p-4 border-t dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
