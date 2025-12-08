@@ -1,202 +1,141 @@
-/// <reference path="../pb_data/types.d.ts" />
-migrate((db) => {
-  const dao = new Dao(db);
+migrate((app) => {
+  const KIMPAYS_ID = "kimpays00000000";
+  const PARTICIPANTS_ID = "participants000";
 
-  // Step 1: Create and save kimpays
+  // --- Helper to add fields ---
+  const addFields = (collection, fields) => {
+      fields.forEach(f => collection.fields.add(f));
+  };
+
+  // --- Helper for system fields ---
+  const getSystemFields = () => [
+      new AutodateField({ name: "created", onCreate: true }),
+      new AutodateField({ name: "updated", onCreate: true, onUpdate: true })
+  ];
+
+  // Step 1: Create kimpays
   const kimpays = new Collection({
+    id: KIMPAYS_ID,
     name: "kimpays",
     type: "base",
-    schema: [
-      {
-        name: "name",
-        type: "text",
-        required: true
-      },
-      {
-        name: "invite_token",
-        type: "text",
-        required: true
-      },
-      {
-        name: "icon",
-        type: "text",
-        required: false,
-        options: { max: 10 }
-      }
-    ],
     indexes: [
       "CREATE UNIQUE INDEX idx_invite_token ON kimpays (invite_token)"
     ],
-    listRule: "",
-    viewRule: "",
     createRule: "",
     updateRule: "",
-    deleteRule: ""
+    deleteRule: "",
+    viewRule: ""
   });
   
-  dao.saveCollection(kimpays);
-  
-  // Retrieve the saved collection to get the real ID
-  const savedKimpays = dao.findCollectionByNameOrId("kimpays");
+  addFields(kimpays, [
+      new TextField({ name: "name", required: true }),
+      new TextField({ name: "invite_token", required: true }),
+      new TextField({ name: "icon", max: 10 }),
+      ...getSystemFields()
+  ]);
 
-  // Step 2: Create participants with relation
+  app.save(kimpays);
+  
+  // Step 2: Create participants
   const participants = new Collection({
+    id: PARTICIPANTS_ID,
     name: "participants",
     type: "base",
-    schema: [
-      {
-        name: "name",
-        type: "text",
-        required: true
-      },
-      {
-        name: "local_id",
-        type: "text",
-        required: false
-      },
-      {
-        name: "avatar",
-        type: "file",
-        required: false,
-        options: {
-          maxSelect: 1,
-          maxSize: 0,
-          mimeTypes: ["image/jpeg", "image/png", "image/webp"]
-        }
-      },
-      {
-        name: "kimpay",
-        type: "relation",
-        required: true,
-        maxSelect: 1, // Try top-level too
-        options: {
-          collectionId: savedKimpays.id,
-          cascadeDelete: true,
-          maxSelect: 1
-        }
-      }
-    ],
-    listRule: "",
-    viewRule: "",
     createRule: "",
     updateRule: "",
-    deleteRule: ""
+    deleteRule: "",
+    viewRule: ""
   });
-  
-  dao.saveCollection(participants);
-  
-  // Retrieve the saved participants collection
-  const savedParticipants = dao.findCollectionByNameOrId("participants");
 
+  addFields(participants, [
+      new TextField({ name: "name", required: true }),
+      new TextField({ name: "local_id" }),
+      new FileField({
+        name: "avatar",
+        maxSelect: 1, 
+        maxSize: 52428800,
+        mimeTypes: ["image/jpeg", "image/png", "image/webp"]
+      }),
+      new RelationField({
+        name: "kimpay",
+        required: true,
+        collectionId: KIMPAYS_ID,
+        cascadeDelete: true,
+        maxSelect: 1
+      }),
+      ...getSystemFields()
+  ]);
+  
+  app.save(participants);
+  
   // Step 3: Create expenses
   const expenses = new Collection({
     name: "expenses",
     type: "base",
-    schema: [
-      {
-        name: "description",
-        type: "text",
-        required: true
-      },
-      {
-        name: "amount",
-        type: "number",
-        required: true
-      },
-      {
-        name: "date",
-        type: "date",
-        required: true
-      },
-      {
-        name: "photos",
-        type: "file",
-        required: false,
-        options: {
-          maxSelect: 10,
-          maxSize: 0,
-          mimeTypes: ["image/jpeg", "image/png", "image/webp"]
-        }
-      },
-      {
-        name: "icon",
-        type: "text",
-        required: false,
-        options: { max: 10 }
-      },
-      {
-        name: "kimpay",
-        type: "relation",
-        required: true,
-        maxSelect: 1,
-        options: {
-          collectionId: savedKimpays.id,
-          cascadeDelete: true,
-          maxSelect: 1
-        }
-      },
-      {
-        name: "payer",
-        type: "relation",
-        required: true,
-        maxSelect: 1,
-        options: {
-          collectionId: savedParticipants.id,
-          cascadeDelete: false,
-          maxSelect: 1
-        }
-      },
-      {
-        name: "created_by",
-        type: "relation",
-        required: false,
-        maxSelect: 1,
-        options: {
-          collectionId: savedParticipants.id,
-          cascadeDelete: false,
-          maxSelect: 1
-        }
-      },
-      {
-        name: "involved",
-        type: "relation",
-        required: false,
-        options: {
-          collectionId: savedParticipants.id,
-          cascadeDelete: false,
-          maxSelect: 50
-        }
-      }
-    ],
-    listRule: "",
-    viewRule: "",
     createRule: "",
     updateRule: "",
-    deleteRule: ""
+    deleteRule: "",
+    viewRule: ""
   });
+
+  addFields(expenses, [
+      new TextField({ name: "description", required: true }),
+      new NumberField({ name: "amount", required: true }),
+      new DateField({ name: "date", required: true }),
+      new FileField({
+        name: "photos",
+        maxSelect: 20, 
+        maxSize: 52428800,
+        mimeTypes: ["image/jpeg", "image/png", "image/webp"]
+      }),
+      new TextField({ name: "icon", max: 10 }),
+      new RelationField({
+        name: "kimpay",
+        required: true,
+        collectionId: KIMPAYS_ID,
+        cascadeDelete: true,
+        maxSelect: 1
+      }),
+      new RelationField({
+        name: "payer",
+        required: true,
+        collectionId: PARTICIPANTS_ID,
+        cascadeDelete: false,
+        maxSelect: 1
+      }),
+      new RelationField({
+        name: "created_by",
+        collectionId: PARTICIPANTS_ID,
+        cascadeDelete: false,
+        maxSelect: 1
+      }),
+      new RelationField({
+        name: "involved",
+        collectionId: PARTICIPANTS_ID,
+        cascadeDelete: false,
+        maxSelect: 50
+      }),
+      ...getSystemFields()
+  ]);
   
-  dao.saveCollection(expenses);
+  app.save(expenses);
 
   // Step 4: Add created_by to kimpays
-  savedKimpays.schema.addField(new SchemaField({
-    name: "created_by",
-    type: "relation",
-    required: false,
-    options: {
-      collectionId: savedParticipants.id,
-      cascadeDelete: false,
-      maxSelect: 1
-    }
-  }));
-  dao.saveCollection(savedKimpays);
+  try {
+      const kimpaysRef = app.findCollectionByNameOrId(KIMPAYS_ID);
+      kimpaysRef.fields.add(new RelationField({
+        name: "created_by",
+        collectionId: PARTICIPANTS_ID,
+        cascadeDelete: false,
+        maxSelect: 1
+      }));
+      app.save(kimpaysRef);
+  } catch (e) {
+      console.log("Error adding created_by to kimpays", e);
+  }
 
-  return null;
-}, (db) => {
-  const dao = new Dao(db);
-  
-  dao.deleteCollection(dao.findCollectionByNameOrId("expenses"));
-  dao.deleteCollection(dao.findCollectionByNameOrId("participants"));
-  dao.deleteCollection(dao.findCollectionByNameOrId("kimpays"));
-  
-  return null;
+}, (app) => {
+  try { app.delete(app.findCollectionByNameOrId("expenses")); } catch(e) {}
+  try { app.delete(app.findCollectionByNameOrId("participants")); } catch(e) {}
+  try { app.delete(app.findCollectionByNameOrId("kimpays")); } catch(e) {}
 })

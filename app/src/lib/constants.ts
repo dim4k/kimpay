@@ -9,6 +9,7 @@ const GROUPS = {
 
 export const DEFAULT_KIMPAY_EMOJI = "✨";
 export const DEFAULT_EXPENSE_EMOJI = "💸";
+export const REIMBURSEMENT_EMOJI = "🔄";
 
 // Initial list for creating a new Kimpay Group - Curated selection
 export const KIMPAY_EMOJIS = [

@@ -119,6 +119,9 @@ export const locales = {
     "balance.settle.modal.title": "Settle Debt?",
     "balance.settle.modal.desc": "Mark {amount} as paid from {from} to {to}?",
     "balance.settle.confirm": "Confirm Payment",
+    "balance.reimbursement": "Reimbursement",
+    "balance.status": "STATUS",
+    "balance.all_good": "All good 😎",
 
     "share.title": "Join Group",
     "share.desc": "Scan to join",
@@ -257,6 +260,9 @@ export const locales = {
     "balance.settle.modal.title": "Régler la dette ?",
     "balance.settle.modal.desc": "Marquer {amount} comme payé de {from} à {to} ?",
     "balance.settle.confirm": "Confirmer le paiement",
+    "balance.reimbursement": "Remboursement",
+    "balance.status": "STATUT",
+    "balance.all_good": "Tout bon 😎",
 
     "share.title": "Rejoindre",
     "share.desc": "Scannez pour rejoindre",

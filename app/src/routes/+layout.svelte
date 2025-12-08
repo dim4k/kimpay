@@ -16,6 +16,20 @@
     let isMenuOpen = $state(false);
     let isLangOptionsOpen = $state(false);
     let recentKimpays = $state<any[]>([]);
+    let menuRef = $state<HTMLElement | null>(null);
+    let triggerRef = $state<HTMLElement | null>(null);
+
+    function handleOutsideClick(event: MouseEvent) {
+        if (
+            isMenuOpen && 
+            menuRef && 
+            triggerRef && 
+            !menuRef.contains(event.target as Node) && 
+            !triggerRef.contains(event.target as Node)
+        ) {
+            isMenuOpen = false;
+        }
+    }
 
     async function loadGroups() {
         try {
@@ -103,6 +117,8 @@
     <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>
 
+<svelte:window onclick={handleOutsideClick} />
+
 <div class="flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
 	<header class="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
 		<div class="container flex h-16 items-center justify-between px-4">
@@ -115,6 +131,7 @@
                 <!-- Burger Menu -->
                 <div class="relative">
                     <button 
+                        bind:this={triggerRef}
                         onclick={() => isMenuOpen = !isMenuOpen}
                         class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"
                         title="Menu"
@@ -124,6 +141,7 @@
 
                     {#if isMenuOpen}
                          <div 
+                             bind:this={menuRef}
                              class="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col"
                              transition:slide={{ duration: 200 }}
                          >
@@ -221,13 +239,6 @@
                                 </div>
                             </div>
                          </div>
-                         <div 
-                             class="fixed inset-0 z-[-1]" 
-                             onclick={() => isMenuOpen = false} 
-                             role="button" 
-                             tabindex="-1" 
-                             onkeydown={(e) => e.key === 'Escape' && (isMenuOpen = false)}
-                         ></div>
                     {/if}
                 </div>
             </div>

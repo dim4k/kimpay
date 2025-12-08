@@ -1,6 +1,7 @@
 import { pb } from '$lib/pocketbase';
 import { goto } from '$app/navigation';
 import { generateUUID } from '$lib/utils';
+import { REIMBURSEMENT_EMOJI } from '$lib/constants';
 
 export async function createKimpay(name: string, icon: string, creatorName: string, otherParticipants: string[] = []) {
   try {
@@ -12,19 +13,19 @@ export async function createKimpay(name: string, icon: string, creatorName: stri
       icon,
       invite_token,
       // We will update created_by AFTER creating the participant because we need the participant ID
-    });
+    }, { requestKey: null });
 
     // 2. Create Creator Participant
     const creatorRecord = await pb.collection('participants').create({
       name: creatorName,
       kimpay: kimpayRecord.id,
       local_id: generateUUID() // Generate a local ID for the creator
-    });
+    }, { requestKey: null });
     
     // 2b. Update Kimpay with created_by
     await pb.collection('kimpays').update(kimpayRecord.id, {
         created_by: creatorRecord.id
-    });
+    }, { requestKey: null });
 
     // 3. Save Creator's Local ID to LocalStorage (Browser only)
     if (typeof localStorage !== 'undefined') {
@@ -43,7 +44,7 @@ export async function createKimpay(name: string, icon: string, creatorName: stri
         name: participantName,
         kimpay: kimpayRecord.id,
         // No local_id for others yet, they will "claim" it or it stays empty
-      });
+      }, { requestKey: null });
     }
 
     return kimpayRecord;
@@ -57,28 +58,28 @@ export async function deleteKimpay(id: string) {
     // Delete the Kimpay. PocketBase cascade delete should handle expenses and participants if configured in schema.
     // Based on schema, 'expenses' has cascadeDelete: true on kimpay relation.
     // 'participants' also has cascadeDelete: true on kimpay relation.
-    await pb.collection('kimpays').delete(id);
+    await pb.collection('kimpays').delete(id, { requestKey: null });
 }
 
 export async function addParticipant(kimpayId: string, name: string) {
     return await pb.collection('participants').create({
         name,
         kimpay: kimpayId
-    });
+    }, { requestKey: null });
 }
 
 export async function updateKimpay(id: string, data: { name?: string; icon?: string }) {
-    return await pb.collection('kimpays').update(id, data);
+    return await pb.collection('kimpays').update(id, data, { requestKey: null });
 }
 
 export async function deleteExpense(id: string) {
     try {
-        const expense = await pb.collection('expenses').getOne(id);
-        await pb.collection('expenses').delete(id);
+        const expense = await pb.collection('expenses').getOne(id, { requestKey: null });
+        await pb.collection('expenses').delete(id, { requestKey: null });
         
         // Touch the kimpay to trigger realtime update for other users
         if (expense.kimpay) {
-            await pb.collection('kimpays').update(expense.kimpay, { updated: new Date() });
+            await pb.collection('kimpays').update(expense.kimpay, { updated: new Date() }, { requestKey: null });
         }
     } catch (e) {
         console.error("Error deleting expense", e);
@@ -86,15 +87,17 @@ export async function deleteExpense(id: string) {
     }
 }
 
-export async function createReimbursement(kimpayId: string, fromId: string, toId: string, amount: number) {
+export async function createReimbursement(kimpayId: string, fromId: string, toId: string, amount: number, description: string = "Reimbursement") {
     const data = {
         kimpay: kimpayId,
-        description: "Reimbursement", // or "Remboursement" depending on language preference, sticking to generic/english or hardcoded
+        description: description,
         amount: amount,
         date: new Date().toISOString().split('T')[0],
         payer: fromId,
         involved: [toId],
-        created_by: fromId 
+        created_by: fromId,
+        is_reimbursement: true,
+        icon: REIMBURSEMENT_EMOJI
     };
-    return await pb.collection('expenses').create(data);
+    return await pb.collection('expenses').create(data, { requestKey: null });
 }

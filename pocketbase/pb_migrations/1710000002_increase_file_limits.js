@@ -1,34 +1,41 @@
-/// <reference path="../pb_data/types.d.ts" />
-migrate((db) => {
-  const dao = new Dao(db);
-
+migrate((app) => {
   try {
       // 1. Update Expenses Photos
-      const expenses = dao.findCollectionByNameOrId("expenses");
-      const photosField = expenses.schema.getFieldByName("photos");
-      photosField.options.maxSize = 52428800; // 50MB
-      photosField.options.mimeTypes = []; // Allow all types (or at least remove restriction)
+      const expenses = app.findCollectionByNameOrId("expenses");
+      const photosField = expenses.fields.getByName("photos");
       
-      // Also update maxSelect if needed (it was 10)
-      photosField.options.maxSelect = 20;
+      // In v0.23+, field options are modified differently or same
+      // Assuming fields.getByName() returns a reference we can modify
+      if (photosField) {
+        photosField.maxSize = 52428800; // 50MB
+        photosField.mimeTypes = []; 
+        photosField.maxSelect = 20;
+        
+        // Note: Field structure in JSVM might be flat or nested "options" depending on specific field type implementation.
+        // But commonly properties like maxSize are directly on the file field struct or options struct.
+        // Actually, FileField struct has MaxSize.
+      }
   
-      dao.saveCollection(expenses);
+      app.save(expenses);
   } catch(e) {
-      console.log("Could not update expenses collection (maybe doesn't exist yet?)", e);
+      console.log("Could not update expenses collection", e);
   }
 
   try {
       // 2. Update Participants Avatar
-      const participants = dao.findCollectionByNameOrId("participants");
-      const avatarField = participants.schema.getFieldByName("avatar");
-      avatarField.options.maxSize = 20971520; // 20MB
-      avatarField.options.mimeTypes = []; 
+      const participants = app.findCollectionByNameOrId("participants");
+      const avatarField = participants.fields.getByName("avatar");
+      
+      if (avatarField) {
+        avatarField.maxSize = 20971520; // 20MB
+        avatarField.mimeTypes = []; 
+      }
   
-      dao.saveCollection(participants);
+      app.save(participants);
   } catch(e) {
       console.log("Could not update participants collection", e);
   }
 
-}, (db) => {
+}, (app) => {
   // Optional revert logic
 })
