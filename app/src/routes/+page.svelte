@@ -12,7 +12,7 @@
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import Background from '$lib/components/ui/Background.svelte';
   import { t, locale } from '$lib/i18n';
-  import { EMOJIS } from '$lib/constants';
+  import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import ScannerModal from "$lib/components/ui/ScannerModal.svelte";
 
   let code = $state("");
@@ -38,7 +38,7 @@
 
   // Creation State
   let kimpayName = $state("");
-  let kimpayIcon = $state("✈️"); // Default icon
+  let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); // Default icon
   let creatorName = $state("");
   let newParticipantName = $state("");
   let otherParticipants = $state<string[]>([]);
@@ -299,7 +299,7 @@
                             
                             {#if isEmojiPickerOpen}
                                 <div class="absolute top-full mt-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-5 gap-2" transition:fade={{ duration: 100 }}>
-                                    {#each EMOJIS as emoji}
+                                    {#each KIMPAY_EMOJIS as emoji}
                                         <button 
                                             class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"
                                             onclick={() => {

@@ -7,8 +7,9 @@
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
+  import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
 
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
   let kimpay = $state<any>(null);
   let inviteLink = $state("");
   let copied = $state(false);
@@ -68,13 +69,13 @@
 <div class="p-6 flex flex-col items-center justify-center min-h-[80vh] space-y-8 text-center">
     
     <div class="space-y-2 animate-pop-in" style="animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards;">
-        <div class="w-20 h-20 mx-auto bg-indigo-100 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner">
-            {kimpay?.icon || '✈️'}
+        <div class="w-20 h-20 mx-auto bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner border border-slate-100 dark:border-slate-700 transition-colors">
+            {kimpay?.icon || DEFAULT_KIMPAY_EMOJI}
         </div>
         <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
             {kimpay?.name || $t('common.loading')}
         </h1>
-        <p class="text-slate-500">{$t('share.invite_friends')}</p>
+        <p class="text-slate-500 dark:text-slate-400">{$t('share.invite_friends')}</p>
     </div>
 
     <!-- QR Code Block -->
@@ -91,7 +92,7 @@
              </div>
         {/if}
 
-        <div class="mt-4 text-xs font-mono text-slate-400 break-all max-w-[200px] mx-auto opacity-50">
+        <div class="mt-4 text-xs font-mono text-slate-500 break-all max-w-[200px] mx-auto">
             {kimpayId}
         </div>
     </div>

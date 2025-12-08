@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import { Button } from "$lib/components/ui/button"; 
   import { pb } from '$lib/pocketbase';
   import { deleteExpense } from '$lib/api';
@@ -10,7 +11,7 @@
 
   import { t } from '$lib/i18n';
   
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
   let expenses = $state<any[]>([]);
   let isLoading = $state(true);
   let kimpay = $state<any>({}); 
@@ -137,9 +138,12 @@
     {:else}
         <div class="space-y-3">
             {#each expenses as expense, i (expense.id)}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div 
-                    class="expense-item flex justify-between items-center p-3 md:p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                    class="expense-item flex justify-between items-center p-3 md:p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors cursor-pointer"
                     style="animation-delay: {i * 50}ms;"
+                    onclick={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
                 >
                     <div class="flex items-center gap-3 md:gap-4 flex-1 min-w-0 mr-2">
                         <div class="h-9 w-9 md:h-10 md:w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-lg md:text-xl border border-slate-100 dark:border-slate-700 transition-colors">
@@ -162,16 +166,31 @@
                         </div>
                         <div class="flex gap-1 transition-opacity">
                             {#if expense.photos && expense.photos.length > 0}
-                                <button class="p-1.5 md:p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => openGallery(expense)}>
+                                <button class="p-1.5 md:p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" 
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openGallery(expense);
+                                    }}
+                                >
                                     <ImageIcon class="h-4 w-4" />
                                 </button>
                             {/if}
-                            <a href="/k/{kimpayId}/edit/{expense.id}" class="p-1.5 md:p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg">
-                                <Pencil class="h-4 w-4" />
-                            </a>
-                            <button class="p-1.5 md:p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => requestDelete(expense.id)}>
-                                <Trash2 class="h-4 w-4" />
-                            </button>
+                            <div class="hidden md:flex gap-1">
+                                <a href="/k/{kimpayId}/edit/{expense.id}" 
+                                   class="p-1.5 md:p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
+                                   onclick={(e) => e.stopPropagation()}
+                                >
+                                    <Pencil class="h-4 w-4" />
+                                </a>
+                                <button class="p-1.5 md:p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" 
+                                    onclick={(e) => {
+                                        e.stopPropagation(); 
+                                        requestDelete(expense.id);
+                                    }}
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

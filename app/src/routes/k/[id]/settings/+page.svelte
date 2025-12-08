@@ -12,8 +12,9 @@
   import { t } from '$lib/i18n';
   import { installPrompt, install } from '$lib/stores/install';
   import { Download } from 'lucide-svelte';
+  import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
   let kimpay = $state<any>(null);
   let currentParticipantId = $state<string | null>(null);
   let isCreator = $state(false);
@@ -27,7 +28,7 @@
   // Feedback State
   let saveFeedback = $state("");
 
-  const EMOJIS = ["✈️", "🏠", "🍕", "🍻", "🎁", "⚽", "🚗", "💼", "🎉", "💸", "🍔", "🍺", "🏖️", "🏔️", "🚆", "💊", "🛒", "🎬", "🎤", "🎮"];
+
 
   let participants = $state<any[]>([]);
 
@@ -65,7 +66,7 @@
           if (res) {
               kimpay = res;
               editName = kimpay.name;
-              editIcon = kimpay.icon || "✈️";
+              editIcon = kimpay.icon || DEFAULT_KIMPAY_EMOJI;
           }
 
           const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
@@ -257,7 +258,7 @@
                             
                             {#if isEditing}
                                 <div class="absolute top-full mt-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-5 gap-2">
-                                    {#each EMOJIS as emoji}
+                                    {#each KIMPAY_EMOJIS as emoji}
                                         <button 
                                             class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"
                                             onclick={() => {
@@ -369,22 +370,22 @@
         </div>
 
         {#if $installPrompt}
-            <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+            <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
                 <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                     <Download class="h-4 w-4" />
-                    Installation
+                    {$t('settings.install.title')}
                 </h2>
                 <div class="space-y-4">
                     <div class="flex flex-col gap-2">
                         <p class="text-sm text-muted-foreground dark:text-slate-400">
-                             Installez l'application Kimpay sur votre appareil pour un accès plus rapide et une meilleure expérience hors-ligne.
+                             {$t('settings.install.desc')}
                         </p>
                         <Button 
                             class="w-full justify-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" 
                             onclick={install}
                         >
                             <Download class="h-4 w-4" />
-                            Installer Kimpay
+                            {$t('settings.install.button')}
                         </Button>
                     </div>
                 </div>
@@ -421,8 +422,8 @@
             </div>
         </div>
         
-        <div class="text-center text-xs text-muted-foreground pt-10">
-            Kimpay v0.1.1
+        <div class="text-center text-xs text-muted-foreground pt-2">
+            Kimpay Beta v0.1.1
         </div>
     </main>
 </div>

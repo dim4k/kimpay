@@ -5,7 +5,7 @@
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
   let participants = $state<any[]>([]);
   let newName = $state("");
   let isLoading = $state(false);

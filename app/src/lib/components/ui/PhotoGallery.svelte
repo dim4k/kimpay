@@ -22,7 +22,7 @@
 
   function getUrl(filename: string) {
       if (!record) return "";
-      return pb.files.getUrl(record, filename);
+      return pb.files.getURL(record, filename);
   }
 </script>
 

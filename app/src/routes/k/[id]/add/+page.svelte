@@ -4,7 +4,7 @@
 
   import { t } from '$lib/i18n';
 
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
 </script>
 
     <main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors min-h-[calc(100vh-4rem)]">

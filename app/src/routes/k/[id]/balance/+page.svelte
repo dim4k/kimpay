@@ -9,8 +9,9 @@
   import { createReimbursement } from '$lib/api';
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
+  import { modals } from '$lib/stores/modals';
 
-  let kimpayId = $derived($page.params.id);
+  let kimpayId = $derived($page.params.id ?? '');
   let isLoading = $state(true);
   let participants = $state<any[]>([]);
   let expenses = $state<any[]>([]);
@@ -18,8 +19,7 @@
   let myId = $state<string | null>(null);
 
   // Modal State
-  let selectedTransaction = $state<Transaction | null>(null);
-  let isProcessing = $state(false);
+  // Removed local state in favor of global modals
 
   async function loadBalance() {
     isLoading = true;
@@ -47,24 +47,21 @@
 
   onMount(loadBalance);
 
-  async function handleSettle() {
-      if (!selectedTransaction) return;
-      isProcessing = true;
-      try {
-          await createReimbursement(
-              kimpayId, 
-              selectedTransaction.from, 
-              selectedTransaction.to, 
-              selectedTransaction.amount
-          );
-          selectedTransaction = null;
-          await loadBalance(); // Refresh
-      } catch (e) {
-          console.error(e);
-          alert("Failed to settle debt");
-      } finally {
-          isProcessing = false;
-      }
+  function openSettleModal(tx: Transaction) {
+      modals.confirm({
+          title: $t('balance.settle.modal.title'),
+          description: $t('balance.settle.modal.desc', {
+                amount: tx.amount.toFixed(2) + '€',
+                from: tx.from === myId ? $t('common.you') : getName(tx.from),
+                to: tx.to === myId ? $t('common.you') : getName(tx.to)
+          }),
+          confirmText: $t('balance.settle.confirm'),
+          cancelText: $t('common.cancel'),
+          onConfirm: async () => {
+             await createReimbursement(kimpayId, tx.from, tx.to, tx.amount);
+             await loadBalance();
+          }
+      });
   }
 
   function getName(id: string) {
@@ -72,7 +69,7 @@
   }
 </script>
 
-<main class="container p-4 pb-24 space-y-6 bg-slate-50 dark:bg-background transition-colors">
+<main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors">
     <header class="space-y-1">
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
@@ -103,9 +100,9 @@
                 <div class="space-y-3">
                     {#each transactions as tx, i}
                         <button 
-                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-sm border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left"  
-                            in:fly={{ y: 20, delay: i * 50 }}
-                            onclick={() => selectedTransaction = tx}
+                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-sm border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left balance-item"  
+                            style="animation-delay: {i * 50}ms;"
+                            onclick={() => openSettleModal(tx)}
                             disabled={!myId} 
                         >
                             <!-- Highlight bar if involved -->
@@ -145,60 +142,7 @@
                 </div>
             </div>
 
-            <!-- Reimbursement Modal -->
-            {#if selectedTransaction}
-                <div 
-                    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" 
-                    transition:fade 
-                    onclick={() => selectedTransaction = null}
-                    onkeydown={(e) => e.key === 'Escape' && (selectedTransaction = null)}
-                    role="button"
-                    tabindex="0"
-                >
-                    <div 
-                        class="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-6 border transition-colors" 
-                        onclick={(e) => e.stopPropagation()}
-                        onkeydown={(e) => e.stopPropagation()}
-                        role="button"
-                        tabindex="0"
-                    >
-                        <div class="text-center space-y-2">
-                             <div class="w-16 h-16 bg-indigo-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
-                                <CheckCircle class="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                             </div>
-                             <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 transition-colors">{$t('balance.settle.modal.title')}</h3>
-                             <p class="text-muted-foreground dark:text-slate-400 transition-colors">
-                                {$t('balance.settle.modal.desc', {
-                                    amount: selectedTransaction.amount.toFixed(2) + '€',
-                                    from: selectedTransaction.from === myId ? $t('common.you') : getName(selectedTransaction.from),
-                                    to: selectedTransaction.to === myId ? $t('common.you') : getName(selectedTransaction.to)
-                                })}
-                             </p>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <button 
-                                class="py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
-                                onclick={() => selectedTransaction = null}
-                            >
-                                {$t('common.cancel')}
-                            </button>
-                            <button 
-                                class="py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-                                onclick={handleSettle}
-                                disabled={isProcessing}
-                            >
-                                {#if isProcessing}
-                                    <Loader2 class="h-4 w-4 animate-spin" />
-                                    {$t('common.loading')}
-                                {:else}
-                                    {$t('balance.settle.confirm')}
-                                {/if}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            {/if}
+
 
 
             <!-- My Status -->
@@ -233,4 +177,18 @@
 </main>
 
 <style>
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .balance-item {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 </style>

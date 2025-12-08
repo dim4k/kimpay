@@ -3,16 +3,21 @@
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
-  import { Loader2 } from "lucide-svelte";
+  import { goto } from '$app/navigation';
+  import { deleteExpense } from '$lib/api';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import { Loader2, Trash2 } from "lucide-svelte";
 
 import { t } from '$lib/i18n';
 
-  let kimpayId = $derived($page.params.id);
-  let expenseId = $derived($page.params.expenseId);
+  let kimpayId = $derived($page.params.id ?? '');
+  let expenseId = $derived(($page.params as Record<string, string>).expenseId);
   
   let initialData: any = $state(null);
   let isLoading = $state(true);
   let error = $state("");
+  let showDeleteConfirm = $state(false);
+  let isDeleting = $state(false);
 
   onMount(async () => {
     try {
@@ -24,6 +29,20 @@ import { t } from '$lib/i18n';
         isLoading = false;
     }
   });
+
+  async function handleDelete() {
+      isDeleting = true;
+      try {
+          await deleteExpense(expenseId);
+          goto(`/k/${kimpayId}`);
+      } catch (e) {
+          console.error("Failed to delete", e);
+          alert("Failed to delete expense"); 
+      } finally {
+          isDeleting = false;
+          showDeleteConfirm = false;
+      }
+  }
 </script>
 
 <div class="min-h-screen bg-slate-50 dark:bg-background transition-colors pb-24">
@@ -42,7 +61,28 @@ import { t } from '$lib/i18n';
                 <div class="text-red-500 text-center">{error}</div>
             {:else}
                 <ExpenseForm {kimpayId} {initialData} />
+                
+                <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <button 
+                        class="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+                        onclick={() => showDeleteConfirm = true}
+                    >
+                        <Trash2 class="h-4 w-4" />
+                        {$t('modal.delete_expense.title')}
+                    </button>
+                </div>
             {/if}
         </div>
+
+        <ConfirmModal 
+            isOpen={showDeleteConfirm}
+            title={$t('modal.delete_expense.title')}
+            description={$t('modal.delete_expense.desc')}
+            confirmText={$t('modal.delete_expense.confirm')}
+            variant="destructive"
+            isProcessing={isDeleting}
+            onConfirm={handleDelete}
+            onCancel={() => showDeleteConfirm = false}
+        />
     </main>
 </div>

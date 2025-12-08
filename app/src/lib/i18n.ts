@@ -135,7 +135,11 @@ export const locales = {
     "identity.subtitle": "Select your name or add a new participant to join this group.",
     "identity.new_name_placeholder": "Your name",
     "identity.create_button": "Join as new",
-    "identity.join_as": "Join as {name}"
+    "identity.join_as": "Join as {name}",
+
+    "settings.install.title": "Installation",
+    "settings.install.desc": "Install Kimpay on your device for faster access and a better offline experience.",
+    "settings.install.button": "Install Kimpay"
   },
   fr: {
     "app.name": "Kimpay",
@@ -268,7 +272,11 @@ export const locales = {
     "identity.subtitle": "Sélectionnez votre nom ou ajoutez un nouveau participant pour rejoindre ce groupe.",
     "identity.new_name_placeholder": "Votre prénom",
     "identity.create_button": "Rejoindre",
-    "identity.join_as": "Rejoindre en tant que {name}"
+    "identity.join_as": "Rejoindre en tant que {name}",
+
+    "settings.install.title": "Installation",
+    "settings.install.desc": "Installez l'application Kimpay sur votre appareil pour un accès plus rapide et une meilleure expérience hors-ligne.",
+    "settings.install.button": "Installer Kimpay"
   }
 };
 

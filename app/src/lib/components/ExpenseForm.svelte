@@ -8,15 +8,17 @@
   import { Check, Camera, X } from "lucide-svelte";
   import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
   import InputModal from '$lib/components/ui/InputModal.svelte';
+  import DatePicker from '$lib/components/ui/DatePicker.svelte';
   import { t } from '$lib/i18n';
   import { addParticipant } from '$lib/api';
+  import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
   let { kimpayId, initialData = null } = $props();
 
   // Initialize state with defaults
   let description = $state("");
   let amount = $state("");
-  let icon = $state("💸");
+  let icon = $state(DEFAULT_EXPENSE_EMOJI);
   let date = $state(new Date().toISOString().split('T')[0]);
   let payer = $state("");
   let involved = $state<string[]>([]);
@@ -40,7 +42,7 @@
       if (initialData) {
          description = initialData.description || "";
          amount = initialData.amount || "";
-         icon = initialData.icon || "💸";
+         icon = initialData.icon || DEFAULT_EXPENSE_EMOJI;
          date = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
          payer = initialData.payer || "";
          involved = initialData.involved || [];
@@ -125,7 +127,7 @@
 
   function getExistingPhotoUrl(filename: string) {
       if (!initialData?.id || !initialData?.collectionId) return "";
-      return pb.files.getUrl(initialData, filename, { thumb: '100x100' });
+      return pb.files.getURL(initialData, filename, { thumb: '100x100' });
   }
 
 
@@ -298,7 +300,7 @@
 
     <div class="space-y-2">
          <Label>{$t('expense.form.date_label')}</Label>
-         <Input type="date" bind:value={date} />
+         <DatePicker bind:value={date} />
     </div>
 
     <!-- Photo Input -->
@@ -365,11 +367,11 @@
         />
     </div>
 
-     <div class="pt-4 flex gap-3">
-        <Button variant="outline" class="w-1/3" onclick={goBack} disabled={isLoading}>
+     <div class="pt-4 grid grid-cols-2 gap-3">
+        <Button variant="outline" class="w-full" size="lg" onclick={goBack} disabled={isLoading}>
             {$t('common.cancel')}
         </Button>
-         <Button onclick={save} class="flex-1" size="lg" disabled={isLoading || involved.length === 0 || !amount || !description || !payer}>
+         <Button onclick={save} class="w-full" size="lg" disabled={isLoading || involved.length === 0 || !amount || !description || !payer}>
             {isLoading ? $t('common.loading') : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'))}
         </Button>
      </div>

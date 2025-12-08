@@ -21,7 +21,7 @@
 
 {#if isOpen}
     <div 
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" 
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" 
         transition:fade 
         onclick={handleBackdropClick} 
         role="button" 
