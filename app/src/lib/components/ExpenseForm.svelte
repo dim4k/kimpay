@@ -186,8 +186,9 @@
 
           // Append New Photos
           if (newPhotos.length > 0) {
+              const photoKey = initialData?.id ? 'photos+' : 'photos';
               for (let i = 0; i < newPhotos.length; i++) {
-                  formData.append('photos', newPhotos[i]);
+                  formData.append(photoKey, newPhotos[i]);
               }
           }
           
