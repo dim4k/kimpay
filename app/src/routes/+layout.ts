@@ -1,5 +1,5 @@
 export const load = async ({ url }: { url: URL }) => {
-    const baseUrl = 'https://kimpay.io';
+    const baseUrl = url.origin;
     const currentPath = url.pathname;
     
     // Default SEO metadata

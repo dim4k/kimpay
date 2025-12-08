@@ -11,13 +11,58 @@
     import { onMount } from 'svelte';
     import { pb } from '$lib/pocketbase';
     import { page } from '$app/stores';
+    import { appState } from '$lib/state.svelte';
+    import Avatar from '$lib/components/ui/Avatar.svelte';
+    import { updateParticipant } from '$lib/api';
+    import { modals } from '$lib/stores/modals';
+    import { Camera, RefreshCw } from "lucide-svelte";
+    import { invalidateAll } from '$app/navigation';
 
-	let { children } = $props();
+	let { children, data } = $props();
     let isMenuOpen = $state(false);
     let isLangOptionsOpen = $state(false);
     let recentKimpays = $state<any[]>([]);
     let menuRef = $state<HTMLElement | null>(null);
     let triggerRef = $state<HTMLElement | null>(null);
+    let fileInputRef = $state<HTMLInputElement | null>(null);
+    
+    let currentParticipant = $derived(appState.participant);
+    let currentKimpay = $derived(appState.kimpay);
+
+    const seo = $derived(data.seo || {
+        title: 'Kimpay',
+        description: 'Simple expense sharing',
+        canonical: 'https://kimpay.io',
+        ogImage: 'https://kimpay.io/og-image.png'
+    });
+    
+    async function handleAvatarChange(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (input.files && input.files[0] && currentParticipant) {
+             const file = input.files[0];
+             try {
+                // Optimistic update? Or wait? 
+                // Let's rely on global state refresh or just manual update for now.
+                // We update backend, then maybe reload window or re-init appState?
+                await updateParticipant(currentParticipant.id, { avatar: file });
+                
+                // Update global state and UI
+                await appState.init(currentParticipant.expand?.kimpay || appState.kimpay?.id, true);
+                await invalidateAll();
+             } catch (err) {
+                 console.error("Failed to update avatar", err);
+             }
+        }
+    }
+
+    function openIdentityModal() {
+        if (!currentKimpay) return;
+        isMenuOpen = false;
+        modals.identity({
+            kimpayId: currentKimpay.id,
+            participants: appState.participants
+        });
+    }
 
     function handleOutsideClick(event: MouseEvent) {
         if (
@@ -72,6 +117,11 @@
     $effect(() => {
         if ($page.url.pathname) {
             loadGroups();
+            
+            // Reset app state if we leave the kimpay context
+            if (!$page.url.pathname.startsWith('/k/')) {
+                appState.reset();
+            }
         }
     });
 
@@ -83,33 +133,34 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href={favicon} type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Primary Meta Tags -->
-    <title>Kimpay - Simple Expense Sharing for Groups</title>
-    <meta name="title" content="Kimpay - Simple Expense Sharing for Groups" />
-    <meta name="description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations. Free, fast, and delightful to use." />
-    <meta name="keywords" content="expense sharing, split bills, group expenses, travel expenses, shared costs, tricount alternative, splitwise, expense tracker, debt calculator" />
+    <title>{seo.title}</title>
+    <meta name="title" content={seo.title} />
+    <meta name="description" content={seo.description} />
+    <meta name="keywords" content={seo.keywords} />
     <meta name="author" content="Kimpay" />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://kimpay.io" />
+    <link rel="canonical" href={seo.canonical} />
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://kimpay.io" />
-    <meta property="og:title" content="Kimpay - Simple Expense Sharing for Groups" />
-    <meta property="og:description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
-    <meta property="og:image" content="https://kimpay.io/og-image.png" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:type" content={seo.ogType} />
+    <meta property="og:url" content={seo.canonical} />
+    <meta property="og:title" content={seo.title} />
+    <meta property="og:description" content={seo.description} />
+    <meta property="og:image" content={seo.ogImage} />
+    <meta property="og:locale" content={seo.locale} />
+    <meta property="og:locale:alternate" content={seo.alternateLocales[0]} />
     
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://kimpay.io" />
-    <meta property="twitter:title" content="Kimpay - Simple Expense Sharing for Groups" />
-    <meta property="twitter:description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
-    <meta property="twitter:image" content="https://kimpay.io/og-image.png" />
+    <meta property="twitter:card" content={seo.twitterCard} />
+    <meta property="twitter:url" content={seo.canonical} />
+    <meta property="twitter:title" content={seo.title} />
+    <meta property="twitter:description" content={seo.description} />
+    <meta property="twitter:image" content={seo.ogImage} />
     
     <!-- PWA Theme -->
     <meta name="theme-color" content="#4f46e5" />
@@ -146,7 +197,47 @@
                              transition:slide={{ duration: 200 }}
                          >
                             <!-- Main Navigation Section -->
-                            <div class="max-h-[50vh] overflow-y-auto py-2">
+                            <div class="max-h-[70vh] overflow-y-auto py-2">
+                                
+                                {#if currentParticipant && currentKimpay}
+                                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 mb-2 bg-slate-50/50 dark:bg-slate-900/50">
+                                        <div class="flex items-center gap-3">
+                                            <div class="relative group">
+                                                 <Avatar 
+                                                     name={currentParticipant.name} 
+                                                     src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
+                                                     class="w-12 h-12 text-xl" 
+                                                 />
+                                                 <button 
+                                                    class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onclick={() => fileInputRef?.click()}
+                                                 >
+                                                     <Camera class="h-5 w-5 text-white" />
+                                                 </button>
+                                                 <input 
+                                                    type="file" 
+                                                    accept="image/*" 
+                                                    class="hidden" 
+                                                    bind:this={fileInputRef}
+                                                    onchange={handleAvatarChange}
+                                                />
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                                                    {currentParticipant.name}
+                                                </div>
+                                                <button 
+                                                    onclick={openIdentityModal}
+                                                    class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
+                                                >
+                                                    <RefreshCw class="h-3 w-3" />
+                                                    {$t('identity.change')} 
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/if}
+
                                 <div class="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                                     {$t('home.history.title')}
                                 </div>
@@ -156,7 +247,8 @@
                                         {$t('expense.list.empty.title')}
                                     </div>
                                 {:else}
-                                    {#each recentKimpays as k}
+                                    {@const filteredKimpays = recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                                    {#each filteredKimpays as k}
                                         <a 
                                             href="/k/{k.id}" 
                                             class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -166,6 +258,11 @@
                                             <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
                                         </a>
                                     {/each}
+                                    {#if filteredKimpays.length === 0}
+                                        <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
+                                            {$t('expense.list.empty.title')}
+                                        </div>
+                                    {/if}
                                 {/if}
 
                                 <div class="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>

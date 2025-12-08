@@ -21,17 +21,29 @@ export type GalleryOptions = {
     record: any;
 };
 
+export type IdentityOptions = {
+    // Identity modal works by mostly handling itself via kimpayContext/params but we might want to pass props if needed.
+    // For now, it mostly needs to know context or just be triggered.
+    // Actually, it needs to access the kimpayId to list participants.
+    // If we call it globally, we should pass kimpayId.
+    kimpayId: string;
+    participants?: any[];
+    onSelect?: () => void;
+};
+
 type ModalState = {
     confirm: ConfirmOptions | null;
     alert: AlertOptions | null;
     gallery: GalleryOptions | null;
+    identity: IdentityOptions | null;
 };
 
 function createModalStore() {
     const { subscribe, update, set } = writable<ModalState>({
         confirm: null,
         alert: null,
-        gallery: null
+        gallery: null,
+        identity: null
     });
 
     return {
@@ -42,7 +54,9 @@ function createModalStore() {
         closeConfirm: () => update(s => ({ ...s, confirm: null })),
         closeAlert: () => update(s => ({ ...s, alert: null })),
         closeGallery: () => update(s => ({ ...s, gallery: null })),
-        reset: () => set({ confirm: null, alert: null, gallery: null })
+        identity: (options: IdentityOptions) => update(s => ({ ...s, identity: options })),
+        closeIdentity: () => update(s => ({ ...s, identity: null })),
+        reset: () => set({ confirm: null, alert: null, gallery: null, identity: null })
     };
 }
 

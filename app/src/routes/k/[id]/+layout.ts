@@ -4,10 +4,11 @@ import type { LayoutLoad } from './$types';
 
 export const ssr = false;
 
-export const load: LayoutLoad = async ({ params }) => {
+export const load: LayoutLoad = async ({ params, fetch }) => {
     try {
         const kimpay = await pb.collection('kimpays').getOne(params.id, {
-            expand: 'participants_via_kimpay'
+            expand: 'participants_via_kimpay',
+            fetch: fetch
         });
 
         // Set requestKey: null to prevent auto cancellation for simple reads if desired, but default is fine here.

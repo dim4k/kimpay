@@ -8,12 +8,13 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
 
+  import { appState } from '$lib/state.svelte';
+  import { modals } from '$lib/stores/modals';
+  
   let { children, data } = $props();
 
   let kimpayId = $derived($page.params.id ?? '');
-  let showIdentityModal = $state(false);
   let participants = $derived(data.participants || []);
-  let newParticipantName = $state("");
   
   // Context for child pages to know when to refresh data
   let refreshSignal = $state({ count: 0 });
@@ -27,40 +28,15 @@
       const storedUser = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
       
       if (!storedUser) {
-          showIdentityModal = true;
+          // Open global identity modal
+          console.log("Opening identity modal from layout");
+          modals.identity({
+              kimpayId,
+              participants
+          });
       } else {
-          showIdentityModal = false;
-      }
-  }
-
-  function selectParticipant(participantId: string) {
-      localStorage.setItem(`kimpay_user_${kimpayId}`, participantId);
-      
-      // Update my_kimpays list for home screen
-      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      myKimpays[kimpayId] = participantId;
-      localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-      
-      // Signal children to refresh
-      refreshSignal.count++;
-
-      showIdentityModal = false;
-  }
-
-  async function createAndSelectParticipant() {
-      if (!newParticipantName.trim()) return;
-      try {
-          const newP = await addParticipant(kimpayId, newParticipantName);
-          selectParticipant(newP.id);
-          // Force reload or just rely on layout refresh? 
-          // Since data comes from layout.ts load, we might need to invalidate.
-          // For now, let's just optimistically assume parent/page will reload.
-          // But actually, `data.participants` is derived. If `addParticipant` succeeds, `load` won't re-run automatically unless invalidated.
-          // Given clean-architecture, we should invalidateAll(). But for speed here, let's keep it simple.
-          window.location.reload(); 
-      } catch (e) {
-          console.error("Failed to add participant", e);
-          alert("Failed to create participant");
+        // Init state
+        await appState.init(kimpayId);
       }
   }
 
@@ -152,44 +128,4 @@
     </div>
 </div>
 
-{#if showIdentityModal}
-    <div class="fixed inset-0 z-[60] bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border dark:border-slate-800 flex flex-col max-h-[90vh]">
-            <div class="p-6 pb-2">
-                <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">{$t('identity.title')}</h2>
-                <p class="text-slate-500 dark:text-slate-400 text-sm">{$t('identity.subtitle')}</p>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto p-4 space-y-2">
-                {#each participants as p}
-                    <button 
-                        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group"
-                        onclick={() => selectParticipant(p.id)}
-                    >
-                        <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold">
-                            {p.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span class="font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
-                        <div class="ml-auto opacity-0 group-hover:opacity-100 text-indigo-600 transition-opacity">
-                            <Check class="h-5 w-5" />
-                        </div>
-                    </button>
-                {/each}
-            </div>
 
-            <div class="p-4 border-t dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
-                <div class="flex gap-2">
-                    <Input 
-                        placeholder={$t('identity.new_name_placeholder')} 
-                        bind:value={newParticipantName}
-                        maxlength={15}
-                        class="dark:bg-slate-800 dark:border-slate-700"
-                    />
-                    <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
-                        {$t('identity.create_button')}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    </div>
-{/if}

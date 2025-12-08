@@ -1,7 +1,7 @@
 <script lang="ts">
   import { cn } from "$lib/utils";
 
-  let { name, class: className = "" } = $props();
+  let { name, src = null, class: className = "" } = $props();
 
   function getGradient(name: string) {
     let hash = 0;
@@ -28,6 +28,10 @@
   let initials = $derived(name ? name.slice(0, 2).toUpperCase() : "?");
 </script>
 
-<div class={cn("rounded-full flex items-center justify-center text-white font-bold shadow-sm", gradient, className)}>
-  {initials}
+<div class={cn("rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden", !src && gradient, className)}>
+  {#if src}
+    <img src={src} alt={name} class="w-full h-full object-cover" />
+  {:else}
+    {initials}
+  {/if}
 </div>

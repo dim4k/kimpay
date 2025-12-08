@@ -83,6 +83,11 @@
   function getName(id: string) {
       return participants.find(p => p.id === id)?.name || $t('common.unknown');
   }
+
+  function getAvatar(id: string) {
+      const p = participants.find(p => p.id === id);
+      return p?.avatar ? pb.files.getURL(p, p.avatar) : null;
+  }
 </script>
 
 <main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors">
@@ -128,7 +133,7 @@
                             {/if}
 
                             <div class="flex items-center gap-3 pl-2">
-                                <Avatar name={getName(tx.from)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
+                                <Avatar name={getName(tx.from)} src={getAvatar(tx.from)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
                                 <div class="flex flex-col">
                                     <span class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight transition-colors">
                                         {tx.from === myId ? $t('common.you') : getName(tx.from)}
@@ -152,7 +157,7 @@
                                     </span>
                                     <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{$t('balance.receiver')}</span>
                                 </div>
-                                 <Avatar name={getName(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
+                                 <Avatar name={getName(tx.to)} src={getAvatar(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
                             </div>
                         </button>
                     {/each}

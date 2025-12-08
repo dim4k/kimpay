@@ -101,3 +101,7 @@ export async function createReimbursement(kimpayId: string, fromId: string, toId
     };
     return await pb.collection('expenses').create(data, { requestKey: null });
 }
+
+export async function updateParticipant(id: string, data: Partial<{ name: string; avatar: File | null }>) {
+    return await pb.collection('participants').update(id, data, { requestKey: null });
+}

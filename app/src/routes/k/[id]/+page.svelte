@@ -8,7 +8,7 @@
   import { Pencil, Share2, Check, Trash2, Image as ImageIcon, Wallet, Camera } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { modals } from '$lib/stores/modals';
-  import { slide } from 'svelte/transition';
+  import { slide, fly } from 'svelte/transition';
 
   import { t } from '$lib/i18n';
   
@@ -152,6 +152,37 @@
         loadExpenses();
     }
   });
+  import { cubicOut } from 'svelte/easing';
+
+  function slideFade(node: Element, { delay = 0, duration = 400, easing = cubicOut, y = 20 }) {
+      const style = getComputedStyle(node);
+      const opacity = +style.opacity;
+      const height = parseFloat(style.height);
+      const padding_top = parseFloat(style.paddingTop);
+      const padding_bottom = parseFloat(style.paddingBottom);
+      const margin_top = parseFloat(style.marginTop);
+      const margin_bottom = parseFloat(style.marginBottom);
+      const border_top_width = parseFloat(style.borderTopWidth);
+      const border_bottom_width = parseFloat(style.borderBottomWidth);
+
+      return {
+          delay,
+          duration,
+          easing,
+          css: (t: number) => `
+              overflow: hidden;
+              opacity: ${t * opacity};
+              height: ${t * height}px;
+              padding-top: ${t * padding_top}px;
+              padding-bottom: ${t * padding_bottom}px;
+              margin-top: ${t * margin_top}px;
+              margin-bottom: ${t * margin_bottom}px;
+              border-top-width: ${t * border_top_width}px;
+              border-bottom-width: ${t * border_bottom_width}px;
+              transform: translateY(${(1 - t) * y}px);
+          `
+      };
+  }
 </script>
 
 <main class="container p-4 space-y-6">
@@ -217,17 +248,19 @@
                                     {expense.description}
                                 </span>
                                 {#if expandedId !== expense.id}
-                                    <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors" transition:slide={{ axis: 'y', duration: 200 }}>
-                                        <span class="truncate">
-                                            {$t('expense.list.paid_by')} 
-                                            {#if currentUserId && expense.payer === currentUserId}
-                                                <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
-                                            {:else}
-                                                <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
-                                            {/if}
-                                        </span>
-                                        <span>•</span>
-                                        <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                                    <div transition:slideFade={{ y: 20, duration: 300 }}>
+                                        <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
+                                            <span class="truncate">
+                                                {$t('expense.list.paid_by')} 
+                                                {#if currentUserId && expense.payer === currentUserId}
+                                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
+                                                {:else}
+                                                    <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
+                                                {/if}
+                                            </span>
+                                            <span>•</span>
+                                            <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                                        </div>
                                     </div>
                                 {/if}
                             </div>
@@ -248,9 +281,9 @@
                                         <span class="font-medium text-slate-700 dark:text-slate-300">{new Date(expense.date).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    <div>
+                                    <div class="flex justify-between items-center">
                                         <span>{$t('expense.list.paid_by')}:</span>
-                                        <div class="mt-1">
+                                        <div>
                                             {#if currentUserId && expense.payer === currentUserId}
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                                                     {$t('common.you')}
@@ -263,9 +296,9 @@
                                         </div>
                                     </div>
 
-                                    <div>
+                                    <div class="flex justify-between items-center">
                                         <span>{$t('expense.list.for')}:</span>
-                                        <div class="flex flex-wrap gap-1 mt-1">
+                                        <div class="flex flex-wrap gap-1 justify-end">
                                             {#if expense.expand?.involved}
                                                 {#each expense.expand.involved as p}
                                                     {#if currentUserId && p.id === currentUserId}

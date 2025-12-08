@@ -141,6 +141,7 @@ export const locales = {
     "identity.create_button": "Join as new",
     "identity.join_as": "Join as {name}",
 
+    "identity.change": "Switch",
     "settings.install.title": "Installation",
     "settings.install.desc": "Install Kimpay on your device for faster access and a better offline experience.",
     "settings.install.button": "Install Kimpay"
@@ -282,6 +283,7 @@ export const locales = {
     "identity.create_button": "Rejoindre",
     "identity.join_as": "Rejoindre en tant que {name}",
 
+    "identity.change": "Changer",
     "settings.install.title": "Installation",
     "settings.install.desc": "Installez l'application Kimpay sur votre appareil pour un accès plus rapide et une meilleure expérience hors-ligne.",
     "settings.install.button": "Installer Kimpay"
