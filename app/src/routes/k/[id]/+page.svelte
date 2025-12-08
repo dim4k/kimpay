@@ -138,36 +138,38 @@
         <div class="space-y-3">
             {#each expenses as expense, i (expense.id)}
                 <div 
-                    class="expense-item flex justify-between items-center p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                    class="expense-item flex justify-between items-center p-3 md:p-4 bg-card rounded-xl border shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
                     style="animation-delay: {i * 50}ms;"
                 >
-                    <div class="flex items-center gap-4">
-                        <div class="h-10 w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl border border-slate-100 dark:border-slate-700 transition-colors">
+                    <div class="flex items-center gap-3 md:gap-4 flex-1 min-w-0 mr-2">
+                        <div class="h-9 w-9 md:h-10 md:w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-lg md:text-xl border border-slate-100 dark:border-slate-700 transition-colors">
                              {expense.icon || '💸'}
                         </div>
-                        <div class="flex flex-col">
-                            <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate max-w-[160px] sm:max-w-[250px]">{expense.description}</span>
+                        <div class="flex flex-col min-w-0">
+                            <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate">
+                                {expense.description}
+                            </span>
                             <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
-                                <span>{$t('expense.list.paid_by')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span></span>
+                                <span class="truncate">{$t('expense.list.paid_by')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span></span>
                                 <span>•</span>
-                                <span>{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                                <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="font-bold text-lg text-slate-900 dark:text-slate-100 transition-colors">
+                    <div class="flex items-center gap-2 md:gap-3 shrink-0">
+                        <div class="font-bold text-base md:text-lg text-slate-900 dark:text-slate-100 transition-colors text-right leading-none">
                             {expense.amount.toFixed(2)} €
                         </div>
                         <div class="flex gap-1 transition-opacity">
                             {#if expense.photos && expense.photos.length > 0}
-                                <button class="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => openGallery(expense)}>
+                                <button class="p-1.5 md:p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => openGallery(expense)}>
                                     <ImageIcon class="h-4 w-4" />
                                 </button>
                             {/if}
-                            <a href="/k/{kimpayId}/edit/{expense.id}" class="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg">
+                            <a href="/k/{kimpayId}/edit/{expense.id}" class="p-1.5 md:p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg">
                                 <Pencil class="h-4 w-4" />
                             </a>
-                            <button class="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => requestDelete(expense.id)}>
+                            <button class="p-1.5 md:p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg" onclick={() => requestDelete(expense.id)}>
                                 <Trash2 class="h-4 w-4" />
                             </button>
                         </div>
