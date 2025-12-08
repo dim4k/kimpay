@@ -42,6 +42,7 @@
   let creatorName = $state("");
   let newParticipantName = $state("");
   let otherParticipants = $state<string[]>([]);
+  let creatorEmail = $state("");
   
   // History State
   let recentKimpays = $state<any[]>([]);
@@ -205,6 +206,20 @@
     isLoading = true;
     try {
       const record = await createKimpay(kimpayName, kimpayIcon, creatorName, otherParticipants);
+      
+      if (creatorEmail && creatorEmail.trim()) {
+        const kimpayUrl = `${window.location.origin}/k/${record.id}`;
+        
+        pb.send("/api/kimpay/share", {
+            method: "POST",
+            body: {
+                email: creatorEmail,
+                url: kimpayUrl,
+                kimpayName: kimpayName
+            }
+        }).catch(err => console.error("Erreur envoi mail:", err));
+      }
+
       goto(`/k/${record.id}`);
     } catch (e) {
       alert("Error creating Kimpay");
@@ -349,6 +364,19 @@
             <div class="space-y-2">
                 <Label for="myName">{$t('home.create.my_name_label')}</Label>
                 <Input id="myName" bind:value={creatorName} placeholder={$t('home.create.my_name_placeholder')} />
+            </div>
+
+            <div class="space-y-2">
+                <Label for="creatorEmail">{$t('home.create.email_label')}</Label>
+                <Input 
+                    id="creatorEmail" 
+                    type="email" 
+                    bind:value={creatorEmail} 
+                    placeholder={$t('home.create.email_placeholder')} 
+                />
+                <p class="text-xs text-muted-foreground">
+                    {$t('home.create.email_help')}
+                </p>
             </div>
 
             <div class="space-y-2">
