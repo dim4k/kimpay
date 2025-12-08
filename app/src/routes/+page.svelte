@@ -136,7 +136,8 @@
             body: {
                 email: creatorEmail,
                 url: kimpayUrl,
-                kimpayName: kimpayName
+                kimpayName: kimpayName,
+                locale: $locale
             }
         }).catch(err => console.error("Erreur envoi mail:", err));
       }

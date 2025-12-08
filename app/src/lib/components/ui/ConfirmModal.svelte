@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Loader2, AlertTriangle, CheckCircle } from "lucide-svelte";
   import { fade, scale } from 'svelte/transition';
+  import { portal } from '$lib/actions/portal';
 
   let { 
     isOpen = false, 
@@ -21,6 +22,7 @@
 
 {#if isOpen}
     <div 
+        use:portal
         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" 
         transition:fade 
         onclick={handleBackdropClick} 

@@ -322,6 +322,7 @@
 		{@render children()}
 	</main>
 
-    <InstallPrompt />
-    <GlobalModals />
 </div>
+
+<InstallPrompt />
+<GlobalModals />

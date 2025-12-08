@@ -7,7 +7,8 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         const data = new DynamicModel({
             email: "",
             url: "",
-            kimpayName: ""
+            kimpayName: "",
+            locale: ""
         });
         
         try {
@@ -29,10 +30,57 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
 
         const settings = $app.settings();
         let senderName = "Kimpay";
-        let senderAddress = "noreply@kimpay.app";
+        let senderAddress = "noreply@kimpay.io";
 
         if (settings.meta.senderName) senderName = settings.meta.senderName;
         if (settings.meta.senderAddress) senderAddress = settings.meta.senderAddress;
+
+        const locale = data.locale || 'fr';
+
+        // 1. Fetch Template
+        let template;
+        try {
+             // Try specific locale
+             template = $app.dao().findFirstRecordByData("email_templates", "slug", "share_kimpay", "locale", locale);
+        } catch(e) {
+            // Fallback to English
+            try {
+                 template = $app.dao().findFirstRecordByData("email_templates", "slug", "share_kimpay", "locale", "en");
+            } catch(e2) {
+                console.log("No email template found for share_kimpay");
+            }
+        }
+
+        // 2. Prepare Content (with defaults if missing)
+        let subject = template 
+            ? template.get("subject") 
+            : `Lien d'accès : {name}`;
+            
+        let html = template 
+            ? template.get("body") 
+            : `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Votre Kimpay "{name}" est prêt !</h2>
+                    <p>Voici votre lien d'accès unique :</p>
+                    <p>
+                        <a href="{url}" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Accéder au Kimpay
+                        </a>
+                    </p>
+                    <p style="color: #666; font-size: 12px;">ou copiez ce lien : {url}</p>
+                </div>
+            `;
+            
+        if (template) {
+             const tSenderName = template.get("sender_name");
+             const tSenderAddress = template.get("sender_address");
+             if (tSenderName) senderName = tSenderName;
+             if (tSenderAddress) senderAddress = tSenderAddress;
+        }
+
+        // 3. Replace Variables
+        subject = subject.replaceAll("{name}", kimpayName).replaceAll("{url}", url);
+        html = html.replaceAll("{name}", kimpayName).replaceAll("{url}", url);
 
         const message = new MailerMessage({
             from: {
@@ -40,19 +88,8 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                 name:    senderName,
             },
             to:      [{ address: email }],
-            subject: `Lien d'accès : ${kimpayName}`,
-            html: `
-                <div style="font-family: sans-serif; padding: 20px;">
-                    <h2>Votre Kimpay "${kimpayName}" est prêt !</h2>
-                    <p>Voici votre lien d'accès unique :</p>
-                    <p>
-                        <a href="${url}" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                            Accéder au Kimpay
-                        </a>
-                    </p>
-                    <p style="color: #666; font-size: 12px;">ou copiez ce lien : ${url}</p>
-                </div>
-            `,
+            subject: subject,
+            html:    html,
         });
 
         try {
