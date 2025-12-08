@@ -14,6 +14,7 @@ RUN wget https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSIO
 
 # Copy migrations
 COPY pocketbase/pb_migrations /pb_migrations
+COPY pocketbase/pb_hooks /pb_hooks
 
 # Expose port
 EXPOSE 8090
