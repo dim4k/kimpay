@@ -36,16 +36,25 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         if (settings.meta.senderAddress) senderAddress = settings.meta.senderAddress;
 
         const locale = data.locale || 'fr';
+        const creatorName = data.creator || "Un ami";
 
         // 1. Fetch Template
         let template;
         try {
-             // Try specific locale
-             template = $app.dao().findFirstRecordByData("email_templates", "slug", "share_kimpay", "locale", locale);
+             // findFirstRecordByFilter allows multiple conditions
+             template = $app.dao().findFirstRecordByFilter(
+                 "email_templates", 
+                 "slug = {:slug} && locale = {:locale}",
+                 { slug: "share_kimpay", locale: locale }
+             );
         } catch(e) {
             // Fallback to English
             try {
-                 template = $app.dao().findFirstRecordByData("email_templates", "slug", "share_kimpay", "locale", "en");
+                 template = $app.dao().findFirstRecordByFilter(
+                     "email_templates", 
+                     "slug = {:slug} && locale = 'en'",
+                     { slug: "share_kimpay" }
+                 );
             } catch(e2) {
                 console.log("No email template found for share_kimpay");
             }
@@ -79,8 +88,8 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         }
 
         // 3. Replace Variables
-        subject = subject.replaceAll("{name}", kimpayName).replaceAll("{url}", url);
-        html = html.replaceAll("{name}", kimpayName).replaceAll("{url}", url);
+        subject = subject.replaceAll("{name}", kimpayName).replaceAll("{url}", url).replaceAll("{creator}", creatorName);
+        html = html.replaceAll("{name}", kimpayName).replaceAll("{url}", url).replaceAll("{creator}", creatorName);
 
         const message = new MailerMessage({
             from: {
