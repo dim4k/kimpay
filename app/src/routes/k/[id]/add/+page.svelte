@@ -13,7 +13,7 @@
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('expense.form.subtitle')}</p>
         </header>
 
-        <div class="bg-card rounded-2xl shadow-sm border p-6 space-y-6 transition-colors">
+        <div class="bg-card rounded-2xl shadow-sm border p-6 space-y-6 transition-colors animate-pop-in">
             <ExpenseForm {kimpayId} />
         </div>
     </main>

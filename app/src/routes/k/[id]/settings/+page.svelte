@@ -242,7 +242,7 @@
         </header>
 
         <!-- Edit Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
             <div class="space-y-4">
                 <div class="space-y-2">
@@ -294,7 +294,7 @@
         </div>
 
         <!-- Participants Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                  <Users class="h-4 w-4" />
                  {$t('settings.participants')}
@@ -370,7 +370,7 @@
         </div>
 
         {#if $installPrompt}
-            <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+            <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
                 <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                     <Download class="h-4 w-4" />
                     {$t('settings.install.title')}
@@ -392,7 +392,7 @@
             </div>
         {/if}
 
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors">
+        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.actions.title')}</h2>
             
             <div class="space-y-4">

@@ -85,16 +85,32 @@
           if (validIds.length > 0) {
               const filter = validIds.map(id => `id='${id}'`).join(' || ');
               try {
-                  const promises = validIds.map(id => 
-                      pb.collection('kimpays').getOne(id).catch(() => null)
-                  );
-                  const items = (await Promise.all(promises)).filter(i => i !== null);
+                  const promises = validIds.map(async id => {
+                      try {
+                          const record = await pb.collection('kimpays').getOne(id, { requestKey: null });
+                          return { id, data: record, status: 'found' };
+                      } catch (err: any) {
+                          if (err.status === 404 || err.status === 403) {
+                              return { id, status: 'missing' };
+                          }
+                          return { id, status: 'error' };
+                      }
+                  });
+
+                  const results = await Promise.all(promises);
+                  const items = results.filter(r => r.status === 'found').map(r => r.data);
                   
                   recentKimpays = items;
                   
-                   // Cleanup
-                  const foundIds = items.map(i => i.id);
-                  const missingIds = validIds.filter(id => !foundIds.includes(id));
+                   // Cleanup ONLY if explicitly missing (404/403)
+                  const missingIds = results.filter(r => r.status === 'missing').map(r => r.id);
+                  const errorIds = results.filter(r => r.status === 'error').map(r => r.id);
+
+                  if (errorIds.length > 0) {
+                      console.warn("Some kimpays could not be loaded due to errors (network?):", errorIds);
+                      // Do NOT delete them
+                  }
+
                   if (missingIds.length > 0) {
                       missingIds.forEach(id => {
                           delete myKimpays[id];
@@ -103,11 +119,16 @@
                       localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
                   }
                   
-                  // Re-evaluate hero visibility after checking real data validity
+                  // Re-evaluate hero visibility
+                  // Show hero only if we have no items AND no errors (if error, we maybe shouldn't show hero but show existing partial list or loading state?)
+                  // Actually if items.length > 0 we hide hero.
                   if (items.length > 0) {
                       showHero = false;
+                  } else if (errorIds.length > 0) {
+                     // If we have errors and no items, maybe keep hero hidden or show it?
+                     // Safe default: leave as is (false if we started false, or true if started true)
+                     // But initialization logic sets showHero based on localStorage raw check.
                   }
-
               } catch (e) {
                    console.error("Error fetching recent kimpays", e);
               }
@@ -264,10 +285,10 @@
 <!-- Background -->
 <Background />
 
-<div class="relative z-10 flex flex-col items-center p-4 pb-12 w-full max-w-md mx-auto mt-4 md:mt-8">
+<div class="relative z-10 flex flex-col items-center p-4 pb-4 w-full max-w-md mx-auto mt-4 md:mt-8">
 
     {#if showHero}
-        <div class="text-center space-y-2 md:space-y-4 mb-6 md:mb-10" transition:slide={{ axis: 'y', duration: 300 }}>
+        <div class="text-center space-y-2 md:space-y-4 mb-6 md:mb-10 animate-slide-up">
             <!-- Hero Logo (Larger) -->
             <div class="inline-flex items-center justify-center p-4 md:p-6 bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl shadow-indigo-100 dark:shadow-none mb-2 md:mb-4 transition-all duration-500 hover:scale-105">
                 <Logo class="w-12 h-12 md:w-20 md:h-20 text-indigo-700 dark:text-indigo-400" />
@@ -277,7 +298,7 @@
         </div>
     {/if}
     
-    <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors">
+    <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
         <div class="space-y-3 md:space-y-4">
             <h2 class="font-semibold text-lg flex items-center gap-2">
                 <div class="w-1 h-6 bg-primary rounded-full"></div>
