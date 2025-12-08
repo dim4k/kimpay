@@ -27,7 +27,8 @@
     if (participants.length === 0) isLoading = true;
     try {
       const res = await pb.collection('kimpays').getOne(kimpayId, {
-          expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
+          expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay',
+          requestKey: null
       });
 
       participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];

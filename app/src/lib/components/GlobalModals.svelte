@@ -2,9 +2,11 @@
   import { modals } from '$lib/stores/modals';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import AlertModal from '$lib/components/ui/AlertModal.svelte';
+  import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
 
   let confirmState = $derived($modals.confirm);
   let alertState = $derived($modals.alert);
+  let galleryState = $derived($modals.gallery);
   
   let isProcessing = $state(false);
 
@@ -51,5 +53,14 @@
             alertState.onConfirm?.();
             modals.closeAlert();
         }}
+    />
+{/if}
+
+{#if galleryState}
+    <PhotoGallery 
+        isOpen={true}
+        photos={galleryState.photos}
+        record={galleryState.record}
+        onClose={modals.closeGallery}
     />
 {/if}
