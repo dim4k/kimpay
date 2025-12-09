@@ -85,17 +85,18 @@
                 <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate text-base">
                     {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
                 </span>
-                {#if expandedId !== expense.id}
+                {#if expense.is_reimbursement}
+                     <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors mt-0.5">
+                        <span class="font-medium text-emerald-600 dark:text-emerald-400">
+                            {$t('expense.list.reimbursement', {
+                                from: currentUserId && expense.payer === currentUserId ? $t('common.you') : (expense.expand?.payer?.name || $t('common.unknown')),
+                                to: currentUserId && expense.expand?.involved?.[0]?.id === currentUserId ? $t('common.you') : (expense.expand?.involved?.[0]?.name || $t('common.unknown'))
+                            })}
+                        </span>
+                    </div>
+                {:else if expandedId !== expense.id}
                     <div transition:slideFade={{ y: 20, duration: 300 }}>
                         <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
-                            {#if expense.is_reimbursement}
-                                <span class="font-medium text-emerald-700 dark:text-emerald-300">
-                                    {$t('expense.list.reimbursement', {
-                                        from: currentUserId && expense.payer === currentUserId ? $t('common.you') : (expense.expand?.payer?.name || $t('common.unknown')),
-                                        to: currentUserId && expense.expand?.involved?.[0]?.id === currentUserId ? $t('common.you') : (expense.expand?.involved?.[0]?.name || $t('common.unknown'))
-                                    })}
-                                </span>
-                            {:else}
                                 <span class="truncate">
                                     {$t('expense.list.paid_by')} 
                                     {#if currentUserId && expense.payer === currentUserId}
@@ -106,7 +107,6 @@
                                 </span>
                                 <span>•</span>
                                 <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
-                            {/if}
                         </div>
                     </div>
                 {/if}
@@ -121,70 +121,75 @@
     {#if expandedId === expense.id}
         <div class="bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800" transition:slide={{ duration: 200 }}>
             <div class="p-4 space-y-4">
-                <!-- Details -->
-                <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                    <div class="flex justify-between">
-                        <span>Date:</span>
+                {#if expense.is_reimbursement}
+                    <!-- Simplified Layout for Reimbursements -->
+                     <div class="text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center">
+                        <span>Date</span>
                         <span class="font-medium text-slate-700 dark:text-slate-300">{new Date(expense.date).toLocaleDateString()}</span>
                     </div>
+
+                    <button 
+                        class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-sm"
+                        onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
+                    >
+                        <Trash2 class="h-4 w-4" />
+                        {$t('common.delete')}
+                    </button>
                     
-                    <div class="flex justify-between items-center">
-                        <span>{$t('expense.list.paid_by')}:</span>
-                        <div>
-                            {#if currentUserId && expense.payer === currentUserId}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                    {$t('common.you')}
-                                </span>
-                            {:else}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                    {expense.expand?.payer?.name || $t('common.unknown')}
-                                </span>
-                            {/if}
+                {:else}
+                    <!-- Standard Layout -->
+                    <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                        <div class="flex justify-between">
+                            <span>Date:</span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300">{new Date(expense.date).toLocaleDateString()}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span>{$t('expense.list.paid_by')}:</span>
+                            <div>
+                                {#if currentUserId && expense.payer === currentUserId}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                        {$t('common.you')}
+                                    </span>
+                                {:else}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                                        {expense.expand?.payer?.name || $t('common.unknown')}
+                                    </span>
+                                {/if}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span>{$t('expense.list.for')}:</span>
+                            <div class="flex flex-wrap gap-1 justify-end">
+                                {#if expense.expand?.involved}
+                                    {#each expense.expand.involved as p (p.id)}
+                                        {#if currentUserId && p.id === currentUserId}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                {$t('common.you')}
+                                            </span>
+                                        {:else}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                                                {p.name}
+                                            </span>
+                                        {/if}
+                                    {/each}
+                                {:else}
+                                    <span class="text-slate-400 italic">No participants</span>
+                                {/if}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-between items-center">
-                        <span>{$t('expense.list.for')}:</span>
-                        <div class="flex flex-wrap gap-1 justify-end">
-                            {#if expense.expand?.involved}
-                                {#each expense.expand.involved as p (p.id)}
-                                    {#if currentUserId && p.id === currentUserId}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                            {$t('common.you')}
-                                        </span>
-                                    {:else}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                            {p.name}
-                                        </span>
-                                    {/if}
-                                {/each}
-                            {:else}
-                                <span class="text-slate-400 italic">No participants</span>
-                            {/if}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Bar -->
-                <div class="grid grid-cols-3 gap-2">
-                        {#if expense.is_reimbursement}
-                            <button 
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 font-medium text-sm cursor-not-allowed"
-                            disabled
-                            title="Reimbursements cannot be edited"
-                            >
-                            <Pencil class="h-4 w-4" />
-                            {$t('common.edit')}
-                            </button>
-                        {:else}
-                            <button 
+                    <!-- Action Bar -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button 
                             class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active:scale-95"
                             onclick={async (e) => { e.stopPropagation();   await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
                             >
                             <Pencil class="h-4 w-4" />
                             {$t('common.edit')}
-                            </button>
-                        {/if}
+                        </button>
 
                         {#if expense.photos && expense.photos.length > 0}
                         <button 
@@ -208,7 +213,8 @@
                         <Trash2 class="h-4 w-4" />
                         {$t('common.delete')}
                         </button>
-                </div>
+                    </div>
+                {/if}
             </div>
         </div>
     {/if}

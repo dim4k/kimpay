@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { House, ChartPie, Settings, Plus, Share2, Wallet } from "lucide-svelte";
+  import { ChartPie, Settings, Plus, Share2, Wallet } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
