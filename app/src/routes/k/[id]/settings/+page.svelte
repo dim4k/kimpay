@@ -16,11 +16,11 @@
   import { appState } from '$lib/stores/appState.svelte';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import type { RecentKimpay } from '$lib/types';
+  import type { RecentKimpay, Kimpay, Participant, Expense } from '$lib/types';
   
   let kimpayId = $derived($page.params.id ?? '');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let kimpay = $state<any>(null);
+  
+  let kimpay = $state<Kimpay | null>(null);
   let currentParticipantId = $state<string | null>(null);
   let isCreator = $state(false);
 
@@ -32,8 +32,7 @@
   // Feedback State
   let saveFeedback = $state("");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let participants = $state<any[]>([]);
+  let participants = $state<Participant[]>([]);
 
   async function loadParticipants() {
       try {
@@ -55,7 +54,8 @@
                expand: 'expenses_via_kimpay'
           });
           const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-          return allExpenses.some((e: { payer: string; involved?: string[] }) => e.payer === pId || (e.involved && e.involved.includes(pId)));
+          // We can cast here as we know the structure from expand
+          return (allExpenses as unknown as Expense[]).some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
       } catch(e) {
           console.warn("Could not check expenses", e);
           return true; // Fail safe
@@ -68,7 +68,7 @@
           const res = await loadParticipants();
           
           if (res) {
-              kimpay = res;
+              kimpay = res as unknown as Kimpay;
               editName = kimpay.name;
               editIcon = kimpay.icon || DEFAULT_KIMPAY_EMOJI;
           }
@@ -244,14 +244,14 @@
               expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
           });
           
-          const expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          expenses.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          const expenses = (res.expand ? (res.expand['expenses_via_kimpay'] || []) : []) as unknown as Expense[];
           
-          const participantsList = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
+          expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          
+          const participantsList = (res.expand ? (res.expand['participants_via_kimpay'] || []) : []) as unknown as Participant[];
           // Map for quick lookup
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const participantMap = new Map(participantsList.map((p: any) => [p.id, p.name]));
+          
+          const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));
           
           let content = "";
           const filename = `kimpay_${res.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format}`;
@@ -260,8 +260,7 @@
               // CSV Header
               content += `${$t('export.col.date')},${$t('export.col.desc')},${$t('export.col.amount')},${$t('export.col.payer')},${$t('export.col.for')}\n`;
               
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              expenses.forEach((e: any) => {
+              expenses.forEach((e) => {
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = `"${(e.description || '').replace(/"/g, '""')}"`;
                   const amount = e.amount.toFixed(2);
@@ -278,18 +277,15 @@
               // Markdown
               content += `# ${res.icon || ''} ${res.name}\n\n`;
               content += `**${$t('export.meta.date')}:** ${new Date().toLocaleDateString()}\n`;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              content += `**${$t('export.meta.participants')}:** ${participantsList.map((p: any) => p.name).join(', ')}\n\n`;
+               
+              content += `**${$t('export.meta.participants')}:** ${participantsList.map((p) => p.name).join(', ')}\n\n`;
               
               content += `## ${$t('export.meta.expenses')}\n\n`;
               content += `| Icon | ${$t('export.col.date')} | ${$t('export.col.desc')} | ${$t('export.col.amount')} | ${$t('export.col.payer')} | ${$t('export.col.for')} |\n`;
               content += `|:---:|---|---|---|---|---|\n`;
               
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-              const participantsNames = participantsList.map((p: any) => p.name).join(', '); // Not suppressed here? Wait, participantsList uses any above?
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              expenses.forEach((e: any) => {
+              
+              expenses.forEach((e) => {
                   const icon = e.icon || '💸';
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = (e.description || '').replace(/\|/g, '-'); 

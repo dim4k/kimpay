@@ -5,9 +5,11 @@
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   
+  import type { Participant } from '$lib/types';
+  
   let kimpayId = $derived($page.params.id ?? '');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let participants = $state<Record<string, any>[]>([]);
+  
+  let participants = $state<Participant[]>([]);
   let newName = $state("");
   let isLoading = $state(false);
 

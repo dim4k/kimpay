@@ -14,6 +14,8 @@
   import { addParticipant } from '$lib/api';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
+  import type { Participant } from '$lib/types';
+
   let { kimpayId, initialData = null } = $props();
 
   // Initialize state with defaults
@@ -24,8 +26,7 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let participants = $state<Record<string, any>[]>([]);
+  let participants = $state<Participant[]>([]);
   let isLoading = $state(false);
 
   // Photo State
