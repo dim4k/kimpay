@@ -41,15 +41,13 @@ class AppState {
         }
     }
 
-    unsubscribe() {
-        pb.collection('kimpays').unsubscribe('*'); // Or specific
-        pb.collection('participants').unsubscribe('*');
-        pb.collection('expenses').unsubscribe('*');
+    async unsubscribe() {
+        await pb.realtime.unsubscribe();
     }
 
-    subscribe(kimpayId: string) {
+    async subscribe(kimpayId: string) {
         // Unsubscribe previous to avoid duplicates if re-init
-        this.unsubscribe();
+        await this.unsubscribe();
 
         // 1. Kimpay details
         pb.collection('kimpays').subscribe(kimpayId, (e) => {
