@@ -22,7 +22,7 @@
     
     {#if isOpen}
         <div class="absolute top-full mt-2 left-0 z-50 w-72 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-6 gap-1">
-            {#each emojis as emoji}
+            {#each emojis as emoji (emoji)}
                 <button 
                     type="button"
                     class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"

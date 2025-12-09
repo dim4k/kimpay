@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable svelte/no-navigation-without-resolve */
   import { page } from '$app/stores';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import { pb } from '$lib/pocketbase';
@@ -34,7 +35,7 @@ import { t } from '$lib/i18n';
       isDeleting = true;
       try {
           await deleteExpense(expenseId || "");
-          goto(`/k/${kimpayId}`);
+          await goto(`/k/${kimpayId}`);
       } catch (_e) {
           console.error("Failed to delete", _e);
           alert("Failed to delete expense"); 

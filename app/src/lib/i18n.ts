@@ -336,8 +336,8 @@ function getInitialLocale() {
         if (saved) return saved;
     }
     if (typeof navigator !== 'undefined') {
-        const lang = navigator.language.split('-')[0];
-        return (lang in locales) ? lang : 'en';
+        const lang = navigator.language?.split('-')[0];
+        return (lang && lang in locales) ? lang : 'en';
     }
     return 'en';
 }
@@ -357,7 +357,7 @@ export const t = derived(locale, ($locale) => (key: string, vars: Record<string,
   // Simple variable replacement {var}
   Object.keys(vars).forEach(k => {
     const regex = new RegExp(`{${k}}`, "g");
-    text = text.replace(regex, vars[k]);
+    text = text.replace(regex, vars[k] || "");
   });
   
   return text;

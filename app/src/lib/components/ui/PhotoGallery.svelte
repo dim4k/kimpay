@@ -28,7 +28,6 @@
 
 {#if isOpen}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div 
         class="fixed inset-0 z-[9999] bg-black/60 flex flex-col items-center justify-center p-4 backdrop-blur-md"
         transition:fade={{ duration: 200 }}
@@ -74,7 +73,7 @@
 
                 <!-- Indicators -->
                 <div class="absolute -bottom-12 left-0 right-0 flex justify-center gap-2">
-                    {#each photos as _, i}
+                    {#each photos as _, i (i)}
                         <div class={`h-2 w-2 rounded-full transition-colors ${i === currentIndex ? 'bg-white' : 'bg-white/30'}`}></div>
                     {/each}
                 </div>

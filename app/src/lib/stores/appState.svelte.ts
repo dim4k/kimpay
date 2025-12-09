@@ -1,14 +1,15 @@
 
 import { pb } from '$lib/pocketbase';
+import type { Kimpay, Participant, Expense, RecentKimpay } from '$lib/types';
 
 class AppState {
-    kimpay = $state<any>(null);
-    participant = $state<any>(null);
-    expenses = $state<any[]>([]);
-    participants = $state<any[]>([]); 
+    kimpay = $state<Kimpay | null>(null);
+    participant = $state<Participant | null>(null);
+    expenses: Expense[] = $state([]);
+    participants: Participant[] = $state([]);
     
     // Recent Kimpays State
-    recentKimpays = $state<any[]>([]);
+    recentKimpays: RecentKimpay[] = $state([]);
     loadingRecentKimpays = $state(false);
     initializedRecentKimpays = $state(false);
     
@@ -19,18 +20,23 @@ class AppState {
 
         try {
             // 1. Fetch Kimpay with participants and expenses expanded
-            this.kimpay = await pb.collection('kimpays').getOne(kimpayId, {
+            // We cast because the SDK returns a generic RecordModel but we know the shape via expansion
+            const record = await pb.collection('kimpays').getOne(kimpayId, {
                 expand: 'participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved',
                 requestKey: null
             });
+            
+            this.kimpay = record as unknown as Kimpay;
             this.participants = this.kimpay?.expand?.participants_via_kimpay || [];
 
             // 2. Identify User
-            const stored = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-            const participantId = stored[kimpayId];
+            if (typeof localStorage !== 'undefined') {
+                const stored = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
+                const participantId = stored[kimpayId];
 
-            if (participantId) {
-                this.participant = this.participants.find(p => p.id === participantId) || null;
+                if (participantId) {
+                    this.participant = this.participants.find(p => p.id === participantId) || null;
+                }
             }
 
             // 4. Subscribe to Realtime Updates
@@ -54,7 +60,7 @@ class AppState {
         // 1. Kimpay details
         pb.collection('kimpays').subscribe(kimpayId, (e) => {
             if (this.kimpay && e.action === 'update') {
-               this.kimpay = { ...this.kimpay, ...e.record };
+               this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
             } else if (e.action === 'delete') {
                 // Handle deletion? Redirect?
                 this.kimpay = null;
@@ -66,7 +72,8 @@ class AppState {
             // Filter client side if server filter not robust in subscribe
             if (e.record.kimpay === kimpayId) {
                  const res = await pb.collection('kimpays').getOne(kimpayId, { expand: 'participants_via_kimpay', requestKey: null });
-                 this.participants = res.expand?.participants_via_kimpay || [];
+                 const updatedKimpay = res as unknown as Kimpay;
+                 this.participants = updatedKimpay.expand?.participants_via_kimpay || [];
             }
         });
 
@@ -86,8 +93,9 @@ class AppState {
              expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved',
              requestKey: null
          });
-         const ex = k.expand?.expenses_via_kimpay || [];
-         ex.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+         const kimpayRecord = k as unknown as Kimpay;
+         const ex = kimpayRecord.expand?.expenses_via_kimpay || [];
+         ex.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
          this.expenses = ex;
     }
 
@@ -122,19 +130,19 @@ class AppState {
 
             const promises = ids.map(id => 
                 pb.collection('kimpays').getOne(id, { requestKey: null })
-                .then(data => ({ id, data, status: 'found' }))
+                .then(data => ({ id, data: data as unknown as RecentKimpay, status: 'found' as const }))
                 .catch(err => {
-                    if (err.status === 404 || err.status === 403) return { id, status: 'missing' };
-                    return { id, status: 'error' };
+                    if (err.status === 404 || err.status === 403) return { id, status: 'missing' as const };
+                    return { id, status: 'error' as const };
                 })
             );
 
             const results = await Promise.all(promises);
-            const fetchedItems = results.filter((r: any) => r.status === 'found').map((r: any) => r.data);
+            const fetchedItems = results.filter((r): r is { id: string; data: RecentKimpay; status: 'found' } => r.status === 'found').map((r) => r.data);
             
-            const missingIds = results.filter((r: any) => r.status === 'missing').map((r: any) => r.id);
+            const missingIds = results.filter((r) => r.status === 'missing').map((r) => r.id);
             if (missingIds.length > 0) {
-                missingIds.forEach((id: string) => {
+                missingIds.forEach((id) => {
                     delete myKimpays[id];
                     localStorage.removeItem(`kimpay_user_${id}`);
                 });
@@ -148,7 +156,7 @@ class AppState {
             this.recentKimpays.forEach(item => {
                 pb.collection('kimpays').subscribe(item.id, (e) => {
                     if (e.action === 'update') {
-                        this.updateRecentKimpay(e.record);
+                        this.updateRecentKimpay(e.record as unknown as RecentKimpay);
                     } else if (e.action === 'delete') {
                         this.removeRecentKimpay(e.record.id);
                     }
@@ -166,14 +174,14 @@ class AppState {
         this.recentKimpays = this.recentKimpays.filter(k => k.id !== id);
     }
     
-    addRecentKimpay(kimpay: any) {
+    addRecentKimpay(kimpay: RecentKimpay) {
         if (!kimpay || !kimpay.id) return;
         if (!this.recentKimpays.find(k => k.id === kimpay.id)) {
             this.recentKimpays = [kimpay, ...this.recentKimpays];
             // Subscribe
              pb.collection('kimpays').subscribe(kimpay.id, (e) => {
                  if (e.action === 'update') {
-                    this.updateRecentKimpay(e.record);
+                    this.updateRecentKimpay(e.record as unknown as RecentKimpay);
                 } else if (e.action === 'delete') {
                     this.removeRecentKimpay(e.record.id);
                 }
@@ -183,7 +191,7 @@ class AppState {
         }
     }
 
-    updateRecentKimpay(kimpay: any) {
+    updateRecentKimpay(kimpay: RecentKimpay) {
         if (!kimpay || !kimpay.id) return;
         this.recentKimpays = this.recentKimpays.map(k => k.id === kimpay.id ? { ...k, ...kimpay } : k);
     }

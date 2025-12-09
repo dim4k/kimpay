@@ -18,8 +18,10 @@ export type AlertOptions = {
 
 export type GalleryOptions = {
     photos: string[];
-    record: any;
+    record: Record<string, unknown>;
 };
+
+import type { Participant } from '$lib/types';
 
 export type IdentityOptions = {
     // Identity modal works by mostly handling itself via kimpayContext/params but we might want to pass props if needed.
@@ -27,7 +29,7 @@ export type IdentityOptions = {
     // Actually, it needs to access the kimpayId to list participants.
     // If we call it globally, we should pass kimpayId.
     kimpayId: string;
-    participants?: any[];
+    participants?: Participant[];
     onSelect?: () => void;
 };
 

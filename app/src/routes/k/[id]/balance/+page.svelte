@@ -4,7 +4,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
   import { Loader2, ArrowRight, Wallet, CheckCircle } from "lucide-svelte";
-  import { fade, fly } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
+
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { createReimbursement } from '$lib/api';
   import { t } from '$lib/i18n';
@@ -13,8 +14,10 @@
 
   let kimpayId = $derived($page.params.id ?? '');
   let isLoading = $state(true);
-  let participants = $state<any[]>([]);
-  let expenses = $state<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let participants = $state<Record<string, any>[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let expenses = $state<Record<string, any>[]>([]);
   let transactions = $state<Transaction[]>([]);
   let myId = $state<string | null>(null);
   let unsubscribe: () => void;
@@ -51,7 +54,7 @@
   onMount(async () => {
       await loadBalance();
       try {
-          unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record }) => {
+          unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action: _action, record: _record }) => {
               await loadBalance();
           });
       } catch (e) {

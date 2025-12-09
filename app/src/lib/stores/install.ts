@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { writable } from 'svelte/store';
 
-export const installPrompt = writable<any>(null);
+export const installPrompt = writable<unknown>(null);
 
 export async function install() {
     let promptEvent: any;

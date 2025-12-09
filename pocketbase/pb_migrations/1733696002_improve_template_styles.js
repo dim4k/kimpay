@@ -20,7 +20,7 @@ migrate((app) => {
     </h2>
     
     <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;">
-       Rejoignez le groupe <strong style="color: #4f46e5;">{name}</strong> pour suivre et partager les dépenses simplement entre amis.
+       Rejoignez le groupe Kimpay : <strong style="color: #4f46e5;">{name}</strong> pour suivre et partager les dépenses simplement entre amis.
     </p>
 
     <div style="text-align: center; margin-bottom: 40px;">
@@ -68,7 +68,7 @@ migrate((app) => {
     </h2>
     
     <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;">
-       Join the group <strong style="color: #4f46e5;">{name}</strong> to easily track and split expenses with friends.
+       Join the Kimpay group : <strong style="color: #4f46e5;">{name}</strong> to easily track and split expenses with friends.
     </p>
 
     <div style="text-align: center; margin-bottom: 40px;">

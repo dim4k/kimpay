@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable svelte/no-navigation-without-resolve */
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
@@ -19,11 +20,12 @@
   let description = $state("");
   let amount = $state("");
   let icon = $state(DEFAULT_EXPENSE_EMOJI);
-  let date = $state(new Date().toISOString().split('T')[0]);
+  let date = $state(new Date().toISOString().slice(0, 10));
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  let participants = $state<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let participants = $state<Record<string, any>[]>([]);
   let isLoading = $state(false);
 
   // Photo State
@@ -43,7 +45,7 @@
          description = initialData.description || "";
          amount = initialData.amount || "";
          icon = initialData.icon || DEFAULT_EXPENSE_EMOJI;
-         date = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+         date = initialData.date ? new Date(initialData.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
          payer = initialData.payer || "";
          involved = initialData.involved || [];
          
@@ -95,8 +97,8 @@
       }
   }
 
-  function goBack() {
-      goto(`/k/${kimpayId}`);
+  async function goBack() {
+      await goto(`/k/${kimpayId}`);
   }
 
   function handleFileSelect(e: Event) {
@@ -116,7 +118,8 @@
 
   function removeNewPhoto(index: number) {
       newPhotos = newPhotos.filter((_, i) => i !== index);
-      URL.revokeObjectURL(photoPreviews[index]); // Cleanup memory
+      const preview = photoPreviews[index];
+      if (preview) URL.revokeObjectURL(preview); // Cleanup memory
       photoPreviews = photoPreviews.filter((_, i) => i !== index);
   }
 
@@ -168,17 +171,16 @@
       try {
           // 1. Handle Deletions (Edit Mode)
           if (initialData?.id && photosToDelete.length > 0) {
-              const formData = new FormData();
-              // To remove specific, usage is tricky with FormData + PB.
-              // We rely on "photos-" key pattern supported by PB.
+               // To remove specific, usage is tricky with FormData + PB.
+               // We rely on "photos-" key pattern supported by PB.
           }
           
           const formData = new FormData();
           formData.append('kimpay', kimpayId);
           formData.append('description', description);
           formData.append('amount', amount);
-          formData.append('icon', icon);
-          formData.append('date', date);
+          formData.append('icon', icon || DEFAULT_EXPENSE_EMOJI);
+          formData.append('date', date ?? new Date().toISOString().slice(0, 10));
           formData.append('payer', payer);
           formData.append('created_by', payer);
 
@@ -188,7 +190,8 @@
           if (newPhotos.length > 0) {
               const photoKey = initialData?.id ? 'photos+' : 'photos';
               for (let i = 0; i < newPhotos.length; i++) {
-                  formData.append(photoKey, newPhotos[i]);
+                  const file = newPhotos[i];
+                  if (file) formData.append(photoKey, file);
               }
           }
           
@@ -207,7 +210,7 @@
           
           // Touch the kimpay to trigger realtime update for other users
           await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
-           goto(`/k/${kimpayId}`);
+           await goto(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);
           alert("Error saving expense");
@@ -242,7 +245,7 @@
                 if (el.value.length > 8) el.value = el.value.slice(0, 8);
                 if (el.value.includes('.')) {
                     const parts = el.value.split('.');
-                    if (parts[1].length > 2) el.value = `${parts[0]}.${parts[1].slice(0, 2)}`;
+                    if (parts[1] && parts[1].length > 2) el.value = `${parts[0]}.${parts[1].slice(0, 2)}`;
                 }
             }}
         />
@@ -252,7 +255,7 @@
     <div class="space-y-3">
         <Label>{$t('expense.form.paid_by_label')}</Label>
         <div class="flex flex-wrap gap-2">
-            {#each participants as p}
+            {#each participants as p (p.id)}
                 <button 
                   onclick={() => { payer = p.id; }}
                   class="relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border {payer === p.id ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'}"
@@ -280,7 +283,7 @@
         </div>
         
         <div class="flex flex-wrap gap-2">
-            {#each participants as p}
+            {#each participants as p (p.id)}
                 <button 
                   onclick={() => toggleInvolved(p.id)}
                   class="relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border {involved.includes(p.id) ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'}"
@@ -314,7 +317,7 @@
         <!-- Existing Photos (Edit Mode) -->
         {#if existingPhotos.length > 0}
             <div class="flex gap-2 overflow-x-auto pb-2">
-                {#each existingPhotos as filename}
+                {#each existingPhotos as filename (filename)}
                     <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 group">
                         <img 
                             src={getExistingPhotoUrl(filename)} 
@@ -337,7 +340,7 @@
         <!-- New Photos -->
         {#if photoPreviews.length > 0}
             <div class="flex gap-2 overflow-x-auto pb-2">
-                {#each photoPreviews as preview, i}
+                {#each photoPreviews as preview, i (i)}
                     <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
                         <img src={preview} alt="New Upload" class="w-full h-full object-cover" />
                         <button 

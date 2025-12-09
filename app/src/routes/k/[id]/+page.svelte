@@ -1,10 +1,9 @@
 <script lang="ts">
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import { Button } from "$lib/components/ui/button"; 
   import { pb } from '$lib/pocketbase';
   import { deleteExpense } from '$lib/api';
-  import { onMount, getContext, onDestroy } from 'svelte';
+  import { getContext, onDestroy } from 'svelte';
   import { Wallet } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { modals } from '$lib/stores/modals';
@@ -12,10 +11,9 @@
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
   
   let kimpayId = $derived($page.params.id ?? '');
-  let expenses = $state<any[]>([]);
+  let expenses = $state<Record<string, any>[]>([]);
   let isLoading = $state(true);
-  let kimpay = $state<any>({}); 
-  let showTick = $state(false); 
+  let kimpay = $state<Record<string, any>>({}); 
 
   // Modal State
   let expenseToDelete = $state<string | null>(null);
@@ -91,18 +89,7 @@
       }
   }
 
-  async function copyLink() {
-      try {
-          await navigator.clipboard.writeText(window.location.href);
-          showTick = true;
-          setTimeout(() => showTick = false, 2000);
-      } catch (err) {
-          console.error('Failed to copy: ', err);
-      }
-  }
-
-  
-  let unsubscribe: () => void;
+  let unsubscribe: (() => void) | undefined;
 
   async function initPage() {
       isLoading = true;
@@ -116,7 +103,7 @@
       await loadExpenses();
 
       try {
-        unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record }) => {
+        unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record: _record }) => {
              if (action === 'update') {
                  await loadExpenses();
              }

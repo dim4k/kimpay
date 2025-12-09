@@ -45,6 +45,7 @@
           `
       };
     }
+    /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -160,7 +161,7 @@
                         {:else}
                             <button 
                             class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active:scale-95"
-                            onclick={(e) => { e.stopPropagation(); goto(`/k/${kimpayId}/edit/${expense.id}`); }}
+                            onclick={async (e) => { e.stopPropagation();   await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
                             >
                             <Pencil class="h-4 w-4" />
                             {$t('common.edit')}

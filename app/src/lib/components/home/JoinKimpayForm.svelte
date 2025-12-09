@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/no-navigation-without-resolve */
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { LoaderCircle, QrCode } from "lucide-svelte";
@@ -24,8 +25,8 @@
             const cleanCode = code.includes('/k/') ? code.split('/k/')[1]?.split('/')[0] : code;
             if (!cleanCode) throw new Error("Invalid Code");
             await pb.collection('kimpays').getOne(cleanCode);
-            goto(`/k/${cleanCode}`); 
-        } catch (e) {
+            await goto(`/k/${cleanCode}`); 
+        } catch (_e) {
             joinError = $t('home.join.error_not_found');
         } finally {
             isLoading = false;
@@ -58,6 +59,7 @@
             isScannerOpen = false;
         }
     }
+     
 </script>
 
 <div class="relative py-4">

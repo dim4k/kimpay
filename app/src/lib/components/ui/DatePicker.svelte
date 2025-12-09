@@ -1,8 +1,7 @@
 <script lang="ts">
   import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-svelte";
-  import { slide } from 'svelte/transition';
   
-  let { value = $bindable(), label = "" } = $props();
+  let { value = $bindable() } = $props();
 
   let isOpen = $state(false);
   let openUp = $state(false);
@@ -142,13 +141,13 @@
             <!-- Grid -->
             <div>
                 <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
-                    {#each WEEKDAYS as day}
+                    {#each WEEKDAYS as day (day)}
                         <div class="text-muted-foreground font-medium py-1">{day}</div>
                     {/each}
                 </div>
                 
                 <div class="grid grid-cols-7 gap-1 text-center">
-                    {#each days as item}
+                    {#each days as item (item.date.getTime())}
                         <button 
                             type="button"
                             class="h-9 w-9 mx-auto flex items-center justify-center rounded-full text-sm transition-all

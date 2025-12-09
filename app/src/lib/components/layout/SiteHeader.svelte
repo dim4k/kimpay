@@ -28,7 +28,7 @@
            try {
               await updateParticipant(currentParticipant.id, { avatar: file });
               // Update global state and UI
-              await appState.init(currentParticipant.expand?.kimpay || appState.kimpay?.id, true);
+              await appState.init(currentParticipant.kimpay, true);
               await invalidateAll();
            } catch (err) {
                console.error("Failed to update avatar", err);
@@ -56,12 +56,14 @@
           isMenuOpen = false;
       }
   }
+  /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
 <svelte:window onclick={handleOutsideClick} />
 
 <header class="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
   <div class="container flex h-16 items-center justify-between px-4">
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href="/" class="flex items-center gap-2 transition-transform hover:scale-105">
           <Logo class="h-8 w-8 text-indigo-700 dark:text-indigo-400" />
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">Kimpay</span>
@@ -137,7 +139,8 @@
                               </div>
                           {:else}
                               {@const filteredKimpays = appState.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
-                              {#each filteredKimpays as k}
+                              {#each filteredKimpays as k (k.id)}
+                                  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
                                   <a 
                                       href="/k/{k.id}" 
                                       data-sveltekit-preload-data="off"
@@ -157,6 +160,7 @@
 
                           <div class="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
                           
+                          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
                           <a 
                               href="/"
                               class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"

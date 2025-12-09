@@ -6,7 +6,6 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Check } from "lucide-svelte";
-  import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { invalidateAll } from '$app/navigation';
   
@@ -15,7 +14,7 @@
   let identityState = $derived($modals.identity);
   let kimpayId = $derived(identityState?.kimpayId);
   
-  let participants = $state<any[]>([]);
+  let participants = $state<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   let newParticipantName = $state("");
   let selectedParticipantId = $state<string | null>(null);
 
@@ -108,7 +107,7 @@
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-2">
-                {#each participants as p}
+                {#each participants as p (p.id)}
                     <button 
                         class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : ''}"
                         onclick={() => selectParticipant(p.id)}

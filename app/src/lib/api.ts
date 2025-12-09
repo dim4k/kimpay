@@ -1,5 +1,4 @@
 import { pb } from '$lib/pocketbase';
-import { goto } from '$app/navigation';
 import { generateUUID } from '$lib/utils';
 import { REIMBURSEMENT_EMOJI } from '$lib/constants';
 

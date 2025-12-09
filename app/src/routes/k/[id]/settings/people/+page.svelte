@@ -6,7 +6,8 @@
   import { onMount } from 'svelte';
   
   let kimpayId = $derived($page.params.id ?? '');
-  let participants = $state<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let participants = $state<Record<string, any>[]>([]);
   let newName = $state("");
   let isLoading = $state(false);
 

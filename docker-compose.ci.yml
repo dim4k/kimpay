@@ -1,0 +1,12 @@
+services:
+  ci:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - NODE_ENV=development

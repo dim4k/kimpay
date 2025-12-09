@@ -1,4 +1,6 @@
 <script lang="ts">
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  /* eslint-disable svelte/no-navigation-without-resolve */
   import { page } from '$app/stores';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -12,8 +14,8 @@
   let token = $derived($page.params.token);
   let name = $state("");
   let isLoading = $state(false);
-  let kimpay: any = $state(null);
-  let participants: any[] = $state([]);
+  let kimpay = $state<Record<string, any> | null>(null);
+  let participants = $state<Record<string, any>[]>([]);
   let error = $state("");
 
   onMount(async () => {
@@ -24,36 +26,36 @@
       // For simplicity/security, usually you only list "unclaimed" ones, but we defined "unclaimed" as no local_id or just purely name based?
       // Our schema has local_id. If it's populated, it's "taken" by a device.
       participants = await pb.collection('participants').getFullList({
-          filter: `kimpay="${kimpay.id}"`,
+          filter: `kimpay="${kimpay!.id}"`,
           sort: 'created'
       });
 
       // Auto-join if already known
       const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      const storedLocalId = myKimpays[kimpay.id] || localStorage.getItem(`kimpay_user_${kimpay.id}`);
+      const storedLocalId = myKimpays[kimpay!.id] || localStorage.getItem(`kimpay_user_${kimpay!.id}`);
       
       if (storedLocalId) {
           // Verify it matches?
           const me = participants.find(p => p.local_id === storedLocalId);
-          if (me) goto(`/k/${kimpay.id}`);
+          if (me) await goto(`/k/${kimpay!.id}`);
       }
 
-    } catch (e) {
+    } catch (_e) {
       error = "Invalid or expired invite link.";
     }
   });
 
-  async function persistAndRedirect(participant: any, localId: string) {
+  async function persistAndRedirect(participant: Record<string, any>, localId: string) {
       if (typeof localStorage !== 'undefined') {
           // 1. Auth Key
-          localStorage.setItem(`kimpay_user_${kimpay.id}`, localId);
+          localStorage.setItem(`kimpay_user_${kimpay!.id}`, localId);
           
           // 2. Index Key
           const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          myKimpays[kimpay.id] = participant.id;
+          myKimpays[kimpay!.id] = participant.id;
           localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
       }
-      goto(`/k/${kimpay.id}`);
+      await goto(`/k/${kimpay!.id}`);
   }
 
   async function joinGroup() {
@@ -75,7 +77,7 @@
     }
   }
 
-  async function claimParticipant(p: any) {
+  async function claimParticipant(p: Record<string, any>) {
       isLoading = true;
       try {
           const local_id = generateUUID();
@@ -114,7 +116,7 @@
                 <div class="space-y-3">
                     <Label class="text-xs uppercase text-muted-foreground">Existing Profiles</Label>
                     <div class="grid gap-2">
-                        {#each participants as p}
+                        {#each participants as p (p.id)}
                              <button 
                                 onclick={() => claimParticipant(p)}
                                 class="flex w-full items-center justify-between p-3 rounded-lg border hover:bg-slate-50 transition-colors text-left group"

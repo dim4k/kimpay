@@ -52,17 +52,18 @@
                         onScan(decodedText);
                   });
               },
-              (errorMessage) => {
+              (_errorMessage) => {
                   // Scanning... ignore individual frame errors
               }
           );
-      } catch (err: any) {
+      } catch (err) {
           console.error("Failed to start scanner", err);
           isScanning = false;
           // Handle specific errors
-          if (err?.name === 'NotAllowedError') {
+          const e = err as Error;
+          if (e?.name === 'NotAllowedError') {
               errorMsg = "Camera access denied. Please allow camera permissions.";
-          } else if (err?.name === 'NotFoundError') {
+          } else if (e?.name === 'NotFoundError') {
               errorMsg = "No camera found on this device.";
           } else if (typeof err === 'string' && (err.includes('Is not defined') || err.includes('Secure Context'))) {
               errorMsg = "Secure context check failed. Use HTTPS."; // Common issue

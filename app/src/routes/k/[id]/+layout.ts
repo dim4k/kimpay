@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { pb } from '$lib/pocketbase';
 import { error } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';

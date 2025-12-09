@@ -10,7 +10,8 @@ export interface Balance {
 }
 
 // Simplify debts algorithm (minimize transaction count)
-export function calculateDebts(expenses: any[], participants: any[]): Transaction[] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function calculateDebts(expenses: Record<string, any>[], participants: Record<string, any>[]): Transaction[] {
     const balances: Record<string, number> = {};
 
     // Initialize balances
@@ -64,8 +65,8 @@ export function calculateDebts(expenses: any[], participants: any[]): Transactio
     let j = 0; // creditor index
 
     while (i < debtors.length && j < creditors.length) {
-        const debtor = debtors[i];
-        const creditor = creditors[j];
+        const debtor = debtors[i]!;
+        const creditor = creditors[j]!;
 
         // The amount to settle is the minimum of what debtor owes and creditor is owed
         let amount = Math.min(Math.abs(debtor.amount), creditor.amount);

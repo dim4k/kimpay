@@ -5,6 +5,7 @@
     import { fade } from 'svelte/transition';
     import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
     import { pb } from '$lib/pocketbase';
+    import type { RecordModel } from 'pocketbase';
 
     let kimpayToLeave = $state<string | null>(null);
     let isLeaving = $state(false);
@@ -38,7 +39,7 @@
                             expand: 'expenses_via_kimpay'
                         });
                         const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-                        const isUsed = allExpenses.some((e: any) => e.payer === participantId || (e.involved && e.involved.includes(participantId)));
+                        const isUsed = allExpenses.some((e: RecordModel) => e.payer === participantId || (e.involved && e.involved.includes(participantId)));
                         
                         if (isUsed) {
                             canDelete = false;
@@ -87,6 +88,7 @@
         
         <div class="grid gap-3">
             {#each appState.recentKimpays as k (k.id)}
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
                 <a href="/k/{k.id}" data-sveltekit-preload-data="off" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">{k.icon || "📁"}</span>

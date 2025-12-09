@@ -1,4 +1,5 @@
 <script lang="ts">
+    /* eslint-disable svelte/no-navigation-without-resolve */
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
@@ -10,6 +11,7 @@
     import { appState } from '$lib/stores/appState.svelte';
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
+    import type { RecentKimpay } from '$lib/types';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -39,7 +41,7 @@
             const record = await createKimpay(kimpayName, kimpayIcon, creatorName, otherParticipants);
             
             // Update store immediately
-            appState.addRecentKimpay(record);
+            appState.addRecentKimpay(record as unknown as RecentKimpay);
             
             if (creatorEmail && creatorEmail.trim()) {
                 const kimpayUrl = `${window.location.origin}/k/${record.id}`;
@@ -56,14 +58,13 @@
                 }).catch(err => console.error("Erreur envoi mail:", err));
             }
 
-            goto(`/k/${record.id}`);
+            await goto(`/k/${record.id}`);
         } catch (e) {
             alert("Error creating Kimpay");
             console.error(e);
-        } finally {
-            isLoading = false;
         }
     }
+     
 </script>
 
 <div class="space-y-3 md:space-y-4">
@@ -87,7 +88,7 @@
                     
                     {#if isEmojiPickerOpen}
                         <div class="absolute top-full mt-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-5 gap-2" transition:fade={{ duration: 100 }}>
-                            {#each KIMPAY_EMOJIS as emoji}
+                            {#each KIMPAY_EMOJIS as emoji (emoji)}
                                 <button 
                                     class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"
                                     onclick={() => {
@@ -146,7 +147,7 @@
         
         {#if otherParticipants.length > 0}
             <div class="flex flex-wrap gap-2 mt-2">
-                {#each otherParticipants as p, i}
+                {#each otherParticipants as p, i (p)}
                     <div class="bg-slate-100 dark:bg-slate-800 text-sm px-3 py-1 rounded-full flex items-center gap-1 group transition-colors">
                         {p}
                         <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500" aria-label="Remove participant">

@@ -37,9 +37,9 @@
         isOpen={true}
         title={confirmState.title}
         description={confirmState.description}
-        confirmText={confirmState.confirmText}
-        cancelText={confirmState.cancelText}
-        variant={confirmState.variant}
+        confirmText={confirmState.confirmText ?? "Confirm"}
+        cancelText={confirmState.cancelText ?? "Cancel"}
+        variant={confirmState.variant ?? "default"}
         isProcessing={isProcessing}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
@@ -49,7 +49,7 @@
 {#if alertState}
     <AlertModal 
         isOpen={true}
-        title={alertState.title}
+        title={alertState.title ?? ""}
         message={alertState.message}
         onConfirm={() => {
             alertState.onConfirm?.();
