@@ -21,7 +21,7 @@
     ];
     
     const index = Math.abs(hash) % colors.length;
-    return `bg-gradient-to-br ${colors[index][0]} ${colors[index][1]}`;
+    return `bg-gradient-to-br ${colors[index]![0]} ${colors[index]![1]}`;
   }
 
   let gradient = $derived(getGradient(name || ""));

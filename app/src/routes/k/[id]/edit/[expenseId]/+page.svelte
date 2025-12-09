@@ -6,14 +6,14 @@
   import { goto } from '$app/navigation';
   import { deleteExpense } from '$lib/api';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-  import { Loader2, Trash2 } from "lucide-svelte";
+  import { LoaderCircle, Trash2 } from "lucide-svelte";
 
 import { t } from '$lib/i18n';
 
   let kimpayId = $derived($page.params.id ?? '');
   let expenseId = $derived(($page.params as Record<string, string>).expenseId);
   
-  let initialData: any = $state(null);
+  let initialData = $state<unknown>(null);
   let isLoading = $state(true);
   let error = $state("");
   let showDeleteConfirm = $state(false);
@@ -21,9 +21,9 @@ import { t } from '$lib/i18n';
 
   onMount(async () => {
     try {
-        initialData = await pb.collection('expenses').getOne(expenseId);
-    } catch (e) {
-        console.error(e);
+        initialData = await pb.collection('expenses').getOne(expenseId || "");
+    } catch (_e) {
+        console.error(_e);
         error = "Failed to load expense.";
     } finally {
         isLoading = false;
@@ -33,10 +33,10 @@ import { t } from '$lib/i18n';
   async function handleDelete() {
       isDeleting = true;
       try {
-          await deleteExpense(expenseId);
+          await deleteExpense(expenseId || "");
           goto(`/k/${kimpayId}`);
-      } catch (e) {
-          console.error("Failed to delete", e);
+      } catch (_e) {
+          console.error("Failed to delete", _e);
           alert("Failed to delete expense"); 
       } finally {
           isDeleting = false;
@@ -54,7 +54,7 @@ import { t } from '$lib/i18n';
     <div class="bg-card rounded-2xl shadow-sm border p-6 space-y-6 transition-colors animate-pop-in">
         {#if isLoading}
             <div class="flex justify-center py-8">
-                <Loader2 class="h-8 w-8 animate-spin text-primary" />
+                <LoaderCircle class="h-8 w-8 animate-spin text-primary" />
             </div>
         {:else if error}
             <div class="text-red-500 text-center">{error}</div>

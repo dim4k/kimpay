@@ -128,7 +128,7 @@
                         <span>{$t('expense.list.for')}:</span>
                         <div class="flex flex-wrap gap-1 justify-end">
                             {#if expense.expand?.involved}
-                                {#each expense.expand.involved as p}
+                                {#each expense.expand.involved as p (p.id)}
                                     {#if currentUserId && p.id === currentUserId}
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                                             {$t('common.you')}

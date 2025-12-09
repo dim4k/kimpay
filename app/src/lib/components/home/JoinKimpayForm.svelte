@@ -21,7 +21,8 @@
         try {
             // Validate existence first
             // Simple cleanup if full url pasted
-            const cleanCode = code.includes('/k/') ? code.split('/k/')[1].split('/')[0] : code;
+            const cleanCode = code.includes('/k/') ? code.split('/k/')[1]?.split('/')[0] : code;
+            if (!cleanCode) throw new Error("Invalid Code");
             await pb.collection('kimpays').getOne(cleanCode);
             goto(`/k/${cleanCode}`); 
         } catch (e) {

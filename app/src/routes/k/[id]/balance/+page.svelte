@@ -120,7 +120,7 @@
                 <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.suggested.title')}</h2>
                 
                 <div class="space-y-3">
-                    {#each transactions as tx, i}
+                    {#each transactions as tx, i (i)}
                         <button 
                             class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-sm border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left balance-item"  
                             style="animation-delay: {i * 50}ms;"

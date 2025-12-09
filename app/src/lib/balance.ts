@@ -44,8 +44,8 @@ export function calculateDebts(expenses: any[], participants: any[]): Transactio
     }
 
     // Separate into debtors and creditors
-    let debtors: Balance[] = [];
-    let creditors: Balance[] = [];
+    const debtors: Balance[] = [];
+    const creditors: Balance[] = [];
 
     for (const [id, amount] of Object.entries(balances)) {
         // Fix floating point precision
@@ -64,8 +64,8 @@ export function calculateDebts(expenses: any[], participants: any[]): Transactio
     let j = 0; // creditor index
 
     while (i < debtors.length && j < creditors.length) {
-        let debtor = debtors[i];
-        let creditor = creditors[j];
+        const debtor = debtors[i];
+        const creditor = creditors[j];
 
         // The amount to settle is the minimum of what debtor owes and creditor is owed
         let amount = Math.min(Math.abs(debtor.amount), creditor.amount);

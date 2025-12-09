@@ -30,7 +30,11 @@ export default [
     {
         rules: {
             "no-unused-vars": "off", // Let TypeScript handle this
-            "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+            "@typescript-eslint/no-unused-vars": ["error", { 
+                "argsIgnorePattern": "^_", 
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+            }],
             "svelte/no-at-html-tags": "warn"
         }
     }

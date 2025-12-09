@@ -16,9 +16,9 @@
         expand: 'participants_via_kimpay'
       });
       participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-      participants.sort((a: any, b: any) => new Date(a.created).getTime() - new Date(b.created).getTime());
-    } catch (e) {
-      console.error(e);
+      participants.sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime());
+    } catch (_e) {
+      console.error(_e);
     }
   }
 
@@ -32,7 +32,7 @@
       });
       newName = "";
       await loadPeople();
-    } catch (e) {
+    } catch (_e) {
       alert("Failed to add person");
     } finally {
       isLoading = false;
@@ -44,7 +44,7 @@
       try {
           await pb.collection('participants').delete(id);
           await loadPeople();
-      } catch (e) {
+      } catch (_e) {
           alert("Failed to delete");
       }
   }
@@ -63,7 +63,7 @@
   </div>
 
   <div class="space-y-2">
-    {#each participants as person}
+    {#each participants as person (person.id)}
       <div class="flex items-center justify-between p-3 bg-white rounded-lg border shadow-sm">
         <div class="flex items-center gap-3">
             <div class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">

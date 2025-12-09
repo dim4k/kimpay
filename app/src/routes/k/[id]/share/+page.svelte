@@ -1,10 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { pb } from '$lib/pocketbase';
-  import { QrCode, Copy, Check, Share2, Loader2 } from "lucide-svelte";
-  import { fade } from 'svelte/transition';
-  import Avatar from '$lib/components/ui/Avatar.svelte';
+
+  import { Copy, Check, Share2, LoaderCircle } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
@@ -88,7 +86,7 @@
         {:else}
             <!-- Fallback / Loading -->
              <div class="h-48 w-48 flex items-center justify-center text-slate-300">
-                <Loader2 class="h-8 w-8 animate-spin" />
+                <LoaderCircle class="h-8 w-8 animate-spin" />
              </div>
         {/if}
 
