@@ -371,7 +371,6 @@
             class="hidden" 
             bind:this={fileInput}
             onchange={handleFileSelect}
-            capture="environment"
         />
     </div>
 

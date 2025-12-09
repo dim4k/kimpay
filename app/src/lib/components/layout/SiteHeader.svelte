@@ -71,7 +71,7 @@
 
       <a href="/" class="flex items-center gap-2 transition-transform hover:scale-105">
           <Logo class="h-8 w-8 text-indigo-700 dark:text-indigo-400" />
-          <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">Kimpay</span>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent {currentKimpay ? 'hidden md:inline' : ''}">Kimpay</span>
       </a>
 
       <div class="flex items-center gap-2">
@@ -80,10 +80,25 @@
               <button 
                   bind:this={triggerRef}
                   onclick={() => isMenuOpen = !isMenuOpen}
-                  class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"
+                  class={currentKimpay && currentParticipant 
+                    ? "flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all max-w-[200px] md:max-w-none" 
+                    : "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"}
                   title="Menu"
               >
-                  <Menu class="h-6 w-6" />
+                  {#if currentKimpay && currentParticipant}
+                     <!-- Identity Trigger -->
+                     <Avatar name={currentParticipant.name} src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null} class="w-8 h-8 text-[10px]" />
+                     <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">{currentParticipant.name}</span>
+                        <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-100 text-xs leading-none">
+                            <span class="hidden md:inline">{currentKimpay.icon || '📁'}</span>
+                            <span class="truncate max-w-[120px] md:max-w-[200px]">{currentKimpay.name}</span>
+                        </div>
+                     </div>
+                     <ChevronDown class="h-3 w-3 text-slate-400 shrink-0" />
+                  {:else}
+                    <Menu class="h-6 w-6" />
+                  {/if}
               </button>
 
               {#if isMenuOpen}
@@ -96,8 +111,14 @@
                       <div class="max-h-[70vh] overflow-y-auto py-2">
                           
                           {#if currentParticipant && currentKimpay}
-                              <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 mb-2 bg-slate-50/50 dark:bg-slate-900/50">
-                                  <div class="flex items-center gap-3">
+                              <div class="px-4 pt-3 pb-1 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 mb-2">
+                                  <!-- Kimpay Title (Non-clickable Header) -->
+                                  <div class="flex items-center gap-2 mb-3 opacity-90">
+                                      <span class="text-xl leading-none">{currentKimpay.icon || '📁'}</span>
+                                      <h3 class="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate">{currentKimpay.name}</h3>
+                                  </div>
+
+                                  <div class="flex items-center gap-3 pb-3">
                                       <div class="relative group">
                                            <Avatar 
                                                name={currentParticipant.name} 
@@ -112,7 +133,8 @@
                                            </button>
                                            <input 
                                               type="file" 
-                                              accept="image/*" 
+                                              accept="image/*"
+                                              multiple
                                               class="hidden" 
                                               bind:this={fileInputRef}
                                               onchange={handleAvatarChange}
@@ -131,6 +153,7 @@
                                           </button>
                                       </div>
                                   </div>
+                                  
                               </div>
                           {/if}
 
@@ -149,7 +172,7 @@
                                   <a 
                                       href="/k/{k.id}" 
                                       data-sveltekit-preload-data="off"
-                                      class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                      class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                   >
                                       <span class="text-xl">{k.icon || "📁"}</span>
                                       <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
@@ -162,12 +185,12 @@
                               {/if}
                           {/if}
 
-                          <div class="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
+
                           
 
                           <a 
                               href="/"
-                              class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"
+                              class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"
                           >
                               <Plus class="h-4 w-4" />
                               <span class="text-sm font-semibold">{$t('home.create.title')}</span>
