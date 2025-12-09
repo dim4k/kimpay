@@ -1,3 +1,5 @@
+import type { Expense, Participant } from './types';
+
 export interface Transaction {
     from: string;
     to: string;
@@ -10,8 +12,7 @@ export interface Balance {
 }
 
 // Simplify debts algorithm (minimize transaction count)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function calculateDebts(expenses: Record<string, any>[], participants: Record<string, any>[]): Transaction[] {
+export function calculateDebts(expenses: Expense[], participants: Participant[]): Transaction[] {
     const balances: Record<string, number> = {};
 
     // Initialize balances

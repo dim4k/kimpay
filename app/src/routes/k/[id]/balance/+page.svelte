@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { pb } from '$lib/pocketbase';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
   import { Loader2, ArrowRight, Wallet, CheckCircle } from "lucide-svelte";
   import { fade } from 'svelte/transition';
@@ -11,59 +10,27 @@
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals';
+  import { appState } from '$lib/stores/appState.svelte';
+  import { pb } from '$lib/pocketbase';
 
   let kimpayId = $derived($page.params.id ?? '');
+  
+  // Use appState for reactive data
+  let participants = $derived(appState.participants);
+  let expenses = $derived(appState.expenses);
+  let myId = $derived(appState.participant?.id ?? null);
+  
+  // Reactive transactions calculation
+  let transactions = $derived(calculateDebts(expenses, participants));
+  
   let isLoading = $state(true);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let participants = $state<Record<string, any>[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let expenses = $state<Record<string, any>[]>([]);
-  let transactions = $state<Transaction[]>([]);
-  let myId = $state<string | null>(null);
-  let unsubscribe: () => void;
-
-  // Modal State
-  // Removed local state in favor of global modals
-
-  async function loadBalance() {
-    // Only show loading spinner on initial load to avoid flicker on realtime updates
-    if (participants.length === 0) isLoading = true;
-    try {
-      const res = await pb.collection('kimpays').getOne(kimpayId, {
-          expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay',
-          requestKey: null
-      });
-
-      participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-      expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-
-      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      if (myKimpays[kimpayId]) {
-          myId = myKimpays[kimpayId];
-      }
-
-      transactions = calculateDebts(expenses, participants);
-
-    } catch (e) {
-      console.error("Failed to load balance", e);
-    } finally {
-        isLoading = false;
-    }
-  }
 
   onMount(async () => {
-      await loadBalance();
-      try {
-          unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action: _action, record: _record }) => {
-              await loadBalance();
-          });
-      } catch (e) {
-          console.error("Failed to subscribe", e);
+      if (kimpayId) {
+          isLoading = true;
+          await appState.init(kimpayId);
+          isLoading = false;
       }
-  });
-
-  onDestroy(() => {
-    unsubscribe?.();
   });
 
   function openSettleModal(tx: Transaction) {
@@ -78,7 +45,7 @@
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
              await createReimbursement(kimpayId, tx.from, tx.to, tx.amount, $t('balance.reimbursement'));
-             await loadBalance();
+             // No need to reload, appState handles realtime updates
           }
       });
   }

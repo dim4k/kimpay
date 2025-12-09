@@ -28,6 +28,10 @@ class AppState {
             
             this.kimpay = record as unknown as Kimpay;
             this.participants = this.kimpay?.expand?.participants_via_kimpay || [];
+            
+            const ex = this.kimpay?.expand?.expenses_via_kimpay || [];
+            ex.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            this.expenses = ex;
 
             // 2. Identify User
             if (typeof localStorage !== 'undefined') {
@@ -61,6 +65,8 @@ class AppState {
         pb.collection('kimpays').subscribe(kimpayId, (e) => {
             if (this.kimpay && e.action === 'update') {
                this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
+               // Also refresh expenses since creating an expense touches the kimpay record
+               this.refreshExpenses();
             } else if (e.action === 'delete') {
                 // Handle deletion? Redirect?
                 this.kimpay = null;
