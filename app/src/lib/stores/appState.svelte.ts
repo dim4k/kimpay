@@ -20,7 +20,8 @@ class AppState {
         try {
             // 1. Fetch Kimpay with participants and expenses expanded
             this.kimpay = await pb.collection('kimpays').getOne(kimpayId, {
-                expand: 'participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved'
+                expand: 'participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved',
+                requestKey: null
             });
             this.participants = this.kimpay?.expand?.participants_via_kimpay || [];
 
@@ -64,7 +65,7 @@ class AppState {
         pb.collection('participants').subscribe('*', async (e) => {
             // Filter client side if server filter not robust in subscribe
             if (e.record.kimpay === kimpayId) {
-                 const res = await pb.collection('kimpays').getOne(kimpayId, { expand: 'participants_via_kimpay' });
+                 const res = await pb.collection('kimpays').getOne(kimpayId, { expand: 'participants_via_kimpay', requestKey: null });
                  this.participants = res.expand?.participants_via_kimpay || [];
             }
         });
@@ -82,7 +83,8 @@ class AppState {
         if (!this.kimpay) return;
         
          const k = await pb.collection('kimpays').getOne(this.kimpay.id, {
-             expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved'
+             expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved',
+             requestKey: null
          });
          const ex = k.expand?.expenses_via_kimpay || [];
          ex.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());

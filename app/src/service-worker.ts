@@ -42,6 +42,12 @@ sw.addEventListener('fetch', (event) => {
 
   async function respond() {
     const url = new URL(event.request.url);
+
+    // Ignore API requests (PocketBase)
+    if (url.pathname.startsWith('/api/')) {
+        return fetch(event.request);
+    } 
+
     const cache = await caches.open(CACHE);
 
     // `build`/`files` can always be served from the cache
