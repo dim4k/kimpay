@@ -5,7 +5,7 @@
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { Check, Camera, X } from "lucide-svelte";
+  import { Camera, X } from "lucide-svelte";
   import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
   import InputModal from '$lib/components/ui/InputModal.svelte';
   import DatePicker from '$lib/components/ui/DatePicker.svelte';

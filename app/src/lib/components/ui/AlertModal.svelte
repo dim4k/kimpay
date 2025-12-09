@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { scale } from 'svelte/transition';
-    import { AlertCircle } from "lucide-svelte";
-
+    import { CircleAlert } from "lucide-svelte";
+    
     let { isOpen, title, message, onConfirm }: { 
         isOpen: boolean; 
         title?: string;
@@ -23,7 +23,7 @@
         >
             <div class="flex flex-col items-center gap-4 text-center">
                 <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
-                    <AlertCircle class="h-6 w-6" />
+                    <CircleAlert class="h-6 w-6" />
                 </div>
                 
                 <div class="space-y-1">

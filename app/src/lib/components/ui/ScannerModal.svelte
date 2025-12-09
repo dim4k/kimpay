@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-  import { onMount, onDestroy } from "svelte";
-  import { X, Loader2 } from "lucide-svelte";
+  import { onDestroy } from "svelte";
+  import { X, LoaderCircle } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { fade, scale } from 'svelte/transition';
 
@@ -29,21 +29,23 @@
       await new Promise(r => setTimeout(r, 100));
       
       try {
-          if (!html5QrCode) {
-              html5QrCode = new Html5Qrcode(scannerId);
-          }
-          
-          isScanning = true;
-          errorMsg = null;
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode(scannerId, { 
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+                verbose: false
+            });
+        }
+        
+        isScanning = true;
+        errorMsg = null;
 
-          await html5QrCode.start(
-              { facingMode: "environment" }, // Rear camera
-              {
-                  fps: 10,
-                  qrbox: { width: 250, height: 250 },
-                  aspectRatio: 1.0,
-                  formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
-              },
+        await html5QrCode.start(
+            { facingMode: "environment" }, // Rear camera
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+            },
               (decodedText) => {
                   // Success
                   stopScanner().then(() => {
@@ -108,7 +110,7 @@
               
               {#if !isScanning && !errorMsg}
                   <div class="absolute inset-0 flex items-center justify-center text-white/50">
-                      <Loader2 class="h-8 w-8 animate-spin" />
+                      <LoaderCircle class="h-8 w-8 animate-spin" />
                   </div>
               {/if}
 

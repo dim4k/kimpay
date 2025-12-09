@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Loader2, AlertTriangle, CheckCircle } from "lucide-svelte";
+  import { LoaderCircle, TriangleAlert, CircleCheck } from "lucide-svelte";
   import { fade, scale } from 'svelte/transition';
   import { portal } from '$lib/actions/portal';
 
@@ -40,9 +40,9 @@
             <div class="text-center space-y-2">
                  <div class={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${variant === 'destructive' ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'}`}>
                     {#if variant === 'destructive'}
-                        <AlertTriangle class="h-8 w-8" />
+                        <TriangleAlert class="h-8 w-8" />
                     {:else}
-                        <CheckCircle class="h-8 w-8" />
+                        <CircleCheck class="h-8 w-8" />
                     {/if}
                  </div>
                  <h3 class="text-xl font-bold text-slate-900">{title}</h3>
@@ -65,7 +65,7 @@
                     disabled={isProcessing}
                 >
                     {#if isProcessing}
-                        <Loader2 class="h-4 w-4 animate-spin" />
+                        <LoaderCircle class="h-4 w-4 animate-spin" />
                     {/if}
                     {confirmText}
                 </button>

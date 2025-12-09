@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { X, ChevronLeft, ChevronRight } from "lucide-svelte";
-  import { fade, scale } from 'svelte/transition';
+  import { ChevronLeft, ChevronRight } from "lucide-svelte";
+  import { fade } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
 
   let { 
