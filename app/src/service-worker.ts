@@ -20,7 +20,6 @@ sw.addEventListener('install', (event) => {
   }
 
   event.waitUntil(addFilesToCache());
-  sw.skipWaiting();
 });
 
 sw.addEventListener('activate', (event) => {
@@ -32,7 +31,6 @@ sw.addEventListener('activate', (event) => {
   }
 
   event.waitUntil(deleteOldCaches());
-  sw.clients.claim();
 });
 
 sw.addEventListener('fetch', (event) => {
