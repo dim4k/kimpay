@@ -1,9 +1,8 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   /* eslint-disable svelte/no-navigation-without-resolve */
-  import { page } from '$app/stores';
   import { t } from '$lib/i18n';
-  import { Home } from "lucide-svelte";
+  import { House } from "lucide-svelte";
 </script>
 
 <div class="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors relative overflow-hidden">
@@ -34,13 +33,9 @@
                 href="/" 
                 class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300"
             >
-                <Home class="w-5 h-5" />
+                <House class="w-5 h-5" />
                 {$t('error.404.button')}
             </a>
         </div>
-    </div>
-
-    <div class="absolute bottom-8 text-xs text-slate-400 font-mono">
-        Error: {$page.status} {$page.error?.message}
     </div>
 </div>

@@ -7,7 +7,7 @@
     import { locale } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
     import { appState } from '$lib/stores/appState.svelte';
 
     let { children, data } = $props();
@@ -30,11 +30,11 @@
 
     // Re-load groups on navigation (in case a new one was created)
     $effect(() => {
-        if ($page.url.pathname) {
+        if (page.url.pathname) {
             appState.initRecentKimpays();
             
             // Reset app state if we leave the kimpay context
-            if (!$page.url.pathname.startsWith('/k/')) {
+            if (!page.url.pathname.startsWith('/k/')) {
                 appState.reset();
             }
         }

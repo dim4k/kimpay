@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Pencil, Trash2, Image as ImageIcon, Camera } from "lucide-svelte";
+    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins } from "lucide-svelte";
     import { t } from '$lib/i18n';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
@@ -51,10 +51,13 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
-    class="expense-item bg-card rounded-xl border shadow-sm overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-900 transition-all duration-300"
+    class="expense-item rounded-xl border shadow-sm overflow-hidden group transition-all duration-300 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-indigo-200 dark:hover:border-indigo-900'}"
+    
     class:ring-2={expandedId === expense.id}
-    class:ring-indigo-500={expandedId === expense.id}
-    class:dark:ring-indigo-400={expandedId === expense.id}
+    class:ring-indigo-500={expandedId === expense.id && !expense.is_reimbursement}
+    class:dark:ring-indigo-400={expandedId === expense.id && !expense.is_reimbursement}
+    class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
+    class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
     {style}
 >
     <!-- Main Row (Always Visible) -->
@@ -63,8 +66,14 @@
         onclick={() => onToggleExpand(expense.id)}
     >
         <div class="flex items-center gap-4 flex-1 min-w-0 mr-2">
-            <div class="h-10 w-10 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-xl border border-slate-100 dark:border-slate-700 transition-colors relative">
-                    {expense.icon || '💸'}
+            <div 
+                class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-xl border transition-colors relative {expense.is_reimbursement ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}"
+            >
+                    {#if expense.is_reimbursement}
+                        <HandCoins class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    {:else}
+                        {expense.icon || '💸'}
+                    {/if}
                     <!-- Camera indicator if collapsed -->
                     {#if (!expandedId || expandedId !== expense.id) && expense.photos && expense.photos.length > 0}
                     <div class="absolute -top-1.5 -right-1.5 h-5 w-5 bg-indigo-500 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
@@ -74,21 +83,30 @@
             </div>
             <div class="flex flex-col min-w-0">
                 <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate text-base">
-                    {expense.description}
+                    {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
                 </span>
                 {#if expandedId !== expense.id}
                     <div transition:slideFade={{ y: 20, duration: 300 }}>
                         <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
-                            <span class="truncate">
-                                {$t('expense.list.paid_by')} 
-                                {#if currentUserId && expense.payer === currentUserId}
-                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
-                                {:else}
-                                    <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
-                                {/if}
-                            </span>
-                            <span>•</span>
-                            <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                            {#if expense.is_reimbursement}
+                                <span class="font-medium text-emerald-700 dark:text-emerald-300">
+                                    {$t('expense.list.reimbursement', {
+                                        from: currentUserId && expense.payer === currentUserId ? $t('common.you') : (expense.expand?.payer?.name || $t('common.unknown')),
+                                        to: currentUserId && expense.expand?.involved?.[0]?.id === currentUserId ? $t('common.you') : (expense.expand?.involved?.[0]?.name || $t('common.unknown'))
+                                    })}
+                                </span>
+                            {:else}
+                                <span class="truncate">
+                                    {$t('expense.list.paid_by')} 
+                                    {#if currentUserId && expense.payer === currentUserId}
+                                        <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
+                                    {:else}
+                                        <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
+                                    {/if}
+                                </span>
+                                <span>•</span>
+                                <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
+                            {/if}
                         </div>
                     </div>
                 {/if}

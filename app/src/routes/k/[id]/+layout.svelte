@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { House, ChartPie, Settings, Plus, Share2 } from "lucide-svelte";
+  import { House, ChartPie, Settings, Plus, Share2, Wallet } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
@@ -59,7 +59,7 @@
                 class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.endsWith(kimpayId) ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                    <House class="h-6 w-6" strokeWidth={$page.url.pathname.endsWith(kimpayId) ? 2.5 : 2} />
+                    <Wallet class="h-6 w-6" strokeWidth={$page.url.pathname.endsWith(kimpayId) ? 2.5 : 2} />
                     {#if $page.url.pathname.endsWith(kimpayId)}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}

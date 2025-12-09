@@ -49,6 +49,7 @@ export const locales = {
     "expense.list.items": "items",
     "expense.list.paid_by": "Paid by",
     "expense.list.for": "For",
+    "expense.list.reimbursement": "From {from} to {to}",
     "expense.list.empty.title": "No expenses yet.",
     "expense.list.empty.desc": "Tap + to add one.",
     
@@ -214,6 +215,7 @@ export const locales = {
     "expense.list.items": "éléments",
     "expense.list.paid_by": "Payé par",
     "expense.list.for": "Pour",
+    "expense.list.reimbursement": "De {from} à {to}",
     "expense.list.empty.title": "Aucune dépense.",
     "expense.list.empty.desc": "Appuyez sur + pour en ajouter.",
     
