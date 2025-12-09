@@ -113,13 +113,13 @@
       }
   }
 
-  let currentUserId = $state<string | null>(null);
+  import { appState } from '$lib/stores/appState.svelte';
+
+  // Reactive user ID from global state
+  let currentUserId = $derived(appState.participant?.id ?? null);
 
   $effect(() => {
     if (kimpayId) {
-        // Read user ID from storage
-        const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-        currentUserId = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
         initPage();
     }
   });
@@ -132,9 +132,6 @@
   $effect(() => {
     // This will run when refreshSignal.count changes (triggered by layout)
     if (refreshSignal && refreshSignal.count > 0) {
-        // Re-read user ID in case it changed (e.g. identify modal)
-        const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-        currentUserId = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
         loadExpenses();
     }
   });
