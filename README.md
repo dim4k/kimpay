@@ -1,8 +1,8 @@
-# ✈️ Kimpay
+# 💸 Kimpay
 
-**Kimpay** is a modern expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
+**Kimpay** is a modern, containerized expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
 
-![Kimpay Screenshot](app/static/screenshot.jpg)
+![Kimpay Screenshot](app/static/marketing_final.png)
 
 ## ✨ Features
 
@@ -10,60 +10,65 @@
 - **Easy Sharing**: Invite friends via a short 6-character code or direct link
 - **Expense Management**: Add expenses specifying who paid and for whom
 - **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom")
-- **Multilingual**: Available in French 🇫🇷 and English 🇬🇧
+- **Real-Time**: Updates align instantly across devices
+- **Multilingual**: Available in English 🇬🇧 and French 🇫🇷
 - **Dark Mode**: Elegant interface supporting both light and dark themes
 - **Delightful UX**: Smooth animations, emojis, and polished design
 - **PWA Ready**: Install as a Progressive Web App on any device
 
 ## 🛠️ Tech Stack
 
+- **Runtime**: **Node.js 24 (LTS)**
 - **Frontend**: [SvelteKit](https://kit.svelte.dev/) (SSR/CSR) + [TailwindCSS](https://tailwindcss.com/)
 - **Backend**: [PocketBase](https://pocketbase.io/) (Real-time SQLite database + Auth)
-- **Deployment**: [Docker Compose](https://docs.docker.com/compose/)
+- **Language**: TypeScript 5 (Strict Mode)
+- **Infrastructure**: Docker Compose (Production & CI environments)
 
 ## 🚀 Quick Start
 
-The entire project is containerized. You only need Docker installed.
+The entire project is containerized. You only need **Docker** installed.
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo>
-   cd kimpay
-   ```
+### 1. Start the application (Production Mode)
 
-2. **Start the application**
-   ```bash
-   docker compose up -d --build
-   ```
+```bash
+make start
+```
+This builds and runs the application in production mode.
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **PocketBase Admin**: [http://localhost:8090/_/](http://localhost:8090/_/)
 
-3. **Access the application**
-   - Frontend: [http://localhost:3000](http://localhost:3000)
-   - Backend (PocketBase Admin): [http://localhost:8090/_/](http://localhost:8090/_/)
+### 2. Stop the application
 
-## 🛡️ Accessibility & Quality
+```bash
+make stop
+```
 
-- **A11y**: Compliant with accessibility standards (keyboard navigation, ARIA roles)
-- **Responsive**: Works perfectly on mobile, tablet, and desktop
-- **Type-Safe**: Built with TypeScript for better developer experience
+## 🔧 Development Workflow
 
-## 🔧 Development
+We provide a set of `make` commands to streamline development and ensure consistency across environments.
 
-### Local Development (without Docker)
+### 🏃‍♂️ Running in Development Mode
 
-1. **Start PocketBase**
-   ```bash
-   docker compose up -d pb
-   ```
+To start the app with hot-reloading (HMR):
 
-2. **Install dependencies and run dev server**
-   ```bash
-   cd app
-   npm install
-   npm run dev
-   ```
+```bash
+make start-dev
+```
 
-### Environment Variables
+### 🛡️ Code Quality & Testing
 
+We use an **isolated CI container** to ensure linting and type-checking run in a consistent Node 24 environment, regardless of your local setup.
+
+| Command | Description |
+|---------|-------------|
+| `make check` | Run Svelte check (Type Safety) |
+| `make lint` | Run ESLint (Code Style) |
+| `make format` | Format code with Prettier |
+| `make lint-fix` | Auto-fix ESLint issues |
+
+### 🌍 Environment Variables
+
+Configuration is handled via `docker-compose.yml`.
 - `PUBLIC_POCKETBASE_URL`: PocketBase API URL (default: `http://localhost:8090`)
 - `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
 
