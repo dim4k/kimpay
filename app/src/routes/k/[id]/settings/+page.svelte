@@ -1,5 +1,5 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve */
+
   import { page } from '$app/stores';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -199,6 +199,7 @@
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
             localStorage.removeItem(`kimpay_user_${kimpayId}`);
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
             await goto('/');
           }
       });
@@ -216,6 +217,7 @@
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
             localStorage.removeItem(`kimpay_user_${kimpayId}`);
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
             await goto('/');
           }
       });

@@ -53,7 +53,7 @@
         <div class="grid grid-cols-5 h-[4.5rem] items-end pb-2">
             
             <!-- Expenses (Home) -->
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
             <a 
                 href="/k/{kimpayId}" 
                 class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.endsWith(kimpayId) ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
@@ -68,14 +68,14 @@
             </a>
 
             <!-- Balance -->
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
             <a 
                 href="/k/{kimpayId}/balance" 
                 class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/balance') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                     <ChartPie class="h-6 w-6" strokeWidth={$page.url.pathname.includes('/balance') ? 2.5 : 2} />
-                     {#if $page.url.pathname.includes('/balance')}
+                    <ChartPie class="h-6 w-6" strokeWidth={$page.url.pathname.includes('/balance') ? 2.5 : 2} />
+                    {#if $page.url.pathname.includes('/balance')}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}
                 </div>
@@ -86,7 +86,7 @@
             <div class="pointer-events-none"></div>
 
             <!-- Share (New) -->
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
             <a 
                 href="/k/{kimpayId}/share" 
                 class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/share') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
@@ -101,7 +101,7 @@
             </a>
 
             <!-- Settings -->
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
             <a 
                 href="/k/{kimpayId}/settings" 
                 class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/settings') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
@@ -120,7 +120,7 @@
 
     <!-- Floating Action Button Container (Centered - Mounted LAST to stay on top visually if same z-index, but we use z-50) -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-50">
-        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
         <a 
             href="/k/{kimpayId}/add" 
             class="flex items-center justify-center bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-full h-16 w-16 shadow-xl shadow-indigo-200 dark:shadow-none hover:scale-105 transition-transform duration-200 ring-4 ring-slate-50 dark:ring-slate-950"
@@ -129,5 +129,3 @@
         </a>
     </div>
 </div>
-
-

@@ -9,7 +9,7 @@
   import { modals } from '$lib/stores/modals';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { updateParticipant } from '$lib/api';
-  import { invalidateAll } from '$app/navigation';
+  import { invalidateAll, afterNavigate } from '$app/navigation';
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
@@ -20,6 +20,10 @@
   
   let currentParticipant = $derived(appState.participant);
   let currentKimpay = $derived(appState.kimpay);
+
+  afterNavigate(() => {
+      isMenuOpen = false;
+  });
 
   async function handleAvatarChange(e: Event) {
       const input = e.target as HTMLInputElement;
@@ -56,6 +60,7 @@
           isMenuOpen = false;
       }
   }
+
   /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
@@ -63,7 +68,7 @@
 
 <header class="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
   <div class="container flex h-16 items-center justify-between px-4">
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
       <a href="/" class="flex items-center gap-2 transition-transform hover:scale-105">
           <Logo class="h-8 w-8 text-indigo-700 dark:text-indigo-400" />
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">Kimpay</span>
@@ -140,12 +145,11 @@
                           {:else}
                               {@const filteredKimpays = appState.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
                               {#each filteredKimpays as k (k.id)}
-                                  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
                                   <a 
                                       href="/k/{k.id}" 
                                       data-sveltekit-preload-data="off"
                                       class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                      onclick={() => isMenuOpen = false}
                                   >
                                       <span class="text-xl">{k.icon || "📁"}</span>
                                       <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
@@ -160,11 +164,10 @@
 
                           <div class="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
                           
-                          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+
                           <a 
                               href="/"
                               class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"
-                              onclick={() => isMenuOpen = false}
                           >
                               <Plus class="h-4 w-4" />
                               <span class="text-sm font-semibold">{$t('home.create.title')}</span>
