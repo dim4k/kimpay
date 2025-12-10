@@ -13,10 +13,15 @@ class AppState {
     initializedRecentKimpays = $state(false);
 
     private subscribedKimpayId: string | null = null;
+    private initPromise: Promise<void> | null = null;
 
     constructor() {}
 
-    async init(kimpayId: string, force = false) {
+    async init(
+        kimpayId: string,
+        force = false,
+        initialData: Kimpay | null = null
+    ) {
         if (
             !force &&
             this.kimpay?.id === kimpayId &&
@@ -24,48 +29,69 @@ class AppState {
         )
             return; // Already loaded
 
-        try {
-            // 1. Fetch Kimpay with participants and expenses expanded
-            // We cast because the SDK returns a generic RecordModel but we know the shape via expansion
-            const record = await pb.collection("kimpays").getOne(kimpayId, {
-                expand: "participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
-                requestKey: null,
-            });
+        // Prevent concurrent fetches
+        if (this.initPromise) {
+            await this.initPromise;
+            if (!force && this.kimpay?.id === kimpayId) return;
+        }
 
-            this.kimpay = record as unknown as Kimpay;
-            this.participants =
-                this.kimpay?.expand?.participants_via_kimpay || [];
-
-            const ex = this.kimpay?.expand?.expenses_via_kimpay || [];
-            ex.sort((a, b) => {
-                const dateDiff =
-                    new Date(b.date).getTime() - new Date(a.date).getTime();
-                if (dateDiff !== 0) return dateDiff;
-                return (
-                    new Date(b.created).getTime() -
-                    new Date(a.created).getTime()
-                );
-            });
-            this.expenses = ex;
-
-            // 2. Identify User
-            if (typeof localStorage !== "undefined") {
-                const stored = JSON.parse(
-                    localStorage.getItem("my_kimpays") || "{}"
-                );
-                const participantId = stored[kimpayId];
-
-                if (participantId) {
-                    this.participant =
-                        this.participants.find((p) => p.id === participantId) ||
-                        null;
+        this.initPromise = (async () => {
+            try {
+                // 1. Fetch Kimpay with participants and expenses expanded
+                if (initialData) {
+                    this.kimpay = initialData;
+                } else {
+                    // We cast because the SDK returns a generic RecordModel but we know the shape via expansion
+                    const record = await pb
+                        .collection("kimpays")
+                        .getOne(kimpayId, {
+                            expand: "participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+                            requestKey: null,
+                        });
+                    this.kimpay = record as unknown as Kimpay;
                 }
-            }
 
-            // 4. Subscribe to Realtime Updates
-            this.subscribe(kimpayId);
-        } catch (e) {
-            console.error("Error initializing app state", e);
+                this.participants =
+                    this.kimpay?.expand?.participants_via_kimpay || [];
+
+                const ex = this.kimpay?.expand?.expenses_via_kimpay || [];
+                ex.sort((a, b) => {
+                    const dateDiff =
+                        new Date(b.date).getTime() - new Date(a.date).getTime();
+                    if (dateDiff !== 0) return dateDiff;
+                    return (
+                        new Date(b.created).getTime() -
+                        new Date(a.created).getTime()
+                    );
+                });
+                this.expenses = ex;
+
+                // 2. Identify User
+                if (typeof localStorage !== "undefined") {
+                    const stored = JSON.parse(
+                        localStorage.getItem("my_kimpays") || "{}"
+                    );
+                    const participantId = stored[kimpayId];
+
+                    if (participantId) {
+                        this.participant =
+                            this.participants.find(
+                                (p) => p.id === participantId
+                            ) || null;
+                    }
+                }
+
+                // 4. Subscribe to Realtime Updates
+                this.subscribe(kimpayId);
+            } catch (e) {
+                console.error("Error initializing app state", e);
+            }
+        })();
+
+        try {
+            await this.initPromise;
+        } finally {
+            this.initPromise = null;
         }
     }
 

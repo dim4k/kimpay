@@ -46,7 +46,7 @@
   onMount(async () => {
       if (kimpayId) {
           isLoading = true;
-          await appState.init(kimpayId, true);
+          await appState.init(kimpayId);
           isLoading = false;
       }
   });

@@ -13,6 +13,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                __APP_VERSION__: "readonly",
             },
         },
     },

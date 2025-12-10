@@ -1,41 +1,65 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-		
-		<!-- Structured Data -->
-		<script type="application/ld+json">
-		{
-			"@context": "https://schema.org",
-			"@type": "WebApplication",
-			"name": "Kimpay",
-			"url": "https://kimpay.io",
-			"description": "Simple expense sharing for groups. Split bills, track shared costs, and settle debts easily.",
-			"applicationCategory": "FinanceApplication",
-			"operatingSystem": "Any",
-			"offers": {
-				"@type": "Offer",
-				"price": "0",
-				"priceCurrency": "USD"
-			},
-			"featureList": [
-				"Expense tracking",
-				"Group expense sharing",
-				"Smart debt settlement",
-				"Multi-language support",
-				"Dark mode",
-				"PWA support"
-			]
-		}
-		</script>
-		
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Structured Data -->
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "name": "Kimpay",
+                        "url": "https://kimpay.io"
+                    },
+                    {
+                        "@type": "Organization",
+                        "@id": "https://kimpay.io/#organization",
+                        "url": "https://kimpay.io",
+                        "logo": "https://kimpay.io/logo.png",
+                        "name": "Kimpay"
+                    },
+                    {
+                        "@type": "WebApplication",
+                        "name": "Kimpay",
+                        "url": "https://kimpay.io",
+                        "image": "https://kimpay.io/logo.png",
+                        "screenshot": "https://kimpay.io/marketing_final.png",
+                        "description": "Simple expense sharing for groups. Split bills, track shared costs, and settle debts easily.",
+                        "applicationCategory": "FinanceApplication",
+                        "operatingSystem": "Any",
+                        "author": {
+                            "@id": "https://kimpay.io/#organization"
+                        },
+                        "offers": {
+                            "@type": "Offer",
+                            "price": "0",
+                            "priceCurrency": "USD"
+                        },
+                        "featureList": [
+                            "Expense tracking",
+                            "Group expense sharing",
+                            "Smart debt settlement",
+                            "Multi-language support",
+                            "Dark mode",
+                            "PWA support"
+                        ]
+                    }
+                ]
+            }
+        </script>
+
+        %sveltekit.head%
+    </head>
+    <body data-sveltekit-preload-data="hover">
+        <div style="display: contents">%sveltekit.body%</div>
+    </body>
 </html>

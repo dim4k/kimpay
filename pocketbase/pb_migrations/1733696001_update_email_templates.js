@@ -5,7 +5,7 @@ migrate((app) => {
     try {
         const frRecord = app.findFirstRecordByFilter("email_templates", "slug='share_kimpay' && locale='fr'");
         if (frRecord) {
-            frRecord.set("subject", "{creator} vou invite à rejoindre \"{name}\" sur Kimpay");
+            frRecord.set("subject", "{creator} vous invite à rejoindre \"{name}\" sur Kimpay");
             frRecord.set("body", `
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px 20px;">
   <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">

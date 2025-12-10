@@ -10,3 +10,4 @@ services:
       - "5173:5173"
     environment:
       - PUBLIC_POCKETBASE_URL=http://localhost:8090
+      - NODE_ENV=development

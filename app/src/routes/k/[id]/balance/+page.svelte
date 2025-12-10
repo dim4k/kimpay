@@ -28,8 +28,8 @@
   onMount(async () => {
       if (kimpayId) {
           isLoading = true;
-          // Force refresh to ensure balance is accurate
-          await appState.init(kimpayId, true);
+          // Init app state if not already loaded
+          await appState.init(kimpayId);
           isLoading = false;
       }
   });

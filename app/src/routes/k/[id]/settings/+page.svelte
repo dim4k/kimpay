@@ -517,7 +517,7 @@
         </div>
         
         <div class="text-center text-xs text-muted-foreground pt-2">
-            Kimpay Beta v0.1.1
+            Kimpay v{__APP_VERSION__}
         </div>
     </main>
 </div>
