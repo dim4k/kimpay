@@ -1,11 +1,38 @@
-# 💸 Kimpay
+<div align="center">
+  <img src="app/static/logo.png" alt="Logo Kimpay" width="120" height="120">
+
+  <h1>Kimpay</h1>
+
+  <p>
+    <strong>A modern, containerized expense-sharing web application.</strong>
+    <br />
+    <a href="https://kimpay.io"><strong>🌐 https://kimpay.io</strong></a>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="SvelteKit" />
+    <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS" />
+    <img src="https://img.shields.io/badge/PocketBase-B8DBE4?style=for-the-badge&logo=pocketbase&logoColor=black" alt="PocketBase" />
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  </p>
+  
+  <p>
+    <a href="#features">Features</a> •
+    <a href="#quick-start">Quick Start</a> •
+    <a href="#tech-stack">Tech Stack</a>
+  </p>
+</div>
+
+<br />
 
 **Kimpay** is a modern, containerized expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
 
 ![Kimpay Screenshot](app/static/marketing_final.png)
 
-## ✨ Features
+## <a id="features"></a>✨ Features
 
+- **No Login Required**: Start immediately—no account creation needed
+- **Cross-Platform**: Optimized for both mobile and desktop browsers
 - **Quick Setup**: Create a group in seconds with an emoji and a name
 - **Easy Sharing**: Invite friends via a short 6-character code or direct link
 - **Expense Management**: Add expenses specifying who paid and for whom
@@ -16,7 +43,7 @@
 - **Delightful UX**: Smooth animations, emojis, and polished design
 - **PWA Ready**: Install as a Progressive Web App on any device
 
-## 🛠️ Tech Stack
+## <a id="tech-stack"></a>🛠️ Tech Stack
 
 - **Runtime**: **Node.js 24 (LTS)**
 - **Frontend**: [SvelteKit](https://kit.svelte.dev/) (SSR/CSR) + [TailwindCSS](https://tailwindcss.com/)
@@ -24,7 +51,7 @@
 - **Language**: TypeScript 5 (Strict Mode)
 - **Infrastructure**: Docker Compose (Production & CI environments)
 
-## 🚀 Quick Start
+## <a id="quick-start"></a>🚀 Quick Start
 
 The entire project is containerized. You only need **Docker** installed.
 
@@ -63,7 +90,6 @@ We use an **isolated CI container** to ensure linting and type-checking run in a
 |---------|-------------|
 | `make check` | Run Svelte check (Type Safety) |
 | `make lint` | Run ESLint (Code Style) |
-| `make format` | Format code with Prettier |
 | `make lint-fix` | Auto-fix ESLint issues |
 
 ### 🌍 Environment Variables
