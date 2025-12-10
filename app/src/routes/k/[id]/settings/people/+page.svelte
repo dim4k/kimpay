@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { pb } from '$lib/pocketbase';
@@ -7,7 +7,7 @@
   
   import type { Participant } from '$lib/types';
   
-  let kimpayId = $derived($page.params.id ?? '');
+  let kimpayId = $derived(page.params.id ?? '');
   
   let participants = $state<Participant[]>([]);
   let newName = $state("");

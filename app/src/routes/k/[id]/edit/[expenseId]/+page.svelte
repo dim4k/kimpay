@@ -1,6 +1,5 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve */
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
@@ -11,8 +10,8 @@
 
 import { t } from '$lib/i18n';
 
-  let kimpayId = $derived($page.params.id ?? '');
-  let expenseId = $derived(($page.params as Record<string, string>).expenseId);
+  let kimpayId = $derived(page.params.id ?? '');
+  let expenseId = $derived((page.params as Record<string, string>).expenseId);
   
   let initialData = $state<unknown>(null);
   let isLoading = $state(true);

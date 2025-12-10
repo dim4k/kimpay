@@ -1,20 +1,21 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
   import { pb } from '$lib/pocketbase';
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   import { addParticipant } from '$lib/api';
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Check } from "lucide-svelte";
   import { appState } from '$lib/stores/appState.svelte';
   import { invalidateAll } from '$app/navigation';
+  import type { Participant } from '$lib/types';
   
   let { isOpen } = $props();
 
-  let identityState = $derived($modals.identity);
+  let identityState = $derived(modals.identityState);
   let kimpayId = $derived(identityState?.kimpayId);
   
-  let participants = $state<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  let participants = $state<Participant[]>([]);
   let newParticipantName = $state("");
   let selectedParticipantId = $state<string | null>(null);
 

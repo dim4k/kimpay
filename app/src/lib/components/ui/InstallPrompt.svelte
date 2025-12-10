@@ -3,7 +3,7 @@
   import { X, Download } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
   import { t } from '$lib/i18n';
-  import { installPrompt, install } from '$lib/stores/install';
+  import { installStore } from '$lib/stores/install.svelte';
 
   let showPrompt = $state(false);
 
@@ -11,7 +11,7 @@
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
       // Stash the event so it can be triggered later.
-      installPrompt.set(e);
+      installStore.setPrompt(e);
       
       // Update UI notify the user they can install the PWA
       // BUT ONLY ON MOBILE
@@ -29,7 +29,7 @@
   });
 
   async function handleInstall() {
-    await install();
+    await installStore.install();
     localStorage.setItem('kimpay_install_dismissed', 'true');
     showPrompt = false;
   }

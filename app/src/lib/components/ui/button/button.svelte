@@ -51,12 +51,9 @@
 		children,
 		...restProps
 	}: ButtonProps = $props();
-  /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
 {#if href}
-	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 	<a
 		bind:this={ref}
 		class={cn(buttonVariants({ variant, size }), className)}

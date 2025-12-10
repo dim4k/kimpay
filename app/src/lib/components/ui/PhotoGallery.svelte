@@ -2,6 +2,7 @@
   import { ChevronLeft, ChevronRight } from "lucide-svelte";
   import { fade } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
+  import type { RecordModel } from 'pocketbase';
 
   let { 
     isOpen = false, 
@@ -22,7 +23,7 @@
 
   function getUrl(filename: string) {
       if (!record) return "";
-      return pb.files.getURL(record, filename);
+      return pb.files.getURL(record as unknown as RecordModel, filename);
   }
 </script>
 

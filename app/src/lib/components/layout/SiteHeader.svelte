@@ -6,7 +6,7 @@
   import { slide } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
   import { appState } from '$lib/stores/appState.svelte';
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { updateParticipant } from '$lib/api';
   import { invalidateAll, afterNavigate } from '$app/navigation';
@@ -60,8 +60,6 @@
           isMenuOpen = false;
       }
   }
-
-  /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
 <svelte:window onclick={handleOutsideClick} />

@@ -1,4 +1,3 @@
-
 export interface Participant {
     id: string;
     collectionId: string;
@@ -29,6 +28,7 @@ export interface Expense {
     created_by: string;
     is_reimbursement: boolean;
     icon?: string;
+    photos?: string[];
     expand?: {
         payer?: Participant;
         involved?: Participant[];

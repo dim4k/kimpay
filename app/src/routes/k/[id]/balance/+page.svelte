@@ -1,19 +1,19 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
-  import { Loader2, ArrowRight, Wallet, CheckCircle } from "lucide-svelte";
+  import { LoaderCircle, ArrowRight, Wallet, CircleCheck } from "lucide-svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { createReimbursement } from '$lib/api';
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { pb } from '$lib/pocketbase';
 
-  let kimpayId = $derived($page.params.id ?? '');
+  let kimpayId = $derived(page.params.id ?? '');
   
   // Use appState for reactive data
   let participants = $derived(appState.participants);
@@ -28,7 +28,8 @@
   onMount(async () => {
       if (kimpayId) {
           isLoading = true;
-          await appState.init(kimpayId);
+          // Force refresh to ensure balance is accurate
+          await appState.init(kimpayId, true);
           isLoading = false;
       }
   });
@@ -68,7 +69,7 @@
 
     {#if isLoading}
         <div class="flex justify-center py-20">
-            <Loader2 class="h-10 w-10 animate-spin text-indigo-500" />
+            <LoaderCircle class="h-10 w-10 animate-spin text-indigo-500" />
         </div>
     {:else if expenses.length === 0}
          <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors animate-pop-in">
@@ -81,7 +82,7 @@
         <!-- Transactions List or "Settled" Message -->
         {#if transactions.length === 0}
             <div class="animate-pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200 mb-8">
-                <CheckCircle class="h-16 w-16 mx-auto mb-4 text-white/90" />
+                <CircleCheck class="h-16 w-16 mx-auto mb-4 text-white/90" />
                 <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
                 <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
             </div>

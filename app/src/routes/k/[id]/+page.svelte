@@ -1,19 +1,23 @@
 <script lang="ts">
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  import { page } from '$app/stores';
-  import { pb } from '$lib/pocketbase';
+  import { page } from '$app/state';
   import { deleteExpense } from '$lib/api';
-  import { getContext, onDestroy } from 'svelte';
+  import { getContext, onMount } from 'svelte';
   import { Wallet } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
+  import { appState } from '$lib/stores/appState.svelte';
+  import type { Expense } from '$lib/types';
   
-  let kimpayId = $derived($page.params.id ?? '');
-  let expenses = $state<Record<string, any>[]>([]);
+  let kimpayId = $derived(page.params.id ?? '');
+  
+  // Use appState for reactive data
+  let expenses = $derived(appState.expenses);
+  let participants = $derived(appState.participants);
+  let currentUserId = $derived(appState.participant?.id ?? null);
+  
   let isLoading = $state(true);
-  let kimpay = $state<Record<string, any>>({}); 
 
   // Modal State
   let expenseToDelete = $state<string | null>(null);
@@ -30,7 +34,7 @@
       }
   }
 
-  function openGallery(expense: any) {
+  function openGallery(expense: Expense) {
       if (expense.photos && expense.photos.length > 0) {
           modals.gallery({
               photos: expense.photos,
@@ -39,36 +43,13 @@
       }
   }
 
-  async function loadExpenses() {
-      try {
-          // Fetch Kimpay with all related data (reverse expansion)
-          const res = await pb.collection('kimpays').getOne(kimpayId, {
-              expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay',
-              requestKey: null
-          });
-          
-          kimpay = res;
-          
-          // Extract expenses and sort client-side (Db sort not available on expand)
-          expenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-          expenses.sort((a: any, b: any) => {
-              const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
-              if (dateDiff !== 0) return dateDiff;
-              return new Date(b.created).getTime() - new Date(a.created).getTime();
-          });
-
-          // Extract participants for count/display
-          const participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-          if (!kimpay.expand) kimpay.expand = {};
-          kimpay.expand.participants = participants;
-
-      } catch (e) {
-          console.error(e);
-          // If 404, maybe redirect?
-      } finally {
+  onMount(async () => {
+      if (kimpayId) {
+          isLoading = true;
+          await appState.init(kimpayId, true);
           isLoading = false;
       }
-  }
+  });
 
   function requestDelete(id: string) {
       expenseToDelete = id;
@@ -79,7 +60,7 @@
       isDeleting = true;
       try {
           await deleteExpense(expenseToDelete);
-          await loadExpenses();
+          // No need to reload manually, appState handles realtime updates
           expenseToDelete = null;
       } catch (e) {
           console.error("Failed to delete", e);
@@ -89,50 +70,11 @@
       }
   }
 
-  let unsubscribe: (() => void) | undefined;
-
-  async function initPage() {
-      isLoading = true;
-      
-      // Cleanup previous subscription if any
-      if (unsubscribe) {
-          unsubscribe();
-          unsubscribe = undefined!;
-      }
-
-      await loadExpenses();
-
-      try {
-        unsubscribe = await pb.collection('kimpays').subscribe(kimpayId, async ({ action, record: _record }) => {
-             if (action === 'update') {
-                 await loadExpenses();
-             }
-        });
-      } catch (e) {
-        console.error("Failed to subscribe", e);
-      }
-  }
-
-  import { appState } from '$lib/stores/appState.svelte';
-
-  // Reactive user ID from global state
-  let currentUserId = $derived(appState.participant?.id ?? null);
-
-  $effect(() => {
-    if (kimpayId) {
-        initPage();
-    }
-  });
-
-  onDestroy(() => {
-     if (unsubscribe) unsubscribe();
-  });
-
   const refreshSignal = getContext<{ count: number }>('refreshSignal');
   $effect(() => {
     // This will run when refreshSignal.count changes (triggered by layout)
     if (refreshSignal && refreshSignal.count > 0) {
-        loadExpenses();
+        appState.refreshExpenses();
     }
   });
 </script>
@@ -149,7 +91,7 @@
       <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">
           <span class="font-semibold text-slate-700 dark:text-slate-300">{expenses.length}</span> {$t('expense.list.items')}
           <span class="mx-1">•</span>
-          <span class="font-semibold text-slate-700 dark:text-slate-300">{kimpay.expand?.participants?.length || 0}</span> {$t('settings.participants').toLowerCase()}
+          <span class="font-semibold text-slate-700 dark:text-slate-300">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
       </p>
   </header>
 

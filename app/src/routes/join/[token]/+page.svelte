@@ -1,31 +1,30 @@
 <script lang="ts">
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  /* eslint-disable svelte/no-navigation-without-resolve */
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Loader2, ArrowRight } from "lucide-svelte";
+  import { LoaderCircle, ArrowRight } from "lucide-svelte";
   import { generateUUID } from '$lib/utils';
+  import type { Kimpay, Participant } from '$lib/types';
 
-  let token = $derived($page.params.token);
+  let token = $derived(page.params.token);
   let name = $state("");
   let isLoading = $state(false);
-  let kimpay = $state<Record<string, any> | null>(null);
-  let participants = $state<Record<string, any>[]>([]);
+  let kimpay = $state<Kimpay | null>(null);
+  let participants = $state<Participant[]>([]);
   let error = $state("");
 
   onMount(async () => {
     try {
-      kimpay = await pb.collection('kimpays').getFirstListItem(`invite_token="${token}"`);
+      kimpay = await pb.collection('kimpays').getFirstListItem<Kimpay>(`invite_token="${token}"`);
       // Fetch open participants (no local_id) that could be claimed
       // Actually, we might want to list ALL, but let's just list ones that look claimable or all for now so user can pick 'Is this you?'
       // For simplicity/security, usually you only list "unclaimed" ones, but we defined "unclaimed" as no local_id or just purely name based?
       // Our schema has local_id. If it's populated, it's "taken" by a device.
-      participants = await pb.collection('participants').getFullList({
+      participants = await pb.collection('participants').getFullList<Participant>({
           filter: `kimpay="${kimpay!.id}"`,
           sort: 'created'
       });
@@ -45,7 +44,7 @@
     }
   });
 
-  async function persistAndRedirect(participant: Record<string, any>, localId: string) {
+  async function persistAndRedirect(participant: Participant, localId: string) {
       if (typeof localStorage !== 'undefined') {
           // 1. Auth Key
           localStorage.setItem(`kimpay_user_${kimpay!.id}`, localId);
@@ -63,7 +62,7 @@
     isLoading = true;
     try {
         const local_id = generateUUID();
-        const participant = await pb.collection('participants').create({
+        const participant = await pb.collection('participants').create<Participant>({
             name,
             kimpay: kimpay.id,
             local_id
@@ -77,14 +76,14 @@
     }
   }
 
-  async function claimParticipant(p: Record<string, any>) {
+  async function claimParticipant(p: Participant) {
       isLoading = true;
       try {
           const local_id = generateUUID();
           // Claims the participant by setting the local_id
           // Note: If it already had one, we are overwriting it. 
           // In a "real" app we'd warn, but here "claiming" implies I am this person on this device.
-          const updated = await pb.collection('participants').update(p.id, {
+          const updated = await pb.collection('participants').update<Participant>(p.id, {
               local_id: local_id
           });
           
@@ -154,7 +153,7 @@
         </div>
     {:else}
         <div class="flex justify-center p-8">
-            <Loader2 class="h-6 w-6 animate-spin text-slate-400" />
+            <LoaderCircle class="h-6 w-6 animate-spin text-slate-400" />
         </div>
     {/if}
   </div>

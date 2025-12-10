@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import AlertModal from '$lib/components/ui/AlertModal.svelte';
   import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
   import IdentityModal from '$lib/components/ui/IdentityModal.svelte';
 
-  let confirmState = $derived($modals.confirm);
-  let alertState = $derived($modals.alert);
-  let galleryState = $derived($modals.gallery);
-  let identityState = $derived($modals.identity);
+  let confirmState = $derived(modals.confirmState);
+  let alertState = $derived(modals.alertState);
+  let galleryState = $derived(modals.galleryState);
+  let identityState = $derived(modals.identityState);
   
   let isProcessing = $state(false);
 

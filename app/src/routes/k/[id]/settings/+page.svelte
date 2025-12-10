@@ -1,6 +1,6 @@
 <script lang="ts">
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
@@ -8,21 +8,23 @@
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft } from "lucide-svelte";
-  import { modals } from '$lib/stores/modals';
+  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug } from "lucide-svelte";
+  import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
-  import { installPrompt, install } from '$lib/stores/install';
+  import { installStore } from '$lib/stores/install.svelte';
   import { Download, FileText, Table } from 'lucide-svelte';
   import { appState } from '$lib/stores/appState.svelte';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import type { RecentKimpay, Kimpay, Participant, Expense } from '$lib/types';
+  import type { RecentKimpay } from '$lib/types';
   
-  let kimpayId = $derived($page.params.id ?? '');
+  let kimpayId = $derived(page.params.id ?? '');
   
-  let kimpay = $state<Kimpay | null>(null);
-  let currentParticipantId = $state<string | null>(null);
-  let isCreator = $state(false);
+  // Use appState
+  let kimpay = $derived(appState.kimpay);
+  let participants = $derived(appState.participants);
+  let currentParticipantId = $derived(appState.participant?.id ?? null);
+  let isCreator = $derived(kimpay?.created_by === currentParticipantId);
 
   // Edit State
   let editName = $state("");
@@ -32,55 +34,23 @@
   // Feedback State
   let saveFeedback = $state("");
 
-  let participants = $state<Participant[]>([]);
-
-  async function loadParticipants() {
-      try {
-           const res = await pb.collection('kimpays').getOne(kimpayId, {
-               expand: 'participants_via_kimpay',
-               requestKey: null
-           });
-           participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-           return res;
-      } catch (e) {
-          console.error("Failed to load participants", e);
-          return null;
+  // Sync local state with appState when loaded
+  $effect(() => {
+      if (kimpay) {
+          // Only set if empty to avoid overwriting user input while typing if realtime update comes in
+          if (!editName) editName = kimpay.name;
+          if (!editIcon) editIcon = kimpay.icon || DEFAULT_KIMPAY_EMOJI;
       }
-  }
+  });
 
-  async function checkUsage(pId: string): Promise<boolean> {
-      try {
-          const res = await pb.collection('kimpays').getOne(kimpayId, {
-               expand: 'expenses_via_kimpay'
-          });
-          const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-          // We can cast here as we know the structure from expand
-          return (allExpenses as unknown as Expense[]).some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
-      } catch(e) {
-          console.warn("Could not check expenses", e);
-          return true; // Fail safe
-      }
+  function checkUsage(pId: string): boolean {
+      const allExpenses = appState.expenses;
+      return allExpenses.some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
   }
 
   onMount(async () => {
-      try {
-          // 1. Get Kimpay info & Participants
-          const res = await loadParticipants();
-          
-          if (res) {
-              kimpay = res as unknown as Kimpay;
-              editName = kimpay.name;
-              editIcon = kimpay.icon || DEFAULT_KIMPAY_EMOJI;
-          }
-
-          const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          currentParticipantId = myKimpays[kimpayId];
-          
-          if (kimpay && currentParticipantId) {
-              isCreator = kimpay.created_by === currentParticipantId;
-          }
-      } catch (e) {
-          console.error("Error loading settings", e);
+      if (kimpayId) {
+          await appState.init(kimpayId);
       }
   });
 
@@ -118,8 +88,7 @@
           newParticipantName = "";
           addFeedback = "added";
           setTimeout(() => addFeedback = "", 2000);
-          
-          await loadParticipants();
+          // No need to reload, realtime subscription will update appState.participants
       } catch(e) {
           console.error(e);
           alert("Failed to add participant");
@@ -132,7 +101,7 @@
       isDeletingParticipant = pId;
       try {
            // Check for usage in expenses (Client-side check)
-           const isUsed = await checkUsage(pId);
+           const isUsed = checkUsage(pId);
            
            if (isUsed) {
                modals.alert({ message: $t('error.participant.used') });
@@ -155,7 +124,7 @@
                        localStorage.removeItem(`kimpay_user_${kimpayId}`);
                        window.location.reload();
                    } else {
-                       await loadParticipants();
+                       // No need to reload, realtime subscription will update appState.participants
                        isDeletingParticipant = null;
                    }
                },
@@ -184,7 +153,7 @@
              if (isCreator) canDelete = false;
 
              if (canDelete && participantId) {
-                 const isUsed = await checkUsage(participantId);
+                 const isUsed = checkUsage(participantId);
                  if (isUsed) canDelete = false;
              }
              
@@ -199,7 +168,6 @@
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
             localStorage.removeItem(`kimpay_user_${kimpayId}`);
-            // eslint-disable-next-line svelte/no-navigation-without-resolve
             await goto('/');
           }
       });
@@ -217,7 +185,6 @@
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
             localStorage.removeItem(`kimpay_user_${kimpayId}`);
-            // eslint-disable-next-line svelte/no-navigation-without-resolve
             await goto('/');
           }
       });
@@ -242,21 +209,16 @@
 
   async function handleExport(format: 'csv' | 'md') {
       try {
-          const res = await pb.collection('kimpays').getOne(kimpayId, {
-              expand: 'expenses_via_kimpay.payer,expenses_via_kimpay.involved,participants_via_kimpay'
-          });
+          if (!kimpay) return;
+
+          const expenses = appState.expenses;
+          const participantsList = appState.participants;
           
-          const expenses = (res.expand ? (res.expand['expenses_via_kimpay'] || []) : []) as unknown as Expense[];
-          
-          expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          const participantsList = (res.expand ? (res.expand['participants_via_kimpay'] || []) : []) as unknown as Participant[];
           // Map for quick lookup
-          
           const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));
           
           let content = "";
-          const filename = `kimpay_${res.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format}`;
+          const filename = `kimpay_${kimpay.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format}`;
 
           if (format === 'csv') {
               // CSV Header
@@ -266,7 +228,7 @@
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = `"${(e.description || '').replace(/"/g, '""')}"`;
                   const amount = e.amount.toFixed(2);
-                  const payer = e.expand?.payer?.name || $t('common.unknown');
+                  const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
                   
                   // Get Involved Names
                   const involvedIds = e.involved || [];
@@ -277,7 +239,7 @@
               });
           } else {
               // Markdown
-              content += `# ${res.icon || ''} ${res.name}\n\n`;
+              content += `# ${kimpay.icon || ''} ${kimpay.name}\n\n`;
               content += `**${$t('export.meta.date')}:** ${new Date().toLocaleDateString()}\n`;
                
               content += `**${$t('export.meta.participants')}:** ${participantsList.map((p) => p.name).join(', ')}\n\n`;
@@ -292,7 +254,7 @@
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = (e.description || '').replace(/\|/g, '-'); 
                   const amount = `${e.amount.toFixed(2)} €`;
-                  const payer = e.expand?.payer?.name || $t('common.unknown');
+                  const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
                   
                   const involvedIds = e.involved || [];
                   const involvedNames = involvedIds.map((id: string) => participantMap.get(id) || $t('common.unknown')).join(', ');
@@ -456,7 +418,7 @@
             </div>
         </div>
 
-        {#if $installPrompt}
+        {#if installStore.canInstall}
             <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
                 <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                     <Download class="h-4 w-4" />
@@ -469,7 +431,7 @@
                         </p>
                         <Button 
                             class="w-full justify-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" 
-                            onclick={install}
+                            onclick={() => installStore.install()}
                         >
                             <Download class="h-4 w-4" />
                             {$t('settings.install.button')}
@@ -499,6 +461,28 @@
                         {$t('settings.export.md')}
                     </Button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Bug Report Section -->
+        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
+                <Bug class="h-4 w-4" />
+                {$t('settings.bug_report.title')}
+            </h2>
+            <div class="space-y-4">
+                <p class="text-sm text-muted-foreground dark:text-slate-400">
+                    {$t('settings.bug_report.desc')}
+                </p>
+                <a 
+                    href="https://github.com/dim4k/kimpay/issues" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                    <Bug class="h-4 w-4" />
+                    {$t('settings.bug_report.button')}
+                </a>
             </div>
         </div>
 

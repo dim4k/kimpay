@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { onMount } from 'svelte';
 
   import { Copy, Check, Share2, LoaderCircle } from "lucide-svelte";
@@ -8,7 +8,7 @@
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import { appState } from '$lib/stores/appState.svelte';
 
-  let kimpayId = $derived($page.params.id ?? '');
+  let kimpayId = $derived(page.params.id ?? '');
   let kimpay = $derived(appState.kimpay);
   let inviteLink = $state("");
   let copied = $state(false);

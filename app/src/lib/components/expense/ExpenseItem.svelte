@@ -45,7 +45,6 @@
           `
       };
     }
-    /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->

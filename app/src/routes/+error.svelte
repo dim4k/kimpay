@@ -1,6 +1,4 @@
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve */
   import { t } from '$lib/i18n';
   import { House } from "lucide-svelte";
 </script>
@@ -28,7 +26,6 @@
         </div>
 
         <div class="pt-8">
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
             <a 
                 href="/" 
                 class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300"

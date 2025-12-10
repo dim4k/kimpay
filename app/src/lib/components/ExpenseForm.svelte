@@ -1,5 +1,4 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve */
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
@@ -13,8 +12,7 @@
   import { t } from '$lib/i18n';
   import { addParticipant } from '$lib/api';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
-
-  import type { Participant } from '$lib/types';
+  import { appState } from '$lib/stores/appState.svelte';
 
   let { kimpayId, initialData = null } = $props();
 
@@ -26,7 +24,8 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  let participants = $state<Participant[]>([]);
+  // Use appState for participants
+  let participants = $derived(appState.participants);
   let isLoading = $state(false);
 
   // Photo State
@@ -37,10 +36,15 @@
   let fileInput: HTMLInputElement;
 
   // New Participant Modal State
-  let showNewParticipantModal = $state(false);
+  let newParticipantSource = $state<string | null>(null);
   let isAddingParticipant = $state(false);
 
   onMount(async () => {
+      // Ensure appState is initialized
+      if (kimpayId) {
+          await appState.init(kimpayId);
+      }
+
       // Seed state from initialData if present
       if (initialData) {
          description = initialData.description || "";
@@ -55,17 +59,6 @@
          if (initialData.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
          }
-      }
-
-      try {
-          const res = await pb.collection('kimpays').getOne(kimpayId, {
-            expand: 'participants_via_kimpay'
-          });
-          participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-          // Sort manually since we can't sort via expand easily without a view
-          participants.sort((a,b) => a.name.localeCompare(b.name));
-      } catch (e) {
-         console.error(e);
       }
       
       if (!initialData && involved.length === 0) {
@@ -141,23 +134,20 @@
       try {
           const newP = await addParticipant(kimpayId, name);
           
-          // Refresh participants list
-           // Refresh participants list via GetOne
-           const res = await pb.collection('kimpays').getOne(kimpayId, {
-              expand: 'participants_via_kimpay'
-           });
-           participants = res.expand ? (res.expand['participants_via_kimpay'] || []) : [];
-           participants.sort((a,b) => a.name.localeCompare(b.name));
-
-          // Auto-select new participant
-          payer = newP.id;
+          // Optimistic update
+          appState.participants.push(newP);
           
-          // Auto-add to involved
+          // Handle selection based on source
+          if (newParticipantSource === 'payer') {
+              payer = newP.id;
+          }
+          
+          // Always add to involved when creating a new participant
           if (!involved.includes(newP.id)) {
               involved = [...involved, newP.id];
           }
           
-          showNewParticipantModal = false;
+          newParticipantSource = null;
       } catch (e) {
           console.error(e);
           alert("Failed to create participant");
@@ -266,7 +256,7 @@
             {/each}
             
             <button 
-                onclick={() => showNewParticipantModal = true}
+                onclick={() => newParticipantSource = 'payer'}
                 class="px-4 py-2 rounded-full text-sm font-bold border border-dashed border-input text-muted-foreground hover:text-primary hover:border-primary hover:bg-accent transition-colors flex items-center gap-1"
                 aria-label={$t('expense.form.paid_by_new')}
             >
@@ -294,7 +284,7 @@
             {/each}
             
             <button 
-                onclick={() => showNewParticipantModal = true}
+                onclick={() => newParticipantSource = 'involved'}
                 class="px-4 py-2 rounded-full text-sm font-bold border border-dashed border-input text-muted-foreground hover:text-primary hover:border-primary hover:bg-accent transition-colors flex items-center gap-1"
                 aria-label={$t('expense.form.paid_by_new')}
             >
@@ -384,13 +374,13 @@
      </div>
 
     <InputModal 
-        isOpen={showNewParticipantModal}
+        isOpen={!!newParticipantSource}
         title={$t('modal.add_participant.title')}
         placeholder={$t('modal.add_participant.placeholder')}
         confirmText={$t('modal.add_participant.confirm')}
         cancelText={$t('common.cancel')}
         isProcessing={isAddingParticipant}
         onConfirm={handleNewParticipant}
-        onCancel={() => showNewParticipantModal = false}
+        onCancel={() => newParticipantSource = null}
     />
 </div>

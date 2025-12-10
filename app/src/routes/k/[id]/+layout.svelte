@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { ChartPie, Settings, Plus, Share2, Wallet } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
   import { appState } from '$lib/stores/appState.svelte';
-  import { modals } from '$lib/stores/modals';
+  import { modals } from '$lib/stores/modals.svelte';
   
   let { children, data } = $props();
 
-  let kimpayId = $derived($page.params.id ?? '');
+  let kimpayId = $derived(page.params.id ?? '');
   let participants = $derived(data.participants || []);
   
   // Context for child pages to know when to refresh data
@@ -25,7 +25,6 @@
       
       if (!storedUser) {
           // Open global identity modal
-          console.log("Opening identity modal from layout");
           modals.identity({
               kimpayId,
               participants
@@ -39,7 +38,6 @@
   $effect(() => {
     if (kimpayId) checkIdentity();
   });
-  /* eslint-disable svelte/no-navigation-without-resolve */
 </script>
 
 <div class="flex-1 bg-slate-50 dark:bg-background pb-20 transition-colors"> <!-- pb-20 for bottom nav -->
@@ -56,11 +54,11 @@
 
             <a 
                 href="/k/{kimpayId}" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.endsWith(kimpayId) ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
+                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.endsWith(kimpayId) ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                    <Wallet class="h-6 w-6" strokeWidth={$page.url.pathname.endsWith(kimpayId) ? 2.5 : 2} />
-                    {#if $page.url.pathname.endsWith(kimpayId)}
+                    <Wallet class="h-6 w-6" strokeWidth={page.url.pathname.endsWith(kimpayId) ? 2.5 : 2} />
+                    {#if page.url.pathname.endsWith(kimpayId)}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}
                 </div>
@@ -71,11 +69,11 @@
 
             <a 
                 href="/k/{kimpayId}/balance" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/balance') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
+                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/balance') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                    <ChartPie class="h-6 w-6" strokeWidth={$page.url.pathname.includes('/balance') ? 2.5 : 2} />
-                    {#if $page.url.pathname.includes('/balance')}
+                    <ChartPie class="h-6 w-6" strokeWidth={page.url.pathname.includes('/balance') ? 2.5 : 2} />
+                    {#if page.url.pathname.includes('/balance')}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}
                 </div>
@@ -89,11 +87,11 @@
 
             <a 
                 href="/k/{kimpayId}/share" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/share') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
+                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/share') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                     <Share2 class="h-6 w-6" strokeWidth={$page.url.pathname.includes('/share') ? 2.5 : 2} />
-                     {#if $page.url.pathname.includes('/share')}
+                     <Share2 class="h-6 w-6" strokeWidth={page.url.pathname.includes('/share') ? 2.5 : 2} />
+                     {#if page.url.pathname.includes('/share')}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}
                 </div>
@@ -104,11 +102,11 @@
 
             <a 
                 href="/k/{kimpayId}/settings" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {$page.url.pathname.includes('/settings') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
+                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/settings') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
             >
                 <div class="relative">
-                     <Settings class="h-6 w-6" strokeWidth={$page.url.pathname.includes('/settings') ? 2.5 : 2} />
-                     {#if $page.url.pathname.includes('/settings')}
+                     <Settings class="h-6 w-6" strokeWidth={page.url.pathname.includes('/settings') ? 2.5 : 2} />
+                     {#if page.url.pathname.includes('/settings')}
                          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
                     {/if}
                 </div>
