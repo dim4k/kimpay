@@ -12,6 +12,8 @@ class AppState {
     loadingRecentKimpays = $state(false);
     initializedRecentKimpays = $state(false);
 
+    private subscribedKimpayId: string | null = null;
+
     constructor() {}
 
     async init(kimpayId: string, force = false) {
@@ -68,14 +70,22 @@ class AppState {
     }
 
     unsubscribe() {
+        if (!this.subscribedKimpayId) return;
+
         pb.collection("kimpays").unsubscribe("*"); // Or specific
         pb.collection("participants").unsubscribe("*");
         pb.collection("expenses").unsubscribe("*");
+
+        this.subscribedKimpayId = null;
     }
 
     subscribe(kimpayId: string) {
+        if (this.subscribedKimpayId === kimpayId) return;
+
         // Unsubscribe previous to avoid duplicates if re-init
         this.unsubscribe();
+
+        this.subscribedKimpayId = kimpayId;
 
         // 1. Kimpay details
         pb.collection("kimpays").subscribe(kimpayId, (e) => {
@@ -93,12 +103,10 @@ class AppState {
         pb.collection("participants").subscribe("*", async (e) => {
             // Filter client side if server filter not robust in subscribe
             if (e.record.kimpay === kimpayId) {
-                const res = await pb
-                    .collection("kimpays")
-                    .getOne(kimpayId, {
-                        expand: "participants_via_kimpay",
-                        requestKey: null,
-                    });
+                const res = await pb.collection("kimpays").getOne(kimpayId, {
+                    expand: "participants_via_kimpay",
+                    requestKey: null,
+                });
                 const updatedKimpay = res as unknown as Kimpay;
                 this.participants =
                     updatedKimpay.expand?.participants_via_kimpay || [];
