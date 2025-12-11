@@ -1,9 +1,6 @@
 <script lang="ts">
   import { modals } from '$lib/stores/modals.svelte';
-  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-  import AlertModal from '$lib/components/ui/AlertModal.svelte';
-  import PhotoGallery from '$lib/components/ui/PhotoGallery.svelte';
-  import IdentityModal from '$lib/components/ui/IdentityModal.svelte';
+
 
   let confirmState = $derived(modals.confirmState);
   let alertState = $derived(modals.alertState);
@@ -33,6 +30,7 @@
 </script>
 
 {#if confirmState}
+    {#await import('$lib/components/ui/ConfirmModal.svelte') then { default: ConfirmModal }}
     <ConfirmModal 
         isOpen={true}
         title={confirmState.title}
@@ -44,9 +42,11 @@
         onConfirm={handleConfirm}
         onCancel={handleCancel}
     />
+    {/await}
 {/if}
 
 {#if alertState}
+    {#await import('$lib/components/ui/AlertModal.svelte') then { default: AlertModal }}
     <AlertModal 
         isOpen={true}
         title={alertState.title ?? ""}
@@ -56,19 +56,24 @@
             modals.closeAlert();
         }}
     />
+    {/await}
 {/if}
 
 {#if galleryState}
+    {#await import('$lib/components/ui/PhotoGallery.svelte') then { default: PhotoGallery }}
     <PhotoGallery 
         isOpen={true}
         photos={galleryState.photos}
         record={galleryState.record}
         onClose={modals.closeGallery}
     />
+    {/await}
 {/if}
 
 {#if identityState}
+    {#await import('$lib/components/ui/IdentityModal.svelte') then { default: IdentityModal }}
     <IdentityModal 
         isOpen={true} 
     />
+    {/await}
 {/if}
