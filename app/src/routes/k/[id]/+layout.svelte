@@ -1,17 +1,27 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { ChartPie, Settings, Plus, Share2, Wallet } from "lucide-svelte";
+  import { ChartPie, Settings, Share2, Wallet } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
   import { appState } from '$lib/stores/appState.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { goto } from '$app/navigation';
+  import { fabState } from '$lib/stores/fab.svelte';
+  import { scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   
   let { children, data } = $props();
 
   let kimpayId = $derived(page.params.id ?? '');
   let participants = $derived(data.participants || []);
+
+  $effect(() => {
+      // Ensure defaults when kimpayId changes or route changes not handled by child
+      if (kimpayId && !page.url.pathname.includes('/add') && !page.url.pathname.includes('/edit')) {
+            fabState.reset(kimpayId);
+      }
+  });
   
   // Context for child pages to know when to refresh data
   let refreshSignal = $state({ count: 0 });
@@ -190,12 +200,39 @@
 
     <!-- Floating Action Button Container (Centered - Mounted LAST to stay on top visually if same z-index, but we use z-50) -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-50">
-
-        <a 
-            href="/k/{kimpayId}/add" 
-            class="flex items-center justify-center bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-full h-16 w-16 shadow-xl shadow-indigo-200 dark:shadow-none hover:scale-105 transition-transform duration-200 ring-4 ring-slate-50 dark:ring-slate-950"
-        >
-            <Plus class="h-8 w-8" strokeWidth={2.5} />
-        </a>
+        {#if fabState.visible}
+            <!-- Use a keyed block only for swapping between A and BUTTON tags if strictly necessary, 
+                 but actually we want to preserve the container's presence for coordinate transitions if possible. 
+                 Since they are different tags, simple conditional is fine, Svelte handles the DOM swap. 
+                 The important part is NOT to key the whole thing on every prop change. -->
+            
+            {#if fabState.href}
+                <a 
+                    href={fabState.href} 
+                    class="flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl hover:scale-105 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50"
+                    title={fabState.label}
+                >
+                    {#key fabState.icon}
+                        <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
+                            <fabState.icon class="h-8 w-8" strokeWidth={2.5} />
+                        </div>
+                    {/key}
+                </a>
+            {:else}
+                    <button
+                    onclick={fabState.onClick}
+                    disabled={fabState.disabled}
+                    class="flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl hover:scale-105 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                    title={fabState.label}
+                    aria-label={fabState.label}
+                    >
+                    {#key fabState.icon}
+                        <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
+                            <fabState.icon class="h-8 w-8" strokeWidth={2.5} />
+                        </div>
+                    {/key}
+                    </button>
+            {/if}
+        {/if}
     </div>
 </div>

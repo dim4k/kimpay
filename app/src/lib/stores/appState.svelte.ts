@@ -347,6 +347,9 @@ class AppState {
             kimpay: kimpayId,
             created_by: payerId, // Assuming creator is payer for simplicity in offline
             is_reimbursement: false,
+            // START FIX: Add icon to optimistic expense
+            icon: formData.get('icon') as string,
+            // END FIX
             expand: expandData
         };
 
@@ -479,12 +482,11 @@ class AppState {
                         const record = await pb.collection('expenses').create(formData);
                         idMapping[action.id] = record.id;
                         
-                        // Remove optimistic expense
-                        const index = this.expenses.findIndex(e => e.id === action.id);
-                        if (index !== -1) {
-                            this.expenses.splice(index, 1);
-                            await this.refreshExpenses();
-                        }
+                        // Remove optimistic expense? 
+                        // NO: If we remove it here, there is a gap before refreshExpenses() completes where the UI shows old state.
+                        // refreshExpenses() will overwrite the whole list anyway, effectively replacing the optimistic one with the real one.
+                        
+                        await this.refreshExpenses();
                     }
                     
                     storageService.removePendingAction(action.id);

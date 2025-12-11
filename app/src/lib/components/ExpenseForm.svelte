@@ -12,6 +12,8 @@
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
   import { appState } from '$lib/stores/appState.svelte';
+  import { fabState } from '$lib/stores/fab.svelte'; // Import FAB State
+  import { Check, LoaderCircle } from "lucide-svelte"; // Import Icons
 
   let { kimpayId, initialData = null } = $props();
 
@@ -70,7 +72,50 @@
               payer = myIds[kimpayId];
           }
       }
+
+      // Configure FAB using onMount to ensure we override layout defaults
+      updateFab();
   });
+
+  // Reactive Update for FAB state
+  $effect(() => {
+     // Trigger dependency tracking
+     const _ = { description, amount, payer, involved, isLoading };
+     updateFab();
+  });
+
+  // Cleanup on destroy
+  $effect.root(() => {
+      return () => {
+          // No explicit cleanup needed as layout's effect handles reset on route change
+          // But to be safe if component unmounts without route change:
+          // fabState.reset(kimpayId); 
+          // Actually, layout handles reset when navigating AWAY from /add or /edit.
+      };
+  });
+
+  function updateFab() {
+      const isValid = !!description && !!amount && !!payer && involved.length > 0;
+      
+      fabState.configure({
+          icon: isLoading ? LoaderCircle : Check,
+          colorClass: isValid 
+            ? "bg-green-500 hover:bg-green-600 shadow-green-200 dark:shadow-none" 
+            : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none",
+          onClick: save,
+          href: null, // Make it a button
+          label: initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'),
+          disabled: !isValid || isLoading
+      });
+
+      // Rotating loader animation class if loading
+      if (isLoading) {
+          // We can't easily add class to the icon component itself via state this way without complex prop passing
+          // But layout handles class="...".
+          // Ideally fabState stores iconProps?
+          // For now, let's just swap icon.
+      }
+  }
 
   function toggleInvolved(participantId: string) {
       if (involved.includes(participantId)) {
@@ -392,9 +437,10 @@
     </div>
 
      <div class="pt-4 grid grid-cols-2 gap-3">
-        <Button variant="outline" class="w-full" size="lg" onclick={goBack} disabled={isLoading}>
+         <Button variant="outline" class="w-full" size="lg" onclick={goBack} disabled={isLoading}>
             {$t('common.cancel')}
         </Button>
+         <!-- Hide original save button since we use FAB now, OR keep it as secondary? User said: "On pourrait cliquer aussi dessus pour enregistrer (en laissant l'autre bouton actuel)" -->
          <Button onclick={save} class="w-full" size="lg" disabled={isLoading || involved.length === 0 || !amount || !description || !payer}>
             {isLoading ? $t('common.loading') : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'))}
         </Button>
