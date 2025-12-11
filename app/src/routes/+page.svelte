@@ -41,10 +41,12 @@
         <HomeHero />
     {/if}
     
+    {#if !appState.isOffline}
     <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
         <CreateKimpayForm />
         <JoinKimpayForm />
     </div>
+    {/if}
 
     <!-- History Section -->
     <RecentKimpaysList />

@@ -6,6 +6,13 @@
     import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
     import { pb } from '$lib/pocketbase';
     import type { RecordModel } from 'pocketbase';
+    import { storageService } from '$lib/services/storage';
+
+    let kimpaysToDisplay = $derived(
+        appState.isOffline 
+            ? appState.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
+            : appState.recentKimpays
+    );
 
     let kimpayToLeave = $state<string | null>(null);
     let isLeaving = $state(false);
@@ -75,7 +82,7 @@
     }
 </script>
 
-{#if !appState.loadingRecentKimpays && appState.recentKimpays.length > 0}
+{#if !appState.loadingRecentKimpays && kimpaysToDisplay.length > 0}
     <div class="w-full pt-8 pb-8" transition:fade>
         <div class="flex items-center py-6">
             <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
@@ -87,7 +94,7 @@
         </div>
         
         <div class="grid gap-3">
-            {#each appState.recentKimpays as k (k.id)}
+            {#each kimpaysToDisplay as k (k.id)}
                 <a href="/k/{k.id}" data-sveltekit-preload-data="off" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">{k.icon || "📁"}</span>

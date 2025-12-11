@@ -4,6 +4,7 @@
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
     import { cubicOut } from 'svelte/easing';
+    import { appState } from '$lib/stores/appState.svelte';
 
     let { 
         expense, 
@@ -183,7 +184,8 @@
                     <!-- Action Bar -->
                     <div class="grid grid-cols-3 gap-2">
                         <button 
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active:scale-95"
+                            disabled={appState.isOffline}
+                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {appState.isOffline ? '' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}"
                             onclick={async (e) => { e.stopPropagation();   await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
                             >
                             <Pencil class="h-4 w-4" />
@@ -192,7 +194,8 @@
 
                         {#if expense.photos && expense.photos.length > 0}
                         <button 
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-medium text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors active:scale-95"
+                            disabled={appState.isOffline}
+                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {appState.isOffline ? '' : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}"
                             onclick={(e) => { e.stopPropagation(); onOpenGallery(expense); }}
                         >
                             <ImageIcon class="h-4 w-4" />
@@ -206,7 +209,8 @@
                         {/if}
 
                         <button 
-                        class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95"
+                        disabled={appState.isOffline}
+                        class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {appState.isOffline ? '' : 'hover:bg-red-50 dark:hover:bg-red-900/20'}"
                         onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
                         >
                         <Trash2 class="h-4 w-4" />

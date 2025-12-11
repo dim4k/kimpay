@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Plus, Camera, RefreshCw } from "lucide-svelte";
+  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Plus, Camera, RefreshCw, WifiOff } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { locale, t } from '$lib/i18n';
   import { theme } from '$lib/theme';
@@ -8,11 +8,13 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import OfflineHelpModal from '$lib/components/ui/OfflineHelpModal.svelte';
   import { updateParticipant } from '$lib/api';
   import { invalidateAll, afterNavigate } from '$app/navigation';
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
+  let showOfflineHelp = $state(false);
   
   let menuRef = $state<HTMLElement | null>(null);
   let triggerRef = $state<HTMLElement | null>(null);
@@ -72,6 +74,17 @@
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
       </a>
 
+      {#if appState.isOffline}
+          <button 
+                onclick={() => showOfflineHelp = true}
+                class="ml-2 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 animate-in fade-in zoom-in-95 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                title={$t('offline.modal.title')}
+          >
+              <WifiOff class="h-3 w-3" />
+              {$t('common.offline')}
+          </button>
+      {/if}
+
       <div class="flex items-center gap-2">
           <!-- Burger Menu -->
           <div class="relative">
@@ -123,12 +136,14 @@
                                                src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
                                                class="w-12 h-12 text-xl" 
                                            />
+                                           {#if !appState.isOffline}
                                            <button 
                                               class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                               onclick={() => fileInputRef?.click()}
                                            >
                                                <Camera class="h-5 w-5 text-white" />
                                            </button>
+                                           {/if}
                                            <input 
                                               type="file" 
                                               accept="image/*"
@@ -142,6 +157,7 @@
                                           <div class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                                               {currentParticipant.name}
                                           </div>
+                                          {#if !appState.isOffline}
                                           <button 
                                               onclick={openIdentityModal}
                                               class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
@@ -149,6 +165,7 @@
                                               <RefreshCw class="h-3 w-3" />
                                               {$t('identity.change')} 
                                           </button>
+                                          {/if}
                                       </div>
                                   </div>
                                   
@@ -186,6 +203,7 @@
 
                           
 
+                          {#if !appState.isOffline}
                           <a 
                               href="/"
                               class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"
@@ -193,6 +211,7 @@
                               <Plus class="h-4 w-4" />
                               <span class="text-sm font-semibold">{$t('home.create.title')}</span>
                           </a>
+                          {/if}
                       </div>
 
                       <!-- Settings Section (Bottom) -->
@@ -259,3 +278,5 @@
       </div>
   </div>
 </header>
+
+<OfflineHelpModal isOpen={showOfflineHelp} onClose={() => showOfflineHelp = false} />

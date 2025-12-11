@@ -2,7 +2,6 @@
   import { t } from '$lib/i18n';
   import { pb } from '$lib/pocketbase';
   import { modals } from '$lib/stores/modals.svelte';
-  import { addParticipant } from '$lib/api';
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Check } from "lucide-svelte";
@@ -84,7 +83,7 @@
   async function createAndSelectParticipant() {
       if (!newParticipantName.trim() || !kimpayId) return;
       try {
-          const newP = await addParticipant(kimpayId, newParticipantName);
+          const newP = await appState.createParticipant(kimpayId, newParticipantName);
           selectParticipant(newP.id);
       } catch (e) {
           console.error("Failed to add participant", e);
@@ -97,12 +96,15 @@
     <div class="fixed inset-0 z-[60] bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border dark:border-slate-800 flex flex-col max-h-[90vh]">
             <div class="p-6 pb-2 relative">
+                 {#if appState.participant}
                  <button 
-                    onclick={modals.closeIdentity}
-                    class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    onclick={() => modals.closeIdentity()}
+                    class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 z-10"
+                    title="Close"
                 >
                     ✕
                 </button>
+                {/if}
                 <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">{$t('identity.title')}</h2>
                 <p class="text-slate-500 dark:text-slate-400 text-sm">{$t('identity.subtitle')}</p>
             </div>

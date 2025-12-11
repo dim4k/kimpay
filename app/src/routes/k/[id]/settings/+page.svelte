@@ -4,7 +4,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { deleteKimpay, updateKimpay, addParticipant } from '$lib/api';
+  import { deleteKimpay, updateKimpay } from '$lib/api';
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -84,7 +84,7 @@
       isAddingParticipant = true;
       addFeedback = "";
       try {
-          await addParticipant(kimpayId, newParticipantName);
+          await appState.createParticipant(kimpayId, newParticipantName);
           newParticipantName = "";
           addFeedback = "added";
           setTimeout(() => addFeedback = "", 2000);
@@ -290,6 +290,7 @@
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
         </header>
 
+        {#if !appState.isOffline}
         <!-- Edit Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in relative z-20">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
@@ -341,7 +342,9 @@
                 </div>
             </div>
         </div>
+        {/if}
 
+        {#if !appState.isOffline}
         <!-- Participants Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
@@ -417,6 +420,7 @@
                 </div>
             </div>
         </div>
+        {/if}
 
         {#if installStore.canInstall}
             <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
@@ -464,6 +468,7 @@
             </div>
         </div>
 
+        {#if !appState.isOffline}
         <!-- Bug Report Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
@@ -485,6 +490,7 @@
                 </a>
             </div>
         </div>
+        {/if}
 
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.actions.title')}</h2>

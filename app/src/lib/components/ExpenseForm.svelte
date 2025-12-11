@@ -10,7 +10,6 @@
   import InputModal from '$lib/components/ui/InputModal.svelte';
   import DatePicker from '$lib/components/ui/DatePicker.svelte';
   import { t } from '$lib/i18n';
-  import { addParticipant } from '$lib/api';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
   import { appState } from '$lib/stores/appState.svelte';
 
@@ -132,10 +131,12 @@
   async function handleNewParticipant(name: string) {
       isAddingParticipant = true;
       try {
-          const newP = await addParticipant(kimpayId, name);
+          const newP = await appState.createParticipant(kimpayId, name);
           
-          // Optimistic update
-          appState.participants.push(newP);
+          // Optimistic update (if not already handled by appState internals)
+          if (!appState.participants.find(p => p.id === newP.id)) {
+             appState.participants.push(newP);
+          }
           
           // Handle selection based on source
           if (newParticipantSource === 'payer') {
@@ -158,6 +159,13 @@
 
   async function save() {
       if (!description || !amount || !payer || involved.length === 0) return;
+      
+      // Offline Edit Check
+      if (initialData?.id && appState.isOffline) {
+          alert($t('common.offline_edit_error') || "Cannot edit expenses while offline");
+          return;
+      }
+
       isLoading = true;
       try {
           // 1. Handle Deletions (Edit Mode)
@@ -178,11 +186,17 @@
           involved.forEach(id => formData.append('involved', id));
 
           // Append New Photos
+          // Only if online or allow? User said: "Interdire les photos offline"
           if (newPhotos.length > 0) {
-              const photoKey = initialData?.id ? 'photos+' : 'photos';
-              for (let i = 0; i < newPhotos.length; i++) {
-                  const file = newPhotos[i];
-                  if (file) formData.append(photoKey, file);
+              if (appState.isOffline) {
+                  // Skip photos or alert? 
+                  // Ideally UI disables the input, but here we enforce.
+              } else {
+                  const photoKey = initialData?.id ? 'photos+' : 'photos';
+                  for (let i = 0; i < newPhotos.length; i++) {
+                      const file = newPhotos[i];
+                      if (file) formData.append(photoKey, file);
+                  }
               }
           }
           
@@ -195,13 +209,23 @@
           
           if (initialData?.id) {
                await pb.collection('expenses').update(initialData.id, formData);
+               // Touch the kimpay to trigger realtime update for other users
+               await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
           } else {
-               await pb.collection('expenses').create(formData);
+               // Use AppState for creation to handle Offline/Online
+               await appState.createExpense(formData);
+               // If online, manual touch might be needed if not handled by createExpense internals or realtime 
+               // (appState.createExpense does direct PB create if online).
+               // The original code touched kimpay here too? 
+               // "await pb.collection('kimpays').update(kimpayId...)"
+               // Yes, to notify others. appState.createExpense currently just creates expense.
+               // We should probably move that logic into appState or keep it here if online.
+               if (!appState.isOffline) {
+                   await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
+               }
           }
           
-          // Touch the kimpay to trigger realtime update for other users
-          await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
-           await goto(`/k/${kimpayId}`);
+          await goto(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);
           alert("Error saving expense");
@@ -349,10 +373,13 @@
 
         <button 
             onclick={() => fileInput.click()}
-            class="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98]"
+            disabled={appState.isOffline}
+            class="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-300 disabled:hover:bg-transparent"
         >
             <Camera class="h-5 w-5" />
-            <span class="font-medium">{$t('expense.form.add_photos')}</span>
+            <span class="font-medium">
+                {appState.isOffline ? $t('expense.form.photos_disabled_offline') || "Photos disabled offline" : $t('expense.form.add_photos')}
+            </span>
         </button>
         <input 
             type="file" 

@@ -35,6 +35,13 @@
   });
 
   function openSettleModal(tx: Transaction) {
+      if (appState.isOffline) {
+          modals.alert({
+              message: $t('balance.reimbursement.offline_unavailable')
+          });
+          return;
+      }
+
       modals.confirm({
           title: $t('balance.settle.modal.title'),
           description: $t('balance.settle.modal.desc', {

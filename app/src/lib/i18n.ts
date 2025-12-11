@@ -136,6 +136,8 @@ export const locales = {
         "balance.reimbursement": "Reimbursement",
         "balance.status": "STATUS",
         "balance.all_good": "All good 😎",
+        "balance.reimbursement.offline_unavailable": "Reimbursements are not available offline.",
+        "common.offline": "Offline",
 
         "share.title": "Join Group",
         "share.desc": "Scan to join",
@@ -144,6 +146,17 @@ export const locales = {
         "share.copy_link": "Copy Invite Link",
         "share.copy_success": "Copied!",
         "share.copy_button": "Copy Link",
+
+        "offline.modal.title": "You are Offline",
+        "offline.modal.desc": "You can continue using Kimpay with limitations.",
+        "offline.modal.can_do": "You can:",
+        "offline.modal.can_view": "View recent groups",
+        "offline.modal.can_create": "Add expenses & participants",
+        "offline.modal.cannot_do": "Not available:",
+        "offline.modal.no_reimburse": "Reimbursements & Photos",
+        "offline.modal.no_sync": "Syncing with others",
+        "offline.modal.sync_info": "Data validates locally and syncs automatically when online.",
+        "common.got_it": "Got it",
 
         "error.404.title": "Oops! 🛸",
         "error.404.desc":
@@ -319,6 +332,8 @@ export const locales = {
         "balance.reimbursement": "Remboursement",
         "balance.status": "STATUT",
         "balance.all_good": "Tout bon 😎",
+        "balance.reimbursement.offline_unavailable": "Les remboursements ne sont pas disponibles hors ligne.",
+        "common.offline": "Hors ligne",
 
         "share.title": "Rejoindre",
         "share.desc": "Scannez pour rejoindre",
@@ -327,6 +342,17 @@ export const locales = {
         "share.copy_link": "Copier le lien d'invitation",
         "share.copy_success": "Copié !",
         "share.copy_button": "Copier le lien",
+
+        "offline.modal.title": "Mode Hors Ligne",
+        "offline.modal.desc": "Vous pouvez continuer à utiliser Kimpay avec des limitations.",
+        "offline.modal.can_do": "Vous pouvez :",
+        "offline.modal.can_view": "Voir vos groupes récents",
+        "offline.modal.can_create": "Ajouter dépenses & participants",
+        "offline.modal.cannot_do": "Indisponible :",
+        "offline.modal.no_reimburse": "Remboursements & Photos",
+        "offline.modal.no_sync": "Synchronisation avec les autres",
+        "offline.modal.sync_info": "Vos données sont sauvegardées et se synchroniseront une fois en ligne.",
+        "common.got_it": "Compris",
 
         "error.404.title": "Oups ! 🛸",
         "error.404.desc":
