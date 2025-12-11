@@ -4,7 +4,8 @@
   import CreateKimpayForm from '$lib/components/home/CreateKimpayForm.svelte';
   import JoinKimpayForm from '$lib/components/home/JoinKimpayForm.svelte';
   import RecentKimpaysList from '$lib/components/home/RecentKimpaysList.svelte';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { recentsService } from '$lib/services/recents.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
 
@@ -13,8 +14,8 @@
   
   // Determine if we should show hero based on store
   $effect(() => {
-      if (appState.initializedRecentKimpays) {
-          showHero = appState.recentKimpays.length === 0;
+      if (recentsService.initialized) {
+          showHero = recentsService.recentKimpays.length === 0;
       } else if (browser) {
           // Fallback optimistic check while loading
            const raw = localStorage.getItem('my_kimpays');
@@ -26,7 +27,7 @@
 
   onMount(async () => {
       // Store init handles deduplication
-      appState.initRecentKimpays();
+      recentsService.init();
   });
 </script>
 
@@ -41,7 +42,7 @@
         <HomeHero />
     {/if}
     
-    {#if !appState.isOffline}
+    {#if !offlineService.isOffline}
     <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
         <CreateKimpayForm />
         <JoinKimpayForm />

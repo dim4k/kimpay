@@ -1,49 +1,26 @@
 import { pb } from "$lib/pocketbase";
-import type { Kimpay, Participant, Expense, RecentKimpay } from "$lib/types";
+import type { Kimpay, Participant, Expense } from "$lib/types";
 import { storageService } from "$lib/services/storage";
+import { offlineService } from "$lib/services/offline.svelte";
+import { recentsService } from "$lib/services/recents.svelte";
+import { REIMBURSEMENT_EMOJI } from "$lib/constants";
+import { generatePocketBaseId } from "$lib/utils";
 
 class AppState {
     kimpay = $state<Kimpay | null>(null);
     participant = $state<Participant | null>(null);
-    expenses: Expense[] = $state([]);
-    participants: Participant[] = $state([]);
-
-    // Recent Kimpays State
-    recentKimpays: RecentKimpay[] = $state([]);
-    loadingRecentKimpays = $state(false);
-    initializedRecentKimpays = $state(false);
-
-    // Offline / Sync State
-    isOffline = $state(false);
-    isSyncing = $state(false);
+    expenses = $state<Expense[]>([]);
+    participants = $state<Participant[]>([]);
 
     private subscribedKimpayId: string | null = null;
     private initPromise: Promise<void> | null = null;
-    private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-
+    
     constructor() {
-        if (typeof window !== "undefined") {
-            this.setOffline(!navigator.onLine);
-            window.addEventListener("online", () => this.setOffline(false));
-            window.addEventListener("offline", () => this.setOffline(true));
-            
-            // Global Network Error Interceptor
-            const originalSend = pb.send;
-            pb.send = async <T = unknown>(path: string, options: Record<string, unknown>): Promise<T> => {
-                try {
-                    const result = await originalSend.call(pb, path, options);
-                    if (this.isOffline && path !== '/api/health') {
-                        this.setOffline(false);
-                    }
-                    return result as T;
-                } catch (e: unknown) {
-                    if ((e as { status?: number })?.status === 0) {
-                        this.setOffline(true);
-                    }
-                    throw e;
-                }
-            };
-        }
+        offlineService.registerListener(() => {
+            if (this.kimpay) {
+                this.subscribe(this.kimpay.id);
+            }
+        });
     }
 
     async init(
@@ -56,8 +33,7 @@ class AppState {
             this.kimpay?.id === kimpayId &&
             this.participants.length > 0
         ) {
-              // If we are offline, we are done (we loaded from cache)
-             if (this.isOffline) return;
+             if (offlineService.isOffline) return;
         }
 
         // 0. Load from Local Storage First (Instant Load)
@@ -69,14 +45,12 @@ class AppState {
                 const ex = cached.expand?.expenses_via_kimpay || [];
                 this.expenses = this.sortExpenses(ex);
                 
-                // Identify User quickly from cache
                 this.identifyUser(kimpayId);
             }
         }
 
         // Prevent concurrent fetches
         if (this.initPromise) {
-            // If we have data, we don't need to wait for the pending fetch
             if (this.kimpay?.id === kimpayId && !force) return;
             await this.initPromise;
             if (!force && this.kimpay?.id === kimpayId) return;
@@ -84,11 +58,10 @@ class AppState {
 
         this.initPromise = (async () => {
             try {
-                // 1. Fetch Kimpay with participants and expenses expanded
+                // 1. Fetch Kimpay
                 if (initialData) {
                     this.kimpay = initialData;
-                } else if (!this.isOffline) {
-                    // We cast because the SDK returns a generic RecordModel but we know the shape via expansion
+                } else if (!offlineService.isOffline) {
                     const record = await pb
                         .collection("kimpays")
                         .getOne(kimpayId, {
@@ -97,7 +70,6 @@ class AppState {
                         });
                     this.kimpay = record as unknown as Kimpay;
                     
-                    // Cache the fresh data
                     storageService.saveKimpayData(kimpayId, this.kimpay);
                 }
 
@@ -113,19 +85,25 @@ class AppState {
                 this.identifyUser(kimpayId);
 
                 // 4. Subscribe to Realtime Updates
-                if (!this.isOffline) {
+                if (!offlineService.isOffline) {
                     this.subscribe(kimpayId);
-                    this.processPendingQueue();
+                    offlineService.processPendingQueue();
                 }
+
+                recentsService.addRecentKimpay({
+                    id: this.kimpay.id,
+                    name: this.kimpay.name,
+                    created_by: this.kimpay.created_by,
+                    icon: this.kimpay.icon || "",
+                });
             } catch (e: unknown) {
                 console.error("Error initializing app state", e);
                 if ((e as { status?: number })?.status === 0) {
-                    this.setOffline(true);
+                    offlineService.setOffline(true);
                 }
             }
         })();
 
-        // If we have data from cache, return immediately (Stale-While-Revalidate)
         if (this.kimpay?.id === kimpayId) {
             this.initPromise.finally(() => { this.initPromise = null });
             return;
@@ -141,7 +119,7 @@ class AppState {
     unsubscribe() {
         if (!this.subscribedKimpayId) return;
 
-        pb.collection("kimpays").unsubscribe("*"); // Or specific
+        pb.collection("kimpays").unsubscribe("*");
         pb.collection("participants").unsubscribe("*");
         pb.collection("expenses").unsubscribe("*");
 
@@ -151,26 +129,21 @@ class AppState {
     subscribe(kimpayId: string) {
         if (this.subscribedKimpayId === kimpayId) return;
 
-        // Unsubscribe previous to avoid duplicates if re-init
         this.unsubscribe();
-
         this.subscribedKimpayId = kimpayId;
 
         // 1. Kimpay details
         pb.collection("kimpays").subscribe(kimpayId, (e) => {
             if (this.kimpay && e.action === "update") {
                 this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
-                // Also refresh expenses since creating an expense touches the kimpay record
                 this.refreshExpenses();
             } else if (e.action === "delete") {
-                // Handle deletion? Redirect?
                 this.kimpay = null;
             }
         });
 
         // 2. Participants
         pb.collection("participants").subscribe("*", async (e) => {
-            // Filter client side if server filter not robust in subscribe
             if (e.record.kimpay === kimpayId) {
                 const res = await pb.collection("kimpays").getOne(kimpayId, {
                     expand: "participants_via_kimpay",
@@ -180,7 +153,6 @@ class AppState {
                 this.participants =
                     updatedKimpay.expand?.participants_via_kimpay || [];
                 
-                // Keep local cache fresh
                 if (this.kimpay) {
                      this.kimpay.expand = {
                          ...this.kimpay.expand,
@@ -194,25 +166,19 @@ class AppState {
         // 3. Expenses
         pb.collection("expenses").subscribe("*", async (e) => {
             if (e.record.kimpay === kimpayId) {
-                // Refresh expenses
                 await this.refreshExpenses();
             }
         });
     }
 
     private identifyUser(kimpayId: string) {
-        if (typeof localStorage !== "undefined") {
-            const stored = JSON.parse(
-                localStorage.getItem("my_kimpays") || "{}"
-            );
-            const participantId = stored[kimpayId];
+        const participantId = storageService.getMyParticipantId(kimpayId);
 
-            if (participantId) {
-                this.participant =
-                    this.participants.find(
-                        (p) => p.id === participantId
-                    ) || null;
-            }
+        if (participantId) {
+            this.participant =
+                this.participants.find(
+                    (p) => p.id === participantId
+                ) || null;
         }
     }
 
@@ -229,7 +195,7 @@ class AppState {
     }
 
     async refreshExpenses() {
-        if (!this.kimpay || this.isOffline) return;
+        if (!this.kimpay || offlineService.isOffline) return;
 
         const k = await pb.collection("kimpays").getOne(this.kimpay.id, {
             expand: "expenses_via_kimpay.payer,expenses_via_kimpay.involved",
@@ -238,15 +204,9 @@ class AppState {
         const kimpayRecord = k as unknown as Kimpay;
         const ex = kimpayRecord.expand?.expenses_via_kimpay || [];
         this.expenses = this.sortExpenses(ex);
-        
-        // Update Cache
         storageService.saveKimpayData(this.kimpay.id, kimpayRecord);
     }
 
-    get balance() {
-        // TODO: Calc balance
-        return [];
-    }
     reset() {
         this.unsubscribe();
         this.kimpay = null;
@@ -255,76 +215,30 @@ class AppState {
         this.participants = [];
     }
 
-    // --- Recents Logic ---
-
-    // --- Offline Actions ---
-
-    setOffline(status: boolean) {
-        if (this.isOffline === status) return;
-        this.isOffline = status;
-        
-        if (status) {
-            this.startHealthCheck();
-        } else {
-            this.stopHealthCheck();
-            this.processPendingQueue();
-            if (this.kimpay) {
-                // Re-init to fetch full fresh data (participants + expenses)
-                this.init(this.kimpay.id, true);
-            }
-        }
-    }
-
-    private startHealthCheck() {
-        if (this.healthCheckInterval) return;
-        this.healthCheckInterval = setInterval(async () => {
-             try {
-                 const health = await pb.health.check();
-                 if (health.code === 200) {
-                     this.setOffline(false);
-                 }
-             } catch (_) {
-                 // Still offline
-             }
-        }, 3000);
-    }
-
-    private stopHealthCheck() {
-        if (this.healthCheckInterval) {
-            clearInterval(this.healthCheckInterval);
-            this.healthCheckInterval = null;
-        }
-    }
+    // --- MUTATIONS ---
 
     async createExpense(formData: FormData) {
         const kimpayId = formData.get('kimpay') as string;
         if (!kimpayId) throw new Error("Kimpay ID missing");
 
-        // If ONLINE -> Push directly
-        if (!this.isOffline) {
+        if (!offlineService.isOffline) {
             try {
                 await pb.collection('expenses').create(formData);
-                // Realtime will handle the update
+                await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
                 return;
             } catch (e: unknown) {
-                // Network error (status 0) -> switch to offline mode and fall through
                 if ((e as { status?: number })?.status === 0) {
-                    console.warn("Network error during create, switching to offline mode");
-                    this.setOffline(true);
+                    offlineService.setOffline(true);
                 } else {
                     throw e;
                 }
             }
         }
 
-        // If OFFLINE -> Queue & Optimistic Update
-        
-        // 1. Create Optimistic Expense
-        const tempId = `temp_${Date.now()}`;
+        const expenseId = generatePocketBaseId();
         const payerId = formData.get('payer') as string;
         const involvedIds = formData.getAll('involved') as string[];
         
-        // Reconstruct expand for UI
         const payerParticipant = this.participants.find(p => p.id === payerId);
         const expandData: { payer?: Participant, involved?: Participant[] } = {
             involved: this.participants.filter(p => involvedIds.includes(p.id))
@@ -334,7 +248,7 @@ class AppState {
         }
 
         const optimisticExpense: Expense = {
-            id: tempId,
+            id: expenseId,
             collectionId: 'expenses',
             collectionName: 'expenses',
             created: new Date().toISOString(),
@@ -345,16 +259,14 @@ class AppState {
             payer: payerId,
             involved: involvedIds,
             kimpay: kimpayId,
-            created_by: payerId, // Assuming creator is payer for simplicity in offline
+            created_by: payerId,
             is_reimbursement: false,
             icon: formData.get('icon') as string,
             expand: expandData
         };
 
-        // 2. Update UI State
         this.expenses = this.sortExpenses([...this.expenses, optimisticExpense]);
         
-        // 3. Queue Action
         const payload: Record<string, unknown> = {};
         formData.forEach((value, key) => {
              if (key === 'involved') {
@@ -365,18 +277,166 @@ class AppState {
              }
         });
 
-        storageService.savePendingAction({
-            id: tempId,
-            type: 'CREATE_EXPENSE',
-            payload,
-            timestamp: Date.now(),
-            kimpayId
+        offlineService.queueAction('CREATE_EXPENSE', payload, kimpayId, expenseId);
+    }
+
+    async deleteExpense(id: string) {
+        if (!this.kimpay) return;
+        
+        const originalExpenses = [...this.expenses];
+        this.expenses = this.expenses.filter(e => e.id !== id);
+
+        if (!offlineService.isOffline) {
+            try {
+                await pb.collection("expenses").delete(id);
+                await pb.collection("kimpays").update(this.kimpay.id, { updated: new Date() });
+                return;
+            } catch (e) {
+                if ((e as { status?: number })?.status === 0) {
+                    offlineService.setOffline(true);
+                } else {
+                    this.expenses = originalExpenses;
+                    throw e;
+                }
+            }
+        }
+
+        offlineService.queueAction('DELETE_EXPENSE', { id }, this.kimpay.id);
+    }
+
+    async createReimbursement(fromId: string, toId: string, amount: number, description: string = "Reimbursement") {
+         if (!this.kimpay) return;
+         
+         const kimpayId = this.kimpay.id;
+         const formData = new FormData();
+         formData.append('kimpay', kimpayId);
+         formData.append('description', description);
+         formData.append('amount', amount.toString());
+         formData.append('date', new Date().toISOString().split('T')[0] as string);
+         formData.append('payer', fromId);
+         formData.append('involved', toId);
+         formData.append('created_by', fromId);
+         if (REIMBURSEMENT_EMOJI) formData.append('icon', REIMBURSEMENT_EMOJI as string);
+
+         // Flag for backend logic vs simple bool
+         await this.createExpenseWithFlag(formData, true);
+    }
+    
+    private async createExpenseWithFlag(formData: FormData, isReimbursement = false) {
+          const kimpayId = formData.get('kimpay') as string;
+        if (!kimpayId) throw new Error("Kimpay ID missing");
+
+        if (!offlineService.isOffline) {
+            try {
+                 if (isReimbursement) {
+                     formData.append('is_reimbursement', 'true');
+                 }
+                await pb.collection('expenses').create(formData);
+                await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
+                return;
+            } catch (e: unknown) {
+                if ((e as { status?: number })?.status === 0) {
+                    offlineService.setOffline(true);
+                } else {
+                    throw e;
+                }
+            }
+        }
+
+        const expenseId = generatePocketBaseId();
+        const payerId = formData.get('payer') as string;
+        const involvedIds = formData.getAll('involved') as string[];
+        
+        const payerParticipant = this.participants.find(p => p.id === payerId);
+        const expandData: { payer?: Participant, involved?: Participant[] } = {
+            involved: this.participants.filter(p => involvedIds.includes(p.id))
+        };
+        if (payerParticipant) {
+            expandData.payer = payerParticipant;
+        }
+
+        const optimisticExpense: Expense = {
+            id: expenseId,
+            collectionId: 'expenses',
+            collectionName: 'expenses',
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            amount: parseFloat(formData.get('amount') as string),
+            description: formData.get('description') as string,
+            date: formData.get('date') as string,
+            payer: payerId,
+            involved: involvedIds,
+            kimpay: kimpayId,
+            created_by: payerId,
+            is_reimbursement: isReimbursement,
+            icon: formData.get('icon') as string,
+            expand: expandData
+        };
+
+        this.expenses = this.sortExpenses([...this.expenses, optimisticExpense]);
+        
+        const payload: Record<string, unknown> = {};
+        formData.forEach((value, key) => {
+             if (key === 'involved') {
+                 if (!payload[key]) payload[key] = [];
+                 (payload[key] as string[]).push(value as string);
+             } else {
+                 payload[key] = value;
+             }
         });
+        if (isReimbursement) payload['is_reimbursement'] = true;
+
+        offlineService.queueAction('CREATE_EXPENSE', payload, kimpayId, expenseId);
+    }
+
+    async updateParticipant(id: string, data: { name?: string, avatar?: File | null }): Promise<Participant> {
+        if (!offlineService.isOffline) {
+             try {
+                 const record = await pb.collection('participants').update(id, data);
+                 // Update local state if it matches current
+                 this.participants = this.participants.map(p => p.id === id ? { ...p, ...record } as unknown as Participant : p);
+                 if (this.kimpay) {
+                     this.kimpay.expand = { ...this.kimpay.expand, participants_via_kimpay: this.participants };
+                     storageService.saveKimpayData(this.kimpay.id, this.kimpay);
+                 }
+                 return record as unknown as Participant;
+             } catch (e: unknown) {
+                  if ((e as { status?: number })?.status === 0) {
+                      offlineService.setOffline(true);
+                  } else {
+                      throw e;
+                  }
+             }
+        }
+        
+        // Offline: Queue or fail? Avatar upload offline is tricky.
+        // For now, allow name update, reject avatar if offline? 
+        // Or just queue it (FormData needed for file).
+        
+        // If avatar is present, we might skip offline support for now or implement robust queue.
+        // Given complexity, let's throw if offline and avatar is present, or just queue name updates.
+        
+        if (data.avatar) {
+            throw new Error("Cannot update avatar while offline");
+        }
+
+        const optimistic = this.participants.find(p => p.id === id);
+        if (optimistic && data.name) {
+             const updated = { ...optimistic, name: data.name, updated: new Date().toISOString() };
+             this.participants = this.participants.map(p => p.id === id ? updated : p);
+             if (this.kimpay) {
+                 this.kimpay.expand = { ...this.kimpay.expand, participants_via_kimpay: this.participants };
+                 storageService.saveKimpayData(this.kimpay.id, this.kimpay);
+             }
+             offlineService.queueAction('UPDATE_PARTICIPANT', { id, name: data.name }, this.kimpay?.id || "");
+             return updated;
+        }
+        
+        throw new Error("Offline update failed");
     }
 
     async createParticipant(kimpayId: string, name: string): Promise<Participant> {
-        // If ONLINE -> Push directly
-        if (!this.isOffline) {
+        if (!offlineService.isOffline) {
             try {
                 const record = await pb.collection('participants').create({
                     name,
@@ -385,16 +445,13 @@ class AppState {
                 return record as unknown as Participant;
             } catch (e: unknown) {
                  if ((e as { status?: number })?.status === 0) {
-                     console.warn("Network error during add participant, switching to offline");
-                     this.setOffline(true);
-                     // Fallthrough to offline logic
+                     offlineService.setOffline(true);
                  } else {
                      throw e;
                  }
             }
         }
 
-        // Offline Logic
         const tempId = `temp_p_${Date.now()}`;
         const optimisticParticipant: Participant = {
             id: tempId,
@@ -407,7 +464,6 @@ class AppState {
         };
         
         this.participants = [...this.participants, optimisticParticipant];
-        // Keep cache in sync
         if (this.kimpay) {
             this.kimpay.expand = {
                 ...this.kimpay.expand,
@@ -416,251 +472,83 @@ class AppState {
             storageService.saveKimpayData(kimpayId, this.kimpay);
         }
         
-        storageService.savePendingAction({
-            id: tempId,
-            type: 'CREATE_PARTICIPANT',
-            payload: { name, kimpay: kimpayId },
-            timestamp: Date.now(),
-            kimpayId
-        });
+        offlineService.queueAction('CREATE_PARTICIPANT', { name, kimpay: kimpayId }, kimpayId, tempId);
         
         return optimisticParticipant;
     }
 
-    async processPendingQueue() {
-        if (this.isSyncing || this.isOffline) return;
+    async updateKimpay(name: string, icon?: string): Promise<Kimpay> {
+        if (!this.kimpay) throw new Error("No Kimpay selected");
         
-        const queue = storageService.getPendingActions();
-        if (queue.length === 0) return;
+        const updates: { name: string, icon?: string, updated: Date } = { 
+            name, 
+            updated: new Date() 
+        };
+        if (icon !== undefined) updates.icon = icon;
 
-        this.isSyncing = true;
-        const idMapping: Record<string, string> = {}; // TempID -> RealID
-        console.log(`Syncing ${queue.length} offline actions...`);
-
-        try {
-            for (const action of queue) {
-                try {
-                    // Clone payload to allow modification
-                    const payload = { ...action.payload };
-                    
-                    // Replace Payer Dependency
-                    if (typeof payload.payer === 'string' && payload.payer in idMapping) {
-                        payload.payer = idMapping[payload.payer];
-                    }
-                    
-                    // Replace Involved Dependency
-                    if (Array.isArray(payload.involved)) {
-                        payload.involved = payload.involved.map((id: string) => idMapping[id] || id);
-                    }
-
-                    if (action.type === 'CREATE_PARTICIPANT') {
-                         const record = await pb.collection('participants').create(payload);
-                         idMapping[action.id] = record.id;
-                         
-                         // Remove optimistic participant
-                         this.participants = this.participants.filter(p => p.id !== action.id);
-                         if (this.kimpay) {
-                             this.kimpay.expand = {
-                                 ...this.kimpay.expand,
-                                 participants_via_kimpay: this.participants
-                             };
-                         }
-                    }
-                    else if (action.type === 'CREATE_EXPENSE') {
-                        // Reconstruct FormData for expense
-                        const formData = new FormData();
-                        Object.entries(payload).forEach(([key, value]) => {
-                             if (Array.isArray(value)) {
-                                 value.forEach(v => formData.append(key, v as string));
-                             } else {
-                                 formData.append(key, value as string);
-                             }
-                        });
-
-                        const record = await pb.collection('expenses').create(formData);
-                        idMapping[action.id] = record.id;
-                        
-                        // Remove optimistic expense? 
-                        // NO: If we remove it here, there is a gap before refreshExpenses() completes where the UI shows old state.
-                        // refreshExpenses() will overwrite the whole list anyway, effectively replacing the optimistic one with the real one.
-                        
-                        await this.refreshExpenses();
-                    }
-                    
-                    storageService.removePendingAction(action.id);
-                } catch (e) {
-                    console.error("Failed to sync action", action.id, e);
+        if (!offlineService.isOffline) {
+            try {
+                const record = await pb.collection('kimpays').update(this.kimpay.id, updates);
+                const updated = record as unknown as Kimpay;
+                this.kimpay = { ...this.kimpay, ...updated };
+                storageService.saveKimpayData(this.kimpay.id, this.kimpay);
+                // Recents update handled by subscription or manually if needed
+                 recentsService.updateRecentKimpay({
+                    id: this.kimpay.id,
+                    name: this.kimpay.name,
+                    icon: this.kimpay.icon || "",
+                    created_by: this.kimpay.created_by
+                });
+                return updated;
+            } catch (e: unknown) {
+                if ((e as { status?: number })?.status === 0) {
+                    offlineService.setOffline(true);
+                } else {
+                    throw e;
                 }
             }
-        } finally {
-            this.isSyncing = false;
         }
+
+        // Optimistic Update
+        const optimistic = { ...this.kimpay, ...updates, updated: new Date().toISOString() };
+        this.kimpay = optimistic as Kimpay;
+        storageService.saveKimpayData(this.kimpay.id, this.kimpay);
+        
+        recentsService.updateRecentKimpay({
+            id: this.kimpay.id,
+            name: this.kimpay.name,
+            icon: this.kimpay.icon || "",
+            created_by: this.kimpay.created_by
+        });
+
+        offlineService.queueAction('UPDATE_KIMPAY', { name, icon }, this.kimpay.id);
+        return optimistic as Kimpay;
     }
 
-    // --- Recents Logic ---
-
-    async initRecentKimpays() {
-        if (this.initializedRecentKimpays || this.loadingRecentKimpays) return;
-        if (typeof localStorage === "undefined") return;
-
-        try {
-            this.loadingRecentKimpays = true;
-            const myKimpays = JSON.parse(
-                localStorage.getItem("my_kimpays") || "{}"
-            );
-            const ids = Object.keys(myKimpays).filter(
-                (id) => id && /^[a-zA-Z0-9]{15}$/.test(id)
-            );
-
-            if (ids.length === 0) {
-                this.recentKimpays = [];
-                this.initializedRecentKimpays = true;
+    async deleteKimpay(id: string) {
+         if (!offlineService.isOffline) {
+            try {
+                await pb.collection('kimpays').delete(id);
                 return;
+            } catch (e: unknown) {
+                 if ((e as { status?: number })?.status === 0) {
+                    offlineService.setOffline(true);
+                } else {
+                    throw e;
+                }
             }
-
-            const promises = ids.map((id) =>
-                pb
-                    .collection("kimpays")
-                    .getOne(id, { requestKey: null })
-                    .then((data) => ({
-                        id,
-                        data: data as unknown as RecentKimpay,
-                        status: "found" as const,
-                    }))
-                    .catch((err) => {
-                        if (err.status === 0) return { id, status: "network_error" as const };
-                        if (err.status === 404 || err.status === 403)
-                            return { id, status: "missing" as const };
-                        return { id, status: "error" as const };
-                    })
-            );
-
-            if (this.isOffline) {
-                 const offlineItems: RecentKimpay[] = [];
-                 for(const id of ids) {
-                     const cached = storageService.getKimpayData(id);
-                     if (cached) {
-                         const item: RecentKimpay = {
-                             id: cached.id,
-                             name: cached.name,
-                             created_by: cached.created_by
-                         };
-                         if (cached.icon) item.icon = cached.icon;
-                         offlineItems.push(item);
-                     }
-                 }
-                 this.recentKimpays = offlineItems;
-                 this.initializedRecentKimpays = true;
-                 return;
-            }
-
-            const results = await Promise.all(promises);
-
-            if (results.some(r => r.status === 'network_error')) {
-                 this.setOffline(true);
-                 const offlineItems: RecentKimpay[] = [];
-                 for(const id of ids) {
-                     const cached = storageService.getKimpayData(id);
-                     if (cached) {
-                          const item: RecentKimpay = {
-                              id: cached.id,
-                              name: cached.name,
-                              created_by: cached.created_by
-                          };
-                          if (cached.icon) item.icon = cached.icon;
-                          offlineItems.push(item);
-                     }
-                 }
-                 this.recentKimpays = offlineItems;
-                 this.initializedRecentKimpays = true;
-                 return;
-            }
-            const fetchedItems = results
-                .filter(
-                    (
-                        r
-                    ): r is {
-                        id: string;
-                        data: RecentKimpay;
-                        status: "found";
-                    } => r.status === "found"
-                )
-                .map((r) => r.data);
-
-            const missingIds = results
-                .filter((r) => r.status === "missing")
-                .map((r) => r.id);
-            if (missingIds.length > 0) {
-                missingIds.forEach((id) => {
-                    delete myKimpays[id];
-                    localStorage.removeItem(`kimpay_user_${id}`);
-                });
-                localStorage.setItem("my_kimpays", JSON.stringify(myKimpays));
-            }
-
-            this.recentKimpays = fetchedItems;
-            this.initializedRecentKimpays = true;
-
-            // Subscribe to each item
-            this.recentKimpays.forEach((item) => {
-                pb.collection("kimpays")
-                    .subscribe(item.id, (e) => {
-                        if (e.action === "update") {
-                            this.updateRecentKimpay(
-                                e.record as unknown as RecentKimpay
-                            );
-                        } else if (e.action === "delete") {
-                            this.removeRecentKimpay(e.record.id);
-                        }
-                    })
-                    .catch((err) =>
-                        console.warn("Failed to subscribe to", item.id, err)
-                    );
-            });
-        } catch (e) {
-            console.error("Failed to load recent kimpays", e);
-        } finally {
-            this.loadingRecentKimpays = false;
         }
+        
+        // If offline, we can't really "delete" it from server yet, 
+        // but we can queue it and remove locally.
+        // However, for severe actions like Delete Group, maybe restrict to Online only?
+        // User requirement: "All actions ... fully support offline mode". 
+        // So we should support it.
+        
+        offlineService.queueAction('DELETE_KIMPAY', {}, id);
     }
 
-    removeRecentKimpay(id: string) {
-        this.recentKimpays = this.recentKimpays.filter((k) => k.id !== id);
-    }
 
-    addRecentKimpay(kimpay: RecentKimpay) {
-        if (!kimpay || !kimpay.id) return;
-        if (!this.recentKimpays.find((k) => k.id === kimpay.id)) {
-            this.recentKimpays = [kimpay, ...this.recentKimpays];
-            // Subscribe
-            pb.collection("kimpays")
-                .subscribe(kimpay.id, (e) => {
-                    if (e.action === "update") {
-                        this.updateRecentKimpay(
-                            e.record as unknown as RecentKimpay
-                        );
-                    } else if (e.action === "delete") {
-                        this.removeRecentKimpay(e.record.id);
-                    }
-                })
-                .catch((err) =>
-                    console.warn(
-                        "Failed to subscribe to new kimpay",
-                        kimpay.id,
-                        err
-                    )
-                );
-        } else {
-            this.updateRecentKimpay(kimpay);
-        }
-    }
-
-    updateRecentKimpay(kimpay: RecentKimpay) {
-        if (!kimpay || !kimpay.id) return;
-        this.recentKimpays = this.recentKimpays.map((k) =>
-            k.id === kimpay.id ? { ...k, ...kimpay } : k
-        );
-    }
 }
 
 export const appState = new AppState();

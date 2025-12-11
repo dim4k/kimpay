@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { deleteExpense } from '$lib/api';
   import { getContext, onMount } from 'svelte';
   import { Wallet } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -59,7 +58,7 @@
       if (!expenseToDelete) return;
       isDeleting = true;
       try {
-          await deleteExpense(expenseToDelete);
+          await appState.deleteExpense(expenseToDelete);
           // No need to reload manually, appState handles realtime updates
           expenseToDelete = null;
       } catch (e) {

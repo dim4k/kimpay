@@ -4,7 +4,7 @@
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { deleteExpense } from '$lib/api';
+  import { appState } from '$lib/stores/appState.svelte';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { LoaderCircle, Trash2 } from "lucide-svelte";
 
@@ -33,7 +33,7 @@ import { t } from '$lib/i18n';
   async function handleDelete() {
       isDeleting = true;
       try {
-          await deleteExpense(expenseId || "");
+          await appState.deleteExpense(expenseId || "");
           await goto(`/k/${kimpayId}`);
       } catch (_e) {
           console.error("Failed to delete", _e);

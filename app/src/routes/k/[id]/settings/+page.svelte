@@ -4,7 +4,6 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { deleteKimpay, updateKimpay } from '$lib/api';
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -14,6 +13,8 @@
   import { installStore } from '$lib/stores/install.svelte';
   import { Download, FileText, Table } from 'lucide-svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
+  import { recentsService } from '$lib/services/recents.svelte';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import type { RecentKimpay } from '$lib/types';
@@ -57,13 +58,10 @@
   async function handleSave() {
       saveFeedback = "";
       try {
-          const updatedKimpay = await updateKimpay(kimpayId, {
-              name: editName,
-              icon: editIcon
-          });
+          const updatedKimpay = await appState.updateKimpay(editName, editIcon);
           
           // Update store
-          appState.updateRecentKimpay(updatedKimpay as unknown as RecentKimpay);
+          recentsService.updateRecentKimpay(updatedKimpay as unknown as RecentKimpay);
 
           saveFeedback = "updated";
           setTimeout(() => saveFeedback = "", 2000);
@@ -180,7 +178,7 @@
           confirmText: $t('common.delete'),
           variant: 'destructive',
           onConfirm: async () => {
-            await deleteKimpay(kimpayId);
+            await appState.deleteKimpay(kimpayId);
             const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
@@ -290,7 +288,7 @@
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
         </header>
 
-        {#if !appState.isOffline}
+        {#if !offlineService.isOffline}
         <!-- Edit Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in relative z-20">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
@@ -344,7 +342,7 @@
         </div>
         {/if}
 
-        {#if !appState.isOffline}
+        {#if !offlineService.isOffline}
         <!-- Participants Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
@@ -468,7 +466,7 @@
             </div>
         </div>
 
-        {#if !appState.isOffline}
+        {#if !offlineService.isOffline}
         <!-- Bug Report Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">

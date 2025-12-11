@@ -8,6 +8,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { invalidateAll } from '$app/navigation';
   import type { Participant } from '$lib/types';
+  import { storageService } from '$lib/services/storage';
   
   let { isOpen } = $props();
 
@@ -25,8 +26,7 @@
       } else {
         // Try local storage
         if (kimpayId) {
-             const stored = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-             selectedParticipantId = stored[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
+             selectedParticipantId = storageService.getMyParticipantId(kimpayId);
         }
       }
   });
@@ -61,11 +61,7 @@
   function selectParticipant(participantId: string) {
       if (!kimpayId) return;
 
-      localStorage.setItem(`kimpay_user_${kimpayId}`, participantId);
-      
-      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      myKimpays[kimpayId] = participantId;
-      localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
+      storageService.setMyParticipantId(kimpayId, participantId);
       
       selectedParticipantId = participantId;
 

@@ -12,6 +12,7 @@
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
   import { appState } from '$lib/stores/appState.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
   import { fabState } from '$lib/stores/fab.svelte'; // Import FAB State
   import { Check, LoaderCircle } from "lucide-svelte"; // Import Icons
 
@@ -206,7 +207,7 @@
       if (!description || !amount || !payer || involved.length === 0) return;
       
       // Offline Edit Check
-      if (initialData?.id && appState.isOffline) {
+      if (initialData?.id && offlineService.isOffline) {
           alert($t('common.offline_edit_error') || "Cannot edit expenses while offline");
           return;
       }
@@ -233,7 +234,7 @@
           // Append New Photos
           // Only if online or allow? User said: "Interdire les photos offline"
           if (newPhotos.length > 0) {
-              if (appState.isOffline) {
+              if (offlineService.isOffline) {
                   // Skip photos or alert? 
                   // Ideally UI disables the input, but here we enforce.
               } else {
@@ -265,7 +266,7 @@
                // "await pb.collection('kimpays').update(kimpayId...)"
                // Yes, to notify others. appState.createExpense currently just creates expense.
                // We should probably move that logic into appState or keep it here if online.
-               if (!appState.isOffline) {
+               if (!offlineService.isOffline) {
                    await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
                }
           }
@@ -418,12 +419,12 @@
 
         <button 
             onclick={() => fileInput.click()}
-            disabled={appState.isOffline}
+            disabled={offlineService.isOffline}
             class="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-300 disabled:hover:bg-transparent"
         >
             <Camera class="h-5 w-5" />
             <span class="font-medium">
-                {appState.isOffline ? $t('expense.form.photos_disabled_offline') || "Photos disabled offline" : $t('expense.form.add_photos')}
+                {offlineService.isOffline ? $t('expense.form.photos_disabled_offline') || "Photos disabled offline" : $t('expense.form.add_photos')}
             </span>
         </button>
         <input 

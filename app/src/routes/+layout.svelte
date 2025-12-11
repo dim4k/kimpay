@@ -9,6 +9,7 @@
     import { onMount } from 'svelte';
     import { page } from '$app/state';
     import { appState } from '$lib/stores/appState.svelte';
+    import { recentsService } from '$lib/services/recents.svelte';
 
     let { children, data } = $props();
 
@@ -21,7 +22,7 @@
     
     onMount(() => {
         theme.init();
-        appState.initRecentKimpays();
+        recentsService.init();
 
         if ('serviceWorker' in navigator && import.meta.env.PROD) {
             navigator.serviceWorker.register('/service-worker.js');
@@ -31,7 +32,7 @@
     // Re-load groups on navigation (in case a new one was created)
     $effect(() => {
         if (page.url.pathname) {
-            appState.initRecentKimpays();
+            recentsService.init();
             
             // Reset app state if we leave the kimpay context
             if (!page.url.pathname.startsWith('/k/')) {

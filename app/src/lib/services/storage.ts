@@ -2,7 +2,7 @@ import type { Kimpay } from "$lib/types";
 
 export interface PendingAction {
     id: string; // Unique ID for the action itself
-    type: 'CREATE_EXPENSE' | 'CREATE_PARTICIPANT';
+    type: 'CREATE_EXPENSE' | 'CREATE_PARTICIPANT' | 'DELETE_EXPENSE' | 'UPDATE_KIMPAY' | 'DELETE_KIMPAY' | 'UPDATE_PARTICIPANT';
     payload: Record<string, unknown>; // The data needed to perform the action (e.g. FormData as object)
     timestamp: number;
     kimpayId: string;
@@ -10,6 +10,9 @@ export interface PendingAction {
 
 const STORAGE_PREFIX = 'kimpay_data_';
 const QUEUE_KEY = 'kimpay_offline_queue';
+
+const MY_KIMPAYS_KEY = 'my_kimpays';
+// Legacy key pattern: kimpay_user_{id}
 
 export const storageService = {
     // --- Data Persistence (Consultation) ---
@@ -37,6 +40,60 @@ export const storageService = {
     hasKimpayData: (id: string): boolean => {
         if (typeof localStorage === "undefined") return false;
         return !!localStorage.getItem(`${STORAGE_PREFIX}${id}`);
+    },
+
+    // --- User Identity & Recents List ---
+    
+    getRecentKimpayIds: (): string[] => {
+        if (typeof localStorage === "undefined") return [];
+        try {
+            const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
+            return Object.keys(map).filter(id => id && /^[a-zA-Z0-9]{15}$/.test(id));
+        } catch (_e) {
+             return [];
+        }
+    },
+
+    getMyParticipantId: (kimpayId: string): string | null => {
+         if (typeof localStorage === "undefined") return null;
+         try {
+             // 1. Try Map
+             const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
+             if (map[kimpayId]) return map[kimpayId];
+
+             // 2. Try Legacy
+             return localStorage.getItem(`kimpay_user_${kimpayId}`);
+         } catch (_e) {
+             return null;
+         }
+    },
+
+    setMyParticipantId: (kimpayId: string, participantId: string) => {
+        if (typeof localStorage === "undefined") return;
+        try {
+            // Update Map
+            const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
+            map[kimpayId] = participantId;
+            localStorage.setItem(MY_KIMPAYS_KEY, JSON.stringify(map));
+
+            // Update Legacy (for safety/compatibility if external code reads it)
+            localStorage.setItem(`kimpay_user_${kimpayId}`, participantId);
+        } catch (e) {
+             console.error("Failed to save identity", e);
+        }
+    },
+
+    removeRecentKimpay: (kimpayId: string) => {
+        if (typeof localStorage === "undefined") return;
+        try {
+            const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
+            delete map[kimpayId];
+            localStorage.setItem(MY_KIMPAYS_KEY, JSON.stringify(map));
+            
+            localStorage.removeItem(`kimpay_user_${kimpayId}`);
+        } catch (e) {
+            console.error("Failed to remove recent kimpay", e);
+        }
     },
 
     // --- Action Queue (Offline Ops) ---

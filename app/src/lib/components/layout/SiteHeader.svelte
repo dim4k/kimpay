@@ -6,10 +6,11 @@
   import { slide } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
   import { appState } from '$lib/stores/appState.svelte';
+  import { recentsService } from '$lib/services/recents.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import OfflineHelpModal from '$lib/components/ui/OfflineHelpModal.svelte';
-  import { updateParticipant } from '$lib/api';
+  import { offlineService } from '$lib/services/offline.svelte';
   import { invalidateAll, afterNavigate } from '$app/navigation';
 
   let isMenuOpen = $state(false);
@@ -32,7 +33,7 @@
       if (input.files && input.files[0] && currentParticipant) {
            const file = input.files[0];
            try {
-              await updateParticipant(currentParticipant.id, { avatar: file });
+              await appState.updateParticipant(currentParticipant.id, { avatar: file });
               // Update global state and UI
               await appState.init(currentParticipant.kimpay, true);
               await invalidateAll();
@@ -74,7 +75,7 @@
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
       </a>
 
-      {#if appState.isOffline}
+      {#if offlineService.isOffline}
           <button 
                 onclick={() => showOfflineHelp = true}
                 class="ml-2 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 animate-in fade-in zoom-in-95 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
@@ -136,7 +137,7 @@
                                                src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
                                                class="w-12 h-12 text-xl" 
                                            />
-                                           {#if !appState.isOffline}
+                                           {#if !offlineService.isOffline}
                                            <button 
                                               class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                               onclick={() => fileInputRef?.click()}
@@ -157,7 +158,7 @@
                                           <div class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                                               {currentParticipant.name}
                                           </div>
-                                          {#if !appState.isOffline}
+                                          {#if !offlineService.isOffline}
                                           <button 
                                               onclick={openIdentityModal}
                                               class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
@@ -176,12 +177,12 @@
                               {$t('home.history.title')}
                           </div>
                           
-                          {#if appState.recentKimpays.length === 0}
+                          {#if recentsService.recentKimpays.length === 0}
                               <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
                                   {$t('expense.list.empty.title')}
                               </div>
                           {:else}
-                              {@const filteredKimpays = appState.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                              {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
                               {#each filteredKimpays as k (k.id)}
 
                                   <a 
@@ -203,7 +204,7 @@
 
                           
 
-                          {#if !appState.isOffline}
+                          {#if !offlineService.isOffline}
                           <a 
                               href="/"
                               class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"

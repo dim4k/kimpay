@@ -6,11 +6,11 @@
     import { t, locale } from '$lib/i18n';
     import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
     import { fade } from 'svelte/transition';
-    import { createKimpay } from '$lib/api';
-    import { appState } from '$lib/stores/appState.svelte';
+    import { recentsService } from '$lib/services/recents.svelte';
+    import { storageService } from '$lib/services/storage';
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
-    import type { RecentKimpay } from '$lib/types';
+    import { generatePocketBaseId, generateUUID } from '$lib/utils';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -37,10 +37,55 @@
         
         isLoading = true;
         try {
-            const record = await createKimpay(kimpayName, kimpayIcon, creatorName, otherParticipants);
-            
+            const kimpayId = generatePocketBaseId();
+            const creatorId = generatePocketBaseId();
+            const inviteToken = generateUUID();
+
+            // 1. Create Kimpay (with pre-allocated IDs)
+            // Note: We omit created_by initially to avoid "missing_rel_records" error.
+            // Depending on schema, created_by might be required. If so, schema must be relaxed.
+            const kimpayRecord = await pb.collection('kimpays').create({
+                id: kimpayId,
+                name: kimpayName,
+                icon: kimpayIcon,
+                invite_token: inviteToken,
+                // created_by: creatorId // Removed to avoid circular dependency error
+            });
+
+            // 2. Create Creator Participant (with pre-allocated IDs)
+            const creatorRecord = await pb.collection('participants').create({
+                id: creatorId,
+                name: creatorName,
+                kimpay: kimpayId,
+                // avatar?
+            });
+
+            // 3. Update Kimpay created_by (Now that participant exists)
+            await pb.collection('kimpays').update(kimpayId, {
+                created_by: creatorId
+            });
+
+            // 4. Create other participants
+            if (otherParticipants.length > 0) {
+                 await Promise.all(otherParticipants.map(name => 
+                     pb.collection('participants').create({
+                         name,
+                         kimpay: kimpayId
+                     }, { requestKey: null })
+                 ));
+            }
+
             // Update store immediately
-            appState.addRecentKimpay(record as unknown as RecentKimpay);
+            recentsService.addRecentKimpay({
+                id: kimpayRecord.id,
+                name: kimpayRecord.name,
+                icon: kimpayRecord.icon,
+                created_by: creatorRecord.id
+            });
+            storageService.setMyParticipantId(kimpayRecord.id, creatorRecord.id);
+            
+            const record = kimpayRecord; // alias for compatibility with existing code below
+
             
             if (creatorEmail && creatorEmail.trim()) {
                 const kimpayUrl = `${window.location.origin}/k/${record.id}`;
@@ -58,9 +103,15 @@
             }
 
             await goto(`/k/${record.id}`);
-        } catch (e) {
-            alert("Error creating Kimpay");
-            console.error(e);
+        } catch (e: unknown) {
+            console.error("Kimpay Creation Error:", e);
+            // Alert the specific validation errors from PocketBase
+            const err = e as { response?: { data?: unknown }, message?: string };
+            if (err.response && err.response.data) {
+                alert(`Error: ${JSON.stringify(err.response.data, null, 2)}`);
+            } else {
+                alert("Error creating Kimpay: " + (err.message || String(e)));
+            }
         }
     }
      

@@ -9,6 +9,7 @@
   import { LoaderCircle, ArrowRight } from "lucide-svelte";
   import { generateUUID } from '$lib/utils';
   import type { Kimpay, Participant } from '$lib/types';
+  import { storageService } from '$lib/services/storage';
 
   let token = $derived(page.params.token);
   let name = $state("");
@@ -30,12 +31,11 @@
       });
 
       // Auto-join if already known
-      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      const storedLocalId = myKimpays[kimpay!.id] || localStorage.getItem(`kimpay_user_${kimpay!.id}`);
+      const storedId = storageService.getMyParticipantId(kimpay!.id);
       
-      if (storedLocalId) {
-          // Verify it matches?
-          const me = participants.find(p => p.local_id === storedLocalId);
+      if (storedId) {
+          // Verify match (ID or Local ID)
+          const me = participants.find(p => p.id === storedId || p.local_id === storedId);
           if (me) await goto(`/k/${kimpay!.id}`);
       }
 
@@ -44,16 +44,9 @@
     }
   });
 
-  async function persistAndRedirect(participant: Participant, localId: string) {
-      if (typeof localStorage !== 'undefined') {
-          // 1. Auth Key
-          localStorage.setItem(`kimpay_user_${kimpay!.id}`, localId);
-          
-          // 2. Index Key
-          const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          myKimpays[kimpay!.id] = participant.id;
-          localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-      }
+  async function persistAndRedirect(participant: Participant) {
+      // Use Record ID as primary identity, handling legacy check via checking p.id
+      storageService.setMyParticipantId(kimpay!.id, participant.id);
       await goto(`/k/${kimpay!.id}`);
   }
 
@@ -67,8 +60,9 @@
             kimpay: kimpay.id,
             local_id
         });
+        // We generate it but don't strictly need to pass it for persistence now as we use p.id
         
-        await persistAndRedirect(participant, local_id);
+        await persistAndRedirect(participant);
     } catch (e) {
         console.error(e);
         error = "Failed to join. Try again.";
@@ -87,7 +81,7 @@
               local_id: local_id
           });
           
-          await persistAndRedirect(updated, local_id);
+          await persistAndRedirect(updated);
       } catch (e) {
          console.error(e);
          error = "Failed to claim profile.";

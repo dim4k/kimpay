@@ -10,6 +10,7 @@
   import { fabState } from '$lib/stores/fab.svelte';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { storageService } from '$lib/services/storage';
   
   let { children, data } = $props();
 
@@ -98,8 +99,7 @@
   async function checkIdentity() {
       if (!kimpayId) return;
       
-      const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-      const storedUser = myKimpays[kimpayId] || localStorage.getItem(`kimpay_user_${kimpayId}`);
+      const storedUser = storageService.getMyParticipantId(kimpayId);
       
       if (!storedUser) {
           // Open global identity modal

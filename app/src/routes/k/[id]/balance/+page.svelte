@@ -6,11 +6,11 @@
   import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
-  import { createReimbursement } from '$lib/api';
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
 
   let kimpayId = $derived(page.params.id ?? '');
@@ -35,7 +35,7 @@
   });
 
   function openSettleModal(tx: Transaction) {
-      if (appState.isOffline) {
+      if (offlineService.isOffline) {
           modals.alert({
               message: $t('balance.reimbursement.offline_unavailable')
           });
@@ -52,7 +52,7 @@
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
-             await createReimbursement(kimpayId, tx.from, tx.to, tx.amount, $t('balance.reimbursement'));
+             await appState.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'));
              // No need to reload, appState handles realtime updates
           }
       });

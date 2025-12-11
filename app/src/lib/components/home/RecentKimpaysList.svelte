@@ -1,7 +1,8 @@
 <script lang="ts">
     import { History, LogOut, ArrowRight } from "lucide-svelte";
     import { t } from '$lib/i18n';
-    import { appState } from '$lib/stores/appState.svelte';
+    import { offlineService } from '$lib/services/offline.svelte';
+    import { recentsService } from '$lib/services/recents.svelte';
     import { fade } from 'svelte/transition';
     import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
     import { pb } from '$lib/pocketbase';
@@ -9,9 +10,9 @@
     import { storageService } from '$lib/services/storage';
 
     let kimpaysToDisplay = $derived(
-        appState.isOffline 
-            ? appState.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
-            : appState.recentKimpays
+        offlineService.isOffline 
+            ? recentsService.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
+            : recentsService.recentKimpays
     );
 
     let kimpayToLeave = $state<string | null>(null);
@@ -29,7 +30,7 @@
         try {
             const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
             const participantId = myKimpays[kimpayToLeave];
-            const kimpay = appState.recentKimpays.find(k => k.id === kimpayToLeave);
+            const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {
                 let canDelete = true;
@@ -70,7 +71,7 @@
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
             localStorage.removeItem(`kimpay_user_${kimpayToLeave}`); // Add cleanup here to prevent re-adding on refresh
 
-            appState.removeRecentKimpay(kimpayToLeave);
+            recentsService.removeRecentKimpay(kimpayToLeave);
             kimpayToLeave = null;
 
         } catch (e) {
@@ -82,7 +83,7 @@
     }
 </script>
 
-{#if !appState.loadingRecentKimpays && kimpaysToDisplay.length > 0}
+{#if !recentsService.loading && kimpaysToDisplay.length > 0}
     <div class="w-full pt-8 pb-8" transition:fade>
         <div class="flex items-center py-6">
             <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
