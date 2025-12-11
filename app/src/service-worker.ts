@@ -1,78 +1,92 @@
 /// <reference types="@sveltejs/kit" />
 /// <reference lib="webworker" />
 
-import { build, files, version } from '$service-worker';
+import { build, files, version } from "$service-worker";
 
 const CACHE = `cache-${version}`;
 
 const ASSETS = [
-  ...build, // the app itself
-  ...files  // everything in `static`
+    ...build, // the app itself
+    ...files, // everything in `static`
 ];
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-sw.addEventListener('install', (event) => {
-  // Create a new cache and add all files to it
-  async function addFilesToCache() {
-    const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS);
-  }
+sw.addEventListener("install", (event) => {
+    // Create a new cache and add all files to it
+    async function addFilesToCache() {
+        const cache = await caches.open(CACHE);
+        await cache.addAll(ASSETS);
 
-  event.waitUntil(addFilesToCache());
+        try {
+            await cache.add("/");
+        } catch {
+            // it's okay if this fails, we just won't have the fallback
+        }
+    }
+
+    event.waitUntil(addFilesToCache());
 });
 
-sw.addEventListener('activate', (event) => {
-  // Remove previous cached data from disk
-  async function deleteOldCaches() {
-    for (const key of await caches.keys()) {
-      if (key !== CACHE) await caches.delete(key);
+sw.addEventListener("activate", (event) => {
+    // Remove previous cached data from disk
+    async function deleteOldCaches() {
+        for (const key of await caches.keys()) {
+            if (key !== CACHE) await caches.delete(key);
+        }
     }
-  }
 
-  event.waitUntil(deleteOldCaches());
+    event.waitUntil(deleteOldCaches());
 });
 
-sw.addEventListener('fetch', (event) => {
-  // ignore POST requests etc
-  if (event.request.method !== 'GET') return;
+sw.addEventListener("fetch", (event) => {
+    // ignore POST requests etc
+    if (event.request.method !== "GET") return;
 
-  // ignore extensions or other schemes
-  if (!event.request.url.startsWith('http')) return;
+    // ignore extensions or other schemes
+    if (!event.request.url.startsWith("http")) return;
 
-  async function respond() {
-    const url = new URL(event.request.url);
+    async function respond() {
+        const url = new URL(event.request.url);
 
-    // Ignore API requests (PocketBase)
-    if (url.pathname.startsWith('/api/')) {
-        return fetch(event.request);
-    } 
+        // Ignore API requests (PocketBase)
+        if (url.pathname.startsWith("/api/")) {
+            return fetch(event.request);
+        }
 
-    const cache = await caches.open(CACHE);
+        const cache = await caches.open(CACHE);
 
-    // `build`/`files` can always be served from the cache
-    if (ASSETS.includes(url.pathname)) {
-      const response = await cache.match(url.pathname);
-      if (response) return response;
+        // `build`/`files` can always be served from the cache
+        if (ASSETS.includes(url.pathname)) {
+            const response = await cache.match(url.pathname);
+            if (response) return response;
+        }
+
+        // for everything else, try the network first, but
+        // fall back to the cache if we're offline
+        try {
+            const response = await fetch(event.request);
+
+            if (response.status === 200) {
+                cache.put(event.request, response.clone());
+            }
+
+            return response;
+        } catch {
+            const cached = await cache.match(event.request);
+            if (cached) return cached;
+
+            if (event.request.mode === "navigate") {
+                const root = await cache.match("/");
+                if (root) return root;
+            }
+
+            return new Response("Offline", {
+                status: 408,
+                statusText: "Offline",
+            });
+        }
     }
 
-    // for everything else, try the network first, but
-    // fall back to the cache if we're offline
-    try {
-      const response = await fetch(event.request);
-
-      if (response.status === 200) {
-        cache.put(event.request, response.clone());
-      }
-
-      return response;
-    } catch {
-      const cached = await cache.match(event.request);
-      if (cached) return cached;
-      
-      return new Response('Offline', { status: 408, statusText: 'Offline' });
-    }
-  }
-
-  event.respondWith(respond());
+    event.respondWith(respond());
 });
