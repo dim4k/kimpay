@@ -347,9 +347,7 @@ class AppState {
             kimpay: kimpayId,
             created_by: payerId, // Assuming creator is payer for simplicity in offline
             is_reimbursement: false,
-            // START FIX: Add icon to optimistic expense
             icon: formData.get('icon') as string,
-            // END FIX
             expand: expandData
         };
 
