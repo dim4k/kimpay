@@ -171,6 +171,11 @@ class AppState {
         });
     }
 
+    switchUser(kimpayId: string, participantId: string) {
+        storageService.setMyParticipantId(kimpayId, participantId);
+        this.identifyUser(kimpayId);
+    }
+
     private identifyUser(kimpayId: string) {
         const participantId = storageService.getMyParticipantId(kimpayId);
 
@@ -442,7 +447,19 @@ class AppState {
                     name,
                     kimpay: kimpayId
                 });
-                return record as unknown as Participant;
+                const participant = record as unknown as Participant;
+                
+                // Optimistic-like update for Online mode (Instant feedback)
+                this.participants = [...this.participants, participant];
+                if (this.kimpay) {
+                    this.kimpay.expand = {
+                        ...this.kimpay.expand,
+                        participants_via_kimpay: this.participants
+                    };
+                    storageService.saveKimpayData(kimpayId, this.kimpay);
+                }
+
+                return participant;
             } catch (e: unknown) {
                  if ((e as { status?: number })?.status === 0) {
                      offlineService.setOffline(true);

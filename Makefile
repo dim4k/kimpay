@@ -55,3 +55,8 @@ clean: ## Remove containers, networks, and volumes
 	@echo Cleaning up...
 	$(DC) down -v --remove-orphans
 	@echo Clean complete.
+
+test-e2e: ## Run Playwright E2E tests (via Docker)
+	@echo Running E2E Tests in Isolated Stack...
+	$(DC) -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+

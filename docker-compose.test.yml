@@ -1,0 +1,31 @@
+services:
+  # Isolated PocketBase for Tests
+  pocketbase-test:
+    build:
+      context: .
+      dockerfile: pocketbase/Dockerfile
+    volumes:
+      # Mount migrations/hooks for structure (Schema/JS logic)
+      - ./pocketbase/pb_migrations:/pb_migrations
+      - ./pocketbase/pb_hooks:/pb_hooks
+      # DO NOT bind mount pb_data (use anonymous volume for ephemeral isolation)
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
+    working_dir: /app
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    environment:
+      - CI=true
+      - PUBLIC_POCKETBASE_URL=http://pocketbase-test:8090
+    depends_on:
+      pocketbase-test:
+        condition: service_healthy
+    command: /bin/bash -c "npm install && npm run build && npx playwright test"
+    # No external network - verify isolation default

@@ -196,13 +196,7 @@
           description: $t('settings.switch_modal.desc'),
           confirmText: $t('common.save'), // or 'Switch'
           onConfirm: () => {
-              localStorage.setItem(`kimpay_user_${kimpayId}`, pId);
-              
-              const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-              myKimpays[kimpayId] = pId;
-              localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-
-              window.location.reload(); 
+              appState.switchUser(kimpayId, pId);
           }
       });
   }
@@ -354,7 +348,12 @@
              <div class="space-y-4">
                 <div class="space-y-2">
                         {#each participants as p (p.id)}
-                            <div class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 group">
+                            <div 
+                                class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 group"
+                                data-participant-id={p.id}
+                                data-is-me={currentParticipantId === p.id}
+                                data-current-participant={currentParticipantId}
+                            >
                                 <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
                                     {p.name.slice(0, 2).toUpperCase()}
@@ -375,6 +374,7 @@
                                             class="h-8 w-8 text-muted-foreground hover:text-indigo-600 transition-colors"
                                             onclick={() => handleSwitchIdentity(p.id)}
                                             title={$t('settings.switch_identity')}
+                                            aria-label={$t('settings.switch_identity')}
                                         >
                                             <ArrowRightLeft class="h-4 w-4" />
                                         </Button>
@@ -410,7 +410,7 @@
                             <span class="absolute right-3 top-2.5 text-xs text-green-600 font-medium animate-in fade-in slide-in-from-bottom-1">{$t('settings.participants.added')}</span>
                         {/if}
                     </div>
-                    <Button onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()}>
+                    <Button onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
                         {#if isAddingParticipant}
                              ...
                         {:else}

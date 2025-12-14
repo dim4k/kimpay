@@ -73,6 +73,7 @@
         <button 
             onclick={dismiss}
             class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
+            aria-label="Dismiss install prompt"
         >
             <X class="h-5 w-5" />
         </button>
