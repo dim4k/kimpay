@@ -136,6 +136,7 @@
   }
 
   function requestLeave() {
+      if (offlineService.isOffline) return;
       modals.confirm({
           title: $t('modal.leave.title'),
           description: $t('modal.leave.desc'),
@@ -172,6 +173,7 @@
   }
 
   function requestDelete() {
+      if (offlineService.isOffline) return;
       modals.confirm({
           title: $t('settings.delete_group'),
           description: $t('settings.actions.delete_warning'),
@@ -496,7 +498,7 @@
             <div class="space-y-4">
                 <div class="flex flex-col gap-2">
                     <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.remove_desc')}</p>
-                    <Button variant="outline" class="w-full justify-start gap-2 text-slate-700 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800" onclick={requestLeave}>
+                    <Button variant="outline" class="w-full justify-start gap-2 text-slate-700 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800" onclick={requestLeave} disabled={offlineService.isOffline}>
                         <LogOut class="h-4 w-4" />
                         {$t('settings.leave_group')}
                     </Button>
@@ -510,7 +512,7 @@
                                 {$t('settings.danger_zone')}
                             </h3>
                             <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.delete_desc')}</p>
-                            <Button variant="destructive" class="w-full justify-start gap-2" onclick={requestDelete}>
+                            <Button variant="destructive" class="w-full justify-start gap-2" onclick={requestDelete} disabled={offlineService.isOffline}>
                                 <Trash2 class="h-4 w-4" />
                                 {$t('settings.delete_group')}
                             </Button>
