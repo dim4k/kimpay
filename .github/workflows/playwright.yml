@@ -17,21 +17,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    
-    - name: Install dependencies
-      run: npm ci
 
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-
-    - name: Build App
-      run: npm run build
-
-    - name: Run Playwright tests
-      run: npx playwright test
+    - name: Run E2E Tests (Docker)
+      run: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
 
     - uses: actions/upload-artifact@v4
       if: always()

@@ -197,6 +197,8 @@ export const locales = {
         "install.prompt.title": "Install Kimpay",
         "install.prompt.desc": "Quick access without browser",
         "install.prompt.button": "Install",
+        "error.email.invalid.title": "Invalid Email",
+        "error.email.invalid.message": "Please enter a valid email address",
     },
     fr: {
         "app.name": "Kimpay",
@@ -393,6 +395,8 @@ export const locales = {
         "install.prompt.title": "Installer Kimpay",
         "install.prompt.desc": "Accès rapide sans navigateur",
         "install.prompt.button": "Installer",
+        "error.email.invalid.title": "Email Invalide",
+        "error.email.invalid.message": "Veuillez entrer une adresse email valide",
     },
 };
 

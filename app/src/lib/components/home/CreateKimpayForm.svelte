@@ -42,8 +42,8 @@
         
         if (creatorEmail && creatorEmail.trim() && !isValidEmail(creatorEmail.trim())) {
             modals.alert({ 
-                message: "Please enter a valid email address", 
-                title: "Invalid Email" 
+                message: $t('error.email.invalid.message'), 
+                title: $t('error.email.invalid.title') 
             });
             return;
         }
