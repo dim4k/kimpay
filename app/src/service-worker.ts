@@ -21,8 +21,10 @@ sw.addEventListener("install", (event) => {
         // Try to cache the root route (App Shell)
         try {
             // Use { cache: 'reload' } to ensure we get a fresh version from the server
-            const response = await fetch("/", { cache: "reload" });
+            // Add a cache-buster query param to force a network fetch (bypassing potential intermediate caches)
+            const response = await fetch(`/?ts=${Date.now()}`, { cache: "reload" });
             if (response.ok) {
+                // We cache it as "/" so it matches the navigation request later
                 await cache.put("/", response);
             }
         } catch (e) {
@@ -67,7 +69,8 @@ sw.addEventListener("fetch", (event) => {
 
         // `build`/`files` can always be served from the cache
         if (ASSETS.includes(url.pathname)) {
-            const response = await cache.match(url.pathname);
+            // Use ignoreSearch to match requests even if they have query params (like cache busters)
+            const response = await cache.match(url.pathname, { ignoreSearch: true });
             if (response) return response;
         }
 
@@ -91,7 +94,8 @@ sw.addEventListener("fetch", (event) => {
             return response;
         } catch {
             // Network failed or timed out
-            const cached = await cache.match(event.request);
+            // Try to match the request in the cache, ignoring search params
+            const cached = await cache.match(event.request, { ignoreSearch: true });
             if (cached) return cached;
 
             // If it's a navigation request, try to serve the App Shell

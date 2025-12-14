@@ -11,6 +11,7 @@
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
     import { generatePocketBaseId, generateUUID } from '$lib/utils';
+    import { modals } from '$lib/stores/modals.svelte';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -32,9 +33,21 @@
         otherParticipants = otherParticipants.filter((_, i) => i !== index);
     }
 
+    function isValidEmail(email: string) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
     async function create() {
         if (!kimpayName.trim() || !creatorName.trim()) return;
         
+        if (creatorEmail && creatorEmail.trim() && !isValidEmail(creatorEmail.trim())) {
+            modals.alert({ 
+                message: "Please enter a valid email address", 
+                title: "Invalid Email" 
+            });
+            return;
+        }
+
         isLoading = true;
         try {
             const kimpayId = generatePocketBaseId();
@@ -108,9 +121,15 @@
             // Alert the specific validation errors from PocketBase
             const err = e as { response?: { data?: unknown }, message?: string };
             if (err.response && err.response.data) {
-                alert(`Error: ${JSON.stringify(err.response.data, null, 2)}`);
+                modals.alert({ 
+                    message: JSON.stringify(err.response.data, null, 2), 
+                    title: "Error" 
+                });
             } else {
-                alert("Error creating Kimpay: " + (err.message || String(e)));
+                modals.alert({ 
+                    message: "Error creating Kimpay: " + (err.message || String(e)), 
+                    title: "Error" 
+                });
             }
         }
     }

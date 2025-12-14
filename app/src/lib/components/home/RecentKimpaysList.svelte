@@ -8,6 +8,7 @@
     import { pb } from '$lib/pocketbase';
     import type { RecordModel } from 'pocketbase';
     import { storageService } from '$lib/services/storage';
+    import { modals } from '$lib/stores/modals.svelte';
 
     let kimpaysToDisplay = $derived(
         offlineService.isOffline 
@@ -76,7 +77,7 @@
 
         } catch (e) {
             console.error("Error leaving kimpay", e);
-            alert("Error leaving group");
+            modals.alert({ message: "Error leaving group", title: "Error" });
         } finally {
             isLeaving = false;
         }

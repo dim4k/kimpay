@@ -14,6 +14,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { fabState } from '$lib/stores/fab.svelte'; // Import FAB State
+  import { modals } from '$lib/stores/modals.svelte';
   import { Check, LoaderCircle } from "lucide-svelte"; // Import Icons
 
   let { kimpayId, initialData = null } = $props();
@@ -197,7 +198,7 @@
           newParticipantSource = null;
       } catch (e) {
           console.error(e);
-          alert("Failed to create participant");
+          modals.alert({ message: "Failed to create participant", title: "Error" });
       } finally {
           isAddingParticipant = false;
       }
@@ -208,7 +209,10 @@
       
       // Offline Edit Check
       if (initialData?.id && offlineService.isOffline) {
-          alert($t('common.offline_edit_error') || "Cannot edit expenses while offline");
+          modals.alert({ 
+              message: $t('common.offline_edit_error') || "Cannot edit expenses while offline",
+              title: "Offline"
+          });
           return;
       }
 
@@ -274,7 +278,7 @@
           await goto(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);
-          alert("Error saving expense");
+          modals.alert({ message: "Error saving expense", title: "Error" });
       } finally {
           isLoading = false;
       }

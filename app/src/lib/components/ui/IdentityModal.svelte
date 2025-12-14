@@ -83,7 +83,7 @@
           selectParticipant(newP.id);
       } catch (e) {
           console.error("Failed to add participant", e);
-          alert("Failed to create participant");
+          modals.alert({ message: "Failed to create participant", title: "Error" });
       }
   }
 </script>
