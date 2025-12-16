@@ -9,6 +9,7 @@
     import type { RecordModel } from 'pocketbase';
     import { storageService } from '$lib/services/storage';
     import { modals } from '$lib/stores/modals.svelte';
+    import { EXPAND } from '$lib/constants';
 
     let kimpaysToDisplay = $derived(
         offlineService.isOffline 
@@ -29,8 +30,7 @@
         if (!kimpayToLeave) return;
         isLeaving = true;
         try {
-            const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-            const participantId = myKimpays[kimpayToLeave];
+            const participantId = storageService.getMyParticipantId(kimpayToLeave);
             const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {
@@ -45,7 +45,7 @@
                 if (canDelete) {
                     try {
                         const res = await pb.collection('kimpays').getOne(kimpayToLeave, {
-                            expand: 'expenses_via_kimpay'
+                            expand: EXPAND.KIMPAY_WITH_EXPENSES
                         });
                         const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
                         const isUsed = allExpenses.some((e: RecordModel) => e.payer === participantId || (e.involved && e.involved.includes(participantId)));
@@ -68,10 +68,7 @@
                 }
             }
             
-            delete myKimpays[kimpayToLeave];
-            localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-            localStorage.removeItem(`kimpay_user_${kimpayToLeave}`); // Add cleanup here to prevent re-adding on refresh
-
+            storageService.removeRecentKimpay(kimpayToLeave);
             recentsService.removeRecentKimpay(kimpayToLeave);
             kimpayToLeave = null;
 
@@ -85,7 +82,7 @@
 </script>
 
 {#if !recentsService.loading && kimpaysToDisplay.length > 0}
-    <div class="w-full pt-8 pb-8" transition:fade>
+    <div class="w-full pt-4 pb-4" transition:fade>
         <div class="flex items-center py-6">
             <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
             <span class="px-4 text-xs uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-2">

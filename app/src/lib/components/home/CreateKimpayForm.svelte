@@ -8,10 +8,15 @@
     import { fade } from 'svelte/transition';
     import { recentsService } from '$lib/services/recents.svelte';
     import { storageService } from '$lib/services/storage';
+    import { kimpayStore } from '$lib/stores/kimpay.svelte';
+    import { offlineService } from '$lib/services/offline.svelte';
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
-    import { generatePocketBaseId, generateUUID } from '$lib/utils';
+    import { isValidEmail } from '$lib/utils';
     import { modals } from '$lib/stores/modals.svelte';
+    import { auth } from '$lib/stores/auth.svelte';
+    import EmailHelpModal from '$lib/components/ui/EmailHelpModal.svelte';
+    import { Info } from "lucide-svelte";
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -20,7 +25,17 @@
     let otherParticipants = $state<string[]>([]);
     let creatorEmail = $state("");
     let isEmojiPickerOpen = $state(false);
+    let isEmailHelpOpen = $state(false);
     let isLoading = $state(false);
+    
+    let createdKimpayUrl = $state("");
+
+    $effect(() => {
+        if (auth.user && !creatorName && !creatorEmail) {
+            creatorName = auth.user.name;
+            creatorEmail = auth.user.email;
+        }
+    });
 
     function addParticipant() {
         if (newParticipantName.trim()) {
@@ -31,10 +46,6 @@
 
     function removeParticipant(index: number) {
         otherParticipants = otherParticipants.filter((_, i) => i !== index);
-    }
-
-    function isValidEmail(email: string) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
     async function create() {
@@ -50,72 +61,84 @@
 
         isLoading = true;
         try {
-            const kimpayId = generatePocketBaseId();
-            const creatorId = generatePocketBaseId();
-            const inviteToken = generateUUID();
+            const { id: kimpayId, creatorId } = await kimpayStore.create(
+                kimpayName,
+                kimpayIcon,
+                creatorName,
+                otherParticipants,
+                auth.user ? auth.user.id : undefined
+            );
 
-            // 1. Create Kimpay (with pre-allocated IDs)
-            // Note: We omit created_by initially to avoid "missing_rel_records" error.
-            // Depending on schema, created_by might be required. If so, schema must be relaxed.
-            const kimpayRecord = await pb.collection('kimpays').create({
+            // Update store logic is now handled in kimpayStore (optimistic)
+            // But we need to update recentsService for immediate feedback if not handled by store?
+            // kimpayStore.create updates offline queue but does it update Recents?
+            // Recents service listens to storage? or needs manual add?
+            // The original code did: recentsService.addRecentKimpay(...); storageService.setMyParticipantId(...);
+            
+            // We should ensure kimpayStore.create or this caller handles "Recents" + "MyIdentity"
+            // kimpayStore.create handles offline queue for server sync.
+            // Client side state:
+            recentsService.addRecentKimpay({
                 id: kimpayId,
                 name: kimpayName,
                 icon: kimpayIcon,
-                invite_token: inviteToken,
-                // created_by: creatorId // Removed to avoid circular dependency error
-            });
-
-            // 2. Create Creator Participant (with pre-allocated IDs)
-            const creatorRecord = await pb.collection('participants').create({
-                id: creatorId,
-                name: creatorName,
-                kimpay: kimpayId,
-                // avatar?
-            });
-
-            // 3. Update Kimpay created_by (Now that participant exists)
-            await pb.collection('kimpays').update(kimpayId, {
                 created_by: creatorId
             });
-
-            // 4. Create other participants
-            if (otherParticipants.length > 0) {
-                 await Promise.all(otherParticipants.map(name => 
-                     pb.collection('participants').create({
-                         name,
-                         kimpay: kimpayId
-                     }, { requestKey: null })
-                 ));
-            }
-
-            // Update store immediately
-            recentsService.addRecentKimpay({
-                id: kimpayRecord.id,
-                name: kimpayRecord.name,
-                icon: kimpayRecord.icon,
-                created_by: creatorRecord.id
-            });
-            storageService.setMyParticipantId(kimpayRecord.id, creatorRecord.id);
-            
-            const record = kimpayRecord; // alias for compatibility with existing code below
+            storageService.setMyParticipantId(kimpayId, creatorId);
 
             
+            let shouldRedirect = true;
             if (creatorEmail && creatorEmail.trim()) {
-                const kimpayUrl = `${window.location.origin}/k/${record.id}`;
+                const kimpayUrl = `${window.location.origin}/k/${kimpayId}`;
                 
-                pb.send("/api/kimpay/share", {
-                    method: "POST",
-                    body: {
-                        email: creatorEmail,
-                        url: kimpayUrl,
-                        kimpayName: kimpayName,
-                        locale: $locale,
-                        creator: creatorName
-                    }
-                }).catch(err => console.error("Erreur envoi mail:", err));
+                try {
+                    // This part should technically also be offline-capable or queued if important? 
+                    // Email sending requires server.
+                    // If offline, we can't send email.
+                    // We should check offline status.
+                     if (offlineService.isOffline) {
+                         // Queue basic "Send Email" action? Or just warn?
+                         // For now, let's just skip email if offline or warn.
+                         // Or try/catch and ignore.
+                     } else {
+                        const res = await pb.send("/api/kimpay/share", {
+                            method: "POST",
+                            body: {
+                                email: creatorEmail,
+                                url: kimpayUrl,
+                                kimpayName: kimpayName,
+                                locale: $locale,
+                                creator: creatorName,
+                                participantId: creatorId // Trigger magic link creation
+                            }
+                        });
+                        
+                        const isMyOwnEmail = auth.user && auth.user.email === creatorEmail;
+                        
+                        if (res && res.isNewUser === false && !isMyOwnEmail) { 
+                            shouldRedirect = false;
+                            
+                            // Cleanup: Allow logic to think creation failed for this user
+                            recentsService.removeRecentKimpay(kimpayId);
+                            storageService.removeRecentKimpay(kimpayId);
+    
+                            createdKimpayUrl = `/`; 
+                            modals.alert({
+                                title: $t('home.create.existing_user_modal.title'),
+                                message: $t('home.create.existing_user_modal.message'),
+                                variant: 'info',
+                                onConfirm: () => goto(createdKimpayUrl)
+                            });
+                        }
+                     }
+                } catch (err) {
+                    console.error("Erreur envoi mail:", err);
+                }
             }
 
-            await goto(`/k/${record.id}`);
+            if (shouldRedirect) {
+                await goto(`/k/${kimpayId}`);
+            }
         } catch (e: unknown) {
             console.error("Kimpay Creation Error:", e);
             // Alert the specific validation errors from PocketBase
@@ -131,16 +154,21 @@
                     title: "Error" 
                 });
             }
+        } finally {
+            isLoading = false;
         }
     }
      
+    let { hideTitle = false } = $props<{hideTitle?: boolean}>();
 </script>
 
 <div class="space-y-3 md:space-y-4">
+    {#if !hideTitle}
     <h2 class="font-semibold text-lg flex items-center gap-2">
         <div class="w-1 h-6 bg-primary rounded-full"></div>
         {$t('home.create.title')}
     </h2>
+    {/if}
     
     <div class="space-y-4">
         <div class="space-y-2">
@@ -188,6 +216,7 @@
         <Input id="myName" bind:value={creatorName} placeholder={$t('home.create.my_name_placeholder')} />
     </div>
 
+    {#if !auth.user}
     <div class="space-y-2">
         <Label for="creatorEmail">{$t('home.create.email_label')}</Label>
         <Input 
@@ -196,10 +225,17 @@
             bind:value={creatorEmail} 
             placeholder={$t('home.create.email_placeholder')} 
         />
-        <p class="text-xs text-muted-foreground">
-            {$t('home.create.email_help')}
-        </p>
+        <div class="flex items-center gap-2 mt-1.5">
+            <button 
+                onclick={() => isEmailHelpOpen = true}
+                class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >
+                <Info class="h-3 w-3" />
+                <span class="underline underline-offset-2">{$t('email_help.modal.title', { default: 'Why your email?' })}</span>
+            </button>
+        </div>
     </div>
+    {/if}
 
     <div class="space-y-2">
         <Label>{$t('home.create.participants_label')}</Label>
@@ -236,4 +272,8 @@
             {$t('home.create.button')}
         {/if}
     </Button>
+
+
 </div>
+
+<EmailHelpModal isOpen={isEmailHelpOpen} onClose={() => isEmailHelpOpen = false} />

@@ -29,7 +29,7 @@ migrate((app) => {
             slug: "share_kimpay",
             locale: "fr",
             sender_name: "Kimpay",
-            sender_address: "noreply@kimpay.io",
+            sender_address: "no-reply@kimpay.io",
             subject: "Lien d'accès : {name}",
             body: `
                 <div style="font-family: sans-serif; padding: 20px;">
@@ -48,7 +48,7 @@ migrate((app) => {
             slug: "share_kimpay",
             locale: "en",
             sender_name: "Kimpay",
-            sender_address: "noreply@kimpay.io",
+            sender_address: "no-reply@kimpay.io",
             subject: "Access Link: {name}",
             body: `
                 <div style="font-family: sans-serif; padding: 20px;">

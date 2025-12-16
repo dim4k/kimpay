@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins } from "lucide-svelte";
+    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "lucide-svelte";
     import { t } from '$lib/i18n';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
@@ -46,10 +46,15 @@
           `
       };
     }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleExpand(expense.id);
+        }
+    }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
     class="expense-item rounded-xl border shadow-sm overflow-hidden group transition-all duration-300 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-indigo-200 dark:hover:border-indigo-900'}"
     
@@ -59,11 +64,14 @@
     class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
     class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
     {style}
+    role="button"
+    tabindex="0"
+    onclick={() => onToggleExpand(expense.id)}
+    onkeydown={handleKeydown}
 >
     <!-- Main Row (Always Visible) -->
     <div 
         class="flex justify-between items-center p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
-        onclick={() => onToggleExpand(expense.id)}
     >
         <div class="flex items-center gap-4 flex-1 min-w-0 mr-2">
             <div 
@@ -132,8 +140,8 @@
                         class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-sm"
                         onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
                     >
-                        <Trash2 class="h-4 w-4" />
-                        {$t('common.delete')}
+                        <Undo2 class="h-4 w-4" />
+                        {$t('common.cancel')}
                     </button>
                     
                 {:else}

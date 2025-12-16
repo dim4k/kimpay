@@ -1,26 +1,23 @@
 import { Plus } from "lucide-svelte";
-
+import type { Component } from "svelte";
 
 // Define the shape of our FAB state
 type FabProps = {
     visible: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    icon: any; // Lucide icon type compatibility
+    icon: Component;
     colorClass: string;
     onClick: (() => void) | null;
     href: string | null;
     label: string;
     disabled: boolean;
-    key: string | number; // For triggering transitions
+    key: string | number;
 };
 
 const DEFAULT_COLOR = "bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-200 dark:shadow-none";
 
 class FabState {
-    // Current state
     visible = $state(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    icon = $state<any>(Plus);
+    icon = $state<Component>(Plus as unknown as Component);
     colorClass = $state(DEFAULT_COLOR);
     onClick = $state<(() => void) | null>(null);
     href = $state<string | null>(null);
@@ -28,10 +25,9 @@ class FabState {
     disabled = $state(false);
     key = $state("default");
 
-    // Reset to default navigation button
     reset(kimpayId: string) {
         this.visible = true;
-        this.icon = Plus;
+        this.icon = Plus as unknown as Component;
         this.colorClass = DEFAULT_COLOR;
         this.onClick = null;
         this.href = `/k/${kimpayId}/add`;
@@ -40,9 +36,7 @@ class FabState {
         this.key = "default";
     }
 
-    // Configure for specific action
     configure(props: Partial<FabProps>) {
-        // Detect if we are changing element type (href vs button)
         const typeChanged = (props.href !== undefined && !!props.href !== !!this.href);
 
         if (props.visible !== undefined) this.visible = props.visible;
@@ -53,7 +47,6 @@ class FabState {
         if (props.label) this.label = props.label;
         if (props.disabled !== undefined) this.disabled = props.disabled;
         
-        // Only force re-render if element type changes, to allow CSS transitions on color/transform
         if (typeChanged) {
              this.key = Date.now().toString();
         }

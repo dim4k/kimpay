@@ -8,6 +8,8 @@
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
 
+    let { hideTitle = false } = $props<{ hideTitle?: boolean }>();
+
     let code = $state("");
     let joinError = $state("");
     let isLoading = $state(false);
@@ -61,14 +63,16 @@
      
 </script>
 
+{#if !hideTitle}
 <div class="relative py-4">
     <div class="absolute inset-0 flex items-center">
-    <span class="w-full border-t border-slate-100"></span>
+    <span class="w-full border-t border-slate-100 dark:border-slate-800"></span>
     </div>
     <div class="relative flex justify-center text-xs uppercase">
     <span class="bg-card px-3 text-muted-foreground font-medium transition-colors">{$t('home.join.title')}</span>
     </div>
 </div>
+{/if}
 
 <div class="flex flex-col gap-2">
     <div class="flex gap-2">
@@ -88,11 +92,11 @@
             {/if}
         </Button>
 
-        <!-- Mobile Scan Button -->
+        <!-- Scan Button -->
         <Button 
             variant="outline"
             size="icon"
-            class="md:hidden aspect-square shrink-0"
+            class="aspect-square shrink-0"
             onclick={() => isScannerOpen = true}
             aria-label="Scan QR Code"
         >

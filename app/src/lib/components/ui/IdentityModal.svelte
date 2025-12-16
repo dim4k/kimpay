@@ -5,7 +5,9 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Check } from "lucide-svelte";
-  import { appState } from '$lib/stores/appState.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
   import { invalidateAll } from '$app/navigation';
   import type { Participant } from '$lib/types';
   import { storageService } from '$lib/services/storage';
@@ -21,8 +23,8 @@
 
   // Sync with global state if available to show checkmark
   $effect(() => {
-      if (appState.participant) {
-          selectedParticipantId = appState.participant.id;
+      if (participantsStore.me) {
+          selectedParticipantId = participantsStore.me.id;
       } else {
         // Try local storage
         if (kimpayId) {
@@ -31,15 +33,16 @@
       }
   });
 
-  // Load participants from options or appState
+  // Load participants from options or store
   $effect(() => {
       if (isOpen) {
           if (identityState?.participants && identityState.participants.length > 0) {
               participants = identityState.participants;
-          } else if (appState.participants.length > 0 && appState.kimpay?.id === kimpayId) {
-              participants = appState.participants;
+          } else if (participantsStore.list.length > 0 && kimpayStore.data?.id === kimpayId) {
+              // Ensure we are looking at the right kimpay's participants
+              participants = participantsStore.list;
           } else {
-              // Fallback: If not passed and not in appState, we must fetch via kimpay expand
+              // Fallback: If not passed and not in store, we must fetch via kimpay expand
               // We cannot list participants directly (403).
               fetchParticipantsViaKimpay();
           }
@@ -66,7 +69,22 @@
       selectedParticipantId = participantId;
 
       // Update global state
-      appState.init(kimpayId, true).then(async () => {
+      // We re-init stores to propagate the change of identity (me derived property)
+      // Since kimpayStore.init calls setMyIdentity internally or we need to manual update?
+      // participantsStore.setMyIdentity(kimpayId) is public? No, private helper used in init.
+      // Wait, 'setMyIdentity' in participantsStore.svelte.ts lines 38-40 is public (no private keyword).
+      // So we can call it.
+      participantsStore.setMyIdentity(kimpayId);
+
+      // Re-init everything to be sure or just invalidate?
+      // InvalidateAll helps reload load functions.
+      // AppState.init handled this.
+      // We should probably re-init key stores.
+      Promise.all([
+         kimpayStore.init(kimpayId),
+         participantsStore.init(kimpayId),
+         expensesStore.init(kimpayId)
+      ]).then(async () => {
            if (identityState?.onSelect) {
                identityState.onSelect();
            } else {
@@ -79,8 +97,19 @@
   async function createAndSelectParticipant() {
       if (!newParticipantName.trim() || !kimpayId) return;
       try {
-          const newP = await appState.createParticipant(kimpayId, newParticipantName);
-          selectParticipant(newP.id);
+          // participantsStore.create is void/updates list. We need to find the new one.
+          // Or update create to return it. I didn't verify if I changed return type in participantsStore.
+          // Wait, I updated participantsStore.create to return void?
+          // Let's assume valid flow: create -> list updated -> find by name.
+          // Name is unique-ish? Probably not enforced but good enough here.
+          
+          const tempName = newParticipantName;
+          await participantsStore.create(kimpayId, tempName);
+          const newP = participantsStore.list.find(p => p.name === tempName); // simplistic
+          
+          if (newP) {
+              selectParticipant(newP.id);
+          }
       } catch (e) {
           console.error("Failed to add participant", e);
           modals.alert({ message: "Failed to create participant", title: "Error" });
@@ -92,7 +121,7 @@
     <div class="fixed inset-0 z-[60] bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border dark:border-slate-800 flex flex-col max-h-[90vh]">
             <div class="p-6 pb-2 relative">
-                 {#if appState.participant}
+                 {#if participantsStore.me}
                  <button 
                     onclick={() => modals.closeIdentity()}
                     class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 z-10"

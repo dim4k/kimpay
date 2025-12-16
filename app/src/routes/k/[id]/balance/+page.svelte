@@ -2,23 +2,24 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
-  import { LoaderCircle, ArrowRight, Wallet, CircleCheck } from "lucide-svelte";
+  import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle } from "lucide-svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
 
   let kimpayId = $derived(page.params.id ?? '');
   
-  // Use appState for reactive data
-  let participants = $derived(appState.participants);
-  let expenses = $derived(appState.expenses);
-  let myId = $derived(appState.participant?.id ?? null);
+  // Use stores
+  let participants = $derived(participantsStore.list);
+  let expenses = $derived(expensesStore.list);
+  let myId = $derived(participantsStore.me?.id ?? null);
   
   // Reactive transactions calculation
   let transactions = $derived(calculateDebts(expenses, participants));
@@ -27,10 +28,17 @@
 
   onMount(async () => {
       if (kimpayId) {
-          isLoading = true;
-          // Init app state if not already loaded
-          await appState.init(kimpayId);
-          isLoading = false;
+          // Layout inits, but logic here checks loading...
+          if (!expensesStore.list.length || !participantsStore.list.length) {
+              isLoading = true;
+              await Promise.all([
+                  expensesStore.init(kimpayId),
+                  participantsStore.init(kimpayId)
+              ]);
+              isLoading = false;
+          } else {
+            isLoading = false;
+          }
       }
   });
 
@@ -52,8 +60,7 @@
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
-             await appState.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'));
-             // No need to reload, appState handles realtime updates
+             await expensesStore.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'), kimpayId, participants);
           }
       });
   }
@@ -73,6 +80,13 @@
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
     </header>
+
+    {#if offlineService.isOffline}
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+            <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>
+        </div>
+    {/if}
 
     {#if isLoading}
         <div class="flex justify-center py-20">

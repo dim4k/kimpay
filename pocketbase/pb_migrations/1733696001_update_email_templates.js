@@ -5,17 +5,17 @@ migrate((app) => {
     try {
         const frRecord = app.findFirstRecordByFilter("email_templates", "slug='share_kimpay' && locale='fr'");
         if (frRecord) {
-            frRecord.set("subject", "{creator} vous invite à rejoindre \"{name}\" sur Kimpay");
+            frRecord.set("subject", "Bonjour {creator}, votre Kimpay \"{name}\" est prêt !");
             frRecord.set("body", `
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px 20px;">
   <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
     
     <div style="text-align: center; margin-bottom: 30px;">
-       <img src="https://kimpay.io/logo.svg" width="64" height="64" alt="Kimpay" style="border-radius: 12px;" />
+       <img src="https://kimpay.io/logo.png" width="64" height="64" alt="Kimpay" style="border-radius: 12px;" />
     </div>
 
     <h2 style="color: #0f172a; font-size: 24px; font-weight: 800; margin-bottom: 16px; text-align: center; letter-spacing: -0.025em;">
-       {creator} vous invite !
+       Votre Kimpay "{name}" est prêt !
     </h2>
     
     <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;">
@@ -51,17 +51,17 @@ migrate((app) => {
     try {
         const enRecord = app.findFirstRecordByFilter("email_templates", "slug='share_kimpay' && locale='en'");
         if (enRecord) {
-            enRecord.set("subject", "{creator} invited you to join \"{name}\" on Kimpay");
+            enRecord.set("subject", "Hello {creator}, your Kimpay \"{name}\" is ready!");
             enRecord.set("body", `
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px 20px;">
   <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
     
     <div style="text-align: center; margin-bottom: 30px;">
-       <img src="https://kimpay.io/logo.svg" width="64" height="64" alt="Kimpay" style="border-radius: 12px;" />
+       <img src="https://kimpay.io/logo.png" width="64" height="64" alt="Kimpay" style="border-radius: 12px;" />
     </div>
 
     <h2 style="color: #0f172a; font-size: 24px; font-weight: 800; margin-bottom: 16px; text-align: center; letter-spacing: -0.025em;">
-       {creator} invited you!
+       Your Kimpay "{name}" is ready!
     </h2>
     
     <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;">

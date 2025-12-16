@@ -1,28 +1,36 @@
 <script lang="ts">
-  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Plus, Camera, RefreshCw, WifiOff } from "lucide-svelte";
+  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { locale, t } from '$lib/i18n';
   import { theme } from '$lib/theme';
   import { slide } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
   import { recentsService } from '$lib/services/recents.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+
+  import LoginHelpModal from '$lib/components/ui/LoginHelpModal.svelte';
   import OfflineHelpModal from '$lib/components/ui/OfflineHelpModal.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
-  import { invalidateAll, afterNavigate } from '$app/navigation';
+  import { afterNavigate, invalidateAll } from '$app/navigation';
+  import { auth } from '$lib/stores/auth.svelte';
+  import { page } from '$app/state';
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
   let showOfflineHelp = $state(false);
+  let isLoginHelpOpen = $state(false);
   
   let menuRef = $state<HTMLElement | null>(null);
   let triggerRef = $state<HTMLElement | null>(null);
   let fileInputRef = $state<HTMLInputElement | null>(null);
   
-  let currentParticipant = $derived(appState.participant);
-  let currentKimpay = $derived(appState.kimpay);
+  // Only show Kimpay context if we are actually on a /k/[id] route
+  let isInKimpayContext = $derived(page.url.pathname.startsWith('/k/'));
+  let currentParticipant = $derived(isInKimpayContext ? participantsStore.me : null);
+  let currentKimpay = $derived(isInKimpayContext ? kimpayStore.data : null);
 
   afterNavigate(() => {
       isMenuOpen = false;
@@ -33,9 +41,9 @@
       if (input.files && input.files[0] && currentParticipant) {
            const file = input.files[0];
            try {
-              await appState.updateParticipant(currentParticipant.id, { avatar: file });
+              await participantsStore.update(currentParticipant.id, { avatar: file });
               // Update global state and UI
-              await appState.init(currentParticipant.kimpay, true);
+              // Repopulation happens via store reactivity now
               await invalidateAll();
            } catch (err) {
                console.error("Failed to update avatar", err);
@@ -48,7 +56,7 @@
       isMenuOpen = false;
       modals.identity({
           kimpayId: currentKimpay.id,
-          participants: appState.participants
+          participants: participantsStore.list
       });
   }
 
@@ -92,19 +100,32 @@
               <button 
                   bind:this={triggerRef}
                   onclick={() => isMenuOpen = !isMenuOpen}
-                  class={currentKimpay && currentParticipant 
+                  class={currentKimpay || auth.user
                     ? "flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all max-w-[200px] md:max-w-none" 
                     : "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"}
                   title="Menu"
               >
-                  {#if currentKimpay && currentParticipant}
-                     <!-- Identity Trigger -->
-                     <Avatar name={currentParticipant.name} src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null} class="w-8 h-8 text-[10px]" />
+                  {#if currentKimpay}
+                     <!-- Identity Trigger (Inside Kimpay) -->
+                     <div class="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg">
+                         {currentKimpay.icon || '📁'}
+                     </div>
                      <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">{currentParticipant.name}</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">
+                            {currentParticipant ? currentParticipant.name : $t('common.unknown')}
+                        </span>
                         <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-100 text-xs leading-none">
-                            <span class="hidden md:inline">{currentKimpay.icon || '📁'}</span>
                             <span class="truncate max-w-[120px] md:max-w-[200px]">{currentKimpay.name}</span>
+                        </div>
+                     </div>
+                     <ChevronDown class="h-3 w-3 text-slate-400 shrink-0" />
+                  {:else if auth.user}
+                     <!-- User Profile Trigger (Dashboard) -->
+                     <Avatar name={auth.user.name} src={auth.user.avatar ? pb.files.getURL(auth.user, auth.user.avatar) : null} class="w-8 h-8 text-[10px]" />
+                     <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">{$t('common.hello')}</span>
+                        <div class="font-bold text-slate-800 dark:text-slate-100 text-xs leading-none truncate max-w-[120px]">
+                            {auth.user.name}
                         </div>
                      </div>
                      <ChevronDown class="h-3 w-3 text-slate-400 shrink-0" />
@@ -122,7 +143,7 @@
                       <!-- Main Navigation Section -->
                       <div class="max-h-[70vh] overflow-y-auto py-2">
                           
-                          {#if currentParticipant && currentKimpay}
+                          {#if currentKimpay}
                               <div class="px-4 pt-3 pb-1 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 mb-2">
                                   <!-- Kimpay Title (Non-clickable Header) -->
                                   <div class="flex items-center gap-2 mb-3 opacity-90">
@@ -133,18 +154,17 @@
                                   <div class="flex items-center gap-3 pb-3">
                                       <div class="relative group">
                                            <Avatar 
-                                               name={currentParticipant.name} 
-                                               src={currentParticipant.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
+                                               name={currentParticipant ? currentParticipant.name : "?"} 
+                                               src={currentParticipant?.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
                                                class="w-12 h-12 text-xl" 
                                            />
-                                           {#if !offlineService.isOffline}
+                                           {#if currentParticipant && !offlineService.isOffline}
                                            <button 
                                               class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                               onclick={() => fileInputRef?.click()}
                                            >
                                                <Camera class="h-5 w-5 text-white" />
                                            </button>
-                                           {/if}
                                            <input 
                                               type="file" 
                                               accept="image/*"
@@ -153,19 +173,34 @@
                                               bind:this={fileInputRef}
                                               onchange={handleAvatarChange}
                                           />
+                                           {/if}
                                       </div>
                                       <div class="flex-1 min-w-0">
                                           <div class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                                              {currentParticipant.name}
+                                              {currentParticipant ? currentParticipant.name : $t('identity.title')}
                                           </div>
                                           {#if !offlineService.isOffline}
-                                          <button 
-                                              onclick={openIdentityModal}
-                                              class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
-                                          >
-                                              <RefreshCw class="h-3 w-3" />
-                                              {$t('identity.change')} 
-                                          </button>
+                                            <div class="flex flex-col items-start gap-1 mt-0.5">
+                                                <button 
+                                                    onclick={openIdentityModal}
+                                                    class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                                                >
+                                                    <RefreshCw class="h-3 w-3" />
+                                                    {$t('identity.change')} 
+                                                </button>
+                                                
+                                                {#if !auth.user}
+                                                <button 
+                                                    onclick={() => {
+                                                        isMenuOpen = false;
+                                                        isLoginHelpOpen = true;
+                                                    }}
+                                                    class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+                                                >
+                                                    {$t('login_help.button', { default: 'Login' })}
+                                                </button>
+                                                {/if}
+                                            </div>
                                           {/if}
                                       </div>
                                   </div>
@@ -173,45 +208,50 @@
                               </div>
                           {/if}
 
-                          <div class="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
-                              {$t('home.history.title')}
-                          </div>
-                          
-                          {#if recentsService.recentKimpays.length === 0}
-                              <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
-                                  {$t('expense.list.empty.title')}
+                          {#if !auth.user}
+                              <div class="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                                  {$t('home.history.title')}
                               </div>
-                          {:else}
-                              {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
-                              {#each filteredKimpays as k (k.id)}
-
-                                  <a 
-                                      href="/k/{k.id}" 
-                                      data-sveltekit-preload-data="off"
-                                      class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                  >
-                                      <span class="text-xl">{k.icon || "📁"}</span>
-                                      <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
-                                  </a>
-                              {/each}
-                              {#if filteredKimpays.length === 0}
+                              
+                              {#if recentsService.recentKimpays.length === 0}
                                   <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
                                       {$t('expense.list.empty.title')}
                                   </div>
+                              {:else}
+                                  {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                                  {#each filteredKimpays as k (k.id)}
+
+                                      <a 
+                                          href="/k/{k.id}" 
+                                          data-sveltekit-preload-data="off"
+                                          class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                      >
+                                          <span class="text-xl">{k.icon || "📁"}</span>
+                                          <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
+                                      </a>
+                                  {/each}
+                                  {#if filteredKimpays.length === 0}
+                                      <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
+                                          {$t('expense.list.empty.title')}
+                                      </div>
+                                  {/if}
                               {/if}
                           {/if}
 
 
                           
 
-                          {#if !offlineService.isOffline}
-                          <a 
-                              href="/"
-                              class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-indigo-600 dark:text-indigo-400"
-                          >
-                              <Plus class="h-4 w-4" />
-                              <span class="text-sm font-semibold">{$t('home.create.title')}</span>
-                          </a>
+
+                          {#if auth.user && !offlineService.isOffline}
+                              <div class="px-2 pb-2">
+                                <a 
+                                    href="/"
+                                    class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                                >
+                                    <LayoutDashboard class="h-5 w-5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{$t('my_kimpays.title', { default: 'My Kimpays' })}</span>
+                                </a>
+                              </div>
                           {/if}
                       </div>
 
@@ -272,6 +312,29 @@
                                   </div>
                               {/if}
                           </div>
+
+                          {#if auth.user}
+                              <hr class="border-border/50 dark:border-slate-800" />
+                              <button 
+                                  onclick={() => {
+                                      isMenuOpen = false;
+                                      modals.confirm({
+                                          title: $t('modal.logout.title'),
+                                          description: $t('modal.logout.desc'),
+                                          confirmText: $t('modal.logout.confirm'),
+                                          variant: 'destructive',
+                                          onConfirm: () => {
+                                              auth.logout();
+                                              window.location.href = "/";
+                                          }
+                                      });
+                                  }}
+                                  class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors group"
+                              >
+                                  <LogOut class="h-4 w-4" />
+                                  <span class="font-medium text-sm">{$t('auth.logout')}</span>
+                              </button>
+                          {/if}
                       </div>
                    </div>
               {/if}
@@ -281,3 +344,4 @@
 </header>
 
 <OfflineHelpModal isOpen={showOfflineHelp} onClose={() => showOfflineHelp = false} />
+<LoginHelpModal isOpen={isLoginHelpOpen} onClose={() => isLoginHelpOpen = false} />
