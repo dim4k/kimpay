@@ -6,8 +6,9 @@
   import { onMount } from 'svelte';
   
   import type { Participant } from '$lib/types';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
   
-  let kimpayId = $derived(page.params.id ?? '');
+  let kimpayId = $derived(kimpayStore.data?.id ?? page.params.id ?? '');
   
   let participants = $state<Participant[]>([]);
   let newName = $state("");

@@ -57,6 +57,19 @@ class AuthStore {
             }
         });
     }
+    
+    async register(email: string, name: string, participantId?: string, locale = "en"): Promise<void> {
+        await pb.send("/api/register", {
+            method: "POST",
+            body: { 
+                email, 
+                name,
+                participantId,
+                locale,
+                url: window.location.origin 
+            }
+        });
+    }
 
     async init(): Promise<void> {
         if (!pb.authStore.isValid) return;

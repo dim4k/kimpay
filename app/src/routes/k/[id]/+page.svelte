@@ -11,7 +11,8 @@
   import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
   
-  let kimpayId = $derived(page.params.id ?? '');
+  // Use the store's currentKimpayId which is guaranteed to be in sync with the data
+  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
   
   // Use stores
   let expenses = $derived(expensesStore.list);

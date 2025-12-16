@@ -65,6 +65,14 @@ class ModalStore {
     closeIdentity() {
         this.identityState = null;
     }
+
+    registerState = $state<{ participantId?: string } | null>(null);
+    register(options: { participantId?: string }) {
+        this.registerState = options;
+    }
+    closeRegister() {
+        this.registerState = null;
+    }
 }
 
 export const modals = new ModalStore();

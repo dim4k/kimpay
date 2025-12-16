@@ -12,6 +12,9 @@
     import { recentsService } from '$lib/services/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
+    import { storageService } from '$lib/services/storage';
+    import { participantService } from '$lib/services/participant';
+    import { myKimpays } from '$lib/stores/myKimpays.svelte';
 
     let { children, data } = $props();
 
@@ -21,6 +24,36 @@
         canonical: 'https://kimpay.io',
         ogImage: 'https://kimpay.io/og-image.png'
     });
+
+    /**
+     * After a successful login, if the user is currently on a Kimpay page with a participant
+     * identity, automatically claim that participant for their account.
+     */
+    async function tryClaimCurrentParticipant() {
+        // Wait a tick for auth store to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const user = auth.user;
+        if (!user) return;
+        
+        // Get ALL kimpays where this device has a participant identity
+        const recentKimpayIds = storageService.getRecentKimpayIds();
+        
+        for (const kimpayId of recentKimpayIds) {
+            const participantId = storageService.getMyParticipantId(kimpayId);
+            if (!participantId) continue;
+            
+            try {
+                await participantService.claim(participantId, kimpayId, user.id);
+            } catch (e) {
+                console.error("Failed to auto-claim participant", kimpayId, e);
+            }
+        }
+        
+        // Reload stores to reflect the claimed kimpays
+        recentsService.init();
+        myKimpays.load(true);
+    }
     
     onMount(() => {
         theme.init();
@@ -44,7 +77,8 @@
                     // Remove code from URL
                     url.searchParams.delete('code');
                     window.history.replaceState({}, '', url);
-                    console.log("Logged in via OTP");
+                    // Auto-claim participant if on a Kimpay page
+                    tryClaimCurrentParticipant();
                 } else {
                     // Invalid or expired code
                     url.searchParams.delete('code');
@@ -63,7 +97,8 @@
                 if (success) {
                     url.searchParams.delete('token');
                     window.history.replaceState({}, '', url);
-                    console.log("Logged in via Magic Link");
+                    // Auto-claim participant if on a Kimpay page
+                    tryClaimCurrentParticipant();
                 }
             });
         }

@@ -35,7 +35,11 @@
             successCallback?.();
         } catch (e) {
             console.error(e);
-            error = $t('home.recover.error');
+            if (typeof e === 'object' && e !== null && 'status' in e && (e as { status: number }).status === 404) {
+                error = $t('home.recover.error_not_found');
+            } else {
+                error = $t('home.recover.error');
+            }
         } finally {
             isLoading = false;
         }

@@ -22,7 +22,7 @@
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
 
   
-  let kimpayId = $derived(page.params.id ?? '');
+  let kimpayId = $derived(kimpayStore.data?.id ?? page.params.id ?? '');
   
   // Use stores
   let kimpay = $derived(kimpayStore.data);

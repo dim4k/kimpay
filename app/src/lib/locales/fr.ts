@@ -231,6 +231,17 @@ export const fr: Record<TranslationKey, string> = {
     "home.recover.success_title": "Lien envoyé !",
     "home.recover.success_desc": "Vérifiez votre boîte de réception.",
     "home.recover.error": "Impossible d'envoyer le lien. Réessayez plus tard.",
+    "home.recover.error_not_found": "Aucun compte trouvé avec cet email.",
+
+    "register.title": "S'inscrire",
+    "register.desc": "Créez un compte pour sauvegarder vos kimpays.",
+    "register.name_placeholder": "Votre Prénom",
+    "register.email_placeholder": "votre@email.com",
+    "register.button": "S'inscrire",
+    "register.success_title": "Compte créé !",
+    "register.success_desc": "Vérifiez vos emails pour vous connecter.",
+    "register.error_exists": "Ce compte existe déjà. Connectez-vous.",
+
 
     "email_help.modal.title": "Pourquoi l'email ?",
     "email_help.modal.desc": "Nous utilisons votre email pour sécuriser votre accès.",
