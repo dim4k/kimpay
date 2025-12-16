@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard } from "lucide-svelte";
+  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { locale, t } from '$lib/i18n';
   import { theme } from '$lib/theme';
@@ -189,17 +189,7 @@
                                                     {$t('identity.change')} 
                                                 </button>
                                                 
-                                                {#if !auth.user}
-                                                <button 
-                                                    onclick={() => {
-                                                        isMenuOpen = false;
-                                                        isLoginHelpOpen = true;
-                                                    }}
-                                                    class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
-                                                >
-                                                    {$t('login_help.button', { default: 'Login' })}
-                                                </button>
-                                                {/if}
+                                                
                                             </div>
                                           {/if}
                                       </div>
@@ -209,6 +199,27 @@
                           {/if}
 
                           {#if !auth.user}
+                              <div class="px-4 py-2 flex items-center gap-2 mb-2">
+                                  <button 
+                                      onclick={() => {
+                                          isMenuOpen = false;
+                                          modals.register({});
+                                      }}
+                                      class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors"
+                                  >
+                                      <UserPlus class="h-4 w-4" />
+                                      {$t('register.button')}
+                                  </button>
+                                  <button 
+                                      onclick={() => {
+                                          isMenuOpen = false;
+                                          isLoginHelpOpen = true;
+                                      }}
+                                      class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                  >
+                                      {$t('login_help.button', { default: 'Login' })}
+                                  </button>
+                              </div>
                               <div class="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                                   {$t('home.history.title')}
                               </div>

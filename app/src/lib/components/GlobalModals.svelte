@@ -78,3 +78,13 @@
     />
     {/await}
 {/if}
+
+{#if modals.registerState}
+    {#await import('$lib/components/ui/RegisterModal.svelte') then { default: RegisterModal }}
+    <RegisterModal 
+        isOpen={true}
+        onClose={() => modals.closeRegister()}
+        participantId={modals.registerState.participantId || ""}
+    />
+    {/await}
+{/if}

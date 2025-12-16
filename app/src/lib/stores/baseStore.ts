@@ -22,6 +22,8 @@ export function initListFromCache<T>(
 ): { list: T[]; shouldSwitch: boolean } {
     const shouldSwitch = currentKimpayId !== newKimpayId;
     
+    // console.log(`[BaseStore] initListFromCache: Current=${currentKimpayId}, New=${newKimpayId}, ShouldSwitch=${shouldSwitch}, InitListLen=${initialList.length}`);
+
     // If switching kimpays, use initialList (may be empty to clear stale data)
     if (shouldSwitch) {
         return { list: initialList, shouldSwitch };

@@ -227,6 +227,17 @@ export const en = {
     "home.recover.success_title": "Link sent!",
     "home.recover.success_desc": "Check your email inbox.",
     "home.recover.error": "Unable to send magic link. Please try again later.",
+    "home.recover.error_not_found": "No account found with this email.",
+
+    "register.title": "Sign Up",
+    "register.desc": "Create an account to save your kimpays.",
+    "register.name_placeholder": "Your Name",
+    "register.email_placeholder": "your@email.com",
+    "register.button": "Sign Up",
+    "register.success_title": "Account Created!",
+    "register.success_desc": "Check your email to log in.",
+    "register.error_exists": "Account already exists. Please log in.",
+
 
     "email_help.modal.title": "Why your email?",
     "email_help.modal.desc": "We use your email to secure your access to Kimpay.",

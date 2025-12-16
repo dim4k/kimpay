@@ -11,7 +11,7 @@
 import { t } from '$lib/i18n';
 import { isNetworkError } from '$lib/utils/errors';
 
-  let kimpayId = $derived(page.params.id ?? '');
+  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
   let expenseId = $derived((page.params as Record<string, string>).expenseId);
   
   let initialData = $state<unknown>(null);

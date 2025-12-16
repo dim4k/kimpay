@@ -8,7 +8,7 @@
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import { kimpayStore } from '$lib/stores/kimpay.svelte';
 
-  let kimpayId = $derived(page.params.id ?? '');
+  let kimpayId = $derived(kimpayStore.data?.id ?? page.params.id ?? '');
   let kimpay = $derived(kimpayStore.data);
   let inviteLink = $state("");
   let copied = $state(false);

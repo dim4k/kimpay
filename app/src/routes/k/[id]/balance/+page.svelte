@@ -14,7 +14,7 @@
   import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
 
-  let kimpayId = $derived(page.params.id ?? '');
+  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
   
   // Use stores
   let participants = $derived(participantsStore.list);
