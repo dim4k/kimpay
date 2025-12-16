@@ -18,6 +18,7 @@ class ExpensesStore {
     isInitialized = $state(false);
 
     async init(kimpayId: string, initialList: Expense[] = [], skipFetch = false) {
+        // console.log(`[ExpensesStore] Init ${kimpayId}. Current: ${this.currentKimpayId}. IsInit: ${this.isInitialized}. SkipFetch: ${skipFetch}`);
         if (this.currentKimpayId === kimpayId && this.isInitialized) {
             return;
         }
@@ -36,7 +37,14 @@ class ExpensesStore {
         if (shouldSwitch) {
             this.currentKimpayId = kimpayId;
         }
-        this.list = this.sort(list);
+
+        // Defensive: Filter list to ensure no cross-contamination
+        const filteredList = list.filter(e => e.kimpay === kimpayId);
+        if (filteredList.length !== list.length) {
+            console.error(`[ExpensesStore] CRITICAL: Dropped ${list.length - filteredList.length} expenses with wrong Kimpay ID!`);
+        }
+        
+        this.list = this.sort(filteredList);
         this.isInitialized = true;
 
         if (skipFetch) {

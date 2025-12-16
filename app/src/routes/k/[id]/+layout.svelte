@@ -4,11 +4,10 @@
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
-  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  
   import { participantsStore } from '$lib/stores/participants.svelte';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { goto } from '$app/navigation';
+  import { goto, afterNavigate } from '$app/navigation';
   import { fabState } from '$lib/stores/fab.svelte';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
@@ -16,8 +15,9 @@
   import NavItem from '$lib/components/ui/NavItem.svelte';
   
   let { children, data } = $props();
-
-  let kimpayId = $derived(page.params.id ?? '');
+  
+  // Rely on data prop which is updated by load function
+  let kimpayId = $derived(data.kimpay?.id ?? page.params.id ?? '');
   let participants = $derived(data.participants || []);
 
   $effect(() => {
@@ -102,6 +102,8 @@
   async function checkIdentity() {
       if (!kimpayId) return;
       
+      // The load function already initialized stores with data.
+      // This function only needs to open the identity modal if no user is stored.
       const storedUser = storageService.getMyParticipantId(kimpayId);
       
       if (!storedUser) {
@@ -111,17 +113,14 @@
               participants
           });
       } else {
-        // Init state
-        await Promise.all([
-             kimpayStore.init(kimpayId),
-             participantsStore.init(kimpayId),
-             expensesStore.init(kimpayId)
-        ]);
+          // Just ensure the participant identity is set in the store  
+          participantsStore.setMyIdentity(kimpayId);
       }
   }
 
-  $effect(() => {
-    if (kimpayId) checkIdentity();
+  // Only run checkIdentity after navigation completes to avoid stale state
+  afterNavigate(() => {
+     if (kimpayId) checkIdentity();
   });
 </script>
 

@@ -11,6 +11,9 @@
   import { invalidateAll } from '$app/navigation';
   import type { Participant } from '$lib/types';
   import { storageService } from '$lib/services/storage';
+  import { auth } from '$lib/stores/auth.svelte';
+  import { participantService } from '$lib/services/participant';
+  import { myKimpays } from '$lib/stores/myKimpays.svelte';
   
   let { isOpen } = $props();
 
@@ -20,6 +23,18 @@
   let participants = $state<Participant[]>([]);
   let newParticipantName = $state("");
   let selectedParticipantId = $state<string | null>(null);
+
+  // Filter out participants already linked to a User (unless it's the current logged-in user)
+  let selectableParticipants = $derived(
+    participants.filter(p => {
+      // If participant has no user linked, it's selectable
+      if (!p.user) return true;
+      // If participant is linked to the current logged-in user, it's selectable by that user
+      if (auth.user && p.user === auth.user.id) return true;
+      // Otherwise, someone else owns this participant - hide it
+      return false;
+    })
+  );
 
   // Sync with global state if available to show checkmark
   $effect(() => {
@@ -61,25 +76,27 @@
       }
   }
 
-  function selectParticipant(participantId: string) {
+  async function selectParticipant(participantId: string) {
       if (!kimpayId) return;
 
       storageService.setMyParticipantId(kimpayId, participantId);
       
       selectedParticipantId = participantId;
 
+      // If user is logged in, auto-claim this participant
+      if (auth.user) {
+          try {
+              await participantService.claim(participantId, kimpayId, auth.user.id);
+              myKimpays.load(true); // Refresh My Kimpays list
+          } catch (e) {
+              console.error("Failed to auto-claim participant", e);
+          }
+      }
+
       // Update global state
-      // We re-init stores to propagate the change of identity (me derived property)
-      // Since kimpayStore.init calls setMyIdentity internally or we need to manual update?
-      // participantsStore.setMyIdentity(kimpayId) is public? No, private helper used in init.
-      // Wait, 'setMyIdentity' in participantsStore.svelte.ts lines 38-40 is public (no private keyword).
-      // So we can call it.
       participantsStore.setMyIdentity(kimpayId);
 
-      // Re-init everything to be sure or just invalidate?
-      // InvalidateAll helps reload load functions.
-      // AppState.init handled this.
-      // We should probably re-init key stores.
+      // Re-init key stores
       Promise.all([
          kimpayStore.init(kimpayId),
          participantsStore.init(kimpayId),
@@ -135,7 +152,7 @@
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-2">
-                {#each participants as p (p.id)}
+                {#each selectableParticipants as p (p.id)}
                     <button 
                         class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : ''}"
                         onclick={() => selectParticipant(p.id)}

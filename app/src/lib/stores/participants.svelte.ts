@@ -18,6 +18,9 @@ class ParticipantsStore {
     isInitialized = $state(false);
 
     async init(kimpayId: string, initialList: Participant[] = [], skipFetch = false) {
+        // Always refresh identity from storage to ensure consistency
+        this.setMyIdentity(kimpayId);
+
         if (this.currentKimpayId === kimpayId && this.isInitialized) {
             return;
         }
@@ -37,7 +40,10 @@ class ParticipantsStore {
             this.currentKimpayId = kimpayId;
         }
         this.list = list;
-        this.setMyIdentity(kimpayId);
+        // Re-run identity check in case list was empty before and now populated?
+        // No, setMyIdentity uses 'this.list' to fallback to auth.user matching.
+        // So we should run it AFTER list update too if list changed.
+        this.setMyIdentity(kimpayId); 
         this.isInitialized = true;
 
         if (skipFetch) {
