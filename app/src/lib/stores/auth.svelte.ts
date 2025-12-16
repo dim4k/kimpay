@@ -50,7 +50,11 @@ class AuthStore {
     async requestMagicLink(email: string, locale = "en-US"): Promise<void> {
         await pb.send("/api/login/magic-link", {
             method: "POST",
-            body: { email, locale }
+            body: { 
+                email, 
+                locale,
+                url: window.location.origin 
+            }
         });
     }
 
