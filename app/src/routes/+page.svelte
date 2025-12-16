@@ -12,7 +12,7 @@
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { browser } from '$app/environment';
-  import { Plus, ArrowRight } from 'lucide-svelte';
+  import { Plus, ArrowRight, CloudOff } from 'lucide-svelte';
   import { t } from '$lib/i18n';
 
 
@@ -86,7 +86,16 @@
             <HomeHero />
         {/if}
         
-        {#if !offlineService.isOffline}
+        {#if offlineService.isOffline}
+            <!-- Offline message for guests -->
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 text-center space-y-3 w-full animate-pop-in" style="animation-delay: 150ms;">
+                <CloudOff class="h-10 w-10 mx-auto text-amber-500" />
+                <div class="space-y-1">
+                    <p class="font-semibold text-amber-800 dark:text-amber-200">{$t('home.offline.title')}</p>
+                    <p class="text-sm text-amber-600 dark:text-amber-400">{$t('home.offline.desc')}</p>
+                </div>
+            </div>
+        {:else}
         <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
             <CreateKimpayForm />
             <JoinKimpayForm />

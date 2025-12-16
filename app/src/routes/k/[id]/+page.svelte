@@ -8,6 +8,7 @@
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
   import { expensesStore } from '$lib/stores/expenses.svelte';
   import { participantsStore } from '$lib/stores/participants.svelte';
+  import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
   
   let kimpayId = $derived(page.params.id ?? '');
@@ -70,7 +71,7 @@
           expenseToDelete = null;
       } catch (e) {
           console.error("Failed to delete", e);
-          alert("Failed to delete expense"); 
+          modals.alert({ message: getErrorMessage(e, $t) });
       } finally {
           isDeleting = false;
       }

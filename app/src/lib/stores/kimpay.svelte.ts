@@ -1,5 +1,6 @@
 import { pb } from "$lib/pocketbase";
 import type { Kimpay } from "$lib/types";
+import { asKimpay } from "$lib/types";
 import { storageService } from "$lib/services/storage";
 import { offlineService } from "$lib/services/offline.svelte";
 import { recentsService } from "$lib/services/recents.svelte";
@@ -35,7 +36,7 @@ class KimpayStore {
                 const record = await pb.collection("kimpays").getOne(kimpayId, {
                     requestKey: null
                 });
-                this.update(record as unknown as Kimpay);
+                this.update(asKimpay(record));
             },
             () => { /* Stay with cached data */ }
         );
@@ -61,7 +62,7 @@ class KimpayStore {
 
         await pb.collection("kimpays").subscribe(kimpayId, (e) => {
             if (e.action === "update") {
-                this.update(e.record as unknown as Kimpay);
+                this.update(asKimpay(e.record));
             } else if (e.action === "delete") {
                 this.data = null;
             }
@@ -91,7 +92,7 @@ class KimpayStore {
         await offlineService.withOfflineSupport(
             async () => {
                 const record = await pb.collection('kimpays').update(this.data!.id, updates);
-                this.update(record as unknown as Kimpay);
+                this.update(asKimpay(record));
             },
             () => {
                 offlineService.queueAction('UPDATE_KIMPAY', { name, icon }, this.data!.id);

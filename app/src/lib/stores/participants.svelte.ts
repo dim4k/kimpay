@@ -1,10 +1,15 @@
 import { pb } from "$lib/pocketbase";
 import { EXPAND } from "$lib/constants";
 import type { Participant } from "$lib/types";
+import { asParticipant, asParticipants } from "$lib/types";
 import { storageService } from "$lib/services/storage";
-import { offlineService } from "$lib/services/offline.svelte"; // Needed to update parent expand/cache? Or decouple?
+import { offlineService } from "$lib/services/offline.svelte";
 import { auth } from "./auth.svelte";
-// Decoupling is better: ParticipantStore shouldn't know about KimpayStore struct, but it might need to verify "My Identity"
+import { 
+    initListFromCache, 
+    createSubscriptionHandler, 
+    subscribeToCollection 
+} from "./baseStore";
 
 class ParticipantsStore {
     list = $state<Participant[]>([]);
@@ -14,30 +19,25 @@ class ParticipantsStore {
 
     async init(kimpayId: string, initialList: Participant[] = [], skipFetch = false) {
         if (this.currentKimpayId === kimpayId && this.isInitialized) {
-            // Already initialized for this kimpay
             return;
         }
 
-        // If switching kimpays, specific logic to avoid stale data
-        if (this.currentKimpayId !== kimpayId) {
-             this.currentKimpayId = kimpayId;
-             this.list = initialList; // Will be empty if not provided, avoiding stale data
-        } else {
-             // Same kimpay, only update if specific list provided
-             if (initialList.length > 0) {
-                 this.list = initialList;
-             }
-        }
-        
-        this.setMyIdentity(kimpayId);
+        // Use shared cache-first initialization logic
+        const { list, shouldSwitch } = initListFromCache(
+            this.currentKimpayId,
+            kimpayId,
+            initialList,
+            () => {
+                const cached = storageService.getKimpayData(kimpayId);
+                return cached?.expand?.participants_via_kimpay;
+            }
+        );
 
-        if (this.list.length === 0) {
-             const cached = storageService.getKimpayData(kimpayId);
-             if (cached?.expand?.participants_via_kimpay) {
-                 this.list = cached.expand.participants_via_kimpay;
-             }
+        if (shouldSwitch) {
+            this.currentKimpayId = kimpayId;
         }
-        
+        this.list = list;
+        this.setMyIdentity(kimpayId);
         this.isInitialized = true;
 
         if (skipFetch) {
@@ -47,27 +47,21 @@ class ParticipantsStore {
 
         await offlineService.withOfflineSupport(
             async () => {
-                 // Try to use getOne on Kimpay to avoid list restriction if possible, 
-                 // otherwise fall back to list logic (which might fail if not allowed)
-                 // But since we are here, skipFetch is false, so we are probably in a context where we *need* data.
-                 // Ideally layout.ts provided it.
-                 try {
-                     const kimpay = await pb.collection("kimpays").getOne(kimpayId, {
-                         expand: EXPAND.KIMPAY_WITH_PARTICIPANTS,
-                         requestKey: null
-                     });
-                     if (kimpay.expand?.participants_via_kimpay) {
-                         this.list = kimpay.expand.participants_via_kimpay as unknown as Participant[];
-                     }
-                 } catch {
-                     // Ignore fetch errors
-                     // Fallback to list if getOne failed (unlikely if we have access)
-                     const records = await pb.collection("participants").getFullList({
-                         filter: `kimpay = "${kimpayId}"`,
-                         requestKey: null
-                     });
-                     this.list = records as unknown as Participant[];
-                 }
+                try {
+                    const kimpay = await pb.collection("kimpays").getOne(kimpayId, {
+                        expand: EXPAND.KIMPAY_WITH_PARTICIPANTS,
+                        requestKey: null
+                    });
+                    if (kimpay.expand?.participants_via_kimpay) {
+                        this.list = asParticipants(kimpay.expand.participants_via_kimpay);
+                    }
+                } catch {
+                    const records = await pb.collection("participants").getFullList({
+                        filter: `kimpay = "${kimpayId}"`,
+                        requestKey: null
+                    });
+                    this.list = asParticipants(records);
+                }
             },
             () => { /* Keep cache */ }
         );
@@ -77,15 +71,12 @@ class ParticipantsStore {
     
     // Helper to find "Me"
     setMyIdentity(kimpayId: string) {
-        // 1. Try Local Storage first (fastest)
         let foundId = storageService.getMyParticipantId(kimpayId);
 
-        // 2. If not found in storage, but we are logged in, check if we are in the list
         if (!foundId && auth.user && this.list.length > 0) {
             const match = this.list.find(p => p.user === auth.user!.id);
             if (match) {
                 foundId = match.id;
-                // Save to storage for next time
                 storageService.setMyParticipantId(kimpayId, foundId);
             }
         }
@@ -94,13 +85,10 @@ class ParticipantsStore {
     }
     
     get me() {
-        // If we have an explicit ID, use it
         if (this.myParticipantId) {
-             return this.list.find(p => p.id === this.myParticipantId) || null;
+            return this.list.find(p => p.id === this.myParticipantId) || null;
         }
         
-        // Fallback: If logged in, find myself in the list dynamically
-        // (This handles cases where list is loaded AFTER setMyIdentity was called)
         if (auth.user) {
             return this.list.find(p => p.user === auth.user!.id) || null;
         }
@@ -109,24 +97,15 @@ class ParticipantsStore {
     }
 
     async subscribe(kimpayId: string) {
-        // Unsubscribe from previous (if any) to prevent duplication
-        await pb.collection("participants").unsubscribe("*");
-
-        await pb.collection("participants").subscribe("*", (e) => {
-            if (e.record.kimpay === kimpayId) {
-                const p = e.record as unknown as Participant;
-                 if (e.action === "create") {
-                     // Check dedupe
-                     if (!this.list.find(x => x.id === p.id)) {
-                         this.list = [...this.list, p];
-                     }
-                 } else if (e.action === "update") {
-                     this.list = this.list.map(x => x.id === p.id ? p : x);
-                 } else if (e.action === "delete") {
-                     this.list = this.list.filter(x => x.id !== p.id);
-                 }
-            }
+        const handler = createSubscriptionHandler<Participant>(kimpayId, {
+            convertRecord: asParticipant,
+            getList: () => this.list,
+            setList: (items) => { this.list = items; }
+            // No sorting needed for participants
+            // No fetchExpanded needed - participants have no complex relations
         });
+
+        await subscribeToCollection("participants", handler);
     }
 
     async create(kimpayId: string, name: string) {
@@ -146,8 +125,14 @@ class ParticipantsStore {
         await offlineService.withOfflineSupport(
             async () => {
                 const record = await pb.collection('participants').create({ name, kimpay: kimpayId });
-                // Replace optimistic with real
-                this.list = this.list.map(p => p.id === tempId ? (record as unknown as Participant) : p);
+                // Replace optimistic with real, but check if subscription already added it
+                const realExists = this.list.some(p => p.id === record.id);
+                
+                if (realExists) {
+                     this.list = this.list.filter(p => p.id !== tempId);
+                } else {
+                     this.list = this.list.map(p => p.id === tempId ? asParticipant(record) : p);
+                }
             },
             () => {
                 offlineService.queueAction('CREATE_PARTICIPANT', { name, kimpay: kimpayId }, kimpayId, tempId);
@@ -167,20 +152,20 @@ class ParticipantsStore {
          // Remove file object from optimistic state if present, keep string url if possible or nothing
          if (data.avatar) delete (updated as Record<string, unknown>).avatar; 
          
-         this.list = this.list.map(p => p.id === id ? (updated as unknown as Participant) : p);
+         this.list = this.list.map(p => p.id === id ? asParticipant(updated) : p);
 
         await offlineService.withOfflineSupport(
             async () => {
                 const record = await pb.collection('participants').update(id, data);
                  // Update with real record
-                this.list = this.list.map(p => p.id === id ? (record as unknown as Participant) : p);
+                this.list = this.list.map(p => p.id === id ? asParticipant(record) : p);
                 return record;
             },
             () => {
                 if (data.name) {
                     offlineService.queueAction('UPDATE_PARTICIPANT', { id, name: data.name }, optimistic.kimpay);
                 }
-                return updated as unknown as Participant;
+                return asParticipant(updated);
             }
         );
     }

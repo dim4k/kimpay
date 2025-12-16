@@ -17,6 +17,7 @@
   import { expensesStore } from '$lib/stores/expenses.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { storageService } from '$lib/services/storage';
+  import { getErrorMessage } from '$lib/utils/errors';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
 
@@ -72,7 +73,7 @@
           setTimeout(() => saveFeedback = "", 2000);
       } catch (e) {
           console.error("Error updating", e);
-          alert("Failed to update");
+          modals.alert({ message: getErrorMessage(e, $t) });
       }
   }
 
@@ -94,7 +95,7 @@
           // No need to reload, realtime subscription will update participantsStore
       } catch(e) {
           console.error(e);
-          alert("Failed to add participant");
+          modals.alert({ message: getErrorMessage(e, $t) });
       } finally {
           isAddingParticipant = false;
       }
@@ -121,10 +122,7 @@
                    const isSelf = pId === currentParticipantId;
                    await pb.collection('participants').delete(pId); // TODO: Move to participantsStore if offline needed
                    if (isSelf) {
-                       const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-                       delete myKimpays[kimpayId];
-                       localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-                       localStorage.removeItem(`kimpay_user_${kimpayId}`);
+                       storageService.removeRecentKimpay(kimpayId);
                        window.location.reload();
                    } else {
                        // No need to reload, realtime subscription will update store

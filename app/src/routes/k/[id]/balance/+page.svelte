@@ -2,7 +2,7 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { calculateDebts, type Transaction } from '$lib/balance';
-  import { LoaderCircle, ArrowRight, Wallet, CircleCheck } from "lucide-svelte";
+  import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle } from "lucide-svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -80,6 +80,13 @@
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
     </header>
+
+    {#if offlineService.isOffline}
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+            <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>
+        </div>
+    {/if}
 
     {#if isLoading}
         <div class="flex justify-center py-20">

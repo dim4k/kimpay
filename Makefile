@@ -60,7 +60,13 @@ clean: ## Remove containers, networks, and volumes
 test-e2e: ## Run Playwright E2E tests (via Docker)
 	@echo Running E2E Tests in Isolated Stack...
 	$(DC) -f docker-compose.test.yml down -v --remove-orphans || true
-	$(DC) -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+	$(DC) -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests tests pocketbase-test
+
+test-unit: ## Run Vitest unit tests (via Docker)
+	@echo Running Unit Tests...
+	$(DC) -f docker-compose.test.yml run --rm unit-tests
+
+test: test-unit test-e2e ## Run all tests (unit + e2e)
 
 install-dev: ## Install dependencies locally for IDE support
 	@echo Installing local dependencies for IDE...

@@ -6,12 +6,14 @@
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { LoaderCircle, ArrowRight } from "lucide-svelte";
+  import { LoaderCircle, ArrowRight, CloudOff } from "lucide-svelte";
   import { generateUUID } from '$lib/utils';
   import type { Kimpay, Participant } from '$lib/types';
   import { storageService } from '$lib/services/storage';
   import { auth } from '$lib/stores/auth.svelte';
   import { participantService } from '$lib/services/participant';
+  import { offlineService } from '$lib/services/offline.svelte';
+  import { t } from '$lib/i18n';
 
   let token = $derived(page.params.token);
   let name = $state("");
@@ -20,7 +22,14 @@
   let participants = $state<Participant[]>([]);
   let error = $state("");
 
+  let isOfflineBlocked = $derived(offlineService.isOffline && !kimpay);
+
   onMount(async () => {
+    // Block if offline - can't join without network
+    if (offlineService.isOffline) {
+      return;
+    }
+
     try {
       // Use secure endpoint to resolve token (bypassing collection restrictions)
       const data = await pb.send(`/api/invite/${token}`, {});
@@ -101,9 +110,21 @@
   }
 </script>
 
-<div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
-  <div class="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-sm border">
-    {#if error}
+<div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
+  <div class="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border dark:border-slate-800 transition-colors">
+    {#if isOfflineBlocked}
+        <!-- Offline state -->
+        <div class="text-center space-y-6">
+            <div class="h-20 w-20 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <CloudOff class="h-10 w-10 text-slate-400" />
+            </div>
+            <div class="space-y-2">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">{$t('join.offline.title')}</h2>
+                <p class="text-slate-500 dark:text-slate-400">{$t('join.offline.desc')}</p>
+            </div>
+            <Button variant="outline" href="/" class="w-full">{$t('common.back_home')}</Button>
+        </div>
+    {:else if error}
         <div class="text-center space-y-4">
             <div class="text-red-500 font-medium">{error}</div>
             <Button variant="outline" href="/">Go Home</Button>

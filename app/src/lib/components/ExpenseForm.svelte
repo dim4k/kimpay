@@ -5,10 +5,11 @@
   import { pb } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { Camera, X } from "lucide-svelte";
   import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
   import InputModal from '$lib/components/ui/InputModal.svelte';
   import DatePicker from '$lib/components/ui/DatePicker.svelte';
+  import PhotoManager from '$lib/components/PhotoManager.svelte';
+  import ParticipantSelector from '$lib/components/ParticipantSelector.svelte';
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
@@ -16,13 +17,13 @@
   import { participantsStore } from '$lib/stores/participants.svelte';
   import { kimpayStore } from '$lib/stores/kimpay.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
-  import { fabState } from '$lib/stores/fab.svelte'; // Import FAB State
+  import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { Check, LoaderCircle } from "lucide-svelte"; // Import Icons
+  import { Check, LoaderCircle } from "lucide-svelte";
 
   let { kimpayId, initialData = null } = $props();
 
-  // Initialize state with defaults
+  // Form State
   let description = $state("");
   let amount = $state("");
   let icon = $state(DEFAULT_EXPENSE_EMOJI);
@@ -30,25 +31,20 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  // Use participantsStore for participants
   let participants = $derived(participantsStore.list);
   let isLoading = $state(false);
 
-  // Photo State
+  // Photo State (managed by PhotoManager)
   let newPhotos = $state<File[]>([]);
   let existingPhotos = $state<string[]>([]);
   let photosToDelete = $state<string[]>([]);
-  let photoPreviews = $state<string[]>([]); // For new photos only
-  let fileInput: HTMLInputElement;
 
   // New Participant Modal State
   let newParticipantSource = $state<string | null>(null);
   let isAddingParticipant = $state(false);
 
   onMount(async () => {
-      // Ensure stores are initialized
       if (kimpayId) {
-          // We can init concurrently
           await Promise.all([
              kimpayStore.init(kimpayId),
              participantsStore.init(kimpayId),
@@ -65,8 +61,6 @@
          payer = initialData.payer || "";
          involved = initialData.involved || [];
          
-         
-         // Load existing photos
          if (initialData.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
          }
@@ -83,128 +77,61 @@
           }
       }
 
-      // Configure FAB using onMount to ensure we override layout defaults
       updateFab();
   });
 
   // Reactive Update for FAB state
   $effect(() => {
-     // Trigger dependency tracking
      const _ = { description, amount, payer, involved, isLoading };
      updateFab();
-  });
-
-  // Cleanup on destroy
-  $effect.root(() => {
-      return () => {
-          // No explicit cleanup needed as layout's effect handles reset on route change
-          // But to be safe if component unmounts without route change:
-          // fabState.reset(kimpayId); 
-          // Actually, layout handles reset when navigating AWAY from /add or /edit.
-      };
   });
 
   function updateFab() {
       const isValid = !!description && !!amount && !!payer && involved.length > 0;
       
       fabState.configure({
-          icon: isLoading ? LoaderCircle : Check,
+          icon: (isLoading ? LoaderCircle : Check) as unknown as import('svelte').Component,
           colorClass: isValid 
             ? "bg-green-500 hover:bg-green-600 shadow-green-200 dark:shadow-none" 
             : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none",
           onClick: save,
-          href: null, // Make it a button
-          label: initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'),
-          disabled: !isValid || isLoading
+          href: null,
+          label: (initialData?.id && offlineService.isOffline) 
+            ? $t('common.offline') 
+            : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button')),
+          disabled: !isValid || isLoading || (!!initialData?.id && offlineService.isOffline)
       });
-
-      // Rotating loader animation class if loading
-      if (isLoading) {
-          // We can't easily add class to the icon component itself via state this way without complex prop passing
-          // But layout handles class="...".
-          // Ideally fabState stores iconProps?
-          // For now, let's just swap icon.
-      }
-  }
-
-  function toggleInvolved(participantId: string) {
-      if (involved.includes(participantId)) {
-          if (involved.length > 1) {
-              involved = involved.filter(id => id !== participantId);
-          }
-      } else {
-          involved = [...involved, participantId];
-      }
-  }
-
-  function toggleAll() {
-      if (involved.length === participants.length) {
-          involved = [];
-      } else {
-          involved = participants.map(p => p.id);
-      }
   }
 
   async function goBack() {
       await goto(`/k/${kimpayId}`);
   }
 
-  function handleFileSelect(e: Event) {
-      const target = e.target as HTMLInputElement;
-      if (target.files) {
-          const files = Array.from(target.files);
-          newPhotos = [...newPhotos, ...files];
-          
-          // Create new previews
-          const newPreviews = files.map(file => URL.createObjectURL(file));
-          photoPreviews = [...photoPreviews, ...newPreviews];
-          
-          // Reset input to allow selecting the same file again if needed (though we just added it)
-          target.value = "";
-      }
+  function handlePhotosChange(photos: File[], existing: string[], toDelete: string[]) {
+      newPhotos = photos;
+      existingPhotos = existing;
+      photosToDelete = toDelete;
   }
 
-  function removeNewPhoto(index: number) {
-      newPhotos = newPhotos.filter((_, i) => i !== index);
-      const preview = photoPreviews[index];
-      if (preview) URL.revokeObjectURL(preview); // Cleanup memory
-      photoPreviews = photoPreviews.filter((_, i) => i !== index);
+  function handlePayerChange(selected: string[]) {
+      payer = selected[0] || "";
   }
 
-  function removeExistingPhoto(filename: string) {
-      existingPhotos = existingPhotos.filter(p => p !== filename);
-      photosToDelete = [...photosToDelete, filename];
+  function handleInvolvedChange(selected: string[]) {
+      involved = selected;
   }
-
-  function getExistingPhotoUrl(filename: string) {
-      if (!initialData?.id || !initialData?.collectionId) return "";
-      return pb.files.getURL(initialData, filename, { thumb: '100x100' });
-  }
-
-
 
   async function handleNewParticipant(name: string) {
       isAddingParticipant = true;
       try {
-          // Use participantsStore
-          // Note: create now returns Promise<void> in my last edit? NO await is void?
-          // I looked at participants.svelte.ts: async create(kimpayId, name) ... returns void?
-          // It updates the list. 
-          // I need to return the new participant from create if possible or find it.
-          // In participants.svelte.ts: "await offlineService... this.list=[...optimistic]..."
-          // It doesn't return the object. I should update participantsStore.create to return the optimistic or real object.
-          // Or I check the list for the name/optimistic ID.
-          
           await participantsStore.create(kimpayId, name);
-          const newP = participantsStore.list.find(p => p.name === name); // Might be risky if dupe names?
+          const newP = participantsStore.list.find(p => p.name === name);
           
           if (newP) {
-             // Handle selection based on source
              if (newParticipantSource === 'payer') {
                  payer = newP.id;
              }
              
-             // Always add to involved when creating a new participant
              if (!involved.includes(newP.id)) {
                  involved = [...involved, newP.id];
              }
@@ -222,7 +149,6 @@
   async function save() {
       if (!description || !amount || !payer || involved.length === 0) return;
       
-      // Offline Edit Check
       if (initialData?.id && offlineService.isOffline) {
           modals.alert({ 
               message: $t('common.offline_edit_error') || "Cannot edit expenses while offline",
@@ -233,12 +159,6 @@
 
       isLoading = true;
       try {
-          // 1. Handle Deletions (Edit Mode)
-          if (initialData?.id && photosToDelete.length > 0) {
-               // To remove specific, usage is tricky with FormData + PB.
-               // We rely on "photos-" key pattern supported by PB.
-          }
-          
           const formData = new FormData();
           formData.append('kimpay', kimpayId);
           formData.append('description', description);
@@ -250,22 +170,16 @@
 
           involved.forEach(id => formData.append('involved', id));
 
-          // Append New Photos
-          // Only if online or allow? User said: "Interdire les photos offline"
-          if (newPhotos.length > 0) {
-              if (offlineService.isOffline) {
-                  // Skip photos or alert? 
-                  // Ideally UI disables the input, but here we enforce.
-              } else {
-                  const photoKey = initialData?.id ? 'photos+' : 'photos';
-                  for (let i = 0; i < newPhotos.length; i++) {
-                      const file = newPhotos[i];
-                      if (file) formData.append(photoKey, file);
-                  }
+          // Append New Photos (only if online)
+          if (newPhotos.length > 0 && !offlineService.isOffline) {
+              const photoKey = initialData?.id ? 'photos+' : 'photos';
+              for (let i = 0; i < newPhotos.length; i++) {
+                  const file = newPhotos[i];
+                  if (file) formData.append(photoKey, file);
               }
           }
           
-          // Handle deletions via special key "photos-"
+          // Handle deletions
           if (photosToDelete.length > 0) {
               photosToDelete.forEach(filename => {
                   formData.append('photos-', filename); 
@@ -274,11 +188,8 @@
           
           if (initialData?.id) {
                await pb.collection('expenses').update(initialData.id, formData);
-               // Touch the kimpay to trigger realtime update for other users
                await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
           } else {
-               // Use expensesStore for creation to handle Offline/Online
-               // Passing participants list for optimistic update helpers
                await expensesStore.create(formData, participantsStore.list);
                
                if (!offlineService.isOffline) {
@@ -297,6 +208,7 @@
 </script>
 
 <div class="space-y-6">
+    <!-- Description & Icon -->
     <div class="space-y-2">
         <Label>{$t('expense.form.desc_label')}</Label>
         <div class="flex gap-2">
@@ -307,6 +219,7 @@
         </div>
     </div>
     
+    <!-- Amount -->
     <div class="space-y-2">
         <Label>{$t('expense.form.amount_label')}</Label>
         <Input 
@@ -327,141 +240,51 @@
         />
     </div>
 
+    <!-- Paid By (Payer) -->
+    <ParticipantSelector
+        {participants}
+        selected={payer ? [payer] : []}
+        mode="single"
+        label={$t('expense.form.paid_by_label')}
+        onSelectionChange={handlePayerChange}
+        onAddNew={() => newParticipantSource = 'payer'}
+    />
 
-    <div class="space-y-3">
-        <Label>{$t('expense.form.paid_by_label')}</Label>
-        <div class="flex flex-wrap gap-2">
-            {#each participants as p (p.id)}
-                <button 
-                  onclick={() => { payer = p.id; }}
-                  class="relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border {payer === p.id ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'}"
-                >
-                    {p.name}
-                </button>
-            {/each}
-            
-            <button 
-                onclick={() => newParticipantSource = 'payer'}
-                class="px-4 py-2 rounded-full text-sm font-bold border border-dashed border-input text-muted-foreground hover:text-primary hover:border-primary hover:bg-accent transition-colors flex items-center gap-1"
-                aria-label={$t('expense.form.paid_by_new')}
-            >
-                +
-            </button>
-        </div>
-    </div>
+    <!-- For Whom (Involved) -->
+    <ParticipantSelector
+        {participants}
+        selected={involved}
+        mode="multi"
+        label={$t('expense.form.for_whom_label')}
+        onSelectionChange={handleInvolvedChange}
+        onAddNew={() => newParticipantSource = 'involved'}
+        showToggleAll={true}
+    />
 
-    <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <Label class="text-base font-semibold">{$t('expense.form.for_whom_label')} <span class="text-muted-foreground font-normal ml-1">({involved.length})</span></Label>
-          <button onclick={toggleAll} class="text-sm text-primary font-medium hover:underline">
-              {involved.length === participants.length ? $t('expense.form.select_none') : $t('expense.form.select_all')}
-          </button>
-        </div>
-        
-        <div class="flex flex-wrap gap-2">
-            {#each participants as p (p.id)}
-                <button 
-                  onclick={() => toggleInvolved(p.id)}
-                  class="relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border {involved.includes(p.id) ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'}"
-                >
-                      {p.name}
-                </button>
-            {/each}
-            
-            <button 
-                onclick={() => newParticipantSource = 'involved'}
-                class="px-4 py-2 rounded-full text-sm font-bold border border-dashed border-input text-muted-foreground hover:text-primary hover:border-primary hover:bg-accent transition-colors flex items-center gap-1"
-                aria-label={$t('expense.form.paid_by_new')}
-            >
-                +
-            </button>
-        </div>
-        {#if involved.length === 0}
-          <p class="text-xs text-destructive font-medium">{$t('expense.form.error_select_one')}</p>
-        {/if}
-    </div>
-
+    <!-- Date -->
     <div class="space-y-2">
          <Label>{$t('expense.form.date_label')}</Label>
          <DatePicker bind:value={date} />
     </div>
 
-    <!-- Photo Input -->
-    <div class="space-y-2">
-        <Label>{$t('expense.form.photos_label')}</Label>
-        
-        <!-- Existing Photos (Edit Mode) -->
-        {#if existingPhotos.length > 0}
-            <div class="flex gap-2 overflow-x-auto pb-2">
-                {#each existingPhotos as filename (filename)}
-                    <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 group">
-                        <img 
-                            src={getExistingPhotoUrl(filename)} 
-                            alt="Existing attachment" 
-                            class="w-full h-full object-cover" 
-                        />
-                        <button 
-                            type="button"
-                            onclick={() => removeExistingPhoto(filename)}
-                            class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Remove photo"
-                        >
-                            <X class="h-3 w-3" />
-                        </button>
-                    </div>
-                {/each}
-            </div>
-        {/if}
+    <!-- Photos -->
+    <PhotoManager 
+        bind:existingPhotos
+        record={initialData}
+        onPhotosChange={handlePhotosChange}
+    />
 
-        <!-- New Photos -->
-        {#if photoPreviews.length > 0}
-            <div class="flex gap-2 overflow-x-auto pb-2">
-                {#each photoPreviews as preview, i (i)}
-                    <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                        <img src={preview} alt="New Upload" class="w-full h-full object-cover" />
-                        <button 
-                            type="button"
-                            onclick={() => removeNewPhoto(i)}
-                            class="absolute top-1 right-1 bg-slate-900/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors"
-                            aria-label="Remove photo"
-                        >
-                            <X class="h-3 w-3" />
-                        </button>
-                    </div>
-                {/each}
-            </div>
-        {/if}
-
-        <button 
-            onclick={() => fileInput.click()}
-            disabled={offlineService.isOffline}
-            class="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-300 disabled:hover:bg-transparent"
-        >
-            <Camera class="h-5 w-5" />
-            <span class="font-medium">
-                {offlineService.isOffline ? $t('expense.form.photos_disabled_offline') || "Photos disabled offline" : $t('expense.form.add_photos')}
-            </span>
-        </button>
-        <input 
-            type="file" 
-            accept="image/*" 
-            multiple 
-            class="hidden" 
-            bind:this={fileInput}
-            onchange={handleFileSelect}
-        />
-    </div>
-
+     <!-- Action Buttons -->
      <div class="pt-4 grid grid-cols-2 gap-3">
          <Button variant="outline" class="w-full" size="lg" onclick={goBack} disabled={isLoading}>
             {$t('common.cancel')}
         </Button>
-         <!-- Hide original save button since we use FAB now, OR keep it as secondary? User said: "On pourrait cliquer aussi dessus pour enregistrer (en laissant l'autre bouton actuel)" -->
          <Button onclick={save} class="w-full" size="lg" disabled={isLoading || involved.length === 0 || !amount || !description || !payer}>
             {isLoading ? $t('common.loading') : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'))}
         </Button>
      </div>
 
+    <!-- Add Participant Modal -->
     <InputModal 
         isOpen={!!newParticipantSource}
         title={$t('modal.add_participant.title')}

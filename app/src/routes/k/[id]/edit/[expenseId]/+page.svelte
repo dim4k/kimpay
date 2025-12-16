@@ -9,6 +9,7 @@
   import { LoaderCircle, Trash2 } from "lucide-svelte";
 
 import { t } from '$lib/i18n';
+import { isNetworkError } from '$lib/utils/errors';
 
   let kimpayId = $derived(page.params.id ?? '');
   let expenseId = $derived((page.params as Record<string, string>).expenseId);
@@ -19,10 +20,24 @@ import { t } from '$lib/i18n';
   let showDeleteConfirm = $state(false);
   let isDeleting = $state(false);
 
+  import { offlineService } from '$lib/services/offline.svelte';
+
   onMount(async () => {
     try {
         initialData = await pb.collection('expenses').getOne(expenseId || "");
     } catch (_e) {
+        // Fallback to offline store if network fails
+        if (offlineService.isOffline || isNetworkError(_e)) {
+             if (!expensesStore.isInitialized) {
+                 await expensesStore.init(kimpayId, [], true);
+             }
+             const found = expensesStore.list.find(e => e.id === expenseId);
+             if (found) {
+                 initialData = found;
+                 return; // Recovered
+             }
+        }
+        
         console.error(_e);
         error = "Failed to load expense.";
     } finally {

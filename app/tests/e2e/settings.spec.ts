@@ -17,7 +17,7 @@ test.describe('Settings & Participants', () => {
      await page.getByPlaceholder('New name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click(); // The '+' button typically has 'Add' or icon, check label
      
-     await expect(page.getByText('Alice')).toBeVisible();
+     await expect(page.getByText('Alice').first()).toBeVisible();
   });
 
   test('Verify Offline Buttons (Online Mode)', async ({ page }) => {

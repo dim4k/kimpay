@@ -1,5 +1,6 @@
 import { pb } from "$lib/pocketbase";
 import type { RecentKimpay } from "$lib/types";
+import { asRecentKimpay } from "$lib/types";
 import { storageService } from "$lib/services/storage";
 import { offlineService } from "$lib/services/offline.svelte";
 
@@ -34,7 +35,7 @@ class RecentsService {
                     .getOne(id, { requestKey: null })
                     .then((data) => ({
                         id,
-                        data: data as unknown as RecentKimpay,
+                        data: asRecentKimpay(data),
                         status: "found" as const,
                     }))
                     .catch((err) => {
@@ -76,7 +77,7 @@ class RecentsService {
                 pb.collection("kimpays")
                     .subscribe(item.id, (e) => {
                         if (e.action === "update") {
-                            this.updateRecentKimpay(e.record as unknown as RecentKimpay);
+                            this.updateRecentKimpay(asRecentKimpay(e.record));
                         } else if (e.action === "delete") {
                             this.removeRecentKimpay(e.record.id);
                         }
@@ -122,7 +123,7 @@ class RecentsService {
                      pb.collection("kimpays")
                         .subscribe(kimpay.id, (e) => {
                             if (e.action === "update") {
-                                this.updateRecentKimpay(e.record as unknown as RecentKimpay);
+                                this.updateRecentKimpay(asRecentKimpay(e.record));
                             } else if (e.action === "delete") {
                                 this.removeRecentKimpay(e.record.id);
                             }

@@ -1,9 +1,15 @@
 import { pb } from "$lib/pocketbase";
 import type { Expense, Participant } from "$lib/types";
+import { asExpense, asExpenses } from "$lib/types";
 import { storageService } from "$lib/services/storage";
 import { offlineService } from "$lib/services/offline.svelte";
 import { generatePocketBaseId } from "$lib/utils";
 import { REIMBURSEMENT_EMOJI, EXPAND } from "$lib/constants";
+import { 
+    initListFromCache, 
+    createSubscriptionHandler, 
+    subscribeToCollection 
+} from "./baseStore";
 
 
 class ExpensesStore {
@@ -13,28 +19,24 @@ class ExpensesStore {
 
     async init(kimpayId: string, initialList: Expense[] = [], skipFetch = false) {
         if (this.currentKimpayId === kimpayId && this.isInitialized) {
-             // Already initialized and subscribed for this kimpay
-             return;
+            return;
         }
 
-        // If switching kimpays, specific logic to avoid stale data
-        if (this.currentKimpayId !== kimpayId) {
-             this.currentKimpayId = kimpayId;
-             this.list = this.sort(initialList); // Will be empty if not provided, avoiding stale data
-        } else {
-             // Same kimpay, only update if specific list provided
-             if (initialList.length > 0) {
-                 this.list = this.sort(initialList);
-             }
-        }
+        // Use shared cache-first initialization logic
+        const { list, shouldSwitch } = initListFromCache(
+            this.currentKimpayId,
+            kimpayId,
+            initialList,
+            () => {
+                const cached = storageService.getKimpayData(kimpayId);
+                return cached?.expand?.expenses_via_kimpay;
+            }
+        );
 
-        if (this.list.length === 0) {
-             const cached = storageService.getKimpayData(kimpayId);
-             if (cached?.expand?.expenses_via_kimpay) {
-                 this.list = this.sort(cached.expand.expenses_via_kimpay);
-             }
+        if (shouldSwitch) {
+            this.currentKimpayId = kimpayId;
         }
-        
+        this.list = this.sort(list);
         this.isInitialized = true;
 
         if (skipFetch) {
@@ -44,23 +46,22 @@ class ExpensesStore {
 
         await offlineService.withOfflineSupport(
             async () => {
-                 // Use expansion strategy
-                 try {
-                     const kimpay = await pb.collection("kimpays").getOne(kimpayId, {
-                         expand: EXPAND.KIMPAY_WITH_EXPENSES,
-                         requestKey: null
-                     });
-                     if (kimpay.expand?.expenses_via_kimpay) {
-                         this.list = this.sort(kimpay.expand.expenses_via_kimpay as unknown as Expense[]);
-                     }
-                 } catch {
-                     const records = await pb.collection("expenses").getFullList({
-                         filter: `kimpay = "${kimpayId}"`,
-                         expand: EXPAND.EXPENSE_RELATIONS,
-                         requestKey: null
-                     });
-                     this.list = this.sort(records as unknown as Expense[]);
-                 }
+                try {
+                    const kimpay = await pb.collection("kimpays").getOne(kimpayId, {
+                        expand: EXPAND.KIMPAY_WITH_EXPENSES,
+                        requestKey: null
+                    });
+                    if (kimpay.expand?.expenses_via_kimpay) {
+                        this.list = this.sort(asExpenses(kimpay.expand.expenses_via_kimpay));
+                    }
+                } catch {
+                    const records = await pb.collection("expenses").getFullList({
+                        filter: `kimpay = "${kimpayId}"`,
+                        expand: EXPAND.EXPENSE_RELATIONS,
+                        requestKey: null
+                    });
+                    this.list = this.sort(asExpenses(records));
+                }
             },
             () => { /* Keep cache */ }
         );
@@ -69,7 +70,7 @@ class ExpensesStore {
     }
 
     private sort(ex: Expense[]) {
-         return ex.sort((a, b) => {
+        return ex.sort((a, b) => {
             const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
             if (dateDiff !== 0) return dateDiff;
             return new Date(b.created).getTime() - new Date(a.created).getTime();
@@ -77,42 +78,21 @@ class ExpensesStore {
     }
 
     async subscribe(kimpayId: string) {
-        // Unsubscribe from previous (if any) to prevent duplication
-        // We await to ensure the SDK has processed the removal before adding a new one
-        await pb.collection("expenses").unsubscribe("*");
-        
-        await pb.collection("expenses").subscribe("*", async (e) => {
-            if (e.record.kimpay === kimpayId) {
-                if (offlineService.isOffline) return;
-
-                const ex = e.record as unknown as Expense;
-                // Fetch single expanded record to ensure we have relations (payer, involved)
-                // If getOne isn't allowed for expenses, we are stuck. 
-                // But usually getOne is allowed if part of Kimpay? 
-                // Actually, if list is forbidden, getOne on expense might be allowed if we are participant.
-                try {
-                     const expanded = await pb.collection("expenses").getOne(ex.id, {
-                         expand: "payer,involved",
-                         requestKey: null
-                     });
-                     
-                     if (e.action === "create") {
-                         if (!this.list.some(x => x.id === expanded.id)) {
-                             this.list = this.sort([...this.list, expanded as unknown as Expense]);
-                         }
-                     } else if (e.action === "update") {
-                         this.list = this.sort(this.list.map(x => x.id === expanded.id ? (expanded as unknown as Expense) : x));
-                     }
-                } catch (err) {
-                    console.error("Failed to fetch expanded expense update", err);
-                    // Fallback: Use non-expanded record if desperate, but UI might break.
-                }
-
-                if (e.action === "delete") {
-                     this.list = this.list.filter(x => x.id !== ex.id);
-                }
+        const handler = createSubscriptionHandler<Expense>(kimpayId, {
+            convertRecord: asExpense,
+            getList: () => this.list,
+            setList: (items) => { this.list = items; },
+            sortItems: (items) => this.sort(items),
+            fetchExpanded: async (id) => {
+                const record = await pb.collection("expenses").getOne(id, {
+                    expand: EXPAND.EXPENSE_RELATIONS,
+                    requestKey: null
+                });
+                return asExpense(record);
             }
         });
+
+        await subscribeToCollection("expenses", handler);
     }
 
     async create(formData: FormData, participants: Participant[]) {
@@ -150,12 +130,13 @@ class ExpensesStore {
 
         await offlineService.withOfflineSupport(
             async () => {
+                formData.append('id', expenseId);
                 const record = await pb.collection('expenses').create(formData, {
                     expand: "payer,involved"
                 });
                 
                 // Swap the optimistic item with the real record (and its real ID)
-                this.list = this.sort(this.list.map(e => e.id === expenseId ? (record as unknown as Expense) : e));
+                this.list = this.sort(this.list.map(e => e.id === expenseId ? asExpense(record) : e));
             },
             () => {
                 const payload: Record<string, unknown> = {};
@@ -188,8 +169,7 @@ class ExpensesStore {
     }
     
     async delete(expenseId: string, kimpayId: string) {
-        // Optimistic
-        // Optimistic
+        // Optimistic removal
         this.list = this.list.filter(e => e.id !== expenseId);
 
         await offlineService.withOfflineSupport(
@@ -212,7 +192,7 @@ class ExpensesStore {
                  requestKey: null
              });
              if (kimpay.expand?.expenses_via_kimpay) {
-                 this.list = this.sort(kimpay.expand.expenses_via_kimpay as unknown as Expense[]);
+                 this.list = this.sort(asExpenses(kimpay.expand.expenses_via_kimpay));
              }
          } catch(e) {
              console.error("Refresh failed", e);

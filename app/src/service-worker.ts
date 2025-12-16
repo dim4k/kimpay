@@ -99,11 +99,7 @@ sw.addEventListener("fetch", (event) => {
                 const root = await cache.match("/");
                 if (root) return root;
 
-                // 2. Fallback to offline.html if App Shell is missing
-                const offline = await cache.match("/offline.html");
-                if (offline) return offline;
-
-                // 3. Last resort
+                // 2. Last resort
                 return new Response("Offline", {
                     status: 408,
                     statusText: "Offline",

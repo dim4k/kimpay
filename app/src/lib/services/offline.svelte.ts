@@ -13,7 +13,6 @@ class OfflineService {
             this.setOffline(!navigator.onLine);
             window.addEventListener("online", () => this.setOffline(false));
             window.addEventListener("offline", () => this.setOffline(true));
-// ...
 
             // Global Network Error Interceptor
             const originalSend = pb.send;

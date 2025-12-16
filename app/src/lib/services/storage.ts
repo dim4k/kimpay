@@ -12,7 +12,6 @@ const STORAGE_PREFIX = 'kimpay_data_';
 const QUEUE_KEY = 'kimpay_offline_queue';
 
 const MY_KIMPAYS_KEY = 'my_kimpays';
-// Legacy key pattern: kimpay_user_{id}
 
 export const storageService = {
     // --- Data Persistence (Consultation) ---
@@ -57,12 +56,8 @@ export const storageService = {
     getMyParticipantId: (kimpayId: string): string | null => {
          if (typeof localStorage === "undefined") return null;
          try {
-             // 1. Try Map
              const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
-             if (map[kimpayId]) return map[kimpayId];
-
-             // 2. Try Legacy
-             return localStorage.getItem(`kimpay_user_${kimpayId}`);
+             return map[kimpayId] || null;
          } catch (_e) {
              return null;
          }
@@ -71,13 +66,9 @@ export const storageService = {
     setMyParticipantId: (kimpayId: string, participantId: string) => {
         if (typeof localStorage === "undefined") return;
         try {
-            // Update Map
             const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
             map[kimpayId] = participantId;
             localStorage.setItem(MY_KIMPAYS_KEY, JSON.stringify(map));
-
-            // Update Legacy (for safety/compatibility if external code reads it)
-            localStorage.setItem(`kimpay_user_${kimpayId}`, participantId);
         } catch (e) {
              console.error("Failed to save identity", e);
         }
@@ -89,8 +80,6 @@ export const storageService = {
             const map = JSON.parse(localStorage.getItem(MY_KIMPAYS_KEY) || "{}");
             delete map[kimpayId];
             localStorage.setItem(MY_KIMPAYS_KEY, JSON.stringify(map));
-            
-            localStorage.removeItem(`kimpay_user_${kimpayId}`);
         } catch (e) {
             console.error("Failed to remove recent kimpay", e);
         }

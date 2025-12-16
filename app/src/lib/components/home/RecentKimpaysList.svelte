@@ -30,8 +30,7 @@
         if (!kimpayToLeave) return;
         isLeaving = true;
         try {
-            const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-            const participantId = myKimpays[kimpayToLeave];
+            const participantId = storageService.getMyParticipantId(kimpayToLeave);
             const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {
@@ -69,10 +68,7 @@
                 }
             }
             
-            delete myKimpays[kimpayToLeave];
-            localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-            localStorage.removeItem(`kimpay_user_${kimpayToLeave}`); // Add cleanup here to prevent re-adding on refresh
-
+            storageService.removeRecentKimpay(kimpayToLeave);
             recentsService.removeRecentKimpay(kimpayToLeave);
             kimpayToLeave = null;
 

@@ -13,6 +13,7 @@
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { storageService } from '$lib/services/storage';
+  import NavItem from '$lib/components/ui/NavItem.svelte';
   
   let { children, data } = $props();
 
@@ -137,69 +138,36 @@
     <!-- Navigation Bar -->
     <nav class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-800 shadow-2xl safe-area-pb pointer-events-auto relative z-40 transition-colors">
         <div class="grid grid-cols-5 h-[4.5rem] items-end pb-2">
-            
-            <!-- Expenses (Home) -->
-
-            <a 
+            <NavItem 
                 href="/k/{kimpayId}" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.endsWith(kimpayId) ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
-            >
-                <div class="relative">
-                    <Wallet class="h-6 w-6" strokeWidth={page.url.pathname.endsWith(kimpayId) ? 2.5 : 2} />
-                    {#if page.url.pathname.endsWith(kimpayId)}
-                         <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
-                    {/if}
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">{$t('nav.expenses')}</span>
-            </a>
+                icon={Wallet} 
+                label={$t('nav.expenses')} 
+                isActive={page.url.pathname.endsWith(kimpayId)} 
+            />
 
-            <!-- Balance -->
-
-            <a 
+            <NavItem 
                 href="/k/{kimpayId}/balance" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/balance') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
-            >
-                <div class="relative">
-                    <ChartPie class="h-6 w-6" strokeWidth={page.url.pathname.includes('/balance') ? 2.5 : 2} />
-                    {#if page.url.pathname.includes('/balance')}
-                         <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
-                    {/if}
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">{$t('nav.balance')}</span>
-            </a>
+                icon={ChartPie} 
+                label={$t('nav.balance')} 
+                isActive={page.url.pathname.includes('/balance')} 
+            />
 
             <!-- Spacer for FAB (Center) -->
             <div class="pointer-events-none"></div>
 
-            <!-- Share (New) -->
-
-            <a 
+            <NavItem 
                 href="/k/{kimpayId}/share" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/share') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
-            >
-                <div class="relative">
-                     <Share2 class="h-6 w-6" strokeWidth={page.url.pathname.includes('/share') ? 2.5 : 2} />
-                     {#if page.url.pathname.includes('/share')}
-                         <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
-                    {/if}
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">{$t('nav.share')}</span>
-            </a>
+                icon={Share2} 
+                label={$t('nav.share')} 
+                isActive={page.url.pathname.includes('/share')} 
+            />
 
-            <!-- Settings -->
-
-            <a 
+            <NavItem 
                 href="/k/{kimpayId}/settings" 
-                class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {page.url.pathname.includes('/settings') ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
-            >
-                <div class="relative">
-                     <Settings class="h-6 w-6" strokeWidth={page.url.pathname.includes('/settings') ? 2.5 : 2} />
-                     {#if page.url.pathname.includes('/settings')}
-                         <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
-                    {/if}
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">{$t('nav.settings')}</span>
-            </a>
+                icon={Settings} 
+                label={$t('nav.settings')} 
+                isActive={page.url.pathname.includes('/settings')} 
+            />
         </div>
     </nav>
     

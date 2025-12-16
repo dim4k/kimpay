@@ -2,6 +2,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
     import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
+    import SyncIndicator from "$lib/components/ui/SyncIndicator.svelte";
     import GlobalModals from "$lib/components/GlobalModals.svelte";
     import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
     import { locale, t } from '$lib/i18n';
@@ -10,6 +11,7 @@
     import { page } from '$app/state';
     import { recentsService } from '$lib/services/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
+    import { auth } from '$lib/stores/auth.svelte';
 
     let { children, data } = $props();
 
@@ -29,10 +31,6 @@
             navigator.serviceWorker.register('/service-worker.js');
         }
     });
-
-    import { auth } from '$lib/stores/auth.svelte';
-
-    // ... imports
 
     // Handle Magic Link Token or OTP
     $effect(() => {
@@ -133,5 +131,7 @@
 
 </div>
 
+<SyncIndicator />
 <InstallPrompt />
 <GlobalModals />
+

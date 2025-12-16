@@ -46,10 +46,15 @@
           `
       };
     }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleExpand(expense.id);
+        }
+    }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
     class="expense-item rounded-xl border shadow-sm overflow-hidden group transition-all duration-300 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-indigo-200 dark:hover:border-indigo-900'}"
     
@@ -59,11 +64,14 @@
     class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
     class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
     {style}
+    role="button"
+    tabindex="0"
+    onclick={() => onToggleExpand(expense.id)}
+    onkeydown={handleKeydown}
 >
     <!-- Main Row (Always Visible) -->
     <div 
         class="flex justify-between items-center p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
-        onclick={() => onToggleExpand(expense.id)}
     >
         <div class="flex items-center gap-4 flex-1 min-w-0 mr-2">
             <div 
