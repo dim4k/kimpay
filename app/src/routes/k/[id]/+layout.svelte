@@ -4,7 +4,9 @@
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   
-  import { appState } from '$lib/stores/appState.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { goto } from '$app/navigation';
   import { fabState } from '$lib/stores/fab.svelte';
@@ -109,7 +111,11 @@
           });
       } else {
         // Init state
-        await appState.init(kimpayId);
+        await Promise.all([
+             kimpayStore.init(kimpayId),
+             participantsStore.init(kimpayId),
+             expensesStore.init(kimpayId)
+        ]);
       }
   }
 

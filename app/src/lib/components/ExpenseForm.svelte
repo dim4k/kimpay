@@ -11,7 +11,10 @@
   import DatePicker from '$lib/components/ui/DatePicker.svelte';
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
-  import { appState } from '$lib/stores/appState.svelte';
+
+  import { expensesStore } from '$lib/stores/expenses.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { fabState } from '$lib/stores/fab.svelte'; // Import FAB State
   import { modals } from '$lib/stores/modals.svelte';
@@ -27,8 +30,8 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  // Use appState for participants
-  let participants = $derived(appState.participants);
+  // Use participantsStore for participants
+  let participants = $derived(participantsStore.list);
   let isLoading = $state(false);
 
   // Photo State
@@ -43,9 +46,14 @@
   let isAddingParticipant = $state(false);
 
   onMount(async () => {
-      // Ensure appState is initialized
+      // Ensure stores are initialized
       if (kimpayId) {
-          await appState.init(kimpayId);
+          // We can init concurrently
+          await Promise.all([
+             kimpayStore.init(kimpayId),
+             participantsStore.init(kimpayId),
+             expensesStore.init(kimpayId)
+          ]);
       }
 
       // Seed state from initialData if present
@@ -178,21 +186,28 @@
   async function handleNewParticipant(name: string) {
       isAddingParticipant = true;
       try {
-          const newP = await appState.createParticipant(kimpayId, name);
+          // Use participantsStore
+          // Note: create now returns Promise<void> in my last edit? NO await is void?
+          // I looked at participants.svelte.ts: async create(kimpayId, name) ... returns void?
+          // It updates the list. 
+          // I need to return the new participant from create if possible or find it.
+          // In participants.svelte.ts: "await offlineService... this.list=[...optimistic]..."
+          // It doesn't return the object. I should update participantsStore.create to return the optimistic or real object.
+          // Or I check the list for the name/optimistic ID.
           
-          // Optimistic update (if not already handled by appState internals)
-          if (!appState.participants.find(p => p.id === newP.id)) {
-             appState.participants.push(newP);
-          }
+          await participantsStore.create(kimpayId, name);
+          const newP = participantsStore.list.find(p => p.name === name); // Might be risky if dupe names?
           
-          // Handle selection based on source
-          if (newParticipantSource === 'payer') {
-              payer = newP.id;
-          }
-          
-          // Always add to involved when creating a new participant
-          if (!involved.includes(newP.id)) {
-              involved = [...involved, newP.id];
+          if (newP) {
+             // Handle selection based on source
+             if (newParticipantSource === 'payer') {
+                 payer = newP.id;
+             }
+             
+             // Always add to involved when creating a new participant
+             if (!involved.includes(newP.id)) {
+                 involved = [...involved, newP.id];
+             }
           }
           
           newParticipantSource = null;
@@ -262,14 +277,10 @@
                // Touch the kimpay to trigger realtime update for other users
                await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
           } else {
-               // Use AppState for creation to handle Offline/Online
-               await appState.createExpense(formData);
-               // If online, manual touch might be needed if not handled by createExpense internals or realtime 
-               // (appState.createExpense does direct PB create if online).
-               // The original code touched kimpay here too? 
-               // "await pb.collection('kimpays').update(kimpayId...)"
-               // Yes, to notify others. appState.createExpense currently just creates expense.
-               // We should probably move that logic into appState or keep it here if online.
+               // Use expensesStore for creation to handle Offline/Online
+               // Passing participants list for optimistic update helpers
+               await expensesStore.create(formData, participantsStore.list);
+               
                if (!offlineService.isOffline) {
                    await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
                }

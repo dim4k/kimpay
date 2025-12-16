@@ -9,16 +9,17 @@
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
 
   let kimpayId = $derived(page.params.id ?? '');
   
-  // Use appState for reactive data
-  let participants = $derived(appState.participants);
-  let expenses = $derived(appState.expenses);
-  let myId = $derived(appState.participant?.id ?? null);
+  // Use stores
+  let participants = $derived(participantsStore.list);
+  let expenses = $derived(expensesStore.list);
+  let myId = $derived(participantsStore.me?.id ?? null);
   
   // Reactive transactions calculation
   let transactions = $derived(calculateDebts(expenses, participants));
@@ -27,10 +28,17 @@
 
   onMount(async () => {
       if (kimpayId) {
-          isLoading = true;
-          // Init app state if not already loaded
-          await appState.init(kimpayId);
-          isLoading = false;
+          // Layout inits, but logic here checks loading...
+          if (!expensesStore.list.length || !participantsStore.list.length) {
+              isLoading = true;
+              await Promise.all([
+                  expensesStore.init(kimpayId),
+                  participantsStore.init(kimpayId)
+              ]);
+              isLoading = false;
+          } else {
+            isLoading = false;
+          }
       }
   });
 
@@ -52,8 +60,7 @@
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
-             await appState.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'));
-             // No need to reload, appState handles realtime updates
+             await expensesStore.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'), kimpayId, participants);
           }
       });
   }

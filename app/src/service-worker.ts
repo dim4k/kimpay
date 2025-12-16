@@ -77,17 +77,9 @@ sw.addEventListener("fetch", (event) => {
         // for everything else, try the network first, but
         // fall back to the cache if we're offline
         try {
-            // Add a timeout to the network request to avoid hanging
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+            const response = await fetch(event.request);
 
-            const response = await fetch(event.request, {
-                signal: controller.signal,
-            });
-
-            clearTimeout(timeoutId);
-
-            if (response.status === 200) {
+            if (response.status === 200 && !url.searchParams.has("code") && !url.searchParams.has("token")) {
                 cache.put(event.request, response.clone());
             }
 

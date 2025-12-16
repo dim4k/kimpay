@@ -26,3 +26,7 @@ export function generatePocketBaseId() {
     }
     return result;
 }
+
+export function isValidEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}

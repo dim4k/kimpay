@@ -2,7 +2,7 @@ import type { Kimpay } from "$lib/types";
 
 export interface PendingAction {
     id: string; // Unique ID for the action itself
-    type: 'CREATE_EXPENSE' | 'CREATE_PARTICIPANT' | 'DELETE_EXPENSE' | 'UPDATE_KIMPAY' | 'DELETE_KIMPAY' | 'UPDATE_PARTICIPANT';
+    type: 'CREATE_EXPENSE' | 'CREATE_PARTICIPANT' | 'DELETE_EXPENSE' | 'UPDATE_KIMPAY' | 'DELETE_KIMPAY' | 'UPDATE_PARTICIPANT' | 'CREATE_KIMPAY';
     payload: Record<string, unknown>; // The data needed to perform the action (e.g. FormData as object)
     timestamp: number;
     kimpayId: string;

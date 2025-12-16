@@ -6,15 +6,16 @@
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
   import type { Expense } from '$lib/types';
   
   let kimpayId = $derived(page.params.id ?? '');
   
-  // Use appState for reactive data
-  let expenses = $derived(appState.expenses);
-  let participants = $derived(appState.participants);
-  let currentUserId = $derived(appState.participant?.id ?? null);
+  // Use stores
+  let expenses = $derived(expensesStore.list);
+  let participants = $derived(participantsStore.list);
+  let currentUserId = $derived(participantsStore.me?.id ?? null);
   
   let isLoading = $state(true);
 
@@ -43,9 +44,16 @@
   }
 
   onMount(async () => {
-      if (kimpayId) {
+      // Layout handles main init. 
+      // Ensure we stop loading if stores are ready. 
+      // If layout failed or is slow, stores might be empty, but initialized.
+      
+      // If not initialized, try to init (shouldn't happen if layout works)
+      if (kimpayId && !expensesStore.isInitialized) {
           isLoading = true;
-          await appState.init(kimpayId);
+          await expensesStore.init(kimpayId); 
+          isLoading = false;
+      } else {
           isLoading = false;
       }
   });
@@ -58,8 +66,7 @@
       if (!expenseToDelete) return;
       isDeleting = true;
       try {
-          await appState.deleteExpense(expenseToDelete);
-          // No need to reload manually, appState handles realtime updates
+          await expensesStore.delete(expenseToDelete, kimpayId);
           expenseToDelete = null;
       } catch (e) {
           console.error("Failed to delete", e);
@@ -73,7 +80,7 @@
   $effect(() => {
     // This will run when refreshSignal.count changes (triggered by layout)
     if (refreshSignal && refreshSignal.count > 0) {
-        appState.refreshExpenses();
+        expensesStore.refresh(kimpayId);
     }
   });
 </script>

@@ -4,12 +4,12 @@
     import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
     import GlobalModals from "$lib/components/GlobalModals.svelte";
     import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
-    import { locale } from '$lib/i18n';
+    import { locale, t } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
     import { page } from '$app/state';
-    import { appState } from '$lib/stores/appState.svelte';
     import { recentsService } from '$lib/services/recents.svelte';
+    import { modals } from '$lib/stores/modals.svelte';
 
     let { children, data } = $props();
 
@@ -23,9 +23,51 @@
     onMount(() => {
         theme.init();
         recentsService.init();
-
+        auth.init();
+        
         if ('serviceWorker' in navigator && import.meta.env.PROD) {
             navigator.serviceWorker.register('/service-worker.js');
+        }
+    });
+
+    import { auth } from '$lib/stores/auth.svelte';
+
+    // ... imports
+
+    // Handle Magic Link Token or OTP
+    $effect(() => {
+        const url = new URL(window.location.href);
+        const token = url.searchParams.get('token');
+        const code = url.searchParams.get('code');
+
+        if (code) {
+             auth.loginWithOtp(code).then(success => {
+                if (success) {
+                    // Remove code from URL
+                    url.searchParams.delete('code');
+                    window.history.replaceState({}, '', url);
+                    console.log("Logged in via OTP");
+                } else {
+                    // Invalid or expired code
+                    url.searchParams.delete('code');
+                    window.history.replaceState({}, '', url);
+                    
+                    modals.alert({
+                        title: $t('auth.magic_link_error_title', { default: 'Invalid Link' }),
+                        message: $t('auth.magic_link_error_desc', { default: 'This link is invalid or has expired. Please request a new one.' }),
+                        variant: 'error'
+                    });
+                }
+             });
+        } else if (token) {
+            // Legacy support during transition (or if old emails are still out there)
+            auth.loginWithToken(token).then(success => {
+                if (success) {
+                    url.searchParams.delete('token');
+                    window.history.replaceState({}, '', url);
+                    console.log("Logged in via Magic Link");
+                }
+            });
         }
     });
 
@@ -34,10 +76,8 @@
         if (page.url.pathname) {
             recentsService.init();
             
-            // Reset app state if we leave the kimpay context
-            if (!page.url.pathname.startsWith('/k/')) {
-                appState.reset();
-            }
+            // Stores are reset by their init methods when entering a kimpay context.
+            // Explicit reset on exit is optional but nice. For now we skip it.
         }
     });
 
@@ -84,10 +124,10 @@
     <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>
 
-<div class="flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+<div class="flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100">
 	<SiteHeader />
 
-	<main class="flex-1 flex flex-col pt-16 animate-in fade-in duration-500 slide-in-from-bottom-4">
+	<main class="flex-1 flex flex-col pt-16">
 		{@render children()}
 	</main>
 

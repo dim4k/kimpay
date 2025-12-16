@@ -28,3 +28,15 @@ export const EXPENSE_EMOJIS = [
     ...GROUPS.ACTIVITIES,
     ...GROUPS.LIFE
 ].filter((value, index, self) => self.indexOf(value) === index); // Unique
+
+export const EXPAND = {
+    // Relations to expand when fetching a single Expense
+    EXPENSE_RELATIONS: "payer,involved",
+    
+    // Relations to expand when fetching a Kimpay
+    KIMPAY_WITH_PARTICIPANTS: "participants_via_kimpay",
+    KIMPAY_WITH_EXPENSES: "expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+    
+    // Combined
+    KIMPAY_FULL: "participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved"
+} as const;

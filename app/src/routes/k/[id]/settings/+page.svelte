@@ -7,25 +7,27 @@
   import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug } from "lucide-svelte";
+  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table } from "lucide-svelte";
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
-  import { Download, FileText, Table } from 'lucide-svelte';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { auth } from '$lib/stores/auth.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  import { participantsStore } from '$lib/stores/participants.svelte';
+  import { expensesStore } from '$lib/stores/expenses.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
-  import { recentsService } from '$lib/services/recents.svelte';
+  import { storageService } from '$lib/services/storage';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import type { RecentKimpay } from '$lib/types';
+
   
   let kimpayId = $derived(page.params.id ?? '');
   
-  // Use appState
-  let kimpay = $derived(appState.kimpay);
-  let participants = $derived(appState.participants);
-  let currentParticipantId = $derived(appState.participant?.id ?? null);
-  let isCreator = $derived(kimpay?.created_by === currentParticipantId);
+  // Use stores
+  let kimpay = $derived(kimpayStore.data);
+  let participants = $derived(participantsStore.list);
+  let currentParticipantId = $derived(participantsStore.me?.id ?? null);
+  let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
 
   // Edit State
   let editName = $state("");
@@ -35,7 +37,7 @@
   // Feedback State
   let saveFeedback = $state("");
 
-  // Sync local state with appState when loaded
+  // Sync local state with store when loaded
   $effect(() => {
       if (kimpay) {
           // Only set if empty to avoid overwriting user input while typing if realtime update comes in
@@ -45,24 +47,27 @@
   });
 
   function checkUsage(pId: string): boolean {
-      const allExpenses = appState.expenses;
+      const allExpenses = expensesStore.list;
       return allExpenses.some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
   }
 
   onMount(async () => {
       if (kimpayId) {
-          await appState.init(kimpayId);
+          // Init all needed stores for settings (we need expenses for export/checkUsage too)
+          await Promise.all([
+             kimpayStore.init(kimpayId),
+             participantsStore.init(kimpayId),
+             expensesStore.init(kimpayId)
+          ]);
       }
   });
 
   async function handleSave() {
       saveFeedback = "";
       try {
-          const updatedKimpay = await appState.updateKimpay(editName, editIcon);
+          await kimpayStore.updateDetails(editName, editIcon);
           
-          // Update store
-          recentsService.updateRecentKimpay(updatedKimpay as unknown as RecentKimpay);
-
+          // Recents updated inside store
           saveFeedback = "updated";
           setTimeout(() => saveFeedback = "", 2000);
       } catch (e) {
@@ -82,11 +87,11 @@
       isAddingParticipant = true;
       addFeedback = "";
       try {
-          await appState.createParticipant(kimpayId, newParticipantName);
+          await participantsStore.create(kimpayId, newParticipantName);
           newParticipantName = "";
           addFeedback = "added";
           setTimeout(() => addFeedback = "", 2000);
-          // No need to reload, realtime subscription will update appState.participants
+          // No need to reload, realtime subscription will update participantsStore
       } catch(e) {
           console.error(e);
           alert("Failed to add participant");
@@ -114,7 +119,7 @@
                variant: 'destructive',
                onConfirm: async () => {
                    const isSelf = pId === currentParticipantId;
-                   await pb.collection('participants').delete(pId);
+                   await pb.collection('participants').delete(pId); // TODO: Move to participantsStore if offline needed
                    if (isSelf) {
                        const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
                        delete myKimpays[kimpayId];
@@ -122,7 +127,7 @@
                        localStorage.removeItem(`kimpay_user_${kimpayId}`);
                        window.location.reload();
                    } else {
-                       // No need to reload, realtime subscription will update appState.participants
+                       // No need to reload, realtime subscription will update store
                        isDeletingParticipant = null;
                    }
                },
@@ -180,7 +185,7 @@
           confirmText: $t('common.delete'),
           variant: 'destructive',
           onConfirm: async () => {
-            await appState.deleteKimpay(kimpayId);
+            await kimpayStore.delete(kimpayId);
             const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
@@ -196,7 +201,9 @@
           description: $t('settings.switch_modal.desc'),
           confirmText: $t('common.save'), // or 'Switch'
           onConfirm: () => {
-              appState.switchUser(kimpayId, pId);
+              storageService.setMyParticipantId(kimpayId, pId);
+              participantsStore.setMyIdentity(kimpayId);
+              window.location.reload(); // Simple reload to refresh all state/derived
           }
       });
   }
@@ -205,8 +212,8 @@
       try {
           if (!kimpay) return;
 
-          const expenses = appState.expenses;
-          const participantsList = appState.participants;
+          const expenses = expensesStore.list;
+          const participantsList = participantsStore.list;
           
           // Map for quick lookup
           const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));

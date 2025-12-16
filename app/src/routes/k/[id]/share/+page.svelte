@@ -6,10 +6,10 @@
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import { appState } from '$lib/stores/appState.svelte';
+  import { kimpayStore } from '$lib/stores/kimpay.svelte';
 
   let kimpayId = $derived(page.params.id ?? '');
-  let kimpay = $derived(appState.kimpay);
+  let kimpay = $derived(kimpayStore.data);
   let inviteLink = $state("");
   let copied = $state(false);
   let qrDataUrl = $state<string | null>(null);
@@ -19,7 +19,7 @@
       
       // Init app state (deduplicated internally)
       if (kimpayId) {
-          appState.init(kimpayId);
+          kimpayStore.init(kimpayId);
       }
       
       // Generate QR immediately with the link

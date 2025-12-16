@@ -1,12 +1,13 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { scale } from 'svelte/transition';
-    import { CircleAlert } from "lucide-svelte";
+    import { CircleAlert, Info } from "lucide-svelte";
     
-    let { isOpen, title, message, onConfirm }: { 
+    let { isOpen, title, message, variant = 'error', onConfirm }: { 
         isOpen: boolean; 
         title?: string;
         message: string; 
+        variant?: 'error' | 'info';
         onConfirm: () => void; 
     } = $props();
 </script>
@@ -22,9 +23,15 @@
             transition:scale={{ start: 0.95, opacity: 0 }}
         >
             <div class="flex flex-col items-center gap-4 text-center">
-                <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
-                    <CircleAlert class="h-6 w-6" />
-                </div>
+                {#if variant === 'error'}
+                    <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+                        <CircleAlert class="h-6 w-6" />
+                    </div>
+                {:else}
+                     <div class="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Info class="h-6 w-6" />
+                    </div>
+                {/if}
                 
                 <div class="space-y-1">
                     {#if title}

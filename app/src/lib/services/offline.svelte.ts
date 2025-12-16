@@ -143,6 +143,17 @@ class OfflineService {
                     else if (action.type === 'DELETE_EXPENSE') {
                          await pb.collection("expenses").delete(action.payload.id as string);
                     }
+                    else if (action.type === 'CREATE_KIMPAY') {
+                        await pb.collection('kimpays').create(payload);
+                    }
+                    else if (action.type === 'UPDATE_KIMPAY') {
+                        // Use kimpayId from action if payload doesn't have ID, or payload might have it?
+                        // kimpayStore.updateDetails queues {name, icon}
+                        await pb.collection('kimpays').update(action.kimpayId, payload);
+                    }
+                    else if (action.type === 'DELETE_KIMPAY') {
+                        await pb.collection('kimpays').delete(action.kimpayId);
+                    }
                     
                     storageService.removePendingAction(action.id);
                 } catch (e) {
@@ -154,6 +165,23 @@ class OfflineService {
             // Trigger refresh after sync
             this.onOnlineCallback?.();
         }
+    }
+    async withOfflineSupport<T>(
+        runOnline: () => Promise<T>,
+        onOffline: () => T | Promise<T>
+    ): Promise<T> {
+        if (!this.isOffline) {
+            try {
+                return await runOnline();
+            } catch (e: unknown) {
+                if ((e as { status?: number })?.status === 0) {
+                    this.setOffline(true);
+                } else {
+                    throw e;
+                }
+            }
+        }
+        return await onOffline();
     }
 }
 

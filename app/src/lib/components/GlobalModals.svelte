@@ -55,6 +55,7 @@
             alertState.onConfirm?.();
             modals.closeAlert();
         }}
+        variant={alertState.variant ?? 'error'}
     />
     {/await}
 {/if}

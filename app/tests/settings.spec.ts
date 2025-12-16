@@ -35,7 +35,7 @@ test.describe('Settings & Participants', () => {
      // 1. Add Alice
      await page.getByPlaceholder('New name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click(); 
-     await expect(page.getByText('Alice')).toBeVisible();
+     await expect(page.getByText('Alice').first()).toBeVisible();
 
      // 2. Switch Identity to Alice
      // Since we are "Admin", Alice is the only one with a switch button.

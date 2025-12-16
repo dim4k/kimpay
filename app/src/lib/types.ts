@@ -1,3 +1,13 @@
+export interface User {
+    id: string;
+    username: string;
+    email: string;
+    name: string;
+    avatar?: string;
+    created: string;
+    updated: string;
+}
+
 export interface Participant {
     id: string;
     collectionId: string;
@@ -8,8 +18,10 @@ export interface Participant {
     kimpay: string;
     local_id?: string;
     avatar?: string;
+    user?: string; // Linked User ID
     expand?: {
         kimpay?: Kimpay;
+        user?: User;
     };
 }
 

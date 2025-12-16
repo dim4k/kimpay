@@ -10,6 +10,8 @@
   import { generateUUID } from '$lib/utils';
   import type { Kimpay, Participant } from '$lib/types';
   import { storageService } from '$lib/services/storage';
+  import { auth } from '$lib/stores/auth.svelte';
+  import { participantService } from '$lib/services/participant';
 
   let token = $derived(page.params.token);
   let name = $state("");
@@ -20,15 +22,25 @@
 
   onMount(async () => {
     try {
-      kimpay = await pb.collection('kimpays').getFirstListItem<Kimpay>(`invite_token="${token}"`);
-      // Fetch open participants (no local_id) that could be claimed
-      // Actually, we might want to list ALL, but let's just list ones that look claimable or all for now so user can pick 'Is this you?'
-      // For simplicity/security, usually you only list "unclaimed" ones, but we defined "unclaimed" as no local_id or just purely name based?
-      // Our schema has local_id. If it's populated, it's "taken" by a device.
-      participants = await pb.collection('participants').getFullList<Participant>({
-          filter: `kimpay="${kimpay!.id}"`,
-          sort: 'created'
-      });
+      // Use secure endpoint to resolve token (bypassing collection restrictions)
+      const data = await pb.send(`/api/invite/${token}`, {});
+      
+      kimpay = {
+          id: data.id,
+          name: data.name,
+          icon: data.icon,
+          collectionId: 'kimpays',
+          collectionName: 'kimpays',
+          created: '',
+          updated: '',
+          invite_token: token // Assume valid since we are here
+      } as Kimpay;
+      
+      // Participants returned by API
+      participants = data.participants || [];
+      
+      // Sort manually since check
+      participants.sort((a: Participant, b: Participant) => new Date(a.created).getTime() - new Date(b.created).getTime());
 
       // Auto-join if already known
       const storedId = storageService.getMyParticipantId(kimpay!.id);
@@ -55,12 +67,7 @@
     isLoading = true;
     try {
         const local_id = generateUUID();
-        const participant = await pb.collection('participants').create<Participant>({
-            name,
-            kimpay: kimpay.id,
-            local_id
-        });
-        // We generate it but don't strictly need to pass it for persistence now as we use p.id
+        const participant = await participantService.create(kimpay.id, name, local_id, auth.user?.id);
         
         await persistAndRedirect(participant);
     } catch (e) {
@@ -73,13 +80,17 @@
   async function claimParticipant(p: Participant) {
       isLoading = true;
       try {
-          const local_id = generateUUID();
-          // Claims the participant by setting the local_id
-          // Note: If it already had one, we are overwriting it. 
-          // In a "real" app we'd warn, but here "claiming" implies I am this person on this device.
-          const updated = await pb.collection('participants').update<Participant>(p.id, {
-              local_id: local_id
-          });
+          let updated: Participant;
+          
+          if (auth.user) {
+              updated = await participantService.claim(p.id, kimpay!.id, auth.user.id);
+          } else {
+              // Guest mode: use local_id to "claim" ownership on this device
+              const local_id = generateUUID();
+              updated = await pb.collection('participants').update<Participant>(p.id, {
+                  local_id: local_id
+              });
+          }
           
           await persistAndRedirect(updated);
       } catch (e) {
@@ -110,15 +121,28 @@
                     <Label class="text-xs uppercase text-muted-foreground">Existing Profiles</Label>
                     <div class="grid gap-2">
                         {#each participants as p (p.id)}
+                             {@const isLocked = !!p.user && p.user !== auth.user?.id}
+                             {@const isMe = !!p.user && p.user === auth.user?.id}
                              <button 
                                 onclick={() => claimParticipant(p)}
-                                class="flex w-full items-center justify-between p-3 rounded-lg border hover:bg-slate-50 transition-colors text-left group"
-                                disabled={isLoading}
+                                class="flex w-full items-center justify-between p-3 rounded-lg border hover:bg-slate-50 transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isLoading || isLocked}
                              >
-                                <span class="font-medium">{p.name}</span>
-                                <span class="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                    It's Me <ArrowRight class="h-3 w-3" />
-                                </span>
+                                <div class="flex items-center gap-2">
+                                     <span class="font-medium {isLocked ? 'text-muted-foreground' : ''}">{p.name}</span>
+                                     {#if isLocked}
+                                         <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border">Locked</span>
+                                     {/if}
+                                     {#if isMe}
+                                         <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded border border-green-200">Current</span>
+                                     {/if}
+                                </div>
+                                
+                                {#if !isLocked && !isMe}
+                                    <span class="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                        {auth.user ? 'Switch to this' : "It's Me"} <ArrowRight class="h-3 w-3" />
+                                    </span>
+                                {/if}
                              </button>
                         {/each}
                     </div>

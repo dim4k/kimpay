@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins } from "lucide-svelte";
+    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "lucide-svelte";
     import { t } from '$lib/i18n';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
@@ -132,8 +132,8 @@
                         class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-sm"
                         onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
                     >
-                        <Trash2 class="h-4 w-4" />
-                        {$t('common.delete')}
+                        <Undo2 class="h-4 w-4" />
+                        {$t('common.cancel')}
                     </button>
                     
                 {:else}
