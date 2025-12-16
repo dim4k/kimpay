@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"
+    environment:
+      - APP_URL=${APP_URL:-http://localhost:3000}
     volumes:
       - ./pocketbase/pb_data:/pb_data
       - ./pocketbase/pb_migrations:/pb_migrations

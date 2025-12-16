@@ -185,7 +185,8 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
     try {
         const data = new DynamicModel({
             email: "",
-            locale: ""
+            locale: "",
+            url: ""
         });
         
         try {
@@ -224,9 +225,10 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         $app.save(otpRecord);
 
         // Construct URL
-        let origin = $app.settings().meta.appUrl;
+        let origin = data.url;
+        
         if (!origin || origin.trim() === "") {
-             origin = "http://localhost:3000"; 
+             return c.json(400, { message: "Missing url origin" });
         }
         
         const cleanOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
