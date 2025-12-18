@@ -5,14 +5,13 @@
   import { theme } from '$lib/theme';
   import { slide } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
-  import { kimpayStore } from '$lib/stores/kimpay.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
+  import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
   import { recentsService } from '$lib/services/recents.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
 
-  import LoginHelpModal from '$lib/components/ui/LoginHelpModal.svelte';
-  import OfflineHelpModal from '$lib/components/ui/OfflineHelpModal.svelte';
+  import LoginHelpModal from '$lib/components/ui/modals/LoginHelpModal.svelte';
+  import OfflineHelpModal from '$lib/components/ui/modals/OfflineHelpModal.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { afterNavigate, invalidateAll } from '$app/navigation';
   import { auth } from '$lib/stores/auth.svelte';
@@ -29,8 +28,8 @@
   
   // Only show Kimpay context if we are actually on a /k/[id] route
   let isInKimpayContext = $derived(page.url.pathname.startsWith('/k/'));
-  let currentParticipant = $derived(isInKimpayContext ? participantsStore.me : null);
-  let currentKimpay = $derived(isInKimpayContext ? kimpayStore.data : null);
+  let currentParticipant = $derived(isInKimpayContext ? activeKimpayGlobal.myParticipant : null);
+  let currentKimpay = $derived(isInKimpayContext ? activeKimpayGlobal.kimpay : null);
 
   afterNavigate(() => {
       isMenuOpen = false;
@@ -41,7 +40,8 @@
       if (input.files && input.files[0] && currentParticipant) {
            const file = input.files[0];
            try {
-              await participantsStore.update(currentParticipant.id, { avatar: file });
+              // TODO: Move this to ActiveKimpay or ParticipantService
+              await pb.collection('participants').update(currentParticipant.id, { avatar: file });
               // Update global state and UI
               // Repopulation happens via store reactivity now
               await invalidateAll();
@@ -56,7 +56,7 @@
       isMenuOpen = false;
       modals.identity({
           kimpayId: currentKimpay.id,
-          participants: participantsStore.list
+          participants: activeKimpayGlobal.kimpay?.expand?.participants_via_kimpay || []
       });
   }
 

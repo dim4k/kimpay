@@ -1,25 +1,23 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { getContext, onMount } from 'svelte';
+  import { getContext } from 'svelte';
   import { Wallet } from "lucide-svelte"; 
-  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
   import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   
-  // Use the store's currentKimpayId which is guaranteed to be in sync with the data
-  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
+  // Get ActiveKimpay from context
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
   
-  // Use stores
-  let expenses = $derived(expensesStore.list);
-  let participants = $derived(participantsStore.list);
-  let currentUserId = $derived(participantsStore.me?.id ?? null);
-  
-  let isLoading = $state(true);
+  let kimpayId = $derived(activeKimpay?.id ?? '');
+  let expenses = $derived(activeKimpay?.expenses || []);
+  let participants = $derived(activeKimpay?.participants || []);
+  let currentUserId = $derived(activeKimpay?.myParticipantId ?? null);
+  let isLoading = $derived(activeKimpay?.loading ?? true);
 
   // Modal State
   let expenseToDelete = $state<string | null>(null);
@@ -45,30 +43,15 @@
       }
   }
 
-  onMount(async () => {
-      // Layout handles main init. 
-      // Ensure we stop loading if stores are ready. 
-      // If layout failed or is slow, stores might be empty, but initialized.
-      
-      // If not initialized, try to init (shouldn't happen if layout works)
-      if (kimpayId && !expensesStore.isInitialized) {
-          isLoading = true;
-          await expensesStore.init(kimpayId); 
-          isLoading = false;
-      } else {
-          isLoading = false;
-      }
-  });
-
   function requestDelete(id: string) {
       expenseToDelete = id;
   }
 
   async function confirmDelete() {
-      if (!expenseToDelete) return;
+      if (!expenseToDelete || !activeKimpay) return;
       isDeleting = true;
       try {
-          await expensesStore.delete(expenseToDelete, kimpayId);
+          await activeKimpay.deleteExpense(expenseToDelete);
           expenseToDelete = null;
       } catch (e) {
           console.error("Failed to delete", e);
@@ -77,17 +60,9 @@
           isDeleting = false;
       }
   }
-
-  const refreshSignal = getContext<{ count: number }>('refreshSignal');
-  $effect(() => {
-    // This will run when refreshSignal.count changes (triggered by layout)
-    if (refreshSignal && refreshSignal.count > 0) {
-        expensesStore.refresh(kimpayId);
-    }
-  });
 </script>
 
-<main class="container p-4 space-y-6">
+<div class="container p-4 space-y-6">
   <!-- Kimpay Title Section -->
   <header class="space-y-1">
       <div class="flex items-center gap-3">
@@ -142,4 +117,4 @@
       onConfirm={confirmDelete}
       onCancel={() => expenseToDelete = null}
   />
-</main>
+</div>

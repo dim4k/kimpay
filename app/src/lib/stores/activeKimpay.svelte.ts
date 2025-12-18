@@ -1,0 +1,501 @@
+import { pb } from "$lib/pocketbase";
+import { storageService } from "$lib/services/storage";
+import { offlineService } from "$lib/services/offline.svelte";
+import { recentsService } from "$lib/services/recents.svelte";
+import { activeKimpayGlobal } from "$lib/stores/activeKimpayGlobal.svelte";
+import {
+    type Kimpay,
+    type Expense,
+    type Participant,
+    asKimpay,
+    asExpense,
+    asParticipant,
+} from "$lib/types";
+import { calculateDebts, type Transaction } from "$lib/balance";
+import type { RecordSubscription, RecordModel } from "pocketbase";
+
+export class ActiveKimpay {
+    // Raw State
+    kimpay = $state<Kimpay | null>(null);
+    expenses = $state<Expense[]>([]);
+    participants = $state<Participant[]>([]);
+    loading = $state(true);
+    error = $state<string | null>(null);
+
+    // Derived State
+    id: string;
+
+    // Calculate balances for each participant (Positive = is owed, Negative = owes)
+    balances = $derived.by(() => {
+        const bal: Record<string, number> = {};
+        this.participants.forEach((p) => (bal[p.id] = 0));
+
+        for (const expense of this.expenses) {
+            const amount = expense.amount;
+            const payerId = expense.payer;
+
+            // If involved is empty/null, it usually means everyone (legacy) or no one?
+            // In Kimpay logic, usually empty involved means everyone.
+            let involvedIds = expense.involved;
+            if (!involvedIds || involvedIds.length === 0) {
+                involvedIds = this.participants.map((p) => p.id);
+            }
+
+            // Filter out involved IDs that are not in the participants list anymore
+            involvedIds = involvedIds.filter((id) => bal[id] !== undefined);
+
+            if (involvedIds.length === 0) continue;
+
+            const splitAmount = amount / involvedIds.length;
+
+            if (bal[payerId] !== undefined) {
+                bal[payerId] += amount;
+            }
+
+            involvedIds.forEach((id) => {
+                if (bal[id] !== undefined) {
+                    bal[id] -= splitAmount;
+                }
+            });
+        }
+        return bal;
+    });
+
+    totalAmount = $derived(
+        this.expenses.reduce(
+            (sum, e) => sum + (e.is_reimbursement ? 0 : e.amount),
+            0
+        )
+    );
+
+    transactions = $derived<Transaction[]>(
+        calculateDebts(this.expenses, this.participants)
+    );
+
+    myParticipantId = $derived.by(() => {
+        if (!this.kimpay) return null;
+        return storageService.getMyParticipantId(this.kimpay.id);
+    });
+
+    myBalance = $derived.by(() => {
+        const myId = this.myParticipantId;
+        if (!myId || !this.balances[myId]) return 0;
+        return this.balances[myId];
+    });
+
+    constructor(kimpayId: string) {
+        this.id = kimpayId;
+        this.init();
+        $effect(() => {
+            const me =
+                this.participants.find((p) => p.id === this.myParticipantId) ||
+                null;
+            activeKimpayGlobal.set(this.kimpay, me);
+        });
+    }
+
+    async init() {
+        this.loading = true;
+
+        // 1. Cache-First: Load from local storage immediately
+        const cached = storageService.getKimpayData(this.id);
+        if (cached) {
+            this.updateStateFromData(cached);
+            this.loading = false; // Show cached data immediately
+        }
+
+        // 2. Network: Fetch fresh data
+        try {
+            const freshData = await pb.collection("kimpays").getOne(this.id, {
+                expand: "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+            });
+
+            const kimpayData = asKimpay(freshData);
+            this.updateStateFromData(kimpayData);
+
+            // Save to cache
+            storageService.saveKimpayData(this.id, kimpayData);
+
+            // Update Recents list
+            recentsService.addRecentKimpay({
+                id: freshData.id,
+                name: freshData.name,
+                icon: freshData.icon,
+                created_by: freshData.created_by,
+            });
+        } catch (e) {
+            console.error("Failed to load kimpay", e);
+            if (!cached) {
+                this.error = "Failed to load kimpay";
+            }
+        } finally {
+            this.loading = false;
+        }
+
+        // 3. Realtime Subscription
+        this.subscribe();
+    }
+
+    private updateStateFromData(data: Kimpay) {
+        this.kimpay = data;
+        // Extract expanded relations
+        // Note: PocketBase returns 'expand' property.
+        // We need to be careful: if we save to localStorage, we save the whole object with expand.
+
+        if (data.expand) {
+            this.expenses = data.expand.expenses_via_kimpay || [];
+            this.participants = data.expand.participants_via_kimpay || [];
+
+            // Sort expenses by date desc
+            this.expenses.sort(
+                (a, b) =>
+                    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+        }
+    }
+
+    async subscribe() {
+        // Subscribe to the main kimpay record (for name changes, etc)
+        await pb.collection("kimpays").subscribe(this.id, async (e) => {
+            if (e.action === "update") {
+                // We need to be careful not to overwrite expenses/participants if they are not in the event
+                // Usually update event only has the changed fields of the record itself.
+                // So we just update the kimpay info.
+                this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
+            } else if (e.action === "delete") {
+                this.error = "Kimpay deleted";
+                this.kimpay = null;
+            }
+        });
+
+        // Subscribe to expenses
+        // We can't easily subscribe to "expenses where kimpay = ID" efficiently without a filter
+        // But PocketBase allows subscribing to a collection with a filter.
+        await pb.collection("expenses").subscribe("*", (e) => {
+            if (e.record.kimpay === this.id) {
+                this.handleExpenseEvent(e);
+            }
+        });
+
+        // Subscribe to participants
+        await pb.collection("participants").subscribe("*", (e) => {
+            if (e.record.kimpay === this.id) {
+                this.handleParticipantEvent(e);
+            }
+        });
+    }
+
+    private handleExpenseEvent(e: RecordSubscription<RecordModel>) {
+        const record = asExpense(e.record);
+        if (e.action === "create") {
+            // Check if we already have it (optimistic UI)
+            if (!this.expenses.find((ex) => ex.id === record.id)) {
+                this.expenses = [record, ...this.expenses];
+            }
+        } else if (e.action === "update") {
+            this.expenses = this.expenses.map((ex) =>
+                ex.id === record.id ? record : ex
+            );
+        } else if (e.action === "delete") {
+            this.expenses = this.expenses.filter((ex) => ex.id !== record.id);
+        }
+        this.persist();
+    }
+
+    private handleParticipantEvent(e: RecordSubscription<RecordModel>) {
+        const record = asParticipant(e.record);
+        if (e.action === "create") {
+            if (!this.participants.find((p) => p.id === record.id)) {
+                this.participants = [...this.participants, record];
+            }
+        } else if (e.action === "update") {
+            this.participants = this.participants.map((p) =>
+                p.id === record.id ? record : p
+            );
+        } else if (e.action === "delete") {
+            this.participants = this.participants.filter(
+                (p) => p.id !== record.id
+            );
+        }
+        this.persist();
+    }
+
+    // Persist current state to local storage
+    private persist() {
+        if (this.kimpay) {
+            const fullData = {
+                ...this.kimpay,
+                expand: {
+                    expenses_via_kimpay: $state.snapshot(this.expenses),
+                    participants_via_kimpay: $state.snapshot(this.participants),
+                },
+            };
+            storageService.saveKimpayData(this.id, fullData);
+        }
+    }
+
+    // --- Actions ---
+
+    async addExpense(data: Partial<Expense>, photos: File[] = []) {
+        // 1. Optimistic Update
+        const tempId = "temp_" + Date.now();
+        const optimisticExpense = {
+            ...data,
+            id: tempId,
+            kimpay: this.id,
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity
+            created: new Date().toISOString(),
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity
+            updated: new Date().toISOString(),
+            collectionId: "expenses",
+            collectionName: "expenses",
+        } as Expense;
+
+        this.expenses = [optimisticExpense, ...this.expenses];
+        this.persist();
+
+        // 2. Offline / Online Handling
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "CREATE_EXPENSE",
+                { ...data, photos },
+                this.id,
+                tempId
+            );
+            return;
+        }
+
+        try {
+            // Prepare FormData
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (Array.isArray(value)) {
+                    value.forEach((v) => formData.append(key, v));
+                } else {
+                    formData.append(key, String(value));
+                }
+            });
+            photos.forEach((photo) => formData.append("photos", photo));
+            formData.append("kimpay", this.id);
+
+            const record = await pb.collection("expenses").create(formData);
+
+            // Replace temp with real
+            this.expenses = this.expenses.map((e) =>
+                e.id === tempId ? asExpense(record) : e
+            );
+            this.persist();
+        } catch (e) {
+            console.error("Failed to create expense", e);
+            // Rollback
+            this.expenses = this.expenses.filter((e) => e.id !== tempId);
+            this.persist();
+            throw e;
+        }
+    }
+
+    async updateExpense(
+        expenseId: string,
+        data: Partial<Expense>,
+        newPhotos: File[] = [],
+        deletedPhotos: string[] = []
+    ) {
+        // 1. Optimistic Update
+        const originalExpense = this.expenses.find((e) => e.id === expenseId);
+        if (!originalExpense) throw new Error("Expense not found");
+
+        const updatedExpense = {
+            ...originalExpense,
+            ...data,
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity
+            updated: new Date().toISOString(),
+        };
+
+        this.expenses = this.expenses.map((e) =>
+            e.id === expenseId ? updatedExpense : e
+        );
+        this.persist();
+
+        // 2. Offline / Online Handling
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "UPDATE_EXPENSE",
+                { id: expenseId, ...data, newPhotos, deletedPhotos },
+                this.id
+            );
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (Array.isArray(value)) {
+                    value.forEach((v) => formData.append(key, v));
+                } else {
+                    formData.append(key, String(value));
+                }
+            });
+            newPhotos.forEach((photo) => formData.append("photos", photo));
+
+            deletedPhotos.forEach((photo) => {
+                formData.append("photos-", photo);
+            });
+
+            const record = await pb
+                .collection("expenses")
+                .update(expenseId, formData);
+
+            this.expenses = this.expenses.map((e) =>
+                e.id === expenseId ? asExpense(record) : e
+            );
+            this.persist();
+        } catch (e) {
+            console.error("Failed to update expense", e);
+            // Rollback
+            this.expenses = this.expenses.map((e) =>
+                e.id === expenseId ? originalExpense : e
+            );
+            this.persist();
+            throw e;
+        }
+    }
+
+    async deleteExpense(expenseId: string) {
+        const previousExpenses = this.expenses;
+        this.expenses = this.expenses.filter((e) => e.id !== expenseId);
+        this.persist();
+
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "DELETE_EXPENSE",
+                { id: expenseId },
+                this.id
+            );
+            return;
+        }
+
+        try {
+            await pb.collection("expenses").delete(expenseId);
+        } catch (e) {
+            console.error("Failed to delete expense", e);
+            this.expenses = previousExpenses;
+            this.persist();
+            throw e;
+        }
+    }
+
+    async addParticipant(name: string) {
+        // 1. Optimistic
+        const tempId = "temp_p_" + Date.now();
+        const optimisticParticipant = {
+            id: tempId,
+            name,
+            kimpay: this.id,
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity
+            created: new Date().toISOString(),
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity
+            updated: new Date().toISOString(),
+            collectionId: "participants",
+            collectionName: "participants",
+        } as Participant;
+
+        this.participants = [...this.participants, optimisticParticipant];
+        this.persist();
+
+        // 2. Offline / Online
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "CREATE_PARTICIPANT",
+                { name },
+                this.id,
+                tempId
+            );
+            return optimisticParticipant;
+        }
+
+        try {
+            const record = await pb.collection("participants").create({
+                name,
+                kimpay: this.id,
+            });
+
+            this.participants = this.participants.map((p) =>
+                p.id === tempId ? asParticipant(record) : p
+            );
+            this.persist();
+            return asParticipant(record);
+        } catch (e) {
+            console.error("Failed to add participant", e);
+            this.participants = this.participants.filter(
+                (p) => p.id !== tempId
+            );
+            this.persist();
+            throw e;
+        }
+    }
+
+    async updateKimpay(name: string, icon: string) {
+        if (!this.kimpay) return;
+        const previous = { ...this.kimpay };
+        this.kimpay = { ...this.kimpay, name, icon };
+        this.persist();
+
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "UPDATE_KIMPAY",
+                { name, icon },
+                this.id
+            );
+            return;
+        }
+
+        try {
+            await pb.collection("kimpays").update(this.id, { name, icon });
+        } catch (e) {
+            this.kimpay = previous;
+            this.persist();
+            throw e;
+        }
+    }
+
+    async deleteKimpay() {
+        if (offlineService.isOffline) {
+            offlineService.queueAction("DELETE_KIMPAY", {}, this.id);
+            return;
+        }
+        await pb.collection("kimpays").delete(this.id);
+    }
+
+    async deleteParticipant(participantId: string) {
+        const previous = this.participants;
+        this.participants = this.participants.filter(
+            (p) => p.id !== participantId
+        );
+        this.persist();
+
+        if (offlineService.isOffline) {
+            offlineService.queueAction(
+                "DELETE_PARTICIPANT",
+                { id: participantId },
+                this.id
+            );
+            return;
+        }
+
+        try {
+            await pb.collection("participants").delete(participantId);
+        } catch (e) {
+            this.participants = previous;
+            this.persist();
+            throw e;
+        }
+    }
+
+    destroy() {
+        pb.collection("kimpays").unsubscribe(this.id);
+        pb.collection("expenses").unsubscribe("*");
+        pb.collection("participants").unsubscribe("*");
+        activeKimpayGlobal.reset();
+    }
+}

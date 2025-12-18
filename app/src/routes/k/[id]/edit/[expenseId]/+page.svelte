@@ -1,17 +1,17 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { getContext } from 'svelte';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
-  import { pb } from '$lib/pocketbase';
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
-  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
   import { LoaderCircle, Trash2 } from "lucide-svelte";
+  import { t } from '$lib/i18n';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
 
-import { t } from '$lib/i18n';
-import { isNetworkError } from '$lib/utils/errors';
-
-  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
+  
+  let kimpayId = $derived(activeKimpay?.id ?? '');
   let expenseId = $derived((page.params as Record<string, string>).expenseId);
   
   let initialData = $state<unknown>(null);
@@ -20,47 +20,38 @@ import { isNetworkError } from '$lib/utils/errors';
   let showDeleteConfirm = $state(false);
   let isDeleting = $state(false);
 
-  import { offlineService } from '$lib/services/offline.svelte';
-
-  onMount(async () => {
-    try {
-        initialData = await pb.collection('expenses').getOne(expenseId || "");
-    } catch (_e) {
-        // Fallback to offline store if network fails
-        if (offlineService.isOffline || isNetworkError(_e)) {
-             if (!expensesStore.isInitialized) {
-                 await expensesStore.init(kimpayId, [], true);
-             }
-             const found = expensesStore.list.find(e => e.id === expenseId);
-             if (found) {
-                 initialData = found;
-                 return; // Recovered
-             }
-        }
-        
-        console.error(_e);
-        error = "Failed to load expense.";
-    } finally {
-        isLoading = false;
-    }
+  $effect(() => {
+      if (activeKimpay && expenseId) {
+          if (activeKimpay.loading) {
+              isLoading = true;
+          } else {
+              const found = activeKimpay.expenses.find(e => e.id === expenseId);
+              if (found) {
+                  initialData = found;
+                  isLoading = false;
+              } else {
+                  error = "Expense not found";
+                  isLoading = false;
+              }
+          }
+      }
   });
 
   async function handleDelete() {
+      if (!activeKimpay || !expenseId) return;
       isDeleting = true;
       try {
-          await expensesStore.delete(expenseId || "", kimpayId);
-          await goto(`/k/${kimpayId}`);
-      } catch (_e) {
-          console.error("Failed to delete", _e);
-          alert("Failed to delete expense"); 
+          await activeKimpay.deleteExpense(expenseId);
+          goto(`/k/${kimpayId}`);
+      } catch (e) {
+          console.error(e);
       } finally {
           isDeleting = false;
-          showDeleteConfirm = false;
       }
   }
 </script>
 
-<main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors min-h-[calc(100vh-4rem)] pb-24">
+<div class="container p-4 space-y-6 pb-24">
     <header class="space-y-1">
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('expense.edit.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('expense.form.subtitle')}</p>
@@ -98,4 +89,4 @@ import { isNetworkError } from '$lib/utils/errors';
         onConfirm={handleDelete}
         onCancel={() => showDeleteConfirm = false}
     />
-</main>
+</div>

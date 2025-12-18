@@ -1,33 +1,33 @@
 <script lang="ts">
 
-  import { page } from '$app/state';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { pb } from '$lib/pocketbase';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import { getContext } from 'svelte';
   import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table } from "lucide-svelte";
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
   import { auth } from '$lib/stores/auth.svelte';
-  import { kimpayStore } from '$lib/stores/kimpay.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { storageService } from '$lib/services/storage';
   import { getErrorMessage } from '$lib/utils/errors';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import type { Expense } from '$lib/types';
   
   import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
 
+  // Get ActiveKimpay from context
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
   
-  let kimpayId = $derived(kimpayStore.data?.id ?? page.params.id ?? '');
+  let kimpayId = $derived(activeKimpay?.id ?? '');
   
   // Use stores
-  let kimpay = $derived(kimpayStore.data);
-  let participants = $derived(participantsStore.list);
-  let currentParticipantId = $derived(participantsStore.me?.id ?? null);
+  let kimpay = $derived(activeKimpay?.kimpay);
+  let participants = $derived(activeKimpay?.participants || []);
+  let currentParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
 
   // Edit State
@@ -48,25 +48,14 @@
   });
 
   function checkUsage(pId: string): boolean {
-      const allExpenses = expensesStore.list;
+      const allExpenses = activeKimpay?.expenses || [];
       return allExpenses.some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
   }
-
-  onMount(async () => {
-      if (kimpayId) {
-          // Init all needed stores for settings (we need expenses for export/checkUsage too)
-          await Promise.all([
-             kimpayStore.init(kimpayId),
-             participantsStore.init(kimpayId),
-             expensesStore.init(kimpayId)
-          ]);
-      }
-  });
 
   async function handleSave() {
       saveFeedback = "";
       try {
-          await kimpayStore.updateDetails(editName, editIcon);
+          await activeKimpay.updateKimpay(editName, editIcon);
           
           // Recents updated inside store
           saveFeedback = "updated";
@@ -88,11 +77,10 @@
       isAddingParticipant = true;
       addFeedback = "";
       try {
-          await participantsStore.create(kimpayId, newParticipantName);
+          await activeKimpay.addParticipant(newParticipantName);
           newParticipantName = "";
           addFeedback = "added";
           setTimeout(() => addFeedback = "", 2000);
-          // No need to reload, realtime subscription will update participantsStore
       } catch(e) {
           console.error(e);
           modals.alert({ message: getErrorMessage(e, $t) });
@@ -120,12 +108,11 @@
                variant: 'destructive',
                onConfirm: async () => {
                    const isSelf = pId === currentParticipantId;
-                   await pb.collection('participants').delete(pId); // TODO: Move to participantsStore if offline needed
+                   await activeKimpay.deleteParticipant(pId);
                    if (isSelf) {
                        storageService.removeRecentKimpay(kimpayId);
                        window.location.reload();
                    } else {
-                       // No need to reload, realtime subscription will update store
                        isDeletingParticipant = null;
                    }
                },
@@ -161,7 +148,7 @@
              
              if (canDelete && participantId) {
                  try {
-                     await pb.collection('participants').delete(participantId);
+                     await activeKimpay.deleteParticipant(participantId);
                  } catch (e) {
                      console.warn("Could not delete participant from server", e);
                  }
@@ -183,7 +170,7 @@
           confirmText: $t('common.delete'),
           variant: 'destructive',
           onConfirm: async () => {
-            await kimpayStore.delete(kimpayId);
+            await activeKimpay.deleteKimpay();
             const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
             delete myKimpays[kimpayId];
             localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
@@ -200,7 +187,6 @@
           confirmText: $t('common.save'), // or 'Switch'
           onConfirm: () => {
               storageService.setMyParticipantId(kimpayId, pId);
-              participantsStore.setMyIdentity(kimpayId);
               window.location.reload(); // Simple reload to refresh all state/derived
           }
       });
@@ -210,8 +196,8 @@
       try {
           if (!kimpay) return;
 
-          const expenses = expensesStore.list;
-          const participantsList = participantsStore.list;
+          const expenses = activeKimpay?.expenses || [];
+          const participantsList = activeKimpay?.participants || [];
           
           // Map for quick lookup
           const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));
@@ -223,7 +209,7 @@
               // CSV Header
               content += `${$t('export.col.date')},${$t('export.col.desc')},${$t('export.col.amount')},${$t('export.col.payer')},${$t('export.col.for')}\n`;
               
-              expenses.forEach((e) => {
+              expenses.forEach((e: Expense) => {
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = `"${(e.description || '').replace(/"/g, '""')}"`;
                   const amount = e.amount.toFixed(2);
@@ -248,7 +234,7 @@
               content += `|:---:|---|---|---|---|---|\n`;
               
               
-              expenses.forEach((e) => {
+              expenses.forEach((e: Expense) => {
                   const icon = e.icon || '💸';
                   const date = new Date(e.date).toLocaleDateString();
                   const desc = (e.description || '').replace(/\|/g, '-'); 
@@ -282,8 +268,7 @@
   }
 </script>
 
-<div class="flex flex-col bg-slate-50 dark:bg-background transition-colors">
-    <main class="container p-4 space-y-6">
+<div class="container p-4 space-y-6">
         <header class="space-y-1">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('settings.title')}</h1>
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
@@ -530,5 +515,4 @@
         <div class="text-center text-xs text-muted-foreground pt-2">
             Kimpay v{__APP_VERSION__}
         </div>
-    </main>
 </div>

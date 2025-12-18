@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { UserPlus, LoaderCircle, AlertCircle, CheckCircle } from "lucide-svelte";
+    import { UserPlus, LoaderCircle, CircleAlert, CircleCheck } from "lucide-svelte";
     import { t, locale } from '$lib/i18n';
     import BaseInfoModal from './BaseInfoModal.svelte';
     import { Input } from "$lib/components/ui/input";
@@ -71,7 +71,7 @@
 >
     {#if success}
         <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3 text-green-700 dark:text-green-300" transition:slide>
-            <CheckCircle class="h-5 w-5 shrink-0" />
+            <CircleCheck class="h-5 w-5 shrink-0" />
             <div class="text-sm">
                 <p class="font-medium">{$t('register.success_title')}</p>
                 <p class="text-xs opacity-90">{$t('register.success_desc')}</p>
@@ -105,7 +105,7 @@
 
                 {#if error}
                     <div class="flex items-center gap-2 text-xs text-red-500" transition:slide>
-                        <AlertCircle class="h-3 w-3" />
+                        <CircleAlert class="h-3 w-3" />
                         <span>{error}</span>
                     </div>
                 {/if}

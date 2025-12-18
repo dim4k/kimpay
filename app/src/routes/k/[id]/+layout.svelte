@@ -3,9 +3,8 @@
   import { ChartPie, Settings, Share2, Wallet } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
+  import { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   
-  
-  import { participantsStore } from '$lib/stores/participants.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { goto, afterNavigate } from '$app/navigation';
   import { fabState } from '$lib/stores/fab.svelte';
@@ -14,11 +13,26 @@
   import { storageService } from '$lib/services/storage';
   import NavItem from '$lib/components/ui/NavItem.svelte';
   
-  let { children, data } = $props();
+  let { children } = $props();
   
-  // Rely on data prop which is updated by load function
-  let kimpayId = $derived(data.kimpay?.id ?? page.params.id ?? '');
-  let participants = $derived(data.participants || []);
+  // Initialize ActiveKimpay
+  let activeKimpay = $state<ActiveKimpay>();
+  
+  $effect(() => {
+      const id = page.params.id;
+      if (activeKimpay?.id !== id) {
+          activeKimpay?.destroy();
+          if (id) activeKimpay = new ActiveKimpay(id);
+      }
+      return () => activeKimpay?.destroy();
+  });
+
+  // Provide context
+  setContext('ACTIVE_KIMPAY', { get value() { return activeKimpay; } });
+
+  // Derived values
+  let kimpayId = $derived(activeKimpay?.id ?? page.params.id ?? '');
+  let participants = $derived(activeKimpay?.participants || []);
 
   $effect(() => {
       // Ensure defaults when kimpayId changes or route changes not handled by child
@@ -114,7 +128,7 @@
           });
       } else {
           // Just ensure the participant identity is set in the store  
-          participantsStore.setMyIdentity(kimpayId);
+          // participantsStore.setMyIdentity(kimpayId);
       }
   }
 

@@ -8,14 +8,14 @@
     import { fade } from 'svelte/transition';
     import { recentsService } from '$lib/services/recents.svelte';
     import { storageService } from '$lib/services/storage';
-    import { kimpayStore } from '$lib/stores/kimpay.svelte';
+    import { kimpayService } from '$lib/services/kimpay';
     import { offlineService } from '$lib/services/offline.svelte';
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
     import { isValidEmail } from '$lib/utils';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
-    import EmailHelpModal from '$lib/components/ui/EmailHelpModal.svelte';
+    import EmailHelpModal from '$lib/components/ui/modals/EmailHelpModal.svelte';
     import { Info } from "lucide-svelte";
 
     let kimpayName = $state("");
@@ -61,7 +61,7 @@
 
         isLoading = true;
         try {
-            const { id: kimpayId, creatorId } = await kimpayStore.create(
+            const { id: kimpayId, creatorId } = await kimpayService.create(
                 kimpayName,
                 kimpayIcon,
                 creatorName,
@@ -78,6 +78,7 @@
             // We should ensure kimpayStore.create or this caller handles "Recents" + "MyIdentity"
             // kimpayStore.create handles offline queue for server sync.
             // Client side state:
+            storageService.setMyParticipantId(kimpayId, creatorId);
             recentsService.addRecentKimpay({
                 id: kimpayId,
                 name: kimpayName,

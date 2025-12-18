@@ -4,7 +4,7 @@
     import { offlineService } from '$lib/services/offline.svelte';
     import { recentsService } from '$lib/services/recents.svelte';
     import { fade } from 'svelte/transition';
-    import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+    import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
     import { pb } from '$lib/pocketbase';
     import type { RecordModel } from 'pocketbase';
     import { storageService } from '$lib/services/storage';
