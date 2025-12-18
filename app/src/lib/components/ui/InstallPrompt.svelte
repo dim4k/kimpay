@@ -4,16 +4,17 @@
   import { fly } from 'svelte/transition';
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
+  import { get, set } from 'idb-keyval';
 
   let showPrompt = $state(false);
 
-  onMount(() => {
+  onMount(async () => {
     // Listen for the beforeinstallprompt event
-    window.addEventListener('beforeinstallprompt', (e) => {
+    window.addEventListener('beforeinstallprompt', async (e) => {
       // Update UI notify the user they can install the PWA
       // BUT ONLY ON MOBILE
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isDismissed = localStorage.getItem('kimpay_install_dismissed') === 'true';
+      const isDismissed = (await get('kimpay_install_dismissed')) === 'true';
 
       if (isMobile && !isDismissed && !installStore.isStandalone) {
           // Prevent the mini-infobar from appearing on mobile
@@ -27,7 +28,7 @@
 
     // iOS Check on mount
     const isMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isDismissed = localStorage.getItem('kimpay_install_dismissed') === 'true';
+    const isDismissed = (await get('kimpay_install_dismissed')) === 'true';
     if (isMobile && !isDismissed && !installStore.isStandalone && installStore.isIOS) {
         showPrompt = true;
     }
@@ -36,13 +37,13 @@
   async function handleInstall() {
     await installStore.install();
     if (!installStore.isIOS) {
-        localStorage.setItem('kimpay_install_dismissed', 'true');
+        await set('kimpay_install_dismissed', 'true');
         showPrompt = false;
     }
   }
 
-  function dismiss() {
-    localStorage.setItem('kimpay_install_dismissed', 'true');
+  async function dismiss() {
+    await set('kimpay_install_dismissed', 'true');
     showPrompt = false;
     installStore.showIOSInstructions = false;
   }

@@ -30,7 +30,7 @@
         if (!kimpayToLeave) return;
         isLeaving = true;
         try {
-            const participantId = storageService.getMyParticipantId(kimpayToLeave);
+            const participantId = await storageService.getMyParticipantId(kimpayToLeave);
             const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {

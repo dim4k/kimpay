@@ -72,10 +72,7 @@ export class ActiveKimpay {
         calculateDebts(this.expenses, this.participants)
     );
 
-    myParticipantId = $derived.by(() => {
-        if (!this.kimpay) return null;
-        return storageService.getMyParticipantId(this.kimpay.id);
-    });
+    myParticipantId = $state<string | null>(null);
 
     myBalance = $derived.by(() => {
         const myId = this.myParticipantId;
@@ -97,8 +94,11 @@ export class ActiveKimpay {
     async init() {
         this.loading = true;
 
+        // Load identity
+        this.myParticipantId = await storageService.getMyParticipantId(this.id);
+
         // 1. Cache-First: Load from local storage immediately
-        const cached = storageService.getKimpayData(this.id);
+        const cached = await storageService.getKimpayData(this.id);
         if (cached) {
             this.updateStateFromData(cached);
             this.loading = false; // Show cached data immediately
@@ -114,7 +114,7 @@ export class ActiveKimpay {
             this.updateStateFromData(kimpayData);
 
             // Save to cache
-            storageService.saveKimpayData(this.id, kimpayData);
+            await storageService.saveKimpayData(this.id, kimpayData);
 
             // Update Recents list
             recentsService.addRecentKimpay({

@@ -36,10 +36,10 @@
         if (!user) return;
         
         // Get ALL kimpays where this device has a participant identity
-        const recentKimpayIds = storageService.getRecentKimpayIds();
+        const recentKimpayIds = await storageService.getRecentKimpayIds();
         
         for (const kimpayId of recentKimpayIds) {
-            const participantId = storageService.getMyParticipantId(kimpayId);
+            const participantId = await storageService.getMyParticipantId(kimpayId);
             if (!participantId) continue;
             
             try {
@@ -54,9 +54,12 @@
         myKimpays.load(true);
     }
     
-    onMount(() => {
+    onMount(async () => {
+        const migrated = await storageService.migrate();
         theme.init();
-        recentsService.init();
+        
+        // If migration happened, force reload recents because they might have been initialized empty by +page.svelte
+        recentsService.init(migrated);
         auth.init();
         
         if ('serviceWorker' in navigator && import.meta.env.PROD) {

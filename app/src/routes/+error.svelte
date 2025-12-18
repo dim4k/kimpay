@@ -6,7 +6,14 @@
   import { House, WifiOff } from "lucide-svelte";
 
   const isOffline = $derived(offlineService.isOffline);
-  const hasRecentKimpays = $derived(storageService.getRecentKimpayIds().length > 0);
+  let hasRecentKimpays = $state(false);
+  
+  $effect(() => {
+      storageService.getRecentKimpayIds().then(ids => {
+          hasRecentKimpays = ids.length > 0;
+      });
+  });
+
   const errorStatus = $derived($page.status);
 </script>
 

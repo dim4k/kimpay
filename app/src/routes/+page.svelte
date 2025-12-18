@@ -11,7 +11,6 @@
   import { offlineService } from '$lib/services/offline.svelte';
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth.svelte';
-  import { browser } from '$app/environment';
   import { Plus, ArrowRight, CloudOff } from 'lucide-svelte';
   import { t } from '$lib/i18n';
 
@@ -28,12 +27,6 @@
   $effect(() => {
       if (recentsService.initialized) {
           showHero = recentsService.recentKimpays.length === 0;
-      } else if (browser) {
-          // Fallback optimistic check while loading
-           const raw = localStorage.getItem('my_kimpays');
-           if (!raw || raw === "{}") {
-               showHero = true;
-           }
       }
   });
 

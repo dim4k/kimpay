@@ -135,7 +135,6 @@
           variant: 'destructive',
           onConfirm: async () => {
              // Safe Delete Logic
-             const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
              const participantId = currentParticipantId; 
              let canDelete = true;
 
@@ -154,9 +153,7 @@
                  }
              }
 
-            delete myKimpays[kimpayId];
-            localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-            localStorage.removeItem(`kimpay_user_${kimpayId}`);
+            await storageService.removeRecentKimpay(kimpayId);
             await goto('/');
           }
       });
@@ -171,10 +168,7 @@
           variant: 'destructive',
           onConfirm: async () => {
             await activeKimpay.deleteKimpay();
-            const myKimpays = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-            delete myKimpays[kimpayId];
-            localStorage.setItem('my_kimpays', JSON.stringify(myKimpays));
-            localStorage.removeItem(`kimpay_user_${kimpayId}`);
+            await storageService.removeRecentKimpay(kimpayId);
             await goto('/');
           }
       });

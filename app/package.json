@@ -43,6 +43,7 @@
 	},
 	"dependencies": {
 		"html5-qrcode": "^2.3.8",
+		"idb-keyval": "^6.2.2",
 		"pocketbase": "^0.26.5",
 		"qrcode": "^1.5.3"
 	}

@@ -13,6 +13,7 @@
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
   import { offlineService } from '$lib/services/offline.svelte';
+  import { storageService } from '$lib/services/storage';
   import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { Check, LoaderCircle } from "lucide-svelte";
@@ -64,9 +65,9 @@
       }
 
       if (!initialData && !payer) {
-          const myIds = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          if (myIds[kimpayId]) {
-              payer = myIds[kimpayId];
+          const myId = await storageService.getMyParticipantId(kimpayId);
+          if (myId) {
+              payer = myId;
           }
       }
 

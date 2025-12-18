@@ -9,12 +9,12 @@ class RecentsService {
     loading = $state(false);
     initialized = $state(false);
 
-    async init() {
-        if (this.initialized || this.loading) return;
+    async init(force = false) {
+        if ((this.initialized || this.loading) && !force) return;
 
         try {
             this.loading = true;
-            const ids = storageService.getRecentKimpayIds();
+            const ids = await storageService.getRecentKimpayIds();
 
             if (ids.length === 0) {
                 this.recentKimpays = [];
@@ -24,7 +24,7 @@ class RecentsService {
 
             // Offline First Strategy
             if (offlineService.isOffline) {
-                this.loadFromCache(ids);
+                await this.loadFromCache(ids);
                 this.initialized = true;
                 return;
             }
@@ -39,7 +39,8 @@ class RecentsService {
                         status: "found" as const,
                     }))
                     .catch((err) => {
-                        if (err.status === 0) return { id, status: "network_error" as const };
+                        if (err.status === 0)
+                            return { id, status: "network_error" as const };
                         if (err.status === 404 || err.status === 403)
                             return { id, status: "missing" as const };
                         return { id, status: "error" as const };
@@ -48,15 +49,23 @@ class RecentsService {
 
             const results = await Promise.all(promises);
 
-            if (results.some(r => r.status === 'network_error')) {
-                 offlineService.setOffline(true);
-                 this.loadFromCache(ids);
-                 this.initialized = true;
-                 return;
+            if (results.some((r) => r.status === "network_error")) {
+                offlineService.setOffline(true);
+                await this.loadFromCache(ids);
+                this.initialized = true;
+                return;
             }
 
             const fetchedItems = results
-                .filter((r): r is { id: string; data: RecentKimpay; status: "found" } => r.status === "found")
+                .filter(
+                    (
+                        r
+                    ): r is {
+                        id: string;
+                        data: RecentKimpay;
+                        status: "found";
+                    } => r.status === "found"
+                )
                 .map((r) => r.data);
 
             const missingIds = results
@@ -82,7 +91,9 @@ class RecentsService {
                             this.removeRecentKimpay(e.record.id);
                         }
                     })
-                    .catch((err) => console.warn("Failed to subscribe to", item.id, err));
+                    .catch((err) =>
+                        console.warn("Failed to subscribe to", item.id, err)
+                    );
             });
         } catch (e) {
             console.error("Failed to load recent kimpays", e);
@@ -91,15 +102,15 @@ class RecentsService {
         }
     }
 
-    private loadFromCache(ids: string[]) {
+    private async loadFromCache(ids: string[]) {
         const offlineItems: RecentKimpay[] = [];
         for (const id of ids) {
-            const cached = storageService.getKimpayData(id);
+            const cached = await storageService.getKimpayData(id);
             if (cached) {
                 const item: RecentKimpay = {
                     id: cached.id,
                     name: cached.name,
-                    created_by: cached.created_by
+                    created_by: cached.created_by,
                 };
                 if (cached.icon) item.icon = cached.icon;
                 offlineItems.push(item);
@@ -116,20 +127,24 @@ class RecentsService {
         if (!kimpay || !kimpay.id) return;
         if (!this.recentKimpays.find((k) => k.id === kimpay.id)) {
             this.recentKimpays = [kimpay, ...this.recentKimpays];
-            
+
             // Subscribe if possible
             if (!offlineService.isOffline) {
                 try {
-                     pb.collection("kimpays")
+                    pb.collection("kimpays")
                         .subscribe(kimpay.id, (e) => {
                             if (e.action === "update") {
-                                this.updateRecentKimpay(asRecentKimpay(e.record));
+                                this.updateRecentKimpay(
+                                    asRecentKimpay(e.record)
+                                );
                             } else if (e.action === "delete") {
                                 this.removeRecentKimpay(e.record.id);
                             }
                         })
                         .catch(() => {});
-                } catch { /* ignore */ }
+                } catch {
+                    /* ignore */
+                }
             }
         } else {
             this.updateRecentKimpay(kimpay);

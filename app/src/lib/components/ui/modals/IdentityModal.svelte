@@ -41,7 +41,9 @@
       } else {
         // Try local storage
         if (kimpayId) {
-             selectedParticipantId = storageService.getMyParticipantId(kimpayId);
+             storageService.getMyParticipantId(kimpayId).then(id => {
+                 if (id) selectedParticipantId = id;
+             });
         }
       }
   });

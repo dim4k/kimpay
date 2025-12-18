@@ -16,10 +16,13 @@ class OfflineService {
 
             // Global Network Error Interceptor
             const originalSend = pb.send;
-            pb.send = async <T = unknown>(path: string, options: Record<string, unknown>): Promise<T> => {
+            pb.send = async <T = unknown>(
+                path: string,
+                options: Record<string, unknown>
+            ): Promise<T> => {
                 try {
                     const result = await originalSend.call(pb, path, options);
-                    if (this.isOffline && path !== '/api/health') {
+                    if (this.isOffline && path !== "/api/health") {
                         this.setOffline(false);
                     }
                     return result as T;
@@ -54,14 +57,14 @@ class OfflineService {
     private startHealthCheck() {
         if (this.healthCheckInterval) return;
         this.healthCheckInterval = setInterval(async () => {
-             try {
-                 const health = await pb.health.check();
-                 if (health.code === 200) {
-                     this.setOffline(false);
-                 }
-             } catch (_) {
-                 // Still offline
-             }
+            try {
+                const health = await pb.health.check();
+                if (health.code === 200) {
+                    this.setOffline(false);
+                }
+            } catch (_) {
+                // Still offline
+            }
         }, 3000);
     }
 
@@ -72,22 +75,29 @@ class OfflineService {
         }
     }
 
-    queueAction(type: PendingAction['type'], payload: Record<string, unknown>, kimpayId: string, id?: string) {
-        const actionId = id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    queueAction(
+        type: PendingAction["type"],
+        payload: Record<string, unknown>,
+        kimpayId: string,
+        id?: string
+    ) {
+        const actionId =
+            id ||
+            `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         storageService.savePendingAction({
             id: actionId,
             type,
             payload,
             timestamp: Date.now(),
-            kimpayId
+            kimpayId,
         });
         return actionId;
     }
 
     async processPendingQueue() {
         if (this.isSyncing || this.isOffline) return;
-        
-        const queue = storageService.getPendingActions();
+
+        const queue = await storageService.getPendingActions();
         if (queue.length === 0) return;
 
         this.isSyncing = true;
@@ -99,61 +109,74 @@ class OfflineService {
                 try {
                     // Clone payload to allow modification
                     const payload = { ...action.payload };
-                    
+
                     // Replace Payer Dependency
-                    if (typeof payload.payer === 'string' && payload.payer in idMapping) {
+                    if (
+                        typeof payload.payer === "string" &&
+                        payload.payer in idMapping
+                    ) {
                         payload.payer = idMapping[payload.payer];
                     }
-                    
+
                     // Replace Involved Dependency
                     if (Array.isArray(payload.involved)) {
-                        payload.involved = payload.involved.map((id: string) => idMapping[id] || id);
+                        payload.involved = payload.involved.map(
+                            (id: string) => idMapping[id] || id
+                        );
                     }
-                    
+
                     // Replace "created_by" Dependency
-                    if (typeof payload.created_by === 'string' && payload.created_by in idMapping) {
+                    if (
+                        typeof payload.created_by === "string" &&
+                        payload.created_by in idMapping
+                    ) {
                         payload.created_by = idMapping[payload.created_by];
                     }
 
-                    if (action.type === 'CREATE_PARTICIPANT') {
-                         const record = await pb.collection('participants').create(payload);
-                         idMapping[action.id] = record.id;
-                    }
-                    else if (action.type === 'CREATE_EXPENSE') {
+                    if (action.type === "CREATE_PARTICIPANT") {
+                        const record = await pb
+                            .collection("participants")
+                            .create(payload);
+                        idMapping[action.id] = record.id;
+                    } else if (action.type === "CREATE_EXPENSE") {
                         // Reconstruct FormData for expense
                         const formData = new FormData();
-                        
+
                         // Use the action ID as the record ID if it's not a temp-timestamp
-                        if (!action.id.startsWith('temp_')) {
-                            formData.append('id', action.id);
+                        if (!action.id.startsWith("temp_")) {
+                            formData.append("id", action.id);
                         }
 
                         Object.entries(payload).forEach(([key, value]) => {
-                             if (Array.isArray(value)) {
-                                 value.forEach(v => formData.append(key, v as string));
-                             } else {
-                                 formData.append(key, value as string);
-                             }
+                            if (Array.isArray(value)) {
+                                value.forEach((v) =>
+                                    formData.append(key, v as string)
+                                );
+                            } else {
+                                formData.append(key, value as string);
+                            }
                         });
 
-                        const record = await pb.collection('expenses').create(formData);
+                        const record = await pb
+                            .collection("expenses")
+                            .create(formData);
                         idMapping[action.id] = record.id;
-                    } 
-                    else if (action.type === 'DELETE_EXPENSE') {
-                         await pb.collection("expenses").delete(action.payload.id as string);
-                    }
-                    else if (action.type === 'CREATE_KIMPAY') {
-                        await pb.collection('kimpays').create(payload);
-                    }
-                    else if (action.type === 'UPDATE_KIMPAY') {
+                    } else if (action.type === "DELETE_EXPENSE") {
+                        await pb
+                            .collection("expenses")
+                            .delete(action.payload.id as string);
+                    } else if (action.type === "CREATE_KIMPAY") {
+                        await pb.collection("kimpays").create(payload);
+                    } else if (action.type === "UPDATE_KIMPAY") {
                         // Use kimpayId from action if payload doesn't have ID, or payload might have it?
                         // kimpayStore.updateDetails queues {name, icon}
-                        await pb.collection('kimpays').update(action.kimpayId, payload);
+                        await pb
+                            .collection("kimpays")
+                            .update(action.kimpayId, payload);
+                    } else if (action.type === "DELETE_KIMPAY") {
+                        await pb.collection("kimpays").delete(action.kimpayId);
                     }
-                    else if (action.type === 'DELETE_KIMPAY') {
-                        await pb.collection('kimpays').delete(action.kimpayId);
-                    }
-                    
+
                     storageService.removePendingAction(action.id);
                 } catch (e) {
                     console.error("Failed to sync action", action.id, e);
