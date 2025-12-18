@@ -128,14 +128,15 @@ export const en = {
     "balance.owed_to_you": "YOU ARE OWED",
 
     "balance.settle.modal.title": "Settle Debt?",
-    "balance.settle.modal.desc":
-        "Mark {amount} as paid from {from} to {to}?",
+    "balance.settle.modal.desc": "Mark {amount} as paid from {from} to {to}?",
     "balance.settle.confirm": "Confirm Payment",
     "balance.reimbursement": "Reimbursement",
     "balance.status": "STATUS",
     "balance.all_good": "All good 😎",
-    "balance.reimbursement.offline_unavailable": "Reimbursements are not available offline.",
-    "balance.offline_warning": "You're offline. Balances are based on cached data and may be outdated.",
+    "balance.reimbursement.offline_unavailable":
+        "Reimbursements are not available offline.",
+    "balance.offline_warning":
+        "You're offline. Balances are based on cached data and may be outdated.",
     "common.offline": "Offline",
     "common.offline_edit_error": "Cannot edit expenses while offline",
 
@@ -155,15 +156,13 @@ export const en = {
     "offline.modal.cannot_do": "Not available:",
     "offline.modal.no_reimburse": "Reimbursements & Photos",
     "offline.modal.no_sync": "Syncing with others",
-    "offline.modal.sync_info": "Data validates locally and syncs automatically when online.",
+    "offline.modal.sync_info":
+        "Data validates locally and syncs automatically when online.",
     "common.got_it": "Got it",
 
-    "sync.syncing": "Syncing...",
-    "sync.pending": "pending",
-    "sync.offline": "Offline",
-
     "error.offline.title": "You're offline",
-    "error.offline.desc": "This page isn't cached on your device. Check your connection.",
+    "error.offline.desc":
+        "This page isn't cached on your device. Check your connection.",
     "error.offline.view_cached": "View cached Kimpays",
     "error.network": "Connection error. Please try again.",
     "error.generic": "Something went wrong. Please try again.",
@@ -192,8 +191,7 @@ export const en = {
     "settings.export.desc":
         "Download a summary of this Kimpay including all expenses and participants.",
     "settings.bug_report.title": "Report a Bug",
-    "settings.bug_report.desc":
-        "Encountered an issue? Let us know on GitHub.",
+    "settings.bug_report.desc": "Encountered an issue? Let us know on GitHub.",
     "settings.bug_report.button": "Open GitHub Issue",
     "settings.export.csv": "CSV",
     "settings.export.md": "Markdown",
@@ -212,10 +210,12 @@ export const en = {
     "error.email.invalid.title": "Invalid Email",
     "error.email.invalid.message": "Please enter a valid email address",
     "home.create.existing_user_modal.title": "Check your email",
-    "home.create.existing_user_modal.message": "It looks like this email is already registered. We've sent you a magic link to log in using this email. You may need to log in to access full features.",
+    "home.create.existing_user_modal.message":
+        "It looks like this email is already registered. We've sent you a magic link to log in using this email. You may need to log in to access full features.",
     "auth.logout": "Logout",
     "auth.magic_link_error_title": "Invalid Link",
-    "auth.magic_link_error_desc": "This link is invalid or has expired. Please request a new one.",
+    "auth.magic_link_error_desc":
+        "This link is invalid or has expired. Please request a new one.",
     "my_kimpays.title": "My Kimpays",
     "my_kimpays.empty": "You have not joined any Kimpays yet.",
 
@@ -238,16 +238,19 @@ export const en = {
     "register.success_desc": "Check your email to log in.",
     "register.error_exists": "Account already exists. Please log in.",
 
-
     "email_help.modal.title": "Why your email?",
-    "email_help.modal.desc": "We use your email to secure your access to Kimpay.",
+    "email_help.modal.desc":
+        "We use your email to secure your access to Kimpay.",
     "email_help.modal.point1.title": "Magic Link Login",
-    "email_help.modal.point1.desc": "We send you a secure link to log in. No password to remember.",
+    "email_help.modal.point1.desc":
+        "We send you a secure link to log in. No password to remember.",
     "email_help.modal.point2.title": "Account Recovery",
-    "email_help.modal.point2.desc": "If you lose access to this device, your email is the only way to recover your kimpays.",
+    "email_help.modal.point2.desc":
+        "If you lose access to this device, your email is the only way to recover your kimpays.",
 
     "login_help.modal.title": "Login / Recover",
-    "login_help.modal.desc": "Secure your access and find your kimpays everywhere.",
+    "login_help.modal.desc":
+        "Secure your access and find your kimpays everywhere.",
     "login_help.button": "Login",
 
     "common.hello": "Hello",
@@ -257,10 +260,12 @@ export const en = {
     "home.join.accordion_title": "Join a Kimpay",
 
     "home.offline.title": "You're offline",
-    "home.offline.desc": "Create or join a Kimpay when you're back online. Your cached Kimpays are still available below.",
+    "home.offline.desc":
+        "Create or join a Kimpay when you're back online. Your cached Kimpays are still available below.",
 
     "join.offline.title": "Connection required",
-    "join.offline.desc": "Joining a Kimpay requires an internet connection. Please try again when you're online.",
+    "join.offline.desc":
+        "Joining a Kimpay requires an internet connection. Please try again when you're online.",
     "common.back_home": "Back to Home",
 } as const;
 

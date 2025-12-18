@@ -2,7 +2,6 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
     import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
-    import SyncIndicator from "$lib/components/ui/SyncIndicator.svelte";
     import GlobalModals from "$lib/components/GlobalModals.svelte";
     import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
     import { locale, t } from '$lib/i18n';
@@ -166,7 +165,6 @@
 
 </div>
 
-<SyncIndicator />
 <InstallPrompt />
 <GlobalModals />
 

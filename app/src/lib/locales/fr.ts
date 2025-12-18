@@ -1,4 +1,4 @@
-import type { TranslationKey } from './en';
+import type { TranslationKey } from "./en";
 
 export const fr: Record<TranslationKey, string> = {
     "app.name": "Kimpay",
@@ -138,10 +138,13 @@ export const fr: Record<TranslationKey, string> = {
     "balance.reimbursement": "Remboursement",
     "balance.status": "STATUT",
     "balance.all_good": "Tout bon 😎",
-    "balance.reimbursement.offline_unavailable": "Les remboursements ne sont pas disponibles hors ligne.",
-    "balance.offline_warning": "Vous êtes hors ligne. Les soldes sont basés sur les données en cache et peuvent être obsolètes.",
+    "balance.reimbursement.offline_unavailable":
+        "Les remboursements ne sont pas disponibles hors ligne.",
+    "balance.offline_warning":
+        "Vous êtes hors ligne. Les soldes sont basés sur les données en cache et peuvent être obsolètes.",
     "common.offline": "Hors ligne",
-    "common.offline_edit_error": "Impossible de modifier les dépenses hors ligne",
+    "common.offline_edit_error":
+        "Impossible de modifier les dépenses hors ligne",
 
     "share.title": "Rejoindre",
     "share.desc": "Scannez pour rejoindre",
@@ -152,22 +155,21 @@ export const fr: Record<TranslationKey, string> = {
     "share.copy_button": "Copier le lien",
 
     "offline.modal.title": "Mode Hors Ligne",
-    "offline.modal.desc": "Vous pouvez continuer à utiliser Kimpay avec des limitations.",
+    "offline.modal.desc":
+        "Vous pouvez continuer à utiliser Kimpay avec des limitations.",
     "offline.modal.can_do": "Vous pouvez :",
     "offline.modal.can_view": "Voir vos groupes récents",
     "offline.modal.can_create": "Ajouter dépenses & participants",
     "offline.modal.cannot_do": "Indisponible :",
     "offline.modal.no_reimburse": "Remboursements & Photos",
     "offline.modal.no_sync": "Synchronisation avec les autres",
-    "offline.modal.sync_info": "Vos données sont sauvegardées et se synchroniseront une fois en ligne.",
+    "offline.modal.sync_info":
+        "Vos données sont sauvegardées et se synchroniseront une fois en ligne.",
     "common.got_it": "Compris",
 
-    "sync.syncing": "Synchronisation...",
-    "sync.pending": "en attente",
-    "sync.offline": "Hors ligne",
-
     "error.offline.title": "Vous êtes hors ligne",
-    "error.offline.desc": "Cette page n'est pas en cache sur votre appareil. Vérifiez votre connexion.",
+    "error.offline.desc":
+        "Cette page n'est pas en cache sur votre appareil. Vérifiez votre connexion.",
     "error.offline.view_cached": "Voir les Kimpays en cache",
     "error.network": "Erreur de connexion. Veuillez réessayer.",
     "error.generic": "Une erreur s'est produite. Veuillez réessayer.",
@@ -216,10 +218,12 @@ export const fr: Record<TranslationKey, string> = {
     "error.email.invalid.title": "Email Invalide",
     "error.email.invalid.message": "Veuillez entrer une adresse email valide",
     "home.create.existing_user_modal.title": "Vérifiez vos emails",
-    "home.create.existing_user_modal.message": "Il semble que cet email soit déjà enregistré. Nous vous avons envoyé un lien magique pour vous connecter. Vous devrez peut-être vous connecter pour accéder à toutes les fonctionnalités.",
+    "home.create.existing_user_modal.message":
+        "Il semble que cet email soit déjà enregistré. Nous vous avons envoyé un lien magique pour vous connecter. Vous devrez peut-être vous connecter pour accéder à toutes les fonctionnalités.",
     "auth.logout": "Se déconnecter",
     "auth.magic_link_error_title": "Lien invalide ou expiré",
-    "auth.magic_link_error_desc": "Ce lien n'est plus valide. Veuillez en demander un nouveau.",
+    "auth.magic_link_error_desc":
+        "Ce lien n'est plus valide. Veuillez en demander un nouveau.",
     "my_kimpays.title": "Mes Kimpays",
     "my_kimpays.empty": "Vous n'avez rejoint aucun Kimpay pour le moment.",
 
@@ -242,16 +246,19 @@ export const fr: Record<TranslationKey, string> = {
     "register.success_desc": "Vérifiez vos emails pour vous connecter.",
     "register.error_exists": "Ce compte existe déjà. Connectez-vous.",
 
-
     "email_help.modal.title": "Pourquoi l'email ?",
-    "email_help.modal.desc": "Nous utilisons votre email pour sécuriser votre accès.",
+    "email_help.modal.desc":
+        "Nous utilisons votre email pour sécuriser votre accès.",
     "email_help.modal.point1.title": "Connexion par lien magique",
-    "email_help.modal.point1.desc": "Nous vous envoyons un lien sécurisé pour vous connecter. Pas de mot de passe à retenir.",
+    "email_help.modal.point1.desc":
+        "Nous vous envoyons un lien sécurisé pour vous connecter. Pas de mot de passe à retenir.",
     "email_help.modal.point2.title": "Récupération de compte",
-    "email_help.modal.point2.desc": "Si vous perdez l'accès à cet appareil, votre email est le seul moyen de récupérer vos kimpays.",
+    "email_help.modal.point2.desc":
+        "Si vous perdez l'accès à cet appareil, votre email est le seul moyen de récupérer vos kimpays.",
 
     "login_help.modal.title": "Connexion / Récupération",
-    "login_help.modal.desc": "Sécurisez votre accès et retrouvez vos kimpays partout.",
+    "login_help.modal.desc":
+        "Sécurisez votre accès et retrouvez vos kimpays partout.",
     "login_help.button": "Se connecter",
 
     "common.hello": "Bonjour",
@@ -261,9 +268,11 @@ export const fr: Record<TranslationKey, string> = {
     "home.join.accordion_title": "Rejoindre un Kimpay",
 
     "home.offline.title": "Vous êtes hors ligne",
-    "home.offline.desc": "Créez ou rejoignez un Kimpay une fois en ligne. Vos Kimpays en cache restent accessibles ci-dessous.",
+    "home.offline.desc":
+        "Créez ou rejoignez un Kimpay une fois en ligne. Vos Kimpays en cache restent accessibles ci-dessous.",
 
     "join.offline.title": "Connexion requise",
-    "join.offline.desc": "Rejoindre un Kimpay nécessite une connexion internet. Réessayez une fois en ligne.",
+    "join.offline.desc":
+        "Rejoindre un Kimpay nécessite une connexion internet. Réessayez une fois en ligne.",
     "common.back_home": "Retour à l'accueil",
 };

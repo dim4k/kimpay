@@ -1,11 +1,13 @@
 {
     "name": "Kimpay",
     "short_name": "Kimpay",
+    "description": "Simple expense sharing for groups. Split bills, track shared costs, and settle debts easily.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0f172a",
-    "theme_color": "#0f172a",
+    "theme_color": "#4f46e5",
     "orientation": "portrait-primary",
+    "categories": ["finance", "productivity"],
     "icons": [
         {
             "src": "/icon-192x192.png",

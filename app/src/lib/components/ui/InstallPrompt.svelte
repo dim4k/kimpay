@@ -10,9 +10,6 @@
   onMount(() => {
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Stash the event so it can be triggered later.
-      installStore.setPrompt(e);
-      
       // Update UI notify the user they can install the PWA
       // BUT ONLY ON MOBILE
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -21,6 +18,9 @@
       if (isMobile && !isDismissed && !installStore.isStandalone) {
           // Prevent the mini-infobar from appearing on mobile
           e.preventDefault();
+          
+          // Stash the event so it can be triggered later.
+          installStore.setPrompt(e);
           showPrompt = true;
       }
     });
@@ -108,18 +108,11 @@
             
             <h3 class="text-lg font-bold">Install on iPhone</h3>
             <p class="text-sm text-slate-500 dark:text-slate-400">
-                To install Kimpay on your iPhone, tap the <strong class="text-indigo-600 dark:text-indigo-400">Share</strong> button below and select <strong class="text-indigo-600 dark:text-indigo-400">Add to Home Screen</strong>.
+                1. Tap the <strong class="text-indigo-600 dark:text-indigo-400">Share</strong> icon <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg> in the Safari toolbar
             </p>
-
-            <div class="flex items-center gap-3 w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border dark:border-slate-700 mt-2">
-                 <div class="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm">
-                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                 </div>
-                 <div class="flex-1 h-px bg-slate-300 dark:bg-slate-600"></div>
-                 <div class="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm">
-                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                 </div>
-            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                2. Select <strong class="text-indigo-600 dark:text-indigo-400">Add to Home Screen</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            </p>
         </div>
         <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-white dark:border-t-slate-900"></div>
     </div>
