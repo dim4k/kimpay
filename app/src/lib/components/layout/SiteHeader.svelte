@@ -19,6 +19,7 @@
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
+  let isMyKimpaysOpen = $state(false);
   let showOfflineHelp = $state(false);
   let isLoginHelpOpen = $state(false);
   
@@ -106,21 +107,24 @@
                   title="Menu"
               >
                   {#if currentKimpay}
-                     <!-- Identity Trigger (Inside Kimpay) -->
-                     <div class="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg">
-                         {currentKimpay.icon || '📁'}
-                     </div>
+                     <!-- Inside Kimpay: Participant avatar, Participant name (grey), emoji + Kimpay name (white) -->
+                     <Avatar 
+                         name={currentParticipant ? currentParticipant.name : "?"} 
+                         src={currentParticipant?.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
+                         class="w-8 h-8 text-[10px]" 
+                     />
                      <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
                         <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">
                             {currentParticipant ? currentParticipant.name : $t('common.unknown')}
                         </span>
-                        <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-100 text-xs leading-none">
-                            <span class="truncate max-w-[120px] md:max-w-[200px]">{currentKimpay.name}</span>
+                        <div class="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-100 text-xs leading-none">
+                            <span class="text-sm">{currentKimpay.icon || '📁'}</span>
+                            <span class="truncate max-w-[100px] md:max-w-[180px]">{currentKimpay.name}</span>
                         </div>
                      </div>
                      <ChevronDown class="h-3 w-3 text-slate-400 shrink-0" />
                   {:else if auth.user}
-                     <!-- User Profile Trigger (Dashboard) -->
+                     <!-- Homepage + Logged: User avatar, "Hello", User name -->
                      <Avatar name={auth.user.name} src={auth.user.avatar ? pb.files.getURL(auth.user, auth.user.avatar) : null} class="w-8 h-8 text-[10px]" />
                      <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
                         <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none truncate max-w-[100px] md:max-w-none">{$t('common.hello')}</span>
@@ -130,6 +134,7 @@
                      </div>
                      <ChevronDown class="h-3 w-3 text-slate-400 shrink-0" />
                   {:else}
+                    <!-- Homepage + Not logged: Burger -->
                     <Menu class="h-6 w-6" />
                   {/if}
               </button>
@@ -220,50 +225,57 @@
                                       {$t('login_help.button', { default: 'Login' })}
                                   </button>
                               </div>
-                              <div class="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
-                                  {$t('home.history.title')}
-                              </div>
-                              
-                              {#if recentsService.recentKimpays.length === 0}
-                                  <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
-                                      {$t('expense.list.empty.title')}
+                          {/if}
+
+                          <!-- My Kimpays Section (for all users) -->
+                          <div class="px-2 pb-2">
+                              <button 
+                                  onclick={() => isMyKimpaysOpen = !isMyKimpaysOpen}
+                                  class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                              >
+                                  <div class="flex items-center gap-3">
+                                      <LayoutDashboard class="h-5 w-5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                                      <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{$t('my_kimpays.title', { default: 'My Kimpays' })}</span>
                                   </div>
-                              {:else}
-                                  {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
-                                  {#each filteredKimpays as k (k.id)}
-
+                                  <ChevronDown class="h-4 w-4 text-slate-400 transition-transform {isMyKimpaysOpen ? 'rotate-180' : ''}" />
+                              </button>
+                              
+                              {#if isMyKimpaysOpen}
+                                  <div class="pl-2 pr-1 pb-1 space-y-1" transition:slide={{ duration: 150 }}>
+                                      <!-- Home link -->
                                       <a 
-                                          href="/k/{k.id}" 
-                                          data-sveltekit-preload-data="off"
-                                          class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                          href="/"
+                                          class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-sm text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                                       >
-                                          <span class="text-xl">{k.icon || "📁"}</span>
-                                          <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
+                                          <span class="text-base">🏠</span>
+                                          <span class="font-medium">Home</span>
                                       </a>
-                                  {/each}
-                                  {#if filteredKimpays.length === 0}
-                                      <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
-                                          {$t('expense.list.empty.title')}
-                                      </div>
-                                  {/if}
+                                      
+                                      {#if recentsService.recentKimpays.length === 0}
+                                          <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
+                                              {$t('my_kimpays.empty', { default: 'No Kimpays yet.' })}
+                                          </div>
+                                      {:else}
+                                          {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                                          {#each filteredKimpays as k (k.id)}
+                                              <a 
+                                                  href="/k/{k.id}" 
+                                                  data-sveltekit-preload-data="off"
+                                                  class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                              >
+                                                  <span class="text-base">{k.icon || "📁"}</span>
+                                                  <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
+                                              </a>
+                                          {/each}
+                                          {#if filteredKimpays.length === 0 && currentKimpay}
+                                              <div class="px-4 py-2 text-sm text-slate-400 italic">
+                                                  {$t('my_kimpays.empty', { default: 'No other Kimpays.' })}
+                                              </div>
+                                          {/if}
+                                      {/if}
+                                  </div>
                               {/if}
-                          {/if}
-
-
-                          
-
-
-                          {#if auth.user && !offlineService.isOffline}
-                              <div class="px-2 pb-2">
-                                <a 
-                                    href="/"
-                                    class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
-                                >
-                                    <LayoutDashboard class="h-5 w-5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
-                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{$t('my_kimpays.title', { default: 'My Kimpays' })}</span>
-                                </a>
-                              </div>
-                          {/if}
+                          </div>
                       </div>
 
                       <!-- Settings Section (Bottom) -->

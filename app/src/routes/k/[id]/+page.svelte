@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext } from 'svelte';
-  import { Wallet } from "lucide-svelte"; 
+  import { Wallet, AlertTriangle } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
@@ -8,6 +8,7 @@
   import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
   
   // Get ActiveKimpay from context
   const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
@@ -77,6 +78,13 @@
           <span class="font-semibold text-slate-700 dark:text-slate-300">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
       </p>
   </header>
+
+  {#if offlineService.isOffline}
+      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+          <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <p class="text-sm text-amber-700 dark:text-amber-300">{$t('expense.offline_warning')}</p>
+      </div>
+  {/if}
 
   <div class="flex flex-col gap-4">
     <!-- Expenses List -->

@@ -118,7 +118,7 @@
       
       // The load function already initialized stores with data.
       // This function only needs to open the identity modal if no user is stored.
-      const storedUser = storageService.getMyParticipantId(kimpayId);
+      const storedUser = await storageService.getMyParticipantId(kimpayId);
       
       if (!storedUser) {
           // Open global identity modal

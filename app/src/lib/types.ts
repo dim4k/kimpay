@@ -57,6 +57,8 @@ export interface Kimpay {
     icon?: string;
     invite_token?: string;
     created_by: string;
+    /** Local-only: ID of the current user's participant in this Kimpay */
+    myParticipantId?: string;
     expand?: {
         participants_via_kimpay?: Participant[];
         expenses_via_kimpay?: Expense[];

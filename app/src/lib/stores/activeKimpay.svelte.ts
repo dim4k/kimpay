@@ -83,25 +83,21 @@ export class ActiveKimpay {
     constructor(kimpayId: string) {
         this.id = kimpayId;
         this.init();
-        $effect(() => {
-            const me =
-                this.participants.find((p) => p.id === this.myParticipantId) ||
-                null;
-            activeKimpayGlobal.set(this.kimpay, me);
-        });
     }
 
     async init() {
         this.loading = true;
 
-        // Load identity
-        this.myParticipantId = await storageService.getMyParticipantId(this.id);
-
         // 1. Cache-First: Load from local storage immediately
         const cached = await storageService.getKimpayData(this.id);
         if (cached) {
+            // Load identity from cached data
+            this.myParticipantId = cached.myParticipantId || null;
             this.updateStateFromData(cached);
             this.loading = false; // Show cached data immediately
+        } else {
+            // Fallback: try to get identity separately (for migration compatibility)
+            this.myParticipantId = await storageService.getMyParticipantId(this.id);
         }
 
         // 2. Network: Fetch fresh data
@@ -153,6 +149,14 @@ export class ActiveKimpay {
                     new Date(b.date).getTime() - new Date(a.date).getTime()
             );
         }
+
+        // Update global store for navbar
+        this.updateGlobalStore();
+    }
+
+    private updateGlobalStore() {
+        const me = this.participants.find((p) => p.id === this.myParticipantId) || null;
+        activeKimpayGlobal.set(this.kimpay, me);
     }
 
     async subscribe() {
@@ -238,7 +242,13 @@ export class ActiveKimpay {
     // --- Actions ---
 
     async addExpense(data: Partial<Expense>, photos: File[] = []) {
-        // 1. Optimistic Update
+        // 1. Build expand from in-memory participants for immediate display
+        const payerParticipant = this.participants.find(p => p.id === data.payer);
+        const involvedParticipants = data.involved 
+            ? this.participants.filter(p => data.involved!.includes(p.id))
+            : [];
+
+        // 2. Optimistic Update with expand
         const tempId = "temp_" + Date.now();
         const optimisticExpense = {
             ...data,
@@ -250,16 +260,24 @@ export class ActiveKimpay {
             updated: new Date().toISOString(),
             collectionId: "expenses",
             collectionName: "expenses",
+            expand: {
+                payer: payerParticipant,
+                involved: involvedParticipants,
+            }
         } as Expense;
 
         this.expenses = [optimisticExpense, ...this.expenses];
         this.persist();
 
-        // 2. Offline / Online Handling
+        // 3. Offline / Online Handling
         if (offlineService.isOffline) {
+            // Note: Photos are not supported offline (UI prevents adding them)
+            // IMPORTANT: Use $state.snapshot to convert Svelte 5 Proxies to plain objects
+            // IndexedDB cannot clone Proxy objects
+            const plainData = $state.snapshot(data);
             offlineService.queueAction(
                 "CREATE_EXPENSE",
-                { ...data, photos },
+                { ...plainData, kimpay: this.id },
                 this.id,
                 tempId
             );
@@ -279,7 +297,10 @@ export class ActiveKimpay {
             photos.forEach((photo) => formData.append("photos", photo));
             formData.append("kimpay", this.id);
 
-            const record = await pb.collection("expenses").create(formData);
+            // Create and immediately fetch with expand for complete data
+            const record = await pb.collection("expenses").create(formData, {
+                expand: "payer,involved"
+            });
 
             // Replace temp with real
             this.expenses = this.expenses.map((e) =>
@@ -407,7 +428,7 @@ export class ActiveKimpay {
         if (offlineService.isOffline) {
             offlineService.queueAction(
                 "CREATE_PARTICIPANT",
-                { name },
+                { name, kimpay: this.id },
                 this.id,
                 tempId
             );
@@ -496,6 +517,8 @@ export class ActiveKimpay {
         pb.collection("kimpays").unsubscribe(this.id);
         pb.collection("expenses").unsubscribe("*");
         pb.collection("participants").unsubscribe("*");
-        activeKimpayGlobal.reset();
+        // Note: We don't reset activeKimpayGlobal here because the effect cleanup
+        // is called on every navigation, even within the same Kimpay.
+        // The navbar uses isInKimpayContext to handle showing/hiding the Kimpay info.
     }
 }

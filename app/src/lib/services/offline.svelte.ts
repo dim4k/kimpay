@@ -84,6 +84,7 @@ class OfflineService {
         const actionId =
             id ||
             `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log("[OfflineService] Queuing action:", type, "id:", actionId, "payload:", payload);
         storageService.savePendingAction({
             id: actionId,
             type,

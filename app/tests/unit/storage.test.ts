@@ -31,7 +31,7 @@ beforeEach(() => {
     vi.clearAllMocks();
 });
 
-function createMockKimpay(id: string): Kimpay {
+function createMockKimpay(id: string, myParticipantId?: string): Kimpay {
     return {
         id,
         collectionId: "kimpays",
@@ -40,6 +40,7 @@ function createMockKimpay(id: string): Kimpay {
         updated: new Date().toISOString(),
         name: "Test Kimpay",
         created_by: "user123",
+        myParticipantId,
     };
 }
 
@@ -78,10 +79,23 @@ describe("Storage Service", () => {
             expect(await storageService.hasKimpayData("123")).toBe(true);
             expect(await storageService.hasKimpayData("456")).toBe(false);
         });
+
+        it("should preserve myParticipantId when saving kimpay data", async () => {
+            // First save with myParticipantId
+            const kimpay = createMockKimpay("123", "participant-1");
+            await storageService.saveKimpayData("123", kimpay);
+
+            // Save again without myParticipantId
+            const updatedKimpay = createMockKimpay("123");
+            await storageService.saveKimpayData("123", updatedKimpay);
+
+            const retrieved = await storageService.getKimpayData("123");
+            expect(retrieved?.myParticipantId).toBe("participant-1");
+        });
     });
 
-    describe("User Identity & Recents", () => {
-        it("should manage my participant id", async () => {
+    describe("User Identity & My Kimpays", () => {
+        it("should manage my participant id via kimpay object", async () => {
             await storageService.setMyParticipantId("kimpay1", "part1");
 
             expect(await storageService.getMyParticipantId("kimpay1")).toBe(
@@ -92,19 +106,45 @@ describe("Storage Service", () => {
             ).toBeNull();
         });
 
-        it("should list recent kimpay ids", async () => {
-            await storageService.setMyParticipantId("123456789012345", "p1"); // Valid ID length
-            await storageService.setMyParticipantId("abc", "p2"); // Invalid ID length
+        it("should update existing kimpay with participant id", async () => {
+            // First save a kimpay
+            const kimpay = createMockKimpay("123456789012345");
+            await storageService.saveKimpayData("123456789012345", kimpay);
+
+            // Then set participant id
+            await storageService.setMyParticipantId("123456789012345", "p1");
+
+            // Verify kimpay still has its data + new participant id
+            const retrieved = await storageService.getKimpayData("123456789012345");
+            expect(retrieved?.name).toBe("Test Kimpay");
+            expect(retrieved?.myParticipantId).toBe("p1");
+        });
+
+        it("should list recent kimpay ids from stored kimpay data", async () => {
+            // Save kimpays with valid IDs
+            const kimpay1 = createMockKimpay("123456789012345", "p1");
+            const kimpay2 = createMockKimpay("abcdefghijklmno", "p2");
+            await storageService.saveKimpayData("123456789012345", kimpay1);
+            await storageService.saveKimpayData("abcdefghijklmno", kimpay2);
+
+            // Also set one via setMyParticipantId (creates minimal entry)
+            await storageService.setMyParticipantId("abc", "p3"); // Invalid ID length
 
             const recents = await storageService.getRecentKimpayIds();
             expect(recents).toContain("123456789012345");
-            expect(recents).not.toContain("abc");
+            expect(recents).toContain("abcdefghijklmno");
+            expect(recents).not.toContain("abc"); // Invalid ID length filtered out
         });
 
-        it("should remove recent kimpay", async () => {
-            await storageService.setMyParticipantId("123456789012345", "p1");
+        it("should remove kimpay when leaving", async () => {
+            const kimpay = createMockKimpay("123456789012345", "p1");
+            await storageService.saveKimpayData("123456789012345", kimpay);
+            
             await storageService.removeRecentKimpay("123456789012345");
 
+            expect(
+                await storageService.getKimpayData("123456789012345")
+            ).toBeNull();
             expect(
                 await storageService.getMyParticipantId("123456789012345")
             ).toBeNull();

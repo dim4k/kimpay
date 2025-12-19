@@ -137,6 +137,8 @@ export const en = {
         "Reimbursements are not available offline.",
     "balance.offline_warning":
         "You're offline. Balances are based on cached data and may be outdated.",
+    "expense.offline_warning":
+        "You're offline. Expenses you add will be synced when you're back online.",
     "common.offline": "Offline",
     "common.offline_edit_error": "Cannot edit expenses while offline",
 

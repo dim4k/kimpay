@@ -142,6 +142,8 @@ export const fr: Record<TranslationKey, string> = {
         "Les remboursements ne sont pas disponibles hors ligne.",
     "balance.offline_warning":
         "Vous êtes hors ligne. Les soldes sont basés sur les données en cache et peuvent être obsolètes.",
+    "expense.offline_warning":
+        "Vous êtes hors ligne. Les dépenses ajoutées seront synchronisées au retour en ligne.",
     "common.offline": "Hors ligne",
     "common.offline_edit_error":
         "Impossible de modifier les dépenses hors ligne",

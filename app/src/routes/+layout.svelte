@@ -13,7 +13,6 @@
     import { auth } from '$lib/stores/auth.svelte';
     import { storageService } from '$lib/services/storage';
     import { participantService } from '$lib/services/participant';
-    import { myKimpays } from '$lib/stores/myKimpays.svelte';
 
     let { children, data } = $props();
 
@@ -50,8 +49,7 @@
         }
         
         // Reload stores to reflect the claimed kimpays
-        recentsService.init();
-        myKimpays.load(true);
+        recentsService.init(true);
     }
     
     onMount(async () => {
