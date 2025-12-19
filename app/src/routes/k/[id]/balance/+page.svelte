@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { onMount } from 'svelte';
-  import { calculateDebts, type Transaction } from '$lib/balance';
+  import { getContext } from 'svelte';
+  import { type Transaction } from '$lib/balance';
   import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle } from "lucide-svelte";
   import { fade } from 'svelte/transition';
 
@@ -9,38 +8,22 @@
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
 
-  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
-  
-  // Use stores
-  let participants = $derived(participantsStore.list);
-  let expenses = $derived(expensesStore.list);
-  let myId = $derived(participantsStore.me?.id ?? null);
+  // Get ActiveKimpay from context
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
+
+  let participants = $derived(activeKimpay?.participants || []);
+  let expenses = $derived(activeKimpay?.expenses || []);
+  let myId = $derived(activeKimpay?.myParticipantId ?? null);
   
   // Reactive transactions calculation
-  let transactions = $derived(calculateDebts(expenses, participants));
+  let transactions = $derived(activeKimpay?.transactions || []);
   
-  let isLoading = $state(true);
-
-  onMount(async () => {
-      if (kimpayId) {
-          // Layout inits, but logic here checks loading...
-          if (!expensesStore.list.length || !participantsStore.list.length) {
-              isLoading = true;
-              await Promise.all([
-                  expensesStore.init(kimpayId),
-                  participantsStore.init(kimpayId)
-              ]);
-              isLoading = false;
-          } else {
-            isLoading = false;
-          }
-      }
-  });
+  let isLoading = $derived(activeKimpay?.loading ?? true);
 
   function openSettleModal(tx: Transaction) {
       if (offlineService.isOffline) {
@@ -60,7 +43,14 @@
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
-             await expensesStore.createReimbursement(tx.from, tx.to, tx.amount, $t('balance.reimbursement'), kimpayId, participants);
+             await activeKimpay.addExpense({
+                payer: tx.from,
+                involved: [tx.to],
+                amount: tx.amount,
+                description: $t('balance.reimbursement'),
+                is_reimbursement: true,
+                date: new Date().toISOString()
+             });
           }
       });
   }
@@ -75,7 +65,7 @@
   }
 </script>
 
-<main class="container p-4 space-y-6 bg-slate-50 dark:bg-background transition-colors">
+<div class="container p-4 space-y-6">
     <header class="space-y-1">
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
@@ -213,7 +203,7 @@
         {/if}
 
     {/if}
-</main>
+</div>
 
 <style>
   @keyframes slideUpFade {

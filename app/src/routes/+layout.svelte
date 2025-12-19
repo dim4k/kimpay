@@ -2,7 +2,6 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
     import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
-    import SyncIndicator from "$lib/components/ui/SyncIndicator.svelte";
     import GlobalModals from "$lib/components/GlobalModals.svelte";
     import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
     import { locale, t } from '$lib/i18n';
@@ -14,7 +13,6 @@
     import { auth } from '$lib/stores/auth.svelte';
     import { storageService } from '$lib/services/storage';
     import { participantService } from '$lib/services/participant';
-    import { myKimpays } from '$lib/stores/myKimpays.svelte';
 
     let { children, data } = $props();
 
@@ -37,10 +35,10 @@
         if (!user) return;
         
         // Get ALL kimpays where this device has a participant identity
-        const recentKimpayIds = storageService.getRecentKimpayIds();
+        const recentKimpayIds = await storageService.getRecentKimpayIds();
         
         for (const kimpayId of recentKimpayIds) {
-            const participantId = storageService.getMyParticipantId(kimpayId);
+            const participantId = await storageService.getMyParticipantId(kimpayId);
             if (!participantId) continue;
             
             try {
@@ -51,13 +49,15 @@
         }
         
         // Reload stores to reflect the claimed kimpays
-        recentsService.init();
-        myKimpays.load(true);
+        recentsService.init(true);
     }
     
-    onMount(() => {
+    onMount(async () => {
+        const migrated = await storageService.migrate();
         theme.init();
-        recentsService.init();
+        
+        // If migration happened, force reload recents because they might have been initialized empty by +page.svelte
+        recentsService.init(migrated);
         auth.init();
         
         if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -166,7 +166,6 @@
 
 </div>
 
-<SyncIndicator />
 <InstallPrompt />
 <GlobalModals />
 

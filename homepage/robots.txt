@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kimpay.io/sitemap.xml

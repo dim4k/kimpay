@@ -3,7 +3,7 @@
     import { Input } from "$lib/components/ui/input";
     import { LoaderCircle, QrCode } from "lucide-svelte";
     import { t } from '$lib/i18n';
-    import ScannerModal from "$lib/components/ui/ScannerModal.svelte";
+    import ScannerModal from "$lib/components/ui/modals/ScannerModal.svelte";
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';

@@ -1,26 +1,24 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { onMount } from 'svelte';
+  import { onMount, getContext } from 'svelte';
 
   import { Copy, Check, Share2, LoaderCircle } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import { kimpayStore } from '$lib/stores/kimpay.svelte';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
 
-  let kimpayId = $derived(kimpayStore.data?.id ?? page.params.id ?? '');
-  let kimpay = $derived(kimpayStore.data);
+  // Get ActiveKimpay from context
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
+
+  let kimpayId = $derived(activeKimpay?.id ?? '');
+  let kimpay = $derived(activeKimpay?.kimpay);
   let inviteLink = $state("");
   let copied = $state(false);
   let qrDataUrl = $state<string | null>(null);
 
   onMount(async () => {
       inviteLink = window.location.href.replace('/share', ''); // Clean URL
-      
-      // Init app state (deduplicated internally)
-      if (kimpayId) {
-          kimpayStore.init(kimpayId);
-      }
       
       // Generate QR immediately with the link
       try {

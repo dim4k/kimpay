@@ -1,18 +1,17 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
+
+ARG PUBLIC_POCKETBASE_URL=http://localhost:8090
+ENV PUBLIC_POCKETBASE_URL=$PUBLIC_POCKETBASE_URL
+
 COPY package*.json ./
 RUN npm install
 COPY . .
 RUN npx svelte-kit sync
 RUN npm run build
 
-FROM node:24-alpine
-WORKDIR /app
-COPY --from=builder /app/build build/
-COPY --from=builder /app/node_modules node_modules/
-COPY package.json .
-RUN npm prune --omit=dev
+FROM nginx:alpine
+COPY --from=builder /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-ENV NODE_ENV=production
-# Needs adapter-node to be configured in svelte.config.js
-CMD [ "node", "build" ]
+CMD ["nginx", "-g", "daemon off;"]

@@ -2,26 +2,28 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { pb } from '$lib/pocketbase';
-  import { onMount } from 'svelte';
+  import { onMount, getContext } from 'svelte';
   import { goto } from '$app/navigation';
   import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
-  import InputModal from '$lib/components/ui/InputModal.svelte';
+  import InputModal from '$lib/components/ui/modals/InputModal.svelte';
   import DatePicker from '$lib/components/ui/DatePicker.svelte';
   import PhotoManager from '$lib/components/PhotoManager.svelte';
   import ParticipantSelector from '$lib/components/ParticipantSelector.svelte';
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
-  import { expensesStore } from '$lib/stores/expenses.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
-  import { kimpayStore } from '$lib/stores/kimpay.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
+  import { storageService } from '$lib/services/storage';
   import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { Check, LoaderCircle } from "lucide-svelte";
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
 
   let { kimpayId, initialData = null } = $props();
+
+  // Get ActiveKimpay
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
 
   // Form State
   let description = $state("");
@@ -31,7 +33,7 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   
-  let participants = $derived(participantsStore.list);
+  let participants = $derived(activeKimpay?.participants || []);
   let isLoading = $state(false);
 
   // Photo State (managed by PhotoManager)
@@ -44,14 +46,6 @@
   let isAddingParticipant = $state(false);
 
   onMount(async () => {
-      if (kimpayId) {
-          await Promise.all([
-             kimpayStore.init(kimpayId),
-             participantsStore.init(kimpayId),
-             expensesStore.init(kimpayId)
-          ]);
-      }
-
       // Seed state from initialData if present
       if (initialData) {
          description = initialData.description || "";
@@ -71,9 +65,9 @@
       }
 
       if (!initialData && !payer) {
-          const myIds = JSON.parse(localStorage.getItem('my_kimpays') || "{}");
-          if (myIds[kimpayId]) {
-              payer = myIds[kimpayId];
+          const myId = await storageService.getMyParticipantId(kimpayId);
+          if (myId) {
+              payer = myId;
           }
       }
 
@@ -124,8 +118,7 @@
   async function handleNewParticipant(name: string) {
       isAddingParticipant = true;
       try {
-          await participantsStore.create(kimpayId, name);
-          const newP = participantsStore.list.find(p => p.name === name);
+          const newP = await activeKimpay.addParticipant(name);
           
           if (newP) {
              if (newParticipantSource === 'payer') {
@@ -159,42 +152,20 @@
 
       isLoading = true;
       try {
-          const formData = new FormData();
-          formData.append('kimpay', kimpayId);
-          formData.append('description', description);
-          formData.append('amount', amount);
-          formData.append('icon', icon || DEFAULT_EXPENSE_EMOJI);
-          formData.append('date', date ?? new Date().toISOString().slice(0, 10));
-          formData.append('payer', payer);
-          formData.append('created_by', payer);
+          const expenseData = {
+              description,
+              amount: parseFloat(amount),
+              payer,
+              involved,
+              date: new Date(date).toISOString(),
+              icon,
+              kimpay: kimpayId
+          };
 
-          involved.forEach(id => formData.append('involved', id));
-
-          // Append New Photos (only if online)
-          if (newPhotos.length > 0 && !offlineService.isOffline) {
-              const photoKey = initialData?.id ? 'photos+' : 'photos';
-              for (let i = 0; i < newPhotos.length; i++) {
-                  const file = newPhotos[i];
-                  if (file) formData.append(photoKey, file);
-              }
-          }
-          
-          // Handle deletions
-          if (photosToDelete.length > 0) {
-              photosToDelete.forEach(filename => {
-                  formData.append('photos-', filename); 
-              });
-          }
-          
           if (initialData?.id) {
-               await pb.collection('expenses').update(initialData.id, formData);
-               await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
+               await activeKimpay.updateExpense(initialData.id, expenseData, newPhotos, photosToDelete);
           } else {
-               await expensesStore.create(formData, participantsStore.list);
-               
-               if (!offlineService.isOffline) {
-                   await pb.collection('kimpays').update(kimpayId, { updated: new Date() });
-               }
+               await activeKimpay.addExpense(expenseData, newPhotos);
           }
           
           await goto(`/k/${kimpayId}`);

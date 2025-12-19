@@ -52,7 +52,7 @@
       participants.sort((a: Participant, b: Participant) => new Date(a.created).getTime() - new Date(b.created).getTime());
 
       // Auto-join if already known
-      const storedId = storageService.getMyParticipantId(kimpay!.id);
+      const storedId = await storageService.getMyParticipantId(kimpay!.id);
       
       if (storedId) {
           // Verify match (ID or Local ID)

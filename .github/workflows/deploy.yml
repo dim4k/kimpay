@@ -28,6 +28,8 @@ jobs:
           context: ./app
           file: ./app/Dockerfile
           push: true
+          build-args: |
+            PUBLIC_POCKETBASE_URL=${{ secrets.PUBLIC_POCKETBASE_URL }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:${{ github.sha }}
@@ -41,3 +43,13 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:${{ github.sha }}
+
+      - name: Build and push Homepage Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./homepage
+          file: ./homepage/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-homepage:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-homepage:${{ github.sha }}

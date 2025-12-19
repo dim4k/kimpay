@@ -1,15 +1,16 @@
 <script lang="ts">
-    import { History, LogOut, ArrowRight } from "lucide-svelte";
+    import { LayoutDashboard, LogOut, ArrowRight } from "lucide-svelte";
     import { t } from '$lib/i18n';
     import { offlineService } from '$lib/services/offline.svelte';
     import { recentsService } from '$lib/services/recents.svelte';
-    import { fade } from 'svelte/transition';
-    import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+    import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
     import { pb } from '$lib/pocketbase';
     import type { RecordModel } from 'pocketbase';
     import { storageService } from '$lib/services/storage';
     import { modals } from '$lib/stores/modals.svelte';
     import { EXPAND } from '$lib/constants';
+    import { auth } from '$lib/stores/auth.svelte';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
     let kimpaysToDisplay = $derived(
         offlineService.isOffline 
@@ -30,7 +31,7 @@
         if (!kimpayToLeave) return;
         isLeaving = true;
         try {
-            const participantId = storageService.getMyParticipantId(kimpayToLeave);
+            const participantId = await storageService.getMyParticipantId(kimpayToLeave);
             const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {
@@ -79,19 +80,53 @@
             isLeaving = false;
         }
     }
+
+    function handleLogout() {
+        modals.confirm({
+            title: $t('modal.logout.title'),
+            description: $t('modal.logout.desc'),
+            confirmText: $t('modal.logout.confirm'),
+            variant: 'destructive',
+            onConfirm: () => {
+                auth.logout();
+                window.location.href = "/";
+            }
+        });
+    }
 </script>
 
-{#if !recentsService.loading && kimpaysToDisplay.length > 0}
-    <div class="w-full pt-4 pb-4" transition:fade>
-        <div class="flex items-center py-6">
-            <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-            <span class="px-4 text-xs uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-2">
-                <History class="h-4 w-4" />
-                {$t('home.history.title')}
-            </span>
-            <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+<!-- Only show for logged users OR non-logged users with Kimpays -->
+{#if auth.user || (!recentsService.loading && kimpaysToDisplay.length > 0)}
+<div class="w-full">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-1 mb-4">
+        <h2 class="font-bold text-2xl flex items-center gap-3">
+            <LayoutDashboard class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            {$t('my_kimpays.title', { default: 'My Kimpays' })}
+        </h2>
+
+        {#if auth.user}
+            <div class="flex items-center gap-4 text-sm">
+                <span class="text-slate-500 dark:text-slate-400 hidden md:inline-block font-medium">{auth.user.email}</span>
+                <button 
+                    onclick={handleLogout}
+                    class="flex items-center gap-2 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors font-semibold"
+                >
+                    <LogOut class="h-4 w-4" />
+                    <span class="hidden md:inline">{$t('auth.logout')}</span>
+                </button>
+            </div>
+        {/if}
+    </div>
+
+    <!-- Content -->
+    {#if recentsService.loading}
+        <div class="flex justify-center py-8">
+            <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         </div>
-        
+    {:else if kimpaysToDisplay.length === 0}
+        <EmptyState description={$t('my_kimpays.empty', { default: 'No Kimpays joined yet.' })} />
+    {:else}
         <div class="grid gap-3">
             {#each kimpaysToDisplay as k (k.id)}
                 <a href="/k/{k.id}" data-sveltekit-preload-data="off" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
@@ -113,7 +148,8 @@
                 </a>
             {/each}
         </div>
-    </div>
+    {/if}
+</div>
 {/if}
 
 <ConfirmModal 

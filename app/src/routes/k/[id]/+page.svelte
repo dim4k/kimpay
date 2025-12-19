@@ -1,25 +1,24 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { getContext, onMount } from 'svelte';
-  import { Wallet } from "lucide-svelte"; 
-  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import { getContext } from 'svelte';
+  import { Wallet, AlertTriangle } from "lucide-svelte"; 
+  import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
-  import { expensesStore } from '$lib/stores/expenses.svelte';
-  import { participantsStore } from '$lib/stores/participants.svelte';
   import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
+  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { offlineService } from '$lib/services/offline.svelte';
   
-  // Use the store's currentKimpayId which is guaranteed to be in sync with the data
-  let kimpayId = $derived(expensesStore.currentKimpayId ?? page.params.id ?? '');
+  // Get ActiveKimpay from context
+  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  let activeKimpay = $derived(ctx.value);
   
-  // Use stores
-  let expenses = $derived(expensesStore.list);
-  let participants = $derived(participantsStore.list);
-  let currentUserId = $derived(participantsStore.me?.id ?? null);
-  
-  let isLoading = $state(true);
+  let kimpayId = $derived(activeKimpay?.id ?? '');
+  let expenses = $derived(activeKimpay?.expenses || []);
+  let participants = $derived(activeKimpay?.participants || []);
+  let currentUserId = $derived(activeKimpay?.myParticipantId ?? null);
+  let isLoading = $derived(activeKimpay?.loading ?? true);
 
   // Modal State
   let expenseToDelete = $state<string | null>(null);
@@ -45,30 +44,15 @@
       }
   }
 
-  onMount(async () => {
-      // Layout handles main init. 
-      // Ensure we stop loading if stores are ready. 
-      // If layout failed or is slow, stores might be empty, but initialized.
-      
-      // If not initialized, try to init (shouldn't happen if layout works)
-      if (kimpayId && !expensesStore.isInitialized) {
-          isLoading = true;
-          await expensesStore.init(kimpayId); 
-          isLoading = false;
-      } else {
-          isLoading = false;
-      }
-  });
-
   function requestDelete(id: string) {
       expenseToDelete = id;
   }
 
   async function confirmDelete() {
-      if (!expenseToDelete) return;
+      if (!expenseToDelete || !activeKimpay) return;
       isDeleting = true;
       try {
-          await expensesStore.delete(expenseToDelete, kimpayId);
+          await activeKimpay.deleteExpense(expenseToDelete);
           expenseToDelete = null;
       } catch (e) {
           console.error("Failed to delete", e);
@@ -77,17 +61,9 @@
           isDeleting = false;
       }
   }
-
-  const refreshSignal = getContext<{ count: number }>('refreshSignal');
-  $effect(() => {
-    // This will run when refreshSignal.count changes (triggered by layout)
-    if (refreshSignal && refreshSignal.count > 0) {
-        expensesStore.refresh(kimpayId);
-    }
-  });
 </script>
 
-<main class="container p-4 space-y-6">
+<div class="container p-4 space-y-6">
   <!-- Kimpay Title Section -->
   <header class="space-y-1">
       <div class="flex items-center gap-3">
@@ -102,6 +78,13 @@
           <span class="font-semibold text-slate-700 dark:text-slate-300">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
       </p>
   </header>
+
+  {#if offlineService.isOffline}
+      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+          <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <p class="text-sm text-amber-700 dark:text-amber-300">{$t('expense.offline_warning')}</p>
+      </div>
+  {/if}
 
   <div class="flex flex-col gap-4">
     <!-- Expenses List -->
@@ -142,4 +125,4 @@
       onConfirm={confirmDelete}
       onCancel={() => expenseToDelete = null}
   />
-</main>
+</div>
