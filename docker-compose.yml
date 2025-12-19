@@ -25,3 +25,12 @@ services:
     depends_on:
       - pocketbase
     restart: unless-stopped
+
+  homepage:
+    build:
+      context: ./homepage
+      dockerfile: Dockerfile
+    container_name: kimpay-homepage
+    ports:
+      - "3001:3001"
+    restart: unless-stopped

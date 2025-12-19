@@ -1,5 +1,9 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
+
+ARG PUBLIC_POCKETBASE_URL=http://localhost:8090
+ENV PUBLIC_POCKETBASE_URL=$PUBLIC_POCKETBASE_URL
+
 COPY package*.json ./
 RUN npm install
 COPY . .

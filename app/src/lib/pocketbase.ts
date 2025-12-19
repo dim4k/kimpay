@@ -1,7 +1,9 @@
 import PocketBase from "pocketbase";
-import { env } from "$env/dynamic/public";
 
-const url = env.PUBLIC_POCKETBASE_URL || "http://localhost:8090";
+declare const __POCKETBASE_URL__: string | undefined;
+
+const url = (typeof __POCKETBASE_URL__ !== "undefined" ? __POCKETBASE_URL__ : null) 
+    || "http://localhost:8090";
 
 export const pb = new PocketBase(url);
 
