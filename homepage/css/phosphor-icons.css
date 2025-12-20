@@ -1,0 +1,86 @@
+/* Phosphor Icons - Optimized subset with font-display: swap */
+/* Only includes icons used on the homepage */
+
+/* Font definitions with font-display: swap for better LCP */
+@font-face {
+    font-family: "Phosphor-Fill";
+    src: url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/Phosphor-Fill.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Phosphor-Bold";
+    src: url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/Phosphor-Bold.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Phosphor";
+    src: url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/Phosphor.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Base icon styles */
+.ph-fill, .ph-bold, .ph {
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    letter-spacing: 0;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    -webkit-font-variant-ligatures: discretionary-ligatures;
+    font-variant-ligatures: discretionary-ligatures;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fill weight */
+.ph-fill {
+    font-family: "Phosphor-Fill" !important;
+    speak: never;
+}
+
+/* Bold weight */
+.ph-bold {
+    font-family: "Phosphor-Bold" !important;
+    speak: never;
+}
+
+/* Regular weight */
+.ph {
+    font-family: "Phosphor" !important;
+    speak: never;
+}
+
+/* ============================================ */
+/* Fill Icons used on homepage */
+/* ============================================ */
+.ph-fill.ph-sparkle:before { content: "\e6a2"; }
+.ph-fill.ph-lightning:before { content: "\e2de"; }
+.ph-fill.ph-globe:before { content: "\e288"; }
+.ph-fill.ph-calculator:before { content: "\e538"; }
+.ph-fill.ph-device-mobile:before { content: "\e1e0"; }
+.ph-fill.ph-currency-circle-dollar:before { content: "\e54c"; }
+.ph-fill.ph-users-three:before { content: "\e68e"; }
+.ph-fill.ph-receipt:before { content: "\e3ec"; }
+.ph-fill.ph-hand-coins:before { content: "\ea8c"; }
+.ph-fill.ph-heart:before { content: "\e2a8"; }
+
+/* ============================================ */
+/* Bold Icons used on homepage */
+/* ============================================ */
+.ph-bold.ph-lightning:before { content: "\e2de"; }
+.ph-bold.ph-arrow-right:before { content: "\e02e"; }
+
+/* ============================================ */
+/* Regular Icons used on homepage */
+/* ============================================ */
+.ph.ph-arrow-right:before { content: "\e02e"; }
