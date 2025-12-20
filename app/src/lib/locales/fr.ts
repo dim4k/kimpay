@@ -15,6 +15,7 @@ export const fr: Record<TranslationKey, string> = {
     "home.create.participants_label": "Participants (Optionnel)",
     "home.create.participants_placeholder": "Ajouter une personne",
     "home.create.button": "Créer",
+    "home.create.currency_label": "Devise",
     "home.create.loading": "Création...",
     "home.join.title": "OU REJOINDRE",
     "home.join.placeholder": "Code d'invitation",
@@ -66,6 +67,7 @@ export const fr: Record<TranslationKey, string> = {
     "expense.form.select_all": "Tous",
     "expense.form.select_none": "Aucun",
     "expense.form.date_label": "Date",
+    "expense.form.currency_label": "Devise",
     "expense.form.photos_label": "Photos",
     "expense.form.add_photos": "Ajouter des photos",
     "expense.form.photos_disabled_offline": "Photos désactivées hors ligne",
@@ -128,6 +130,7 @@ export const fr: Record<TranslationKey, string> = {
     "balance.pays": "paie",
     "balance.your_summary": "Résumé",
     "balance.total_group": "DÉPENSES TOTALES",
+    "balance.display_currency": "Devise d'affichage",
     "balance.you_owe": "VOUS DEVEZ",
     "balance.owed_to_you": "ON VOUS DOIT",
 
@@ -277,4 +280,12 @@ export const fr: Record<TranslationKey, string> = {
     "join.offline.desc":
         "Rejoindre un Kimpay nécessite une connexion internet. Réessayez une fois en ligne.",
     "common.back_home": "Retour à l'accueil",
+
+    "user_settings.title": "Paramètres",
+    "user_settings.currency.title": "Devise préférée",
+    "user_settings.currency.desc": "Devise par défaut pour les nouveaux Kimpays",
+    "user_settings.account.title": "Compte",
+    "user_settings.account.email": "Email",
+    "user_settings.account.name": "Nom",
+    "user_settings.account.name_placeholder": "Entrez votre nom",
 };

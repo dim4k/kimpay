@@ -39,6 +39,7 @@
 -   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom")
 -   **Real-Time**: Updates align instantly across devices
 -   **Multilingual**: Available in English 🇬🇧 and French 🇫🇷
+-   **Multi-Currency**: Support for 8 currencies (EUR, USD, GBP, JPY, AUD, CAD, CHF, CNH) with real-time exchange rates
 -   **Dark Mode**: Elegant interface supporting both light and dark themes
 -   **Delightful UX**: Smooth animations, emojis, and polished design
 -   **PWA Ready**: Install as a Progressive Web App on any device

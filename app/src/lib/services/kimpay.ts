@@ -1,6 +1,7 @@
 import { pb } from "$lib/pocketbase";
 import { offlineService } from "$lib/services/offline.svelte";
 import { generatePocketBaseId, generateUUID } from "$lib/utils";
+import { DEFAULT_CURRENCY } from "$lib/services/currency";
 
 export const kimpayService = {
     async create(
@@ -8,7 +9,8 @@ export const kimpayService = {
         icon: string,
         creatorName: string,
         otherParticipants: string[],
-        creatorUserId?: string
+        creatorUserId?: string,
+        currency: string = DEFAULT_CURRENCY
     ) {
         const kimpayId = generatePocketBaseId();
         const creatorId = generatePocketBaseId();
@@ -21,6 +23,7 @@ export const kimpayService = {
                     id: kimpayId,
                     name,
                     icon,
+                    currency,
                     invite_token: inviteToken,
                 });
 
@@ -61,6 +64,7 @@ export const kimpayService = {
                         id: kimpayId,
                         name,
                         icon,
+                        currency,
                         invite_token: inviteToken,
                     },
                     kimpayId,

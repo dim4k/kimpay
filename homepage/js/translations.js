@@ -26,6 +26,9 @@ window.translations = {
         "feature.lang.title": "Multi-Language Support",
         "feature.lang.desc":
             "Available in English and French, with more languages coming soon.",
+        "feature.currency.title": "Multi-Currency",
+        "feature.currency.desc":
+            "Support for 8 currencies (EUR, USD, GBP...) with real-time exchange rate conversion.",
         "steps.title": '<span class="text-gradient">Simple as</span>&nbsp; <span class="count-step">1</span><span class="count-step">, 2</span><span class="count-step">, 3</span>',
         "steps.subtitle": "Get your finances in order in minutes.",
         "step.1.title": "Create Group",
@@ -104,6 +107,9 @@ window.translations = {
         "feature.lang.title": "Support Multi-langues",
         "feature.lang.desc":
             "Disponible en anglais et en français, avec plus de langues à venir.",
+        "feature.currency.title": "Multi-devises",
+        "feature.currency.desc":
+            "Support de 8 devises (EUR, USD, GBP...) avec conversion de taux de change en temps réel.",
         "steps.title": '<span class="text-gradient">Simple comme</span>&nbsp; <span class="count-step">1</span><span class="count-step">, 2</span><span class="count-step">, 3</span>',
         "steps.subtitle":
             "Mettez de l'ordre dans vos finances en quelques minutes.",

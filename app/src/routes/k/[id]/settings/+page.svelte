@@ -16,7 +16,8 @@
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import type { Expense } from '$lib/types';
   
-  import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
+  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
+  import { locale } from '$lib/i18n';
 
   // Get ActiveKimpay from context
   const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
@@ -285,17 +286,30 @@
                             />
                             
                             {#if isEditing}
-                                <div class="absolute top-full mt-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-5 gap-2">
-                                    {#each KIMPAY_EMOJIS as emoji (emoji)}
-                                        <button 
-                                            class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"
-                                            onclick={() => {
-                                                editIcon = emoji;
-                                                isEditing = false;
-                                            }}
-                                        >
-                                            {emoji}
-                                        </button>
+                                <div class="absolute top-full mt-2 left-0 z-50 w-80 max-h-64 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2">
+                                    {#each KIMPAY_CATEGORY_ORDER as categoryKey (categoryKey)}
+                                        {@const category = EMOJI_CATEGORIES[categoryKey]}
+                                        {#if category}
+                                            <div class="mb-3 last:mb-0">
+                                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-1">
+                                                    {$locale === 'fr' ? category.labelFr : category.label}
+                                                </div>
+                                                <div class="grid grid-cols-8 gap-0.5">
+                                                    {#each category.emojis as emoji (emoji)}
+                                                        <button 
+                                                            type="button"
+                                                            class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-lg flex items-center justify-center transition-colors {editIcon === emoji ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}"
+                                                            onclick={() => {
+                                                                editIcon = emoji;
+                                                                isEditing = false;
+                                                            }}
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    {/each}
+                                                </div>
+                                            </div>
+                                        {/if}
                                     {/each}
                                 </div>
                                 <div 

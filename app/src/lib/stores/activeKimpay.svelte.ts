@@ -13,6 +13,7 @@ import {
 } from "$lib/types";
 import { calculateDebts, type Transaction } from "$lib/balance";
 import type { RecordSubscription, RecordModel } from "pocketbase";
+import { getExchangeRates, DEFAULT_CURRENCY } from "$lib/services/currency";
 
 export class ActiveKimpay {
     // Raw State
@@ -21,6 +22,7 @@ export class ActiveKimpay {
     participants = $state<Participant[]>([]);
     loading = $state(true);
     error = $state<string | null>(null);
+    exchangeRates = $state<Record<string, number>>({});
 
     // Derived State
     id: string;
@@ -68,8 +70,14 @@ export class ActiveKimpay {
         )
     );
 
+    // Transactions calculated with multi-currency support
     transactions = $derived<Transaction[]>(
-        calculateDebts(this.expenses, this.participants)
+        calculateDebts(
+            this.expenses, 
+            this.participants, 
+            this.kimpay?.currency ?? DEFAULT_CURRENCY,
+            this.exchangeRates
+        )
     );
 
     myParticipantId = $state<string | null>(null);
@@ -130,6 +138,11 @@ export class ActiveKimpay {
 
         // 3. Realtime Subscription
         this.subscribe();
+
+        // 4. Fetch exchange rates (non-blocking for multi-currency balance)
+        getExchangeRates()
+            .then(rates => { this.exchangeRates = rates; })
+            .catch(err => console.warn("Failed to fetch exchange rates", err));
     }
 
     private updateStateFromData(data: Kimpay) {

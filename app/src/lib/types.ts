@@ -4,6 +4,7 @@ export interface User {
     email: string;
     name: string;
     avatar?: string;
+    preferred_currency?: string;
     created: string;
     updated: string;
 }
@@ -39,6 +40,7 @@ export interface Expense {
     kimpay: string;
     created_by: string;
     is_reimbursement: boolean;
+    currency: string;
     icon?: string;
     photos?: string[];
     expand?: {
@@ -54,6 +56,7 @@ export interface Kimpay {
     created: string;
     updated: string;
     name: string;
+    currency: string;
     icon?: string;
     invite_token?: string;
     created_by: string;

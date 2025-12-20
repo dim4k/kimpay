@@ -4,7 +4,6 @@
   import CreateKimpayForm from '$lib/components/home/CreateKimpayForm.svelte';
   import JoinKimpayForm from '$lib/components/home/JoinKimpayForm.svelte';
   import RecentKimpaysList from '$lib/components/home/RecentKimpaysList.svelte';
-  import RecoverKimpaysForm from '$lib/components/home/RecoverKimpaysForm.svelte';
   import CollapsibleCard from '$lib/components/ui/CollapsibleCard.svelte';
   import { recentsService } from '$lib/services/recents.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
@@ -87,8 +86,6 @@
                     <JoinKimpayForm />
                 </div>
             {/if}
-
-            <RecoverKimpaysForm />
         {/if}
     </div>
   

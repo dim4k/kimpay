@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { type Transaction } from '$lib/balance';
-  import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle } from "lucide-svelte";
-  import { fade } from 'svelte/transition';
+  import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle, ChevronDown, Check } from "lucide-svelte";
+  import { fade, slide } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import { t } from '$lib/i18n';
@@ -11,6 +11,7 @@
   import { offlineService } from '$lib/services/offline.svelte';
   import { pb } from '$lib/pocketbase';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '$lib/services/currency';
 
   // Get ActiveKimpay from context
   const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
@@ -19,6 +20,25 @@
   let participants = $derived(activeKimpay?.participants || []);
   let expenses = $derived(activeKimpay?.expenses || []);
   let myId = $derived(activeKimpay?.myParticipantId ?? null);
+  let kimpay = $derived(activeKimpay?.kimpay);
+  let kimpayDefaultCurrency = $derived(kimpay?.currency || DEFAULT_CURRENCY);
+  let exchangeRates = $derived(activeKimpay?.exchangeRates || {});
+  
+  // Display currency selector state (defaults to Kimpay's currency)
+  let displayCurrency = $state('');
+  let isCurrencyOpen = $state(false);
+  
+  // Initialize displayCurrency when kimpay loads
+  $effect(() => {
+    if (kimpayDefaultCurrency && !displayCurrency) {
+      displayCurrency = kimpayDefaultCurrency;
+    }
+  });
+  
+  // Helper: convert amount to display currency
+  function toDisplayCurrency(amount: number, fromCurrency: string): number {
+    return convert(amount, fromCurrency, displayCurrency || DEFAULT_CURRENCY, exchangeRates);
+  }
   
   // Reactive transactions calculation
   let transactions = $derived(activeKimpay?.transactions || []);
@@ -33,20 +53,25 @@
           return;
       }
 
+      // Show amount in display currency for user understanding
+      const displayAmount = toDisplayCurrency(tx.amount, tx.currency);
+
       modals.confirm({
           title: $t('balance.settle.modal.title'),
           description: $t('balance.settle.modal.desc', {
-                amount: tx.amount.toFixed(2) + '€',
+                amount: formatAmount(displayAmount, displayCurrency),
                 from: tx.from === myId ? $t('common.you') : getName(tx.from),
                 to: tx.to === myId ? $t('common.you') : getName(tx.to)
           }),
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
           onConfirm: async () => {
+             // Reimbursement is created in the Kimpay's currency (original transaction currency)
              await activeKimpay.addExpense({
                 payer: tx.from,
                 involved: [tx.to],
                 amount: tx.amount,
+                currency: tx.currency,
                 description: $t('balance.reimbursement'),
                 is_reimbursement: true,
                 date: new Date().toISOString()
@@ -70,6 +95,7 @@
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
         <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
     </header>
+
 
     {#if offlineService.isOffline}
         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
@@ -99,7 +125,48 @@
             </div>
         {:else}
              <div class="space-y-3 mb-8">
-                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.suggested.title')}</h2>
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.suggested.title')}</h2>
+                    <!-- Currency Selector -->
+                    <div class="relative">
+                        <button
+                            type="button"
+                            onclick={() => isCurrencyOpen = !isCurrencyOpen}
+                            class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+                        >
+                            <span class="text-sm">{getSymbol(displayCurrency)}</span>
+                            <span class="text-slate-700 dark:text-slate-200 text-xs">{displayCurrency}</span>
+                            <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
+                        </button>
+
+                        {#if isCurrencyOpen}
+                            <div class="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 min-w-[120px] max-h-48 overflow-y-auto" transition:slide={{ duration: 150 }}>
+                                {#each CURRENCY_CODES as code (code)}
+                                    <button
+                                        type="button"
+                                        onclick={() => { displayCurrency = code; isCurrencyOpen = false; }}
+                                        class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {displayCurrency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-base">{getSymbol(code)}</span>
+                                            <span class="font-medium text-slate-700 dark:text-slate-200">{code}</span>
+                                        </div>
+                                        {#if displayCurrency === code}
+                                            <Check class="h-3.5 w-3.5 text-indigo-500" />
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </div>
+                            <div 
+                                class="fixed inset-0 z-40" 
+                                onclick={() => isCurrencyOpen = false} 
+                                role="button" 
+                                tabindex="-1" 
+                                onkeydown={(e) => e.key === 'Escape' && (isCurrencyOpen = false)}
+                            ></div>
+                        {/if}
+                    </div>
+                </div>
                 
                 <div class="space-y-3">
                     {#each transactions as tx, i (i)}
@@ -127,7 +194,7 @@
                             <div class="flex flex-col items-center px-2 z-10">
                                  <span class="text-[10px] font-bold text-slate-400 mb-1">{$t('balance.pays')}</span>
                                  <div class="bg-slate-100 dark:bg-slate-800 rounded-full p-1 px-3 flex items-center gap-1 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                    <span class="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{tx.amount.toFixed(2)}€</span>
+                                    <span class="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency)}</span>
                                     <ArrowRight class="h-3 w-3 text-slate-400 group-hover:text-indigo-500" />
                                  </div>
                             </div>
@@ -151,10 +218,10 @@
         {#if myId}
             {@const myDebts = transactions.filter(tx => tx.from === myId)}
             {@const myCredit = transactions.filter(tx => tx.to === myId)}
-            {@const totalDebit = myDebts.reduce((sum, tx) => sum + tx.amount, 0)}
-            {@const totalCredit = myCredit.reduce((sum, tx) => sum + tx.amount, 0)}
+            {@const totalDebit = myDebts.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
+            {@const totalCredit = myCredit.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
             {@const netBalance = totalCredit - totalDebit}
-            {@const totalExpenses = expenses.reduce((sum, e) => sum + (e.is_reimbursement ? 0 : (Number(e.amount)||0)), 0)}
+            {@const totalExpenses = expenses.reduce((sum, e) => sum + (e.is_reimbursement ? 0 : toDisplayCurrency(Number(e.amount)||0, e.currency || 'EUR')), 0)}
             
             <div class="space-y-3" transition:fade>
                  <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.your_summary')}</h2>
@@ -176,7 +243,7 @@
                             <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
                             <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={Math.abs(netBalance)} /><span class="text-sm align-top opacity-60">€</span>
+                                <CountUp value={Math.abs(netBalance)} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
                             </div>
                         </div>
                     {:else}
@@ -185,7 +252,7 @@
                             <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
                             <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={netBalance} /><span class="text-sm align-top opacity-60">€</span>
+                                <CountUp value={netBalance} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
                             </div>
                         </div>
                     {/if}
@@ -195,7 +262,7 @@
                         <div class="absolute -right-4 -top-4 bg-blue-200/50 dark:bg-blue-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                         <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold tracking-wider relative z-10">{$t('balance.total_group')}</span>
                         <div class="text-2xl font-black text-blue-600/90 dark:text-blue-400 mt-1 relative z-10 tracking-tight">
-                            <CountUp value={totalExpenses} /><span class="text-sm align-top opacity-60">€</span>
+                            <CountUp value={totalExpenses} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
                         </div>
                     </div>
                  </div>
