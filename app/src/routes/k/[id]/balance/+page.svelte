@@ -134,7 +134,7 @@
                             onclick={() => isCurrencyOpen = !isCurrencyOpen}
                             class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
                         >
-                            <span class="text-sm">{getSymbol(displayCurrency)}</span>
+                            <span class="text-xs">{getSymbol(displayCurrency)}</span>
                             <span class="text-slate-700 dark:text-slate-200 text-xs">{displayCurrency}</span>
                             <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
                         </button>

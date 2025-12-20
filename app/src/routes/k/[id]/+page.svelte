@@ -156,9 +156,9 @@
         <div class="flex items-center justify-between">
             <!-- My Contribution -->
             {#if currentUserId}
-                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">
+                <span class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">
                     {$t('expense.my_contribution')}: {formatAmount(myContribution, kimpayC)}
-                </h2>
+                </span>
             {:else}
                 <div></div>
             {/if}

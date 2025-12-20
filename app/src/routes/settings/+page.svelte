@@ -4,8 +4,10 @@
     import { auth } from '$lib/stores/auth.svelte';
     import { t } from '$lib/i18n';
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
-    import { ArrowLeft, ChevronDown, Check, Pencil, Loader2 } from 'lucide-svelte';
+    import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from 'lucide-svelte';
     import { slide } from 'svelte/transition';
+    import Avatar from '$lib/components/ui/Avatar.svelte';
+    import { modals } from '$lib/stores/modals.svelte';
 
     let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
     let isCurrencyOpen = $state(false);
@@ -15,6 +17,10 @@
     let userName = $state(auth.user?.name ?? '');
     let isEditingName = $state(false);
     let isSavingName = $state(false);
+
+    // Avatar management
+    let fileInputRef = $state<HTMLInputElement | null>(null);
+    let isSavingAvatar = $state(false);
 
     // Redirect if not logged in
     $effect(() => {
@@ -65,6 +71,51 @@
             console.error('Failed to save name', e);
         } finally {
             isSavingName = false;
+        }
+    }
+
+    async function handleAvatarChange(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (!input.files?.[0] || !auth.user) return;
+        
+        const file = input.files[0];
+        isSavingAvatar = true;
+        
+        try {
+            await pb.collection('users').update(auth.user.id, { avatar: file });
+            // Update local state - we need to refetch to get the new filename
+            const updatedUser = await pb.collection('users').getOne(auth.user.id);
+            auth.user.avatar = updatedUser.avatar as string;
+        } catch (err) {
+            console.error('Failed to update avatar', err);
+        } finally {
+            isSavingAvatar = false;
+            // Reset file input
+            if (fileInputRef) fileInputRef.value = '';
+        }
+    }
+
+    function confirmRemoveAvatar() {
+        modals.confirm({
+            title: $t('user_settings.avatar.remove_confirm_title'),
+            description: $t('user_settings.avatar.remove_confirm_desc'),
+            confirmText: $t('user_settings.avatar.remove'),
+            variant: 'destructive',
+            onConfirm: removeAvatar
+        });
+    }
+
+    async function removeAvatar() {
+        if (!auth.user) return;
+        
+        isSavingAvatar = true;
+        try {
+            await pb.collection('users').update(auth.user.id, { avatar: null });
+            auth.user.avatar = '';
+        } catch (err) {
+            console.error('Failed to remove avatar', err);
+        } finally {
+            isSavingAvatar = false;
         }
     }
 </script>
@@ -134,6 +185,68 @@
                 {/if}
             </div>
         </section>
+
+        <!-- Profile Picture -->
+        {#if auth.user}
+            <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+                    <h2 class="font-semibold text-slate-900 dark:text-slate-100">{$t('user_settings.avatar.title')}</h2>
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center gap-4">
+                        <!-- Avatar with camera overlay -->
+                        <div class="relative group">
+                            <Avatar 
+                                name={auth.user.name || auth.user.email} 
+                                src={auth.user.avatar ? pb.files.getURL(auth.user, auth.user.avatar) : null}
+                                class="w-20 h-20 text-2xl"
+                            />
+                            {#if isSavingAvatar}
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                    <Loader2 class="h-6 w-6 text-white animate-spin" />
+                                </div>
+                            {:else}
+                                <button 
+                                    class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    onclick={() => fileInputRef?.click()}
+                                >
+                                    <Camera class="h-6 w-6 text-white" />
+                                </button>
+                            {/if}
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                class="hidden" 
+                                bind:this={fileInputRef}
+                                onchange={handleAvatarChange}
+                            />
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="flex flex-col gap-2">
+                            <button
+                                onclick={() => fileInputRef?.click()}
+                                disabled={isSavingAvatar}
+                                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium disabled:opacity-50"
+                            >
+                                <Camera class="h-4 w-4" />
+                                {$t('user_settings.avatar.change')}
+                            </button>
+                            {#if auth.user.avatar}
+                                <button
+                                    onclick={confirmRemoveAvatar}
+                                    disabled={isSavingAvatar}
+                                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium disabled:opacity-50"
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                    {$t('user_settings.avatar.remove')}
+                                </button>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {/if}
 
         <!-- User Info -->
         {#if auth.user}

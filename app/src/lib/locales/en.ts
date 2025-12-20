@@ -296,6 +296,11 @@ export const en = {
     "user_settings.account.email": "Email",
     "user_settings.account.name": "Name",
     "user_settings.account.name_placeholder": "Enter your name",
+    "user_settings.avatar.title": "Profile Picture",
+    "user_settings.avatar.change": "Change",
+    "user_settings.avatar.remove": "Remove",
+    "user_settings.avatar.remove_confirm_title": "Remove Profile Picture?",
+    "user_settings.avatar.remove_confirm_desc": "Your profile picture will be replaced with the default avatar.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

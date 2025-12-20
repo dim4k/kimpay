@@ -304,4 +304,9 @@ export const fr: Record<TranslationKey, string> = {
     "user_settings.account.email": "Email",
     "user_settings.account.name": "Nom",
     "user_settings.account.name_placeholder": "Entrez votre nom",
+    "user_settings.avatar.title": "Photo de profil",
+    "user_settings.avatar.change": "Modifier",
+    "user_settings.avatar.remove": "Supprimer",
+    "user_settings.avatar.remove_confirm_title": "Supprimer la photo de profil ?",
+    "user_settings.avatar.remove_confirm_desc": "Votre photo de profil sera remplacée par l'avatar par défaut.",
 };
