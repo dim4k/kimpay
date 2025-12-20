@@ -79,7 +79,8 @@ describe('calculateDebts', () => {
         expect(result[0]).toEqual<Transaction>({
             from: 'b',
             to: 'a',
-            amount: 50
+            amount: 50,
+            currency: 'EUR'
         });
     });
 
@@ -127,7 +128,8 @@ describe('calculateDebts', () => {
         expect(result[0]).toEqual<Transaction>({
             from: 'c',
             to: 'a',
-            amount: 30
+            amount: 30,
+            currency: 'EUR'
         });
     });
 
@@ -149,7 +151,8 @@ describe('calculateDebts', () => {
         expect(result[0]).toEqual<Transaction>({
             from: 'b',
             to: 'a',
-            amount: 50
+            amount: 50,
+            currency: 'EUR'
         });
     });
 
@@ -197,7 +200,8 @@ describe('calculateDebts', () => {
         expect(result[0]).toEqual<Transaction>({
             from: 'b',
             to: 'a',
-            amount: 50
+            amount: 50,
+            currency: 'EUR'
         });
     });
 });
