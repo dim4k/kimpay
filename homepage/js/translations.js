@@ -29,6 +29,9 @@ window.translations = {
         "feature.currency.title": "Multi-Currency",
         "feature.currency.desc":
             "Support for 8 currencies (EUR, USD, GBP...) with real-time exchange rate conversion.",
+        "feature.ocr.title": "AI Receipt Scanner",
+        "feature.ocr.desc":
+            "Scan receipts with AI to auto-fill expense details, amount, and date.",
         "steps.title": '<span class="text-gradient">Simple as</span>&nbsp; <span class="count-step">1</span><span class="count-step">, 2</span><span class="count-step">, 3</span>',
         "steps.subtitle": "Get your finances in order in minutes.",
         "step.1.title": "Create Group",
@@ -110,6 +113,9 @@ window.translations = {
         "feature.currency.title": "Multi-devises",
         "feature.currency.desc":
             "Support de 8 devises (EUR, USD, GBP...) avec conversion de taux de change en temps réel.",
+        "feature.ocr.title": "Scanner IA de reçus",
+        "feature.ocr.desc":
+            "Scannez vos reçus avec l'IA pour remplir automatiquement les détails, montant et date.",
         "steps.title": '<span class="text-gradient">Simple comme</span>&nbsp; <span class="count-step">1</span><span class="count-step">, 2</span><span class="count-step">, 3</span>',
         "steps.subtitle":
             "Mettez de l'ordre dans vos finances en quelques minutes.",
