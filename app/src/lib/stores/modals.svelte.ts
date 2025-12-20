@@ -13,7 +13,7 @@ export type ConfirmOptions = {
 export type AlertOptions = {
     message: string;
     title?: string;
-    variant?: 'error' | 'info';
+    variant?: 'error' | 'info' | 'success';
     onConfirm?: () => void;
 };
 

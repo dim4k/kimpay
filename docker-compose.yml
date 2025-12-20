@@ -5,6 +5,8 @@ services:
       dockerfile: pocketbase/Dockerfile
     container_name: kimpay-pb
     restart: unless-stopped
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8090:8090"
     volumes:

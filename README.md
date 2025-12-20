@@ -43,6 +43,7 @@
 -   **Dark Mode**: Elegant interface supporting both light and dark themes
 -   **Delightful UX**: Smooth animations, emojis, and polished design
 -   **PWA Ready**: Install as a Progressive Web App on any device
+-   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category
 
 ## <a id="tech-stack"></a>🛠️ Tech Stack
 

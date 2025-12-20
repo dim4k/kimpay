@@ -3,7 +3,6 @@ pocketbase/pb_data/
 
 # Environment Variables
 .env
-.env.*
 
 # Node
 node_modules/

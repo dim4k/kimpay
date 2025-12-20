@@ -9,6 +9,7 @@
   import DatePicker from '$lib/components/ui/DatePicker.svelte';
   import PhotoManager from '$lib/components/PhotoManager.svelte';
   import ParticipantSelector from '$lib/components/ParticipantSelector.svelte';
+  import ReceiptScanner from '$lib/components/ReceiptScanner.svelte';
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
@@ -189,9 +190,51 @@
           isLoading = false;
       }
   }
+
+  function handleScanComplete(result: import('./ReceiptScanner.svelte').ScanResult) {
+      // Set description and amount
+      description = result.description;
+      amount = String(result.amount);
+      
+      // Update currency if valid
+      if (CURRENCY_CODES.includes(result.currency)) {
+          currency = result.currency;
+      }
+      
+      // Set emoji if provided
+      if (result.emoji) {
+          icon = result.emoji;
+      }
+      
+      // Set date if provided (format: YYYY-MM-DD)
+      if (result.date) {
+          date = result.date;
+      }
+      
+      // Add the scanned photo to the expense
+      if (result.photo) {
+          newPhotos = [...newPhotos, result.photo];
+      }
+      
+      modals.alert({
+          title: $t('expense.form.scan_success'),
+          message: `${result.description} - ${result.amount} ${result.currency}`,
+          variant: 'success'
+      });
+  }
 </script>
 
 <div class="space-y-6">
+    <!-- Receipt Scanner (only for new expenses) -->
+    {#if !initialData}
+        <div class="-mt-2 mb-4">
+            <ReceiptScanner 
+                onScanComplete={handleScanComplete}
+                disabled={isLoading}
+            />
+        </div>
+    {/if}
+
     <!-- Description & Icon -->
     <div class="space-y-2">
         <Label>{$t('expense.form.desc_label')}</Label>
