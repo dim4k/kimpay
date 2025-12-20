@@ -13,6 +13,7 @@ export const en = {
     "home.create.participants_label": "Participants (Optional)",
     "home.create.participants_placeholder": "Add another person",
     "home.create.button": "Create",
+    "home.create.currency_label": "Currency",
     "home.create.loading": "Creating...",
     "home.join.title": "OR JOIN EXISTING",
     "home.join.placeholder": "Enter invite code",
@@ -64,6 +65,7 @@ export const en = {
     "expense.form.select_all": "Select All",
     "expense.form.select_none": "Select None",
     "expense.form.date_label": "Date",
+    "expense.form.currency_label": "Currency",
     "expense.form.photos_label": "Photos",
     "expense.form.add_photos": "Add Photos",
     "expense.form.photos_disabled_offline": "Photos disabled offline",
@@ -124,6 +126,7 @@ export const en = {
     "balance.pays": "pays",
     "balance.your_summary": "Summary",
     "balance.total_group": "TOTAL EXPENSES",
+    "balance.display_currency": "Display currency",
     "balance.you_owe": "YOU OWE",
     "balance.owed_to_you": "YOU ARE OWED",
 
@@ -269,6 +272,14 @@ export const en = {
     "join.offline.desc":
         "Joining a Kimpay requires an internet connection. Please try again when you're online.",
     "common.back_home": "Back to Home",
+
+    "user_settings.title": "Settings",
+    "user_settings.currency.title": "Preferred Currency",
+    "user_settings.currency.desc": "Default currency when creating new Kimpays",
+    "user_settings.account.title": "Account",
+    "user_settings.account.email": "Email",
+    "user_settings.account.name": "Name",
+    "user_settings.account.name_placeholder": "Enter your name",
 } as const;
 
 export type TranslationKey = keyof typeof en;

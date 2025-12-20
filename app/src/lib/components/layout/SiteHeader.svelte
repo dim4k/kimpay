@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus } from "lucide-svelte";
+  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus, Settings } from "lucide-svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { locale, t } from '$lib/i18n';
   import { theme } from '$lib/theme';
@@ -338,6 +338,13 @@
 
                           {#if auth.user}
                               <hr class="border-border/50 dark:border-slate-800" />
+                              <a 
+                                  href="/settings"
+                                  class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors group"
+                              >
+                                  <Settings class="h-4 w-4" />
+                                  <span class="font-medium text-sm">{$t('user_settings.title')}</span>
+                              </a>
                               <button 
                                   onclick={() => {
                                       isMenuOpen = false;

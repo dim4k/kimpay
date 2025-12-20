@@ -5,6 +5,7 @@
     import { goto } from '$app/navigation';
     import { cubicOut } from 'svelte/easing';
     import { offlineService } from '$lib/services/offline.svelte';
+    import { formatAmount } from '$lib/services/currency';
 
     let { 
         expense, 
@@ -121,7 +122,7 @@
             </div>
         </div>
         <div class="font-bold text-lg text-slate-900 dark:text-slate-100 transition-colors text-right leading-none">
-            {expense.amount.toFixed(2)} €
+            {formatAmount(expense.amount, expense.currency || 'EUR')}
         </div>
     </div>
 

@@ -2,10 +2,10 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
-    import { Plus, X, LoaderCircle } from "lucide-svelte";
+    import { Plus, X, LoaderCircle, ChevronDown, Check } from "lucide-svelte";
     import { t, locale } from '$lib/i18n';
-    import { KIMPAY_EMOJIS, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-    import { fade } from 'svelte/transition';
+    import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
+    import { fade, slide } from 'svelte/transition';
     import { recentsService } from '$lib/services/recents.svelte';
     import { storageService } from '$lib/services/storage';
     import { kimpayService } from '$lib/services/kimpay';
@@ -17,9 +17,12 @@
     import { auth } from '$lib/stores/auth.svelte';
     import EmailHelpModal from '$lib/components/ui/modals/EmailHelpModal.svelte';
     import { Info } from "lucide-svelte";
+    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
+    let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
+    let isCurrencyOpen = $state(false); 
     let creatorName = $state("");
     let newParticipantName = $state("");
     let otherParticipants = $state<string[]>([]);
@@ -66,7 +69,8 @@
                 kimpayIcon,
                 creatorName,
                 otherParticipants,
-                auth.user ? auth.user.id : undefined
+                auth.user ? auth.user.id : undefined,
+                selectedCurrency
             );
 
             // Update store logic is now handled in kimpayStore (optimistic)
@@ -185,17 +189,30 @@
                     />
                     
                     {#if isEmojiPickerOpen}
-                        <div class="absolute top-full mt-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2 grid grid-cols-5 gap-2" transition:fade={{ duration: 100 }}>
-                            {#each KIMPAY_EMOJIS as emoji (emoji)}
-                                <button 
-                                    class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xl flex items-center justify-center transition-colors"
-                                    onclick={() => {
-                                        kimpayIcon = emoji;
-                                        isEmojiPickerOpen = false;
-                                    }}
-                                >
-                                    {emoji}
-                                </button>
+                        <div class="absolute top-full mt-2 left-0 z-50 w-80 max-h-64 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2" transition:fade={{ duration: 100 }}>
+                            {#each KIMPAY_CATEGORY_ORDER as categoryKey (categoryKey)}
+                                {@const category = EMOJI_CATEGORIES[categoryKey]}
+                                {#if category}
+                                    <div class="mb-3 last:mb-0">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-1">
+                                            {$locale === 'fr' ? category.labelFr : category.label}
+                                        </div>
+                                        <div class="grid grid-cols-8 gap-0.5">
+                                            {#each category.emojis as emoji (emoji)}
+                                                <button 
+                                                    type="button"
+                                                    class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-lg flex items-center justify-center transition-colors {kimpayIcon === emoji ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}"
+                                                    onclick={() => {
+                                                        kimpayIcon = emoji;
+                                                        isEmojiPickerOpen = false;
+                                                    }}
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            {/each}
+                                        </div>
+                                    </div>
+                                {/if}
                             {/each}
                         </div>
                         <div 
@@ -208,6 +225,46 @@
                     {/if}
                 </div>
                 <Input id="groupName" bind:value={kimpayName} placeholder={$t('home.create.name_placeholder')} />
+                
+                <!-- Currency Pill -->
+                <div class="relative">
+                    <button
+                        type="button"
+                        onclick={() => isCurrencyOpen = !isCurrencyOpen}
+                        class="h-10 flex items-center gap-1 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+                    >
+                        <span>{CURRENCIES[selectedCurrency]?.symbol}</span>
+                        <span class="text-slate-600 dark:text-slate-300">{selectedCurrency}</span>
+                        <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
+                    </button>
+
+                    {#if isCurrencyOpen}
+                        <div class="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto min-w-[120px]" transition:slide={{ duration: 150 }}>
+                            {#each CURRENCY_CODES as code (code)}
+                                <button
+                                    type="button"
+                                    onclick={() => { selectedCurrency = code; isCurrencyOpen = false; }}
+                                    class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {selectedCurrency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-4 text-center">{CURRENCIES[code]?.symbol}</span>
+                                        <span class="font-medium text-slate-700 dark:text-slate-200">{code}</span>
+                                    </div>
+                                    {#if selectedCurrency === code}
+                                        <Check class="h-3 w-3 text-indigo-500" />
+                                    {/if}
+                                </button>
+                            {/each}
+                        </div>
+                        <div 
+                            class="fixed inset-0 z-40" 
+                            onclick={() => isCurrencyOpen = false} 
+                            role="button" 
+                            tabindex="-1" 
+                            onkeydown={(e) => e.key === 'Escape' && (isCurrencyOpen = false)}
+                        ></div>
+                    {/if}
+                </div>
             </div>
         </div>
     </div>

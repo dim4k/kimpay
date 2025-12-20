@@ -1,33 +1,85 @@
 
-const GROUPS = {
-    MESSAGING: ["💸", "💰", "💳"],
-    TRAVEL: [ "🏝️", "🏠", "🏔️", "✈️", "🚆", "🚗"],
-    FOOD: ["🍕", "🍔", "🥗", "🥪", "🍦", "🍺", "🍷", "☕", "🛒"],
-    ACTIVITIES: ["🎁", "⚽", "🎉", "⛽", "🎬", "🎤", "🎮", "🎫", "🎨", "🎰"],
-    LIFE: ["💊", "💡", "📱", "💻", "🔧", "👶", "🎓", "💼"]
+// Emoji categories with labels for display
+export interface EmojiCategory {
+    label: string;
+    labelFr: string;
+    emojis: readonly string[];
+}
+
+export const EMOJI_CATEGORIES: Record<string, EmojiCategory> = {
+    FOOD: { 
+        label: 'Food & Drinks', 
+        labelFr: 'Nourriture',
+        emojis: ['🍕', '🍔', '🍟', '🌭', '🥪', '🌮', '🌯', '🥗', '🍜', '🍣', '🍱', '🍦', '🍰', '🧁', '🍩', '🍪', '☕', '🍵', '🥤', '🍺', '🍷', '🍸', '🥂', '🛒', '🧀', '🥐', '🥖'] 
+    },
+    TRANSPORT: { 
+        label: 'Transport', 
+        labelFr: 'Transport',
+        emojis: ['🚗', '🚕', '🚌', '🚇', '🚆', '✈️', '🛫', '🚢', '⛽', '🚲', '🛴', '🚁', '🚀', '⛵', '🚂'] 
+    },
+    LODGING: { 
+        label: 'Lodging', 
+        labelFr: 'Hébergement',
+        emojis: ['🏠', '🏨', '🛏️', '🏕️', '⛺', '🏡', '🏢', '🔑', '🛎️'] 
+    },
+    ACTIVITIES: { 
+        label: 'Activities', 
+        labelFr: 'Activités',
+        emojis: ['🎬', '🎭', '🎤', '🎵', '🎮', '🎲', '🎯', '⚽', '🏀', '🎾', '🏊', '🎿', '🏋️', '🧘', '🎫', '🎪', '🎨', '🖼️', '📷', '🎰'] 
+    },
+    SHOPPING: { 
+        label: 'Shopping', 
+        labelFr: 'Shopping',
+        emojis: ['🛍️', '👕', '👗', '👟', '👜', '💎', '⌚', '🕶️', '👒', '🧣', '👔'] 
+    },
+    TRAVEL: { 
+        label: 'Travel', 
+        labelFr: 'Voyage',
+        emojis: ['🏝️', '🏖️', '🏔️', '⛰️', '🗻', '🌋', '🏜️', '🗼', '🗽', '🎢', '🌅', '🌄', '🧳', '🗺️', '🧭'] 
+    },
+    BILLS: { 
+        label: 'Bills & Services', 
+        labelFr: 'Factures',
+        emojis: ['💸', '💰', '💳', '💵', '🧾', '📱', '💻', '📺', '💡', '🔌', '💧', '🔥', '📡', '📦'] 
+    },
+    HEALTH: { 
+        label: 'Health & Wellness', 
+        labelFr: 'Santé',
+        emojis: ['💊', '🏥', '🩺', '🩹', '🧴', '💆', '💇', '🧖', '🦷', '👓'] 
+    },
+    GIFTS: { 
+        label: 'Gifts & Celebrations', 
+        labelFr: 'Cadeaux',
+        emojis: ['🎁', '🎂', '🎉', '🎊', '🎈', '💐', '🌹', '🍾', '🥳', '💝'] 
+    },
+    OTHER: { 
+        label: 'Other', 
+        labelFr: 'Autre',
+        emojis: ['✨', '📝', '🔧', '🛠️', '👶', '🐕', '🐈', '🎓', '💼', '📚', '🎒', '🏋️', '⚙️'] 
+    },
 } as const;
+
+export const EMOJI_CATEGORY_ORDER = ['FOOD', 'TRANSPORT', 'LODGING', 'ACTIVITIES', 'SHOPPING', 'TRAVEL', 'BILLS', 'HEALTH', 'GIFTS', 'OTHER'] as const;
+
+// Curated categories for Kimpay group creation (fewer options)
+export const KIMPAY_CATEGORY_ORDER = ['TRAVEL', 'ACTIVITIES', 'GIFTS', 'OTHER'] as const;
 
 export const DEFAULT_KIMPAY_EMOJI = "✨";
 export const DEFAULT_EXPENSE_EMOJI = "💸";
 export const REIMBURSEMENT_EMOJI = "🔄";
 
-// Initial list for creating a new Kimpay Group - Curated selection
+// Flat list for backward compatibility
 export const KIMPAY_EMOJIS = [
-    DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI,
-    ...GROUPS.TRAVEL,
-    ...GROUPS.ACTIVITIES, 
-    ...GROUPS.FOOD,
-    "💼", "🎉"
-].filter((value, index, self) => self.indexOf(value) === index); // Unique
+    DEFAULT_KIMPAY_EMOJI,
+    ...EMOJI_CATEGORIES['TRAVEL']!.emojis,
+    ...EMOJI_CATEGORIES['ACTIVITIES']!.emojis.slice(0, 10),
+    ...EMOJI_CATEGORIES['FOOD']!.emojis.slice(0, 10),
+].filter((value, index, self) => self.indexOf(value) === index);
 
-// Extended list for Expenses - Everything
-export const EXPENSE_EMOJIS = [
-    ...GROUPS.MESSAGING,
-    ...GROUPS.FOOD,
-    ...GROUPS.TRAVEL,
-    ...GROUPS.ACTIVITIES,
-    ...GROUPS.LIFE
-].filter((value, index, self) => self.indexOf(value) === index); // Unique
+export const EXPENSE_EMOJIS = EMOJI_CATEGORY_ORDER.flatMap(
+    cat => [...EMOJI_CATEGORIES[cat]!.emojis]
+).filter((value, index, self) => self.indexOf(value) === index);
+
 
 export const EXPAND = {
     // Relations to expand when fetching a single Expense

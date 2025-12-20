@@ -1,9 +1,11 @@
 import type { Expense, Participant } from './types';
+import { convert, DEFAULT_CURRENCY } from './services/currency';
 
 export interface Transaction {
     from: string;
     to: string;
     amount: number;
+    currency: string;
 }
 
 export interface Balance {
@@ -11,8 +13,21 @@ export interface Balance {
     amount: number; // Positive = owns money, Negative = owes money
 }
 
-// Simplify debts algorithm (minimize transaction count)
-export function calculateDebts(expenses: Expense[], participants: Participant[]): Transaction[] {
+/**
+ * Calculate debts with multi-currency support.
+ * All amounts are converted to the target currency before calculation.
+ * 
+ * @param expenses - List of expenses (with currency field)
+ * @param participants - List of participants
+ * @param targetCurrency - Currency to convert all amounts to (e.g., Kimpay's currency)
+ * @param rates - Exchange rates from getExchangeRates() (base: EUR)
+ */
+export function calculateDebts(
+    expenses: Expense[], 
+    participants: Participant[],
+    targetCurrency: string = DEFAULT_CURRENCY,
+    rates: Record<string, number> = {}
+): Transaction[] {
     const balances: Record<string, number> = {};
 
     // Initialize balances
@@ -20,11 +35,13 @@ export function calculateDebts(expenses: Expense[], participants: Participant[])
 
     // Calculate net balance for each person
     for (const expense of expenses) {
-        const amount = expense.amount;
+        // Convert amount to target currency
+        const expenseCurrency = expense.currency || DEFAULT_CURRENCY;
+        const amount = convert(expense.amount, expenseCurrency, targetCurrency, rates);
+        
         const payerId = expense.payer;
         
         // Who acts in this expense? (Default: everyone if 'involved' is empty)
-        // Note: Check how 'involved' is structured in your DB. If it's an array of IDs:
         let involvedIds = expense.involved;
         if (!involvedIds || involvedIds.length === 0) {
             involvedIds = participants.map(p => p.id);
@@ -79,7 +96,8 @@ export function calculateDebts(expenses: Expense[], participants: Participant[])
             transactions.push({
                 from: debtor.participantId,
                 to: creditor.participantId,
-                amount: amount
+                amount: amount,
+                currency: targetCurrency
             });
         }
 
