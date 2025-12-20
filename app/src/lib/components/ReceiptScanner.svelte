@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Camera, Loader2 } from 'lucide-svelte';
-    import { t } from '$lib/i18n';
+    import { t, locale } from '$lib/i18n';
     import { pb } from '$lib/pocketbase';
     import { scanReceipt, compressImage, type OcrResult } from '$lib/services/ocr';
     import { modals } from '$lib/stores/modals.svelte';
@@ -45,8 +45,8 @@
             // Compress image to reduce upload size
             const compressedBase64 = await compressImage(file);
             
-            // Call OCR API
-            const result = await scanReceipt(compressedBase64);
+            // Call OCR API with current language
+            const result = await scanReceipt(compressedBase64, $locale);
             
             // Success! Pass result with the original photo file
             onScanComplete({ ...result, photo: file });

@@ -27,7 +27,16 @@ class OfflineService {
                     }
                     return result as T;
                 } catch (e: unknown) {
-                    if ((e as { status?: number })?.status === 0) {
+                    const error = e as { status?: number; name?: string };
+                    // Only set offline if:
+                    // 1. Status is 0 (network error)
+                    // 2. Navigator says we're offline
+                    // 3. It's not an AbortError (request cancelled during navigation)
+                    if (
+                        error?.status === 0 &&
+                        !navigator.onLine &&
+                        error?.name !== "AbortError"
+                    ) {
                         this.setOffline(true);
                     }
                     throw e;
@@ -197,7 +206,12 @@ class OfflineService {
             try {
                 return await runOnline();
             } catch (e: unknown) {
-                if ((e as { status?: number })?.status === 0) {
+                const error = e as { status?: number; name?: string };
+                if (
+                    error?.status === 0 &&
+                    !navigator.onLine &&
+                    error?.name !== "AbortError"
+                ) {
                     this.setOffline(true);
                 } else {
                     throw e;

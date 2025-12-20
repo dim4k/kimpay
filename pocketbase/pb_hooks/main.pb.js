@@ -58,9 +58,11 @@ routerAdd(
                 return e.json(500, { message: "OCR service not configured" });
             }
 
+            // Get target language from request (default to English)
+            const targetLang = data.language === "fr" ? "French" : "English";
 
             const prompt = `Analyze this receipt/invoice image and extract:
-1. A short description (store name + main category, max 50 chars)
+1. A short description (store name + main category, max 50 chars) - TRANSLATE TO ${targetLang}
 2. The total amount (TTC/final amount including taxes)
 3. The currency (ISO code like EUR, USD, GBP)
 4. A single emoji that best represents the expense category (food=🍽️, coffee=☕, grocery=🛒, transport=🚗, hotel=🏨, shopping=🛍️, etc.)

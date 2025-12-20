@@ -42,6 +42,13 @@ export const fr: Record<TranslationKey, string> = {
     "common.you": "Vous",
     "common.unknown": "Inconnu",
 
+    "sort.created_desc": "Plus récent",
+    "sort.created_asc": "Plus ancien",
+    "sort.date_desc": "Date (récent)",
+    "sort.date_asc": "Date (ancien)",
+    "sort.amount_desc": "Montant (élevé)",
+    "sort.amount_asc": "Montant (faible)",
+
     "nav.expenses": "Dépenses",
     "nav.share": "Partager",
     "nav.balance": "Équilibre",
@@ -55,6 +62,7 @@ export const fr: Record<TranslationKey, string> = {
     "expense.list.reimbursement": "De {from} à {to}",
     "expense.list.empty.title": "Aucune dépense.",
     "expense.list.empty.desc": "Appuyez sur + pour en ajouter.",
+    "expense.my_contribution": "Ma contribution",
 
     "expense.form.subtitle": "Saisissez les détails ci-dessous",
     "expense.form.desc_label": "Description",

@@ -18,13 +18,14 @@ export interface OcrError {
  * Requires user to be authenticated
  * 
  * @param imageBase64 - Base64 encoded image (with or without data URL prefix)
+ * @param language - Target language for the description (e.g., 'en', 'fr')
  * @returns Extracted receipt data
  * @throws Error if not authenticated, rate limited, or OCR fails
  */
-export async function scanReceipt(imageBase64: string): Promise<OcrResult> {
+export async function scanReceipt(imageBase64: string, language: string = 'en'): Promise<OcrResult> {
     const response = await pb.send('/api/ocr/receipt', {
         method: 'POST',
-        body: JSON.stringify({ image: imageBase64 }),
+        body: JSON.stringify({ image: imageBase64, language }),
         headers: {
             'Content-Type': 'application/json',
         },

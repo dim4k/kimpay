@@ -40,6 +40,13 @@ export const en = {
     "common.you": "You",
     "common.unknown": "Unknown",
 
+    "sort.created_desc": "Newest first",
+    "sort.created_asc": "Oldest first",
+    "sort.date_desc": "Date (newest)",
+    "sort.date_asc": "Date (oldest)",
+    "sort.amount_desc": "Amount (highest)",
+    "sort.amount_asc": "Amount (lowest)",
+
     "nav.expenses": "Expenses",
     "nav.share": "Share",
     "nav.balance": "Balance",
@@ -53,6 +60,7 @@ export const en = {
     "expense.list.reimbursement": "From {from} to {to}",
     "expense.list.empty.title": "No expenses yet.",
     "expense.list.empty.desc": "Tap + to add one.",
+    "expense.my_contribution": "My contribution",
 
     "expense.form.subtitle": "Enter details below",
     "expense.form.desc_label": "Description",

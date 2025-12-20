@@ -14,6 +14,7 @@ import {
 import { calculateDebts, type Transaction } from "$lib/balance";
 import type { RecordSubscription, RecordModel } from "pocketbase";
 import { getExchangeRates, DEFAULT_CURRENCY } from "$lib/services/currency";
+import { SvelteSet } from "svelte/reactivity";
 
 export class ActiveKimpay {
     // Raw State
@@ -23,6 +24,9 @@ export class ActiveKimpay {
     loading = $state(true);
     error = $state<string | null>(null);
     exchangeRates = $state<Record<string, number>>({});
+
+    // Track pending expense IDs to avoid duplicate from realtime events
+    private pendingExpenseIds = new SvelteSet<string>();
 
     // Derived State
     id: string;
@@ -154,13 +158,6 @@ export class ActiveKimpay {
         if (data.expand) {
             this.expenses = data.expand.expenses_via_kimpay || [];
             this.participants = data.expand.participants_via_kimpay || [];
-
-            // Sort expenses by date desc
-            this.expenses.sort(
-                (a, b) =>
-                    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-                    new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
         }
 
         // Update global store for navbar
@@ -206,7 +203,12 @@ export class ActiveKimpay {
     private handleExpenseEvent(e: RecordSubscription<RecordModel>) {
         const record = asExpense(e.record);
         if (e.action === "create") {
-            // Check if we already have it (optimistic UI)
+            // Ignore if this is a pending expense we're creating (avoid duplicates)
+            if (this.pendingExpenseIds.has(record.id)) {
+                this.pendingExpenseIds.delete(record.id);
+                return;
+            }
+            // Check if we already have it (optimistic UI with temp ID)
             if (!this.expenses.find((ex) => ex.id === record.id)) {
                 this.expenses = [record, ...this.expenses];
             }
@@ -315,6 +317,9 @@ export class ActiveKimpay {
                 expand: "payer,involved"
             });
 
+            // Mark this ID as pending so realtime event is ignored
+            this.pendingExpenseIds.add(record.id);
+
             // Replace temp with real
             this.expenses = this.expenses.map((e) =>
                 e.id === tempId ? asExpense(record) : e
@@ -378,7 +383,9 @@ export class ActiveKimpay {
 
             const record = await pb
                 .collection("expenses")
-                .update(expenseId, formData);
+                .update(expenseId, formData, {
+                    expand: "payer,involved"
+                });
 
             this.expenses = this.expenses.map((e) =>
                 e.id === expenseId ? asExpense(record) : e
