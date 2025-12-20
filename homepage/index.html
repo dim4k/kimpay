@@ -6,10 +6,21 @@
     <title>Kimpay - The Modern Way to Share Expenses</title>
     <meta name="title" content="Kimpay - The Modern Way to Share Expenses" />
     <meta name="description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
+    
+    <!-- Preconnect to external domains for faster resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Google Fonts with display=swap and async loading (non-render-blocking) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"></noscript>
+    
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
     <link rel="stylesheet" href="css/style.css" />
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
     <div class="mesh-bg"></div>
@@ -17,7 +28,7 @@
     <header>
         <div class="container">
             <a href="/" class="logo">
-                <img src="assets/img/logo-light.svg" alt="Kimpay Logo" />
+                <img src="assets/img/logo-light.svg" alt="Kimpay Logo" width="32" height="32" />
                 Kimpay
             </a>
             <div class="header-actions">
@@ -162,13 +173,13 @@
             <div class="footer-grid">
                 <div class="footer-brand">
                     <a href="/" class="logo">
-                        <img src="assets/img/logo-light.svg" alt="Kimpay Logo" />
+                        <img src="assets/img/logo-light.svg" alt="Kimpay Logo" width="32" height="32" />
                         Kimpay
                     </a>
                     <p data-i18n="footer.desc">The simplest way to split expenses. Built for the modern web.</p>
                 </div>
                 <div class="footer-links">
-                    <h4 data-i18n="footer.product">Product</h4>
+                    <p class="footer-title" data-i18n="footer.product">Product</p>
                     <ul>
                         <li><a href="#features" data-i18n="footer.features">Features</a></li>
                         <li><a href="https://app.kimpay.io" data-i18n="footer.launch">Launch App</a></li>
@@ -184,10 +195,16 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="js/translations.js"></script>
-    <script src="js/main.js"></script>
+    <!-- Load only required Phosphor Icons styles to reduce unused CSS (~81 KiB savings) -->
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+    
+    <!-- Animation libraries with defer for non-blocking load -->
+    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js" defer></script>
+    <script src="js/translations.js" defer></script>
+    <script src="js/main.js" defer></script>
 </body>
 </html>

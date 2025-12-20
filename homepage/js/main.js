@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const header = document.querySelector("header");
     const updateHeader = () => header?.classList.toggle("scrolled", window.scrollY > 10);
-    window.addEventListener("scroll", updateHeader);
+    window.addEventListener("scroll", updateHeader, { passive: true });
     updateHeader();
 
     let lenis = null;
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
             direction: "vertical",
             smoothTouch: false,
         });
-        lenis.on("scroll", updateHeader);
+        // Using RAF for smooth Lenis updates without forced reflow
         const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
         requestAnimationFrame(raf);
 
@@ -113,13 +113,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const spotlightCards = document.querySelectorAll("[data-spotlight]");
+    let lastMouseUpdate = 0;
+    const THROTTLE_MS = 16; // ~60fps
     document.addEventListener("mousemove", (e) => {
-        spotlightCards.forEach((card) => {
-            const rect = card.getBoundingClientRect();
-            card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
-            card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+        const now = Date.now();
+        if (now - lastMouseUpdate < THROTTLE_MS) return;
+        lastMouseUpdate = now;
+        
+        requestAnimationFrame(() => {
+            spotlightCards.forEach((card) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+                card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+            });
         });
-    });
+    }, { passive: true });
 
     const dynamicWordEl = document.getElementById("dynamic-word");
     if (dynamicWordEl) {
