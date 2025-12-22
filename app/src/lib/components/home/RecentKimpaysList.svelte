@@ -11,6 +11,7 @@
     import { EXPAND } from '$lib/constants';
     import { auth } from '$lib/stores/auth.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import { haptic } from '$lib/utils/haptic';
 
     let kimpaysToDisplay = $derived(
         offlineService.isOffline 
@@ -144,7 +145,7 @@
     {:else}
         <div class="grid gap-3">
             {#each kimpaysToDisplay as k (k.id)}
-                <a href="/k/{k.id}" data-sveltekit-preload-data="off" class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
+                <a href="/k/{k.id}" data-sveltekit-preload-data="off" onclick={() => haptic('light')} class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">{k.icon || "📁"}</span>
                         <span class="font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">{k.name}</span>

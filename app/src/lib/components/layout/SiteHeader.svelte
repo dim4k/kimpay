@@ -16,6 +16,7 @@
   import { afterNavigate, invalidateAll } from '$app/navigation';
   import { auth } from '$lib/stores/auth.svelte';
   import { page } from '$app/state';
+  import { haptic } from '$lib/utils/haptic';
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
@@ -79,7 +80,7 @@
 <header class="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
   <div class="container flex h-16 items-center justify-between px-4">
 
-      <a href="/" class="flex items-center transition-transform hover:scale-105">
+      <a href="/" onclick={() => haptic('light')} class="flex items-center transition-transform hover:scale-105">
           <Logo class="h-8 w-8 text-indigo-700 dark:text-indigo-400" />
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
       </a>
@@ -245,6 +246,7 @@
                                       <!-- Home link -->
                                       <a 
                                           href="/"
+                                          onclick={() => haptic('light')}
                                           class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-sm text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                                       >
                                           <span class="text-base">🏠</span>
@@ -261,6 +263,7 @@
                                               <a 
                                                   href="/k/{k.id}" 
                                                   data-sveltekit-preload-data="off"
+                                                  onclick={() => haptic('light')}
                                                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                                               >
                                                   <span class="text-base">{k.icon || "📁"}</span>

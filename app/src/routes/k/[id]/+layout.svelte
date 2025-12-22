@@ -12,6 +12,7 @@
   import { cubicOut } from 'svelte/easing';
   import { storageService } from '$lib/services/storage';
   import NavItem from '$lib/components/ui/NavItem.svelte';
+  import { haptic } from '$lib/utils/haptic';
   
   import { onDestroy } from 'svelte';
   
@@ -134,6 +135,7 @@
             {#if fabState.href}
                 <a 
                     href={fabState.href} 
+                    onclick={() => haptic('light')}
                     class="flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl hover:scale-105 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50"
                     title={fabState.label}
                 >

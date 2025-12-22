@@ -1,6 +1,7 @@
 <script lang="ts">
     /* eslint-disable @typescript-eslint/no-explicit-any */
     import type { ComponentType, SvelteComponent } from 'svelte';
+    import { haptic } from '$lib/utils/haptic';
 
     interface Props {
         href: string;
@@ -14,6 +15,7 @@
 
 <a 
     {href}
+    onclick={() => haptic('light')}
     class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
 >
     <div class="relative">
