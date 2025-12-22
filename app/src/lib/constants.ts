@@ -92,3 +92,18 @@ export const EXPAND = {
     // Combined
     KIMPAY_FULL: "participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved"
 } as const;
+
+// =============================================================================
+// Storage Keys (IndexedDB / localStorage)
+// =============================================================================
+
+export const STORAGE_KEYS = {
+    /** Prefix for Kimpay data in IndexedDB */
+    KIMPAY_DATA_PREFIX: 'kimpay_data_',
+    /** Key for offline action queue */
+    OFFLINE_QUEUE: 'kimpay_offline_queue',
+    /** Prefix for currency rates cache in localStorage */
+    RATES_CACHE_PREFIX: 'kimpay_rates_',
+    /** Legacy key for migration (deprecated) */
+    LEGACY_MY_KIMPAYS: 'my_kimpays',
+} as const;

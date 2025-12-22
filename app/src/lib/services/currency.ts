@@ -38,7 +38,8 @@ export const CURRENCY_CODES = Object.keys(CURRENCIES) as (keyof typeof CURRENCIE
 const API_PRIMARY = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies';
 const API_FALLBACK = 'https://latest.currency-api.pages.dev/v1/currencies';
 
-const CACHE_KEY_PREFIX = 'kimpay_rates_';
+import { STORAGE_KEYS } from '$lib/constants';
+const CACHE_KEY_PREFIX = STORAGE_KEYS.RATES_CACHE_PREFIX;
 
 interface RatesCache {
     date: string;

@@ -53,74 +53,6 @@
   let refreshSignal = $state({ count: 0 });
   setContext('refreshSignal', refreshSignal);
 
-  // Swipe Logic
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchEndX = 0;
-  let touchEndY = 0;
-  const minSwipeDistance = 50;
-
-  function handleTouchStart(e: TouchEvent) {
-      const touch = e.changedTouches[0];
-      if (touch) {
-          touchStartX = touch.screenX;
-          touchStartY = touch.screenY;
-      }
-  }
-
-  function handleTouchEnd(e: TouchEvent) {
-      const touch = e.changedTouches[0];
-      if (touch) {
-          touchEndX = touch.screenX;
-          touchEndY = touch.screenY;
-          handleSwipe();
-      }
-  }
-
-  function handleSwipe() {
-      const xDistance = touchStartX - touchEndX;
-      const yDistance = touchStartY - touchEndY;
-      
-      // Ignore if vertical scroll is dominant
-      if (Math.abs(yDistance) > Math.abs(xDistance)) return;
-
-      const isLeftSwipe = xDistance > minSwipeDistance;
-      const isRightSwipe = xDistance < -minSwipeDistance;
-
-      if (isLeftSwipe) {
-          navigate(1);
-      } else if (isRightSwipe) {
-          navigate(-1);
-      }
-  }
-
-  function navigate(direction: number) {
-      const routes = [
-          `/k/${kimpayId}`,
-          `/k/${kimpayId}/balance`,
-          `/k/${kimpayId}/share`,
-          `/k/${kimpayId}/settings`
-      ];
-
-      const currentPath = page.url.pathname;
-      let currentIndex = -1;
-      
-      if (currentPath.endsWith('/balance')) currentIndex = 1;
-      else if (currentPath.endsWith('/share')) currentIndex = 2;
-      else if (currentPath.endsWith('/settings')) currentIndex = 3;
-      else if (currentPath === `/k/${kimpayId}` || currentPath === `/k/${kimpayId}/`) currentIndex = 0;
-      
-      if (currentIndex === -1) return; 
-
-      const nextIndex = currentIndex + direction;
-      const nextRoute = routes[nextIndex];
-
-      if (nextRoute) {
-          goto(nextRoute);
-      }
-  }
-
-  
   async function checkIdentity() {
       if (!kimpayId) return;
       
@@ -148,8 +80,6 @@
 
 <div 
     class="flex-1 bg-slate-50 dark:bg-background pb-20 transition-colors"
-    ontouchstart={handleTouchStart}
-    ontouchend={handleTouchEnd}
 > <!-- pb-20 for bottom nav -->
   {@render children()}
 </div>

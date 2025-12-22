@@ -18,11 +18,11 @@
     };
 </script>
 
-<div class="fixed bottom-20 left-4 right-4 z-[200] flex flex-col items-center gap-2 pointer-events-none">
+<div class="fixed top-20 left-4 right-4 z-[200] flex flex-col items-center gap-2 pointer-events-none">
     {#each $toasts as toast (toast.id)}
         <div
             class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg backdrop-blur-md bg-slate-900/90 dark:bg-slate-800/95 text-white max-w-sm w-full border border-slate-700/50"
-            in:fly={{ y: 50, duration: 300 }}
+            in:fly={{ y: -50, duration: 300 }}
             out:fade={{ duration: 200 }}
             role="alert"
         >

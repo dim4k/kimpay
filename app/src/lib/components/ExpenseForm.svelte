@@ -17,10 +17,10 @@
   import { storageService } from '$lib/services/storage';
   import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { Check, LoaderCircle, ChevronDown } from "lucide-svelte";
+  import { Check, LoaderCircle } from "lucide-svelte";
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
-  import { slide } from 'svelte/transition';
+  import Dropdown from '$lib/components/ui/Dropdown.svelte';
   import { toasts } from '$lib/stores/toasts.svelte';
   import { haptic } from '$lib/utils/haptic';
 
@@ -42,7 +42,6 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   let currency = $state("");
-  let isCurrencyOpen = $state(false);
   
   let participants = $derived(activeKimpay?.participants || []);
   let isLoading = $state(false);
@@ -273,44 +272,29 @@
                 }}
             />
             <!-- Currency Selector (compact) -->
-            <div class="relative shrink-0">
-                <button
-                    type="button"
-                    onclick={() => isCurrencyOpen = !isCurrencyOpen}
-                    class="h-full flex items-center gap-1.5 px-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
-                >
+            <Dropdown position="bottom-right" triggerClass="h-full border border-slate-200 dark:border-slate-700">
+                {#snippet trigger(isOpen)}
                     <span class="text-base font-medium">{CURRENCIES[currency]?.symbol ?? '€'}</span>
                     <span class="font-medium text-sm text-slate-700 dark:text-slate-200">{currency || DEFAULT_CURRENCY}</span>
-                    <ChevronDown class="h-3.5 w-3.5 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
-                </button>
-
-                {#if isCurrencyOpen}
-                    <div class="absolute top-full right-0 mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto min-w-[120px]" transition:slide={{ duration: 150 }}>
-                        {#each CURRENCY_CODES as code (code)}
-                            <button
-                                type="button"
-                                onclick={() => { currency = code; isCurrencyOpen = false; }}
-                                class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {currency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <span class="text-base w-5 text-center">{CURRENCIES[code]?.symbol}</span>
-                                    <span class="font-medium text-slate-900 dark:text-slate-100">{code}</span>
-                                </div>
-                                {#if currency === code}
-                                    <Check class="h-3.5 w-3.5 text-indigo-500" />
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
-                    <div 
-                        class="fixed inset-0 z-40" 
-                        onclick={() => isCurrencyOpen = false} 
-                        role="button" 
-                        tabindex="-1" 
-                        onkeydown={(e) => e.key === 'Escape' && (isCurrencyOpen = false)}
-                    ></div>
-                {/if}
-            </div>
+                {/snippet}
+                {#snippet items(close)}
+                    {#each CURRENCY_CODES as code (code)}
+                        <button
+                            type="button"
+                            onclick={() => { currency = code; close(); }}
+                            class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {currency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-base w-5 text-center">{CURRENCIES[code]?.symbol}</span>
+                                <span class="font-medium text-slate-900 dark:text-slate-100">{code}</span>
+                            </div>
+                            {#if currency === code}
+                                <Check class="h-3.5 w-3.5 text-indigo-500" />
+                            {/if}
+                        </button>
+                    {/each}
+                {/snippet}
+            </Dropdown>
         </div>
     </div>
 

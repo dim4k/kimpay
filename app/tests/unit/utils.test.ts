@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { generateUUID, generatePocketBaseId, isValidEmail } from '../../src/lib/utils';
+import { generateUUID, generatePocketBaseId, isValidEmail } from '../../src/lib/utils/index';
 
 describe('generateUUID', () => {
     it('should generate a string', () => {

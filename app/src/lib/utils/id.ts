@@ -1,11 +1,8 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
-}
-
-export function generateUUID() {
+/**
+ * Generate a UUID v4 string.
+ * Uses crypto.randomUUID when available, falls back to Math.random.
+ */
+export function generateUUID(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
     }
@@ -16,7 +13,10 @@ export function generateUUID() {
     });
 }
 
-export function generatePocketBaseId() {
+/**
+ * Generate a PocketBase-compatible ID (15 lowercase alphanumeric chars).
+ */
+export function generatePocketBaseId(): string {
     let result = '';
     const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
@@ -24,8 +24,4 @@ export function generatePocketBaseId() {
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
-}
-
-export function isValidEmail(email: string) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }

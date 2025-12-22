@@ -6,6 +6,7 @@
     import { cubicOut } from 'svelte/easing';
     import { offlineService } from '$lib/services/offline.svelte';
     import { formatAmount } from '$lib/services/currency';
+    import SwipeableItem from '$lib/components/ui/SwipeableItem.svelte';
 
     let { 
         expense, 
@@ -54,8 +55,25 @@
             onToggleExpand(expense.id);
         }
     }
+
+    function handleSwipeEdit() {
+        goto(`/k/${kimpayId}/edit/${expense.id}`);
+    }
+
+    function handleSwipeDelete() {
+        onRequestDelete(expense.id);
+    }
+
+    // Disable swipe for reimbursements or when offline (can't edit)
+    let swipeDisabled = $derived(expense.is_reimbursement || offlineService.isOffline);
 </script>
 
+<SwipeableItem 
+    disabled={swipeDisabled} 
+    onEdit={handleSwipeEdit} 
+    onDelete={handleSwipeDelete}
+    {style}
+>
 <div 
     class="expense-item rounded-xl border shadow-sm overflow-hidden group transition-all duration-300 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-indigo-200 dark:hover:border-indigo-900'}"
     
@@ -64,7 +82,6 @@
     class:dark:ring-indigo-400={expandedId === expense.id && !expense.is_reimbursement}
     class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
     class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
-    {style}
     role="button"
     tabindex="0"
     onclick={() => onToggleExpand(expense.id)}
@@ -231,20 +248,8 @@
         </div>
     {/if}
 </div>
+</SwipeableItem>
 
 <style>
-  @keyframes slideUpFade {
-    from {
-      opacity: 0;
-      transform: translateY(50px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .expense-item {
-    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
+  /* Styles handled inline via class bindings */
 </style>

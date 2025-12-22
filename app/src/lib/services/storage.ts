@@ -1,4 +1,5 @@
 import type { Kimpay } from "$lib/types";
+import { STORAGE_KEYS } from "$lib/constants";
 import { get, set, del, keys } from "idb-keyval";
 
 export interface PendingAction {
@@ -18,11 +19,7 @@ export interface PendingAction {
     kimpayId: string;
 }
 
-const STORAGE_PREFIX = "kimpay_data_";
-const QUEUE_KEY = "kimpay_offline_queue";
-
-// Legacy key for migration (will be removed after migration)
-const LEGACY_MY_KIMPAYS_KEY = "my_kimpays";
+const { KIMPAY_DATA_PREFIX, OFFLINE_QUEUE, LEGACY_MY_KIMPAYS } = STORAGE_KEYS;
 
 export const storageService = {
     // --- Migration ---
@@ -30,20 +27,20 @@ export const storageService = {
         if (typeof localStorage === "undefined") return false;
 
         // Check for legacy data in localStorage
-        const hasLegacyMyKimpays = localStorage.getItem(LEGACY_MY_KIMPAYS_KEY);
-        const hasQueue = localStorage.getItem(QUEUE_KEY);
+        const hasLegacyMyKimpays = localStorage.getItem(LEGACY_MY_KIMPAYS);
+        const hasQueue = localStorage.getItem(OFFLINE_QUEUE);
 
         let hasKimpayData = false;
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key?.startsWith(STORAGE_PREFIX)) {
+            if (key?.startsWith(KIMPAY_DATA_PREFIX)) {
                 hasKimpayData = true;
                 break;
             }
         }
 
         // Also check IndexedDB for legacy my_kimpays key
-        const hasLegacyIndexedDB = await get<Record<string, string>>(LEGACY_MY_KIMPAYS_KEY);
+        const hasLegacyIndexedDB = await get<Record<string, string>>(LEGACY_MY_KIMPAYS);
 
         if (!hasLegacyMyKimpays && !hasQueue && !hasKimpayData && !hasLegacyIndexedDB) return false;
 
@@ -52,14 +49,14 @@ export const storageService = {
         try {
             // 1. Migrate localStorage to IndexedDB (if any)
             if (hasQueue) {
-                await set(QUEUE_KEY, JSON.parse(hasQueue));
-                localStorage.removeItem(QUEUE_KEY);
+                await set(OFFLINE_QUEUE, JSON.parse(hasQueue));
+                localStorage.removeItem(OFFLINE_QUEUE);
             }
 
             const keysToRemove: string[] = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith(STORAGE_PREFIX)) {
+                if (key && key.startsWith(KIMPAY_DATA_PREFIX)) {
                     const val = localStorage.getItem(key);
                     if (val) {
                         await set(key, JSON.parse(val));
@@ -74,7 +71,7 @@ export const storageService = {
             
             if (hasLegacyMyKimpays) {
                 legacyMap = JSON.parse(hasLegacyMyKimpays);
-                localStorage.removeItem(LEGACY_MY_KIMPAYS_KEY);
+                localStorage.removeItem(LEGACY_MY_KIMPAYS);
             } else if (hasLegacyIndexedDB) {
                 legacyMap = hasLegacyIndexedDB;
             }
@@ -83,10 +80,10 @@ export const storageService = {
             for (const [kimpayId, participantId] of Object.entries(legacyMap)) {
                 if (!kimpayId || !/^[a-zA-Z0-9]{15}$/.test(kimpayId)) continue;
                 
-                const existing = await get<Kimpay>(`${STORAGE_PREFIX}${kimpayId}`);
+                const existing = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
                 if (existing) {
                     existing.myParticipantId = participantId;
-                    await set(`${STORAGE_PREFIX}${kimpayId}`, existing);
+                    await set(`${KIMPAY_DATA_PREFIX}${kimpayId}`, existing);
                 } else {
                     // Create minimal entry for kimpays we don't have cached
                     // They will be fetched properly when visited
@@ -94,12 +91,12 @@ export const storageService = {
                         id: kimpayId,
                         myParticipantId: participantId,
                     };
-                    await set(`${STORAGE_PREFIX}${kimpayId}`, minimalKimpay);
+                    await set(`${KIMPAY_DATA_PREFIX}${kimpayId}`, minimalKimpay);
                 }
             }
 
             // Remove legacy key from IndexedDB
-            await del(LEGACY_MY_KIMPAYS_KEY);
+            await del(LEGACY_MY_KIMPAYS);
 
             console.log("Migration complete.");
             return true;
@@ -114,11 +111,11 @@ export const storageService = {
     saveKimpayData: async (id: string, data: Kimpay) => {
         try {
             // Preserve myParticipantId if it exists in the current cached version
-            const existing = await get<Kimpay>(`${STORAGE_PREFIX}${id}`);
+            const existing = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${id}`);
             if (existing?.myParticipantId && !data.myParticipantId) {
                 data.myParticipantId = existing.myParticipantId;
             }
-            await set(`${STORAGE_PREFIX}${id}`, data);
+            await set(`${KIMPAY_DATA_PREFIX}${id}`, data);
         } catch (e) {
             console.error("Failed to save to storage", e);
         }
@@ -126,7 +123,7 @@ export const storageService = {
 
     getKimpayData: async (id: string): Promise<Kimpay | null> => {
         try {
-            return (await get<Kimpay>(`${STORAGE_PREFIX}${id}`)) || null;
+            return (await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${id}`)) || null;
         } catch (e) {
             console.error("Failed to read from storage", e);
             return null;
@@ -135,7 +132,7 @@ export const storageService = {
 
     hasKimpayData: async (id: string): Promise<boolean> => {
         try {
-            const val = await get(`${STORAGE_PREFIX}${id}`);
+            const val = await get(`${KIMPAY_DATA_PREFIX}${id}`);
             return !!val;
         } catch {
             return false;
@@ -150,9 +147,9 @@ export const storageService = {
             const allKeys = await keys();
             return allKeys
                 .filter((key): key is string => 
-                    typeof key === "string" && key.startsWith(STORAGE_PREFIX)
+                    typeof key === "string" && key.startsWith(KIMPAY_DATA_PREFIX)
                 )
-                .map((key) => key.replace(STORAGE_PREFIX, ""))
+                .map((key) => key.replace(KIMPAY_DATA_PREFIX, ""))
                 .filter((id) => id && /^[a-zA-Z0-9]{15}$/.test(id));
         } catch (_e) {
             return [];
@@ -162,7 +159,7 @@ export const storageService = {
     /** Get the current user's participant ID for a Kimpay */
     getMyParticipantId: async (kimpayId: string): Promise<string | null> => {
         try {
-            const kimpay = await get<Kimpay>(`${STORAGE_PREFIX}${kimpayId}`);
+            const kimpay = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
             return kimpay?.myParticipantId || null;
         } catch (_e) {
             return null;
@@ -172,14 +169,14 @@ export const storageService = {
     /** Set the current user's participant ID for a Kimpay */
     setMyParticipantId: async (kimpayId: string, participantId: string) => {
         try {
-            let kimpay = await get<Kimpay>(`${STORAGE_PREFIX}${kimpayId}`);
+            let kimpay = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
             if (kimpay) {
                 kimpay.myParticipantId = participantId;
             } else {
                 // Create minimal entry - will be populated when visiting the kimpay
                 kimpay = { id: kimpayId, myParticipantId: participantId } as Kimpay;
             }
-            await set(`${STORAGE_PREFIX}${kimpayId}`, kimpay);
+            await set(`${KIMPAY_DATA_PREFIX}${kimpayId}`, kimpay);
         } catch (e) {
             console.error("Failed to save identity", e);
         }
@@ -188,7 +185,7 @@ export const storageService = {
     /** Remove a Kimpay from local storage (used when leaving a group) */
     removeRecentKimpay: async (kimpayId: string) => {
         try {
-            await del(`${STORAGE_PREFIX}${kimpayId}`);
+            await del(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
         } catch (e) {
             console.error("Failed to remove kimpay", e);
         }
@@ -202,7 +199,7 @@ export const storageService = {
             const queue = await storageService.getPendingActions();
             console.log("[OfflineQueue] Current queue length:", queue.length);
             queue.push(action);
-            await set(QUEUE_KEY, queue);
+            await set(OFFLINE_QUEUE, queue);
             console.log("[OfflineQueue] Action saved successfully, new queue length:", queue.length);
         } catch (e) {
             console.error("[OfflineQueue] Failed to save pending action:", e);
@@ -211,7 +208,7 @@ export const storageService = {
 
     getPendingActions: async (): Promise<PendingAction[]> => {
         try {
-            return (await get<PendingAction[]>(QUEUE_KEY)) || [];
+            return (await get<PendingAction[]>(OFFLINE_QUEUE)) || [];
         } catch (_) {
             return [];
         }
@@ -221,13 +218,13 @@ export const storageService = {
         try {
             const queue = await storageService.getPendingActions();
             const newQueue = queue.filter((a) => a.id !== actionId);
-            await set(QUEUE_KEY, newQueue);
+            await set(OFFLINE_QUEUE, newQueue);
         } catch (e) {
             console.error("Failed to remove pending action", e);
         }
     },
 
     clearQueue: async () => {
-        await del(QUEUE_KEY);
+        await del(OFFLINE_QUEUE);
     },
 };
