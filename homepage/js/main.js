@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
     const langToggle = document.getElementById("lang-toggle");
+    const langDropdown = document.getElementById("lang-dropdown");
     const langText = langToggle?.querySelector(".lang-text");
+    const langOptions = document.querySelectorAll(".lang-option");
 
     const applyLanguage = (lang) => {
         if (!window.translations?.[lang]) return;
@@ -11,20 +13,48 @@ document.addEventListener("DOMContentLoaded", () => {
         document.documentElement.lang = lang;
         if (langText) langText.textContent = lang.toUpperCase();
         localStorage.setItem("kimpay_lang", lang);
+        
+        // Update active state
+        langOptions.forEach(opt => {
+            opt.classList.toggle("active", opt.dataset.lang === lang);
+        });
     };
 
     const storedLang = localStorage.getItem("kimpay_lang");
-    const browserLang = (navigator.language || "en").startsWith("fr") ? "fr" : "en";
-    const initialLang = ["fr", "en"].includes(storedLang) ? storedLang : browserLang;
+    const supportedLangs = ["en", "fr", "de", "es", "pt"];
+    const detectBrowserLang = () => {
+        const browserLang = (navigator.language || "en").split("-")[0];
+        return supportedLangs.includes(browserLang) ? browserLang : "en";
+    };
+    const initialLang = supportedLangs.includes(storedLang) ? storedLang : detectBrowserLang();
     applyLanguage(initialLang);
 
-    langToggle?.addEventListener("click", () => {
-        const newLang = document.documentElement.lang === "en" ? "fr" : "en";
-        applyLanguage(newLang);
-        const dynamicWordEl = document.getElementById("dynamic-word");
-        const finalWord = window.translations?.[newLang]?.["hero.word.final"];
-        if (dynamicWordEl && finalWord) dynamicWordEl.textContent = finalWord;
-        setTimeout(() => ScrollTrigger?.refresh(), 100);
+    // Toggle dropdown
+    langToggle?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = langDropdown?.classList.toggle("open");
+        langToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    // Handle language selection
+    langOptions.forEach(option => {
+        option.addEventListener("click", () => {
+            const newLang = option.dataset.lang;
+            applyLanguage(newLang);
+            langDropdown?.classList.remove("open");
+            langToggle?.setAttribute("aria-expanded", "false");
+            
+            const dynamicWordEl = document.getElementById("dynamic-word");
+            const finalWord = window.translations?.[newLang]?.["hero.word.final"];
+            if (dynamicWordEl && finalWord) dynamicWordEl.textContent = finalWord;
+            setTimeout(() => ScrollTrigger?.refresh(), 100);
+        });
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener("click", () => {
+        langDropdown?.classList.remove("open");
+        langToggle?.setAttribute("aria-expanded", "false");
     });
 
     const yearEl = document.getElementById("current-year");

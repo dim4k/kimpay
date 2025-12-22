@@ -1,12 +1,18 @@
 import { derived, writable } from "svelte/store";
 import { en, type TranslationKey } from "./locales/en";
 import { fr } from "./locales/fr";
+import { de } from "./locales/de";
+import { es } from "./locales/es";
+import { pt } from "./locales/pt";
 
 export type { TranslationKey };
 
 export const locales: Record<string, Record<TranslationKey, string>> = {
     en,
     fr,
+    de,
+    es,
+    pt,
 };
 
 function getInitialLocale(): string {

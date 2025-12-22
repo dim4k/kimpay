@@ -6,6 +6,8 @@
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { toasts } from '$lib/stores/toasts.svelte';
+  import { haptic } from '$lib/utils/haptic';
 
   // Get ActiveKimpay from context
   const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
@@ -39,9 +41,12 @@
       try {
           await navigator.clipboard.writeText(inviteLink);
           copied = true;
+          haptic('light');
+          toasts.success($t('share.copy_success'));
           setTimeout(() => copied = false, 2000);
       } catch (err) {
           console.error('Failed to copy', err);
+          toasts.error('Failed to copy link');
       }
   }
 

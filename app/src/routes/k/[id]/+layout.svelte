@@ -13,18 +13,26 @@
   import { storageService } from '$lib/services/storage';
   import NavItem from '$lib/components/ui/NavItem.svelte';
   
+  import { onDestroy } from 'svelte';
+  
   let { children } = $props();
   
   // Initialize ActiveKimpay
   let activeKimpay = $state<ActiveKimpay>();
   
+  // Only recreate when ID changes, NOT on every navigation within the Kimpay
   $effect(() => {
       const id = page.params.id;
       if (activeKimpay?.id !== id) {
           activeKimpay?.destroy();
           if (id) activeKimpay = new ActiveKimpay(id);
       }
-      return () => activeKimpay?.destroy();
+      // NOTE: No cleanup here! Cleanup in onDestroy only.
+  });
+  
+  // Cleanup only when truly leaving the Kimpay context (component unmount)
+  onDestroy(() => {
+      activeKimpay?.destroy();
   });
 
   // Provide context

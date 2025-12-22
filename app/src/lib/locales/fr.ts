@@ -309,4 +309,9 @@ export const fr: Record<TranslationKey, string> = {
     "user_settings.avatar.remove": "Supprimer",
     "user_settings.avatar.remove_confirm_title": "Supprimer la photo de profil ?",
     "user_settings.avatar.remove_confirm_desc": "Votre photo de profil sera remplacée par l'avatar par défaut.",
+
+    "menu.theme": "Thème",
+    "menu.theme.light": "Clair",
+    "menu.theme.dark": "Sombre",
+    "menu.language": "Langue",
 };

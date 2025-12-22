@@ -208,8 +208,28 @@ export class ActiveKimpay {
                 this.pendingExpenseIds.delete(record.id);
                 return;
             }
-            // Check if we already have it (optimistic UI with temp ID)
-            if (!this.expenses.find((ex) => ex.id === record.id)) {
+            
+            // Check if we already have it by ID
+            if (this.expenses.find((ex) => ex.id === record.id)) {
+                return;
+            }
+            
+            // Check if we have a temp expense that should be replaced
+            // (matching description, amount, and payer within a short time window)
+            const tempExpenseIndex = this.expenses.findIndex((ex) => 
+                ex.id.startsWith("temp_") && 
+                ex.description === record.description && 
+                ex.amount === record.amount &&
+                ex.payer === record.payer
+            );
+            
+            if (tempExpenseIndex !== -1) {
+                // Replace temp with real record
+                this.expenses = this.expenses.map((ex, i) => 
+                    i === tempExpenseIndex ? record : ex
+                );
+            } else {
+                // Truly new expense from another user/device
                 this.expenses = [record, ...this.expenses];
             }
         } else if (e.action === "update") {

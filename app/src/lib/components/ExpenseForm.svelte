@@ -21,6 +21,8 @@
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
   import { slide } from 'svelte/transition';
+  import { toasts } from '$lib/stores/toasts.svelte';
+  import { haptic } from '$lib/utils/haptic';
 
   let { kimpayId, initialData = null } = $props();
 
@@ -178,14 +180,18 @@
 
           if (initialData?.id) {
                await activeKimpay.updateExpense(initialData.id, expenseData, newPhotos, photosToDelete);
+               toasts.success($t('expense.form.update_button'));
           } else {
                await activeKimpay.addExpense(expenseData, newPhotos);
+               toasts.success($t('expense.form.save_button'));
           }
           
+          haptic('success');
           await goto(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);
-          modals.alert({ message: "Error saving expense", title: "Error" });
+          haptic('error');
+          toasts.error($t('error.generic'));
       } finally {
           isLoading = false;
       }

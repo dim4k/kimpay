@@ -35,11 +35,14 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
             return c.json(400, { message: "Missing email or url", received: data });
         }
 
-        // --- Auth & Magic Link Logic ---
+        // --- User Creation & Participant Linking ---
+        // If a new user is created, we'll return a token for auto-login
+        let user = null;
+        let authToken = null;
+        
         try {
             if (participantId) {
                 const users = $app.findCollectionByNameOrId("users");
-                let user;
                 
                 // 1. Try to find existing user
                 try {
@@ -56,6 +59,10 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                     user.setVerified(true); // Auto-verify
                     user.set("name", data.creator || "User"); // Default name
                     $app.save(user);
+                    
+                    // Generate auth token for auto-login
+                    authToken = user.newAuthToken();
+                    console.log("Generated auth token for new user");
                 }
 
                 // 2. Link Participant to User
@@ -69,30 +76,10 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                 } catch(e) {
                     console.log("Error linking participant:", e);
                 }
-
-                // 3. Generate OTP instead of Token
-                const code = $security.randomString(64);
-                const otps = $app.findCollectionByNameOrId("auth_otps");
-                const otpRecord = new Record(otps);
-                otpRecord.set("code", code);
-                otpRecord.set("user", user.id);
-                
-                // Set Expiration (10 mins)
-                const now = new Date();
-                now.setMinutes(now.getMinutes() + 10);
-                otpRecord.set("expires", now.toISOString().replace("T", " ").replace("Z", "")); // PB format
-                
-                $app.save(otpRecord);
-                
-                // 4. Append to URL
-                // Check if url already has params
-                const separator = url.includes("?") ? "&" : "?";
-                url = `${url}${separator}code=${code}`;
-                console.log("Magic Link generated with OTP code");
             }
         } catch (authErr) {
-            console.error("Auth Magic Link Error (Non-fatal):", authErr);
-            // We continue sending email even if auth fails
+            console.error("User/Participant Error (Non-fatal):", authErr);
+            // We continue sending email even if user creation fails
         }
         // -------------------------------
 
@@ -178,7 +165,13 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
             console.log("Email send failed (likely no SMTP configured):", err);
         }
 
-        return c.json(200, { success: true, isNewUser: isNewUser });
+        // Return token and user for auto-login if new user was created
+        const response = { success: true, isNewUser: isNewUser };
+        if (isNewUser && authToken && user) {
+            response.token = authToken;
+            response.user = user;
+        }
+        return c.json(200, response);
     } catch (e) {
         console.error("Kimpay Share Error:", e);
         return c.json(500, { message: e.message || "Internal Server Error" });

@@ -301,6 +301,11 @@ export const en = {
     "user_settings.avatar.remove": "Remove",
     "user_settings.avatar.remove_confirm_title": "Remove Profile Picture?",
     "user_settings.avatar.remove_confirm_desc": "Your profile picture will be replaced with the default avatar.",
+
+    "menu.theme": "Theme",
+    "menu.theme.light": "Light",
+    "menu.theme.dark": "Dark",
+    "menu.language": "Language",
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -315,27 +315,110 @@ header .container {
     background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(99, 102, 241, 0.25));
 }
 
+.lang-selector {
+    position: relative;
+}
+
 .btn-lang {
-    background: transparent;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    padding: 0.5rem;
-    transition: color 0.2s;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease;
     font-family: inherit;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    height: auto;
-    width: auto;
-    border-radius: 0;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .btn-lang:hover {
     color: white;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-lang[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-lang[aria-expanded="true"] .lang-chevron {
+    transform: rotate(180deg);
+}
+
+.lang-flag {
+    width: 20px;
+    height: 15px;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+.lang-chevron {
+    transition: transform 0.2s ease;
+    opacity: 0.6;
+}
+
+.lang-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 160px;
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.lang-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
     background: transparent;
     border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.lang-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.lang-option.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: white;
+}
+
+.lang-option .lang-flag {
+    width: 24px;
+    height: 18px;
 }
 
 .btn-outline {

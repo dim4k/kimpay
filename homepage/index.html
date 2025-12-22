@@ -51,9 +51,21 @@
                 Kimpay
             </a>
             <div class="header-actions">
-                <button id="lang-toggle" class="btn-lang" aria-label="Switch Language">
-                    <span class="lang-text">EN</span>
-                </button>
+                <div class="lang-selector">
+                    <button id="lang-toggle" class="btn-lang" aria-label="Switch Language" aria-expanded="false">
+                        <span class="lang-text">EN</span>
+                        <svg class="lang-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="lang-dropdown" id="lang-dropdown">
+                        <button class="lang-option" data-lang="en">English</button>
+                        <button class="lang-option" data-lang="fr">Français</button>
+                        <button class="lang-option" data-lang="de">Deutsch</button>
+                        <button class="lang-option" data-lang="es">Español</button>
+                        <button class="lang-option" data-lang="pt">Português</button>
+                    </div>
+                </div>
                 <a href="https://app.kimpay.io" class="btn btn-outline">
                     <span data-i18n="nav.launch">Launch App</span>
                     <i class="ph ph-arrow-right"></i>

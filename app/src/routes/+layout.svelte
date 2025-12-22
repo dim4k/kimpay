@@ -4,6 +4,7 @@
     import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
     import GlobalModals from "$lib/components/GlobalModals.svelte";
     import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
+    import Toast from "$lib/components/ui/Toast.svelte";
     import { locale, t } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
@@ -166,6 +167,7 @@
 
 </div>
 
+<Toast />
 <InstallPrompt />
 <GlobalModals />
 

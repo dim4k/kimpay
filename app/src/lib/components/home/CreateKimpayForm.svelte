@@ -18,6 +18,8 @@
     import EmailHelpModal from '$lib/components/ui/modals/EmailHelpModal.svelte';
     import { Info } from "lucide-svelte";
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
+    import { toasts } from '$lib/stores/toasts.svelte';
+    import { haptic } from '$lib/utils/haptic';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -118,6 +120,12 @@
                             }
                         });
                         
+                        // Auto-login if a new user was created and token provided
+                        if (res && res.isNewUser && res.token && res.user) {
+                            pb.authStore.save(res.token, res.user);
+                            console.log("Auto-logged in new user:", res.user.email);
+                        }
+                        
                         const isMyOwnEmail = auth.user && auth.user.email === creatorEmail;
                         
                         if (res && res.isNewUser === false && !isMyOwnEmail) { 
@@ -142,10 +150,13 @@
             }
 
             if (shouldRedirect) {
+                haptic('success');
+                toasts.success($t('home.create.button'));
                 await goto(`/k/${kimpayId}`);
             }
         } catch (e: unknown) {
             console.error("Kimpay Creation Error:", e);
+            haptic('error');
             // Alert the specific validation errors from PocketBase
             const err = e as { response?: { data?: unknown }, message?: string };
             if (err.response && err.response.data) {

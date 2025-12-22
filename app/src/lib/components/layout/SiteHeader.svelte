@@ -291,10 +291,10 @@
                                   {:else}
                                       <Sun class="h-4 w-4" />
                                   {/if}
-                                  <span>Theme</span>
+                                  <span>{$t('menu.theme')}</span>
                               </div>
                               <span class="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded text-slate-500">
-                                  {$theme === 'dark' ? 'Dark' : 'Light'}
+                                  {$theme === 'dark' ? $t('menu.theme.dark') : $t('menu.theme.light')}
                               </span>
                           </button>
 
@@ -306,7 +306,7 @@
                               >
                                   <div class="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-medium text-sm">
                                       <Languages class="h-4 w-4" />
-                                      <span>Language</span>
+                                      <span>{$t('menu.language')}</span>
                                   </div>
                                   <div class="flex items-center gap-2">
                                       <span class="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded text-slate-500 uppercase">
@@ -331,6 +331,27 @@
                                       >
                                           <span class="font-medium">Français</span>
                                           {#if $locale === 'fr'} <Check class="h-3 w-3" /> {/if}
+                                      </button>
+                                      <button 
+                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'de' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
+                                          onclick={() => { locale.set('de'); isLangOptionsOpen = false; }}
+                                      >
+                                          <span class="font-medium">Deutsch</span>
+                                          {#if $locale === 'de'} <Check class="h-3 w-3" /> {/if}
+                                      </button>
+                                      <button 
+                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'es' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
+                                          onclick={() => { locale.set('es'); isLangOptionsOpen = false; }}
+                                      >
+                                          <span class="font-medium">Español</span>
+                                          {#if $locale === 'es'} <Check class="h-3 w-3" /> {/if}
+                                      </button>
+                                      <button 
+                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'pt' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
+                                          onclick={() => { locale.set('pt'); isLangOptionsOpen = false; }}
+                                      >
+                                          <span class="font-medium">Português</span>
+                                          {#if $locale === 'pt'} <Check class="h-3 w-3" /> {/if}
                                       </button>
                                   </div>
                               {/if}

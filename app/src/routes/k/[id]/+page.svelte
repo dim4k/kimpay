@@ -11,6 +11,8 @@
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import { offlineService } from '$lib/services/offline.svelte';
   import { DEFAULT_CURRENCY, convert, formatAmount } from '$lib/services/currency';
+  import { toasts } from '$lib/stores/toasts.svelte';
+  import { haptic } from '$lib/utils/haptic';
   
   // Get ActiveKimpay from context
   const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
@@ -119,9 +121,12 @@
       try {
           await activeKimpay.deleteExpense(expenseToDelete);
           expenseToDelete = null;
+          haptic('success');
+          toasts.success($t('modal.delete_expense.confirm'));
       } catch (e) {
           console.error("Failed to delete", e);
-          modals.alert({ message: getErrorMessage(e, $t) });
+          haptic('error');
+          toasts.error(getErrorMessage(e, $t));
       } finally {
           isDeleting = false;
       }

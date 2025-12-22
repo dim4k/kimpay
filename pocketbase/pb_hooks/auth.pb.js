@@ -38,9 +38,9 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         otpRecord.set("code", code);
         otpRecord.set("user", user.id);
         
-        // Set Expiration (10 mins)
+        // Set Expiration (7 days)
         const now = new Date();
-        now.setMinutes(now.getMinutes() + 10);
+        now.setDate(now.getDate() + 7);
         otpRecord.set("expires", now.toISOString().replace("T", " ").replace("Z", "")); // PB format
         
         $app.save(otpRecord);
@@ -188,9 +188,9 @@ routerAdd("POST", "/api/register", (c) => {
         otpRecord.set("code", code);
         otpRecord.set("user", user.id);
         
-        // Set Expiration (10 mins)
+        // Set Expiration (7 days)
         const now = new Date();
-        now.setMinutes(now.getMinutes() + 10);
+        now.setDate(now.getDate() + 7);
         otpRecord.set("expires", now.toISOString().replace("T", " ").replace("Z", ""));
         
         $app.save(otpRecord);
@@ -311,8 +311,7 @@ routerAdd("POST", "/api/login/verify", (c) => {
             // Generate Real Token
             const token = user.newAuthToken();
 
-            // BURN THE OTP (Prevent Replay)
-            $app.delete(otp);
+            // Note: OTP is NOT deleted - can be reused until expiration
 
             return c.json(200, { token: token, user: user });
 
