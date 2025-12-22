@@ -6,7 +6,7 @@
   import { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   
   import { modals } from '$lib/stores/modals.svelte';
-  import { goto, afterNavigate } from '$app/navigation';
+  import { afterNavigate } from '$app/navigation';
   import { fabState } from '$lib/stores/fab.svelte';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';

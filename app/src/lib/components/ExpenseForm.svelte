@@ -273,7 +273,7 @@
             />
             <!-- Currency Selector (compact) -->
             <Dropdown position="bottom-right" triggerClass="h-full border border-slate-200 dark:border-slate-700">
-                {#snippet trigger(isOpen)}
+                {#snippet trigger(_isOpen)}
                     <span class="text-base font-medium">{CURRENCIES[currency]?.symbol ?? '€'}</span>
                     <span class="font-medium text-sm text-slate-700 dark:text-slate-200">{currency || DEFAULT_CURRENCY}</span>
                 {/snippet}
