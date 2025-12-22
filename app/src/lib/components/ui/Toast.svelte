@@ -18,25 +18,20 @@
     };
 </script>
 
-<div class="fixed top-20 left-4 right-4 z-[200] flex flex-col items-center gap-2 pointer-events-none">
+<!-- Compact toast positioned at bottom for mobile-friendly UX -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none">
     {#each $toasts as toast (toast.id)}
         <div
-            class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg backdrop-blur-md bg-slate-900/90 dark:bg-slate-800/95 text-white max-w-sm w-full border border-slate-700/50"
-            in:fly={{ y: -50, duration: 300 }}
-            out:fade={{ duration: 200 }}
+            class="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-full shadow-lg backdrop-blur-md bg-slate-900/80 dark:bg-slate-800/90 text-white text-sm"
+            in:fly={{ y: 20, duration: 200 }}
+            out:fade={{ duration: 150 }}
             role="alert"
         >
-            <div class="flex-shrink-0 w-8 h-8 rounded-full {colors[toast.type]} flex items-center justify-center">
-                <svelte:component this={icons[toast.type]} class="w-4 h-4 text-white" strokeWidth={3} />
+            <div class="flex-shrink-0 w-5 h-5 rounded-full {colors[toast.type]} flex items-center justify-center">
+                <svelte:component this={icons[toast.type]} class="w-3 h-3 text-white" strokeWidth={3} />
             </div>
-            <p class="flex-1 text-sm font-medium">{toast.message}</p>
-            <button 
-                onclick={() => toasts.remove(toast.id)}
-                class="flex-shrink-0 p-1 rounded-full hover:bg-white/10 transition-colors"
-                aria-label="Dismiss"
-            >
-                <X class="w-4 h-4 text-slate-400" />
-            </button>
+            <p class="font-medium whitespace-nowrap">{toast.message}</p>
         </div>
     {/each}
 </div>
+

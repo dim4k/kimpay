@@ -65,6 +65,20 @@
                         await pb.collection('participants').delete(participantId);
                     } catch(e) {
                         console.warn("Could not delete participant from server (likely constraint)", e);
+                        // If delete fails, try to unclaim instead
+                        try {
+                            await pb.collection('participants').update(participantId, { user: null });
+                        } catch (uncErr) {
+                            console.warn("Could not unclaim participant", uncErr);
+                        }
+                    }
+                } else {
+                    // Can't delete: unclaim the participant (remove user link)
+                    // This prevents the Kimpay from reappearing after refresh for logged users
+                    try {
+                        await pb.collection('participants').update(participantId, { user: null });
+                    } catch (e) {
+                        console.warn("Could not unclaim participant", e);
                     }
                 }
             }
@@ -72,6 +86,7 @@
             storageService.removeRecentKimpay(kimpayToLeave);
             recentsService.removeRecentKimpay(kimpayToLeave);
             kimpayToLeave = null;
+
 
         } catch (e) {
             console.error("Error leaving kimpay", e);

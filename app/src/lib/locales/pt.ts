@@ -42,6 +42,12 @@ export const pt: Record<TranslationKey, string> = {
     "common.you": "Você",
     "common.unknown": "Desconhecido",
 
+    "toast.kimpay_created": "Kimpay criado!",
+    "toast.expense_added": "Despesa adicionada!",
+    "toast.expense_updated": "Despesa atualizada!",
+    "toast.expense_deleted": "Despesa excluída!",
+    "toast.copied": "Copiado!",
+
     "sort.created_desc": "Mais recentes",
     "sort.created_asc": "Mais antigos",
     "sort.date_desc": "Data (recentes)",

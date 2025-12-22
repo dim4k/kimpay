@@ -122,7 +122,7 @@
           await activeKimpay.deleteExpense(expenseToDelete);
           expenseToDelete = null;
           haptic('success');
-          toasts.success($t('modal.delete_expense.confirm'));
+          toasts.success($t('toast.expense_deleted'));
       } catch (e) {
           console.error("Failed to delete", e);
           haptic('error');

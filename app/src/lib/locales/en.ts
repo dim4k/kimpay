@@ -40,6 +40,12 @@ export const en = {
     "common.you": "You",
     "common.unknown": "Unknown",
 
+    "toast.kimpay_created": "Kimpay created!",
+    "toast.expense_added": "Expense added!",
+    "toast.expense_updated": "Expense updated!",
+    "toast.expense_deleted": "Expense deleted!",
+    "toast.copied": "Copied!",
+
     "sort.created_desc": "Newest first",
     "sort.created_asc": "Oldest first",
     "sort.date_desc": "Date (newest)",

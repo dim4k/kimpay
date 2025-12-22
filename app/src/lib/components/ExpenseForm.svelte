@@ -179,10 +179,10 @@
 
           if (initialData?.id) {
                await activeKimpay.updateExpense(initialData.id, expenseData, newPhotos, photosToDelete);
-               toasts.success($t('expense.form.update_button'));
+               toasts.success($t('toast.expense_updated'));
           } else {
                await activeKimpay.addExpense(expenseData, newPhotos);
-               toasts.success($t('expense.form.save_button'));
+               toasts.success($t('toast.expense_added'));
           }
           
           haptic('success');

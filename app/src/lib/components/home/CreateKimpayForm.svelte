@@ -32,8 +32,7 @@
     let isEmojiPickerOpen = $state(false);
     let isEmailHelpOpen = $state(false);
     let isLoading = $state(false);
-    
-    let createdKimpayUrl = $state("");
+
 
     $effect(() => {
         if (auth.user && !creatorName && !creatorEmail) {
@@ -75,15 +74,7 @@
                 selectedCurrency
             );
 
-            // Update store logic is now handled in kimpayStore (optimistic)
-            // But we need to update recentsService for immediate feedback if not handled by store?
-            // kimpayStore.create updates offline queue but does it update Recents?
-            // Recents service listens to storage? or needs manual add?
-            // The original code did: recentsService.addRecentKimpay(...); storageService.setMyParticipantId(...);
-            
-            // We should ensure kimpayStore.create or this caller handles "Recents" + "MyIdentity"
-            // kimpayStore.create handles offline queue for server sync.
-            // Client side state:
+            // Client side state - update immediately
             storageService.setMyParticipantId(kimpayId, creatorId);
             recentsService.addRecentKimpay({
                 id: kimpayId,
@@ -91,73 +82,43 @@
                 icon: kimpayIcon,
                 created_by: creatorId
             });
-            storageService.setMyParticipantId(kimpayId, creatorId);
 
-            
-            let shouldRedirect = true;
-            if (creatorEmail && creatorEmail.trim()) {
+            // Navigate IMMEDIATELY - don't wait for email
+            haptic('success');
+            toasts.success($t('toast.kimpay_created'));
+            await goto(`/k/${kimpayId}`);
+
+            // Fire-and-forget: Send email in background AFTER navigation
+            if (creatorEmail && creatorEmail.trim() && !offlineService.isOffline) {
                 const kimpayUrl = `${window.location.origin}/k/${kimpayId}`;
+                const emailData = {
+                    email: creatorEmail,
+                    url: kimpayUrl,
+                    kimpayName: kimpayName,
+                    locale: $locale,
+                    creator: creatorName,
+                    participantId: creatorId
+                };
                 
-                try {
-                    // This part should technically also be offline-capable or queued if important? 
-                    // Email sending requires server.
-                    // If offline, we can't send email.
-                    // We should check offline status.
-                     if (offlineService.isOffline) {
-                         // Queue basic "Send Email" action? Or just warn?
-                         // For now, let's just skip email if offline or warn.
-                         // Or try/catch and ignore.
-                     } else {
-                        const res = await pb.send("/api/kimpay/share", {
-                            method: "POST",
-                            body: {
-                                email: creatorEmail,
-                                url: kimpayUrl,
-                                kimpayName: kimpayName,
-                                locale: $locale,
-                                creator: creatorName,
-                                participantId: creatorId // Trigger magic link creation
-                            }
-                        });
-                        
-                        // Auto-login if a new user was created and token provided
-                        if (res && res.isNewUser && res.token && res.user) {
-                            pb.authStore.save(res.token, res.user);
-                            console.log("Auto-logged in new user:", res.user.email);
-                        }
-                        
-                        const isMyOwnEmail = auth.user && auth.user.email === creatorEmail;
-                        
-                        if (res && res.isNewUser === false && !isMyOwnEmail) { 
-                            shouldRedirect = false;
-                            
-                            // Cleanup: Allow logic to think creation failed for this user
-                            recentsService.removeRecentKimpay(kimpayId);
-                            storageService.removeRecentKimpay(kimpayId);
-    
-                            createdKimpayUrl = `/`; 
-                            modals.alert({
-                                title: $t('home.create.existing_user_modal.title'),
-                                message: $t('home.create.existing_user_modal.message'),
-                                variant: 'info',
-                                onConfirm: () => goto(createdKimpayUrl)
-                            });
-                        }
-                     }
-                } catch (err) {
-                    console.error("Erreur envoi mail:", err);
-                }
+                // Don't await - fire and forget
+                pb.send("/api/kimpay/share", {
+                    method: "POST",
+                    body: emailData
+                }).then(res => {
+                    // Auto-login if new user
+                    if (res?.isNewUser && res.token && res.user) {
+                        pb.authStore.save(res.token, res.user);
+                    }
+                    // Note: existing user modal won't show after navigation,
+                    // but the email will still be sent for their magic link
+                }).catch(err => {
+                    console.error("Background email error:", err);
+                });
             }
 
-            if (shouldRedirect) {
-                haptic('success');
-                toasts.success($t('home.create.button'));
-                await goto(`/k/${kimpayId}`);
-            }
         } catch (e: unknown) {
             console.error("Kimpay Creation Error:", e);
             haptic('error');
-            // Alert the specific validation errors from PocketBase
             const err = e as { response?: { data?: unknown }, message?: string };
             if (err.response && err.response.data) {
                 modals.alert({ 
@@ -174,6 +135,7 @@
             isLoading = false;
         }
     }
+
      
     let { hideTitle = false } = $props<{hideTitle?: boolean}>();
 </script>
