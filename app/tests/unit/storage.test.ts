@@ -29,6 +29,8 @@ vi.mock("idb-keyval", () => ({
 beforeEach(() => {
     for (const key in mockStore) delete mockStore[key];
     vi.clearAllMocks();
+    // Silence console.log during tests (e.g., "[OfflineQueue] Saving action...")
+    vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 
 function createMockKimpay(id: string, myParticipantId?: string): Kimpay {
@@ -40,6 +42,7 @@ function createMockKimpay(id: string, myParticipantId?: string): Kimpay {
         updated: new Date().toISOString(),
         name: "Test Kimpay",
         created_by: "user123",
+        currency: "EUR",
         myParticipantId,
     };
 }
