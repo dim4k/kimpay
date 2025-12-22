@@ -183,7 +183,9 @@
 
     .swipeable-container {
         touch-action: pan-y;
-        overflow: hidden;
+        overflow: clip;
+        padding: 3px;
+        margin: -3px;
         animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     
