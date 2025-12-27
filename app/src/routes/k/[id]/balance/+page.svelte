@@ -8,7 +8,7 @@
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { offlineService } from '$lib/services/offline.svelte';
+  import { offlineStore } from '$lib/stores/offline.svelte';
   import { pb } from '$lib/pocketbase';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '$lib/services/currency';
@@ -46,7 +46,7 @@
   let isLoading = $derived(activeKimpay?.loading ?? true);
 
   function openSettleModal(tx: Transaction) {
-      if (offlineService.isOffline) {
+      if (offlineStore.isOffline) {
           modals.alert({
               message: $t('balance.reimbursement.offline_unavailable')
           });
@@ -97,7 +97,7 @@
     </header>
 
 
-    {#if offlineService.isOffline}
+    {#if offlineStore.isOffline}
         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
             <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
             <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>

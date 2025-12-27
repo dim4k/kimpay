@@ -2,10 +2,10 @@ import { pb } from "$lib/pocketbase";
 import type { RecentKimpay, Participant } from "$lib/types";
 import { asRecentKimpay } from "$lib/types";
 import { storageService } from "$lib/services/storage";
-import { offlineService } from "$lib/services/offline.svelte";
+import { offlineStore } from "$lib/stores/offline.svelte";
 import { auth } from "$lib/stores/auth.svelte";
 
-class RecentsService {
+class RecentsStore {
     recentKimpays: RecentKimpay[] = $state([]);
     loading = $state(false);
     initialized = $state(false);
@@ -25,7 +25,7 @@ class RecentsService {
             }
 
             // Offline mode: stop here
-            if (offlineService.isOffline) {
+            if (offlineStore.isOffline) {
                 this.initialized = true;
                 return;
             }
@@ -108,7 +108,7 @@ class RecentsService {
         const results = await Promise.all(promises);
 
         if (results.some((r) => r.status === "network_error")) {
-            offlineService.setOffline(true);
+            offlineStore.setOffline(true);
             return;
         }
 
@@ -179,7 +179,7 @@ class RecentsService {
             this.recentKimpays = [kimpay, ...this.recentKimpays];
 
             // Subscribe if possible
-            if (!offlineService.isOffline) {
+            if (!offlineStore.isOffline) {
                 try {
                     pb.collection("kimpays")
                         .subscribe(kimpay.id, (e) => {
@@ -209,4 +209,4 @@ class RecentsService {
     }
 }
 
-export const recentsService = new RecentsService();
+export const recentsStore = new RecentsStore();

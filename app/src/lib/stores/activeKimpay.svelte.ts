@@ -1,7 +1,7 @@
 import { pb } from "$lib/pocketbase";
 import { storageService } from "$lib/services/storage";
-import { offlineService } from "$lib/services/offline.svelte";
-import { recentsService } from "$lib/services/recents.svelte";
+import { offlineStore } from "$lib/stores/offline.svelte";
+import { recentsStore } from "$lib/stores/recents.svelte";
 import { activeKimpayGlobal } from "$lib/stores/activeKimpayGlobal.svelte";
 import {
     type Kimpay,
@@ -125,7 +125,7 @@ export class ActiveKimpay {
             await storageService.saveKimpayData(this.id, kimpayData);
 
             // Update Recents list
-            recentsService.addRecentKimpay({
+            recentsStore.addRecentKimpay({
                 id: freshData.id,
                 name: freshData.name,
                 icon: freshData.icon,
@@ -305,12 +305,12 @@ export class ActiveKimpay {
         this.persist();
 
         // 3. Offline / Online Handling
-        if (offlineService.isOffline) {
+        if (offlineStore.isOffline) {
             // Note: Photos are not supported offline (UI prevents adding them)
             // IMPORTANT: Use $state.snapshot to convert Svelte 5 Proxies to plain objects
             // IndexedDB cannot clone Proxy objects
             const plainData = $state.snapshot(data);
-            offlineService.queueAction(
+            offlineStore.queueAction(
                 "CREATE_EXPENSE",
                 { ...plainData, kimpay: this.id },
                 this.id,
@@ -377,8 +377,8 @@ export class ActiveKimpay {
         this.persist();
 
         // 2. Offline / Online Handling
-        if (offlineService.isOffline) {
-            offlineService.queueAction(
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction(
                 "UPDATE_EXPENSE",
                 { id: expenseId, ...data, newPhotos, deletedPhotos },
                 this.id
@@ -427,8 +427,8 @@ export class ActiveKimpay {
         this.expenses = this.expenses.filter((e) => e.id !== expenseId);
         this.persist();
 
-        if (offlineService.isOffline) {
-            offlineService.queueAction(
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction(
                 "DELETE_EXPENSE",
                 { id: expenseId },
                 this.id
@@ -465,8 +465,8 @@ export class ActiveKimpay {
         this.persist();
 
         // 2. Offline / Online
-        if (offlineService.isOffline) {
-            offlineService.queueAction(
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction(
                 "CREATE_PARTICIPANT",
                 { name, kimpay: this.id },
                 this.id,
@@ -502,8 +502,11 @@ export class ActiveKimpay {
         this.kimpay = { ...this.kimpay, name, icon };
         this.persist();
 
-        if (offlineService.isOffline) {
-            offlineService.queueAction(
+        // Update recentsStore for immediate sync to homepage
+        recentsStore.updateRecentKimpay({ id: this.id, name, icon });
+
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction(
                 "UPDATE_KIMPAY",
                 { name, icon },
                 this.id
@@ -516,13 +519,17 @@ export class ActiveKimpay {
         } catch (e) {
             this.kimpay = previous;
             this.persist();
+            // Revert recentsStore update
+            const revert: { id: string; name: string; icon?: string } = { id: this.id, name: previous.name };
+            if (previous.icon) revert.icon = previous.icon;
+            recentsStore.updateRecentKimpay(revert);
             throw e;
         }
     }
 
     async deleteKimpay() {
-        if (offlineService.isOffline) {
-            offlineService.queueAction("DELETE_KIMPAY", {}, this.id);
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction("DELETE_KIMPAY", {}, this.id);
             return;
         }
         await pb.collection("kimpays").delete(this.id);
@@ -535,8 +542,8 @@ export class ActiveKimpay {
         );
         this.persist();
 
-        if (offlineService.isOffline) {
-            offlineService.queueAction(
+        if (offlineStore.isOffline) {
+            offlineStore.queueAction(
                 "DELETE_PARTICIPANT",
                 { id: participantId },
                 this.id

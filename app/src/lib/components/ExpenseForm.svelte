@@ -13,7 +13,7 @@
   import { t } from '$lib/i18n';
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
-  import { offlineService } from '$lib/services/offline.svelte';
+  import { offlineStore } from '$lib/stores/offline.svelte';
   import { storageService } from '$lib/services/storage';
   import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
@@ -104,10 +104,10 @@
             : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none",
           onClick: save,
           href: null,
-          label: (initialData?.id && offlineService.isOffline) 
+          label: (initialData?.id && offlineStore.isOffline) 
             ? $t('common.offline') 
             : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button')),
-          disabled: !isValid || isLoading || (!!initialData?.id && offlineService.isOffline)
+          disabled: !isValid || isLoading || (!!initialData?.id && offlineStore.isOffline)
       });
   }
 
@@ -156,7 +156,7 @@
   async function save() {
       if (!description || !amount || !payer || involved.length === 0) return;
       
-      if (initialData?.id && offlineService.isOffline) {
+      if (initialData?.id && offlineStore.isOffline) {
           modals.alert({ 
               message: $t('common.offline_edit_error') || "Cannot edit expenses while offline",
               title: "Offline"

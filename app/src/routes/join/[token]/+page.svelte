@@ -12,7 +12,7 @@
   import { storageService } from '$lib/services/storage';
   import { auth } from '$lib/stores/auth.svelte';
   import { participantService } from '$lib/services/participant';
-  import { offlineService } from '$lib/services/offline.svelte';
+  import { offlineStore } from '$lib/stores/offline.svelte';
   import { t } from '$lib/i18n';
 
   let token = $derived(page.params.token);
@@ -22,11 +22,11 @@
   let participants = $state<Participant[]>([]);
   let error = $state("");
 
-  let isOfflineBlocked = $derived(offlineService.isOffline && !kimpay);
+  let isOfflineBlocked = $derived(offlineStore.isOffline && !kimpay);
 
   onMount(async () => {
     // Block if offline - can't join without network
-    if (offlineService.isOffline) {
+    if (offlineStore.isOffline) {
       return;
     }
 

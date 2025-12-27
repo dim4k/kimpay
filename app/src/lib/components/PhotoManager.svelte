@@ -2,7 +2,7 @@
     import { Camera, X } from "lucide-svelte";
     import { pb } from '$lib/pocketbase';
     import { t } from '$lib/i18n';
-    import { offlineService } from '$lib/services/offline.svelte';
+    import { offlineStore } from '$lib/stores/offline.svelte';
     import type { RecordModel } from 'pocketbase';
 
     interface Props {
@@ -65,7 +65,7 @@
         return pb.files.getURL(record, filename, { thumb: '100x100' });
     }
 
-    const isDisabled = $derived(disabled || offlineService.isOffline);
+    const isDisabled = $derived(disabled || offlineStore.isOffline);
 </script>
 
 <div class="space-y-2">

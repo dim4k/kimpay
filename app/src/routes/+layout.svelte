@@ -9,7 +9,7 @@
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
     import { page } from '$app/state';
-    import { recentsService } from '$lib/services/recents.svelte';
+    import { recentsStore } from '$lib/stores/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
     import { storageService } from '$lib/services/storage';
@@ -50,7 +50,7 @@
         }
         
         // Reload stores to reflect the claimed kimpays
-        recentsService.init(true);
+        recentsStore.init(true);
     }
     
     onMount(async () => {
@@ -58,7 +58,7 @@
         theme.init();
         
         // If migration happened, force reload recents because they might have been initialized empty by +page.svelte
-        recentsService.init(migrated);
+        recentsStore.init(migrated);
         auth.init();
         
         if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -108,7 +108,7 @@
     // Re-load groups on navigation (in case a new one was created)
     $effect(() => {
         if (page.url.pathname) {
-            recentsService.init();
+            recentsStore.init();
             
             // Stores are reset by their init methods when entering a kimpay context.
             // Explicit reset on exit is optional but nice. For now we skip it.

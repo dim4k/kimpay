@@ -1,7 +1,7 @@
 import { pb } from "$lib/pocketbase";
 import { storageService, type PendingAction } from "$lib/services/storage";
 
-class OfflineService {
+class OfflineStore {
     isOffline = $state(false);
     isSyncing = $state(false);
 
@@ -93,7 +93,7 @@ class OfflineService {
         const actionId =
             id ||
             `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log("[OfflineService] Queuing action:", type, "id:", actionId, "payload:", payload);
+        console.log("[OfflineStore] Queuing action:", type, "id:", actionId, "payload:", payload);
         storageService.savePendingAction({
             id: actionId,
             type,
@@ -222,4 +222,4 @@ class OfflineService {
     }
 }
 
-export const offlineService = new OfflineService();
+export const offlineStore = new OfflineStore();

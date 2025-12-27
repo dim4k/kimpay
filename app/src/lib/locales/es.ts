@@ -47,6 +47,8 @@ export const es: Record<TranslationKey, string> = {
     "toast.expense_updated": "¡Gasto actualizado!",
     "toast.expense_deleted": "¡Gasto eliminado!",
     "toast.copied": "¡Copiado!",
+    "toast.avatar_updated": "¡Foto actualizada!",
+    "toast.avatar_update_failed": "Error al actualizar la foto",
 
     "sort.created_desc": "Más recientes",
     "sort.created_asc": "Más antiguos",

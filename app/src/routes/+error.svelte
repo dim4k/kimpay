@@ -1,11 +1,11 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
   import { page } from '$app/stores';
-  import { offlineService } from '$lib/services/offline.svelte';
+  import { offlineStore } from '$lib/stores/offline.svelte';
   import { storageService } from '$lib/services/storage';
   import { House, WifiOff } from "lucide-svelte";
 
-  const isOffline = $derived(offlineService.isOffline);
+  const isOffline = $derived(offlineStore.isOffline);
   let hasRecentKimpays = $state(false);
   
   $effect(() => {

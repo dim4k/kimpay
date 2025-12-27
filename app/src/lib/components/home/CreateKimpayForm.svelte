@@ -6,10 +6,10 @@
     import { t, locale } from '$lib/i18n';
     import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
     import { fade, slide } from 'svelte/transition';
-    import { recentsService } from '$lib/services/recents.svelte';
+    import { recentsStore } from '$lib/stores/recents.svelte';
     import { storageService } from '$lib/services/storage';
     import { kimpayService } from '$lib/services/kimpay';
-    import { offlineService } from '$lib/services/offline.svelte';
+    import { offlineStore } from '$lib/stores/offline.svelte';
     import { pb } from '$lib/pocketbase';
     import { goto } from '$app/navigation';
     import { isValidEmail } from '$lib/utils';
@@ -76,7 +76,7 @@
 
             // Client side state - update immediately
             storageService.setMyParticipantId(kimpayId, creatorId);
-            recentsService.addRecentKimpay({
+            recentsStore.addRecentKimpay({
                 id: kimpayId,
                 name: kimpayName,
                 icon: kimpayIcon,
@@ -89,7 +89,7 @@
             await goto(`/k/${kimpayId}`);
 
             // Fire-and-forget: Send email in background AFTER navigation
-            if (creatorEmail && creatorEmail.trim() && !offlineService.isOffline) {
+            if (creatorEmail && creatorEmail.trim() && !offlineStore.isOffline) {
                 const kimpayUrl = `${window.location.origin}/k/${kimpayId}`;
                 const emailData = {
                     email: creatorEmail,

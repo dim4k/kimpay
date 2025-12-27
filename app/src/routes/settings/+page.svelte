@@ -4,6 +4,7 @@
     import { auth } from '$lib/stores/auth.svelte';
     import { t } from '$lib/i18n';
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
+    import { userService } from '$lib/services/user';
     import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from 'lucide-svelte';
     import { slide } from 'svelte/transition';
     import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -43,12 +44,9 @@
         isSaving = true;
 
         try {
-            await pb.collection('users').update(auth.user!.id, {
-                preferred_currency: code
-            });
-            // Update local user object
+            const updated = await userService.updatePreferences(auth.user!.id, { currency: code });
             if (auth.user) {
-                auth.user.preferred_currency = code;
+                auth.user.preferred_currency = updated.preferred_currency ?? code;
             }
         } catch (e) {
             console.error('Failed to save currency preference', e);
@@ -62,10 +60,8 @@
         
         isSavingName = true;
         try {
-            await pb.collection('users').update(auth.user.id, {
-                name: userName.trim()
-            });
-            auth.user.name = userName.trim();
+            const updated = await userService.updatePreferences(auth.user.id, { name: userName.trim() });
+            auth.user.name = updated.name;
             isEditingName = false;
         } catch (e) {
             console.error('Failed to save name', e);
@@ -82,15 +78,12 @@
         isSavingAvatar = true;
         
         try {
-            await pb.collection('users').update(auth.user.id, { avatar: file });
-            // Update local state - we need to refetch to get the new filename
-            const updatedUser = await pb.collection('users').getOne(auth.user.id);
-            auth.user.avatar = updatedUser.avatar as string;
+            const updated = await userService.updateAvatar(auth.user.id, file);
+            auth.user.avatar = updated.avatar ?? '';
         } catch (err) {
             console.error('Failed to update avatar', err);
         } finally {
             isSavingAvatar = false;
-            // Reset file input
             if (fileInputRef) fileInputRef.value = '';
         }
     }
@@ -110,8 +103,8 @@
         
         isSavingAvatar = true;
         try {
-            await pb.collection('users').update(auth.user.id, { avatar: null });
-            auth.user.avatar = '';
+            const updated = await userService.removeAvatar(auth.user.id);
+            auth.user.avatar = updated.avatar ?? '';
         } catch (err) {
             console.error('Failed to remove avatar', err);
         } finally {

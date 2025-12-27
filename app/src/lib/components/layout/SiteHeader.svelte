@@ -6,17 +6,19 @@
   import { slide } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
   import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
-  import { recentsService } from '$lib/services/recents.svelte';
+  import { recentsStore } from '$lib/stores/recents.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
 
   import LoginHelpModal from '$lib/components/ui/modals/LoginHelpModal.svelte';
   import OfflineHelpModal from '$lib/components/ui/modals/OfflineHelpModal.svelte';
-  import { offlineService } from '$lib/services/offline.svelte';
-  import { afterNavigate, invalidateAll } from '$app/navigation';
+  import { offlineStore } from '$lib/stores/offline.svelte';
+  import { afterNavigate } from '$app/navigation';
   import { auth } from '$lib/stores/auth.svelte';
   import { page } from '$app/state';
   import { haptic } from '$lib/utils/haptic';
+  import { participantService } from '$lib/services/participant';
+  import { toasts } from '$lib/stores/toasts.svelte';
 
   let isMenuOpen = $state(false);
   let isLangOptionsOpen = $state(false);
@@ -42,14 +44,22 @@
       if (input.files && input.files[0] && currentParticipant) {
            const file = input.files[0];
            try {
-              // TODO: Move this to ActiveKimpay or ParticipantService
-              await pb.collection('participants').update(currentParticipant.id, { avatar: file });
-              // Update global state and UI
-              // Repopulation happens via store reactivity now
-              await invalidateAll();
+              const updated = await participantService.updateAvatar(currentParticipant.id, file);
+              // Update global state directly for immediate UI refresh
+              if (activeKimpayGlobal.myParticipant) {
+                  activeKimpayGlobal.myParticipant = { 
+                      ...activeKimpayGlobal.myParticipant, 
+                      avatar: updated.avatar ?? '' 
+                  };
+              }
+              toasts.success($t('toast.avatar_updated'));
+              haptic('light');
            } catch (err) {
                console.error("Failed to update avatar", err);
+               toasts.error($t('toast.avatar_update_failed'));
            }
+           // Reset file input
+           input.value = '';
       }
   }
 
@@ -85,7 +95,7 @@
           <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
       </a>
 
-      {#if offlineService.isOffline}
+      {#if offlineStore.isOffline}
           <button 
                 onclick={() => showOfflineHelp = true}
                 class="ml-2 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 animate-in fade-in zoom-in-95 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
@@ -164,7 +174,7 @@
                                                src={currentParticipant?.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
                                                class="w-12 h-12 text-xl" 
                                            />
-                                           {#if currentParticipant && !offlineService.isOffline}
+                                           {#if currentParticipant && !offlineStore.isOffline}
                                            <button 
                                               class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                               onclick={() => fileInputRef?.click()}
@@ -185,7 +195,7 @@
                                           <div class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                                               {currentParticipant ? currentParticipant.name : $t('identity.title')}
                                           </div>
-                                          {#if !offlineService.isOffline}
+                                          {#if !offlineStore.isOffline}
                                             <div class="flex flex-col items-start gap-1 mt-0.5">
                                                 <button 
                                                     onclick={openIdentityModal}
@@ -253,12 +263,12 @@
                                           <span class="font-medium">Home</span>
                                       </a>
                                       
-                                      {#if recentsService.recentKimpays.length === 0}
+                                      {#if recentsStore.recentKimpays.length === 0}
                                           <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
                                               {$t('my_kimpays.empty', { default: 'No Kimpays yet.' })}
                                           </div>
                                       {:else}
-                                          {@const filteredKimpays = recentsService.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
+                                          {@const filteredKimpays = recentsStore.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
                                           {#each filteredKimpays as k (k.id)}
                                               <a 
                                                   href="/k/{k.id}" 

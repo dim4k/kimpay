@@ -10,7 +10,7 @@
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
   import { auth } from '$lib/stores/auth.svelte';
-  import { offlineService } from '$lib/services/offline.svelte';
+  import { offlineStore } from '$lib/stores/offline.svelte';
   import { storageService } from '$lib/services/storage';
   import { getErrorMessage } from '$lib/utils/errors';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
@@ -127,7 +127,7 @@
   }
 
   function requestLeave() {
-      if (offlineService.isOffline) return;
+      if (offlineStore.isOffline) return;
       modals.confirm({
           title: $t('modal.leave.title'),
           description: $t('modal.leave.desc'),
@@ -161,7 +161,7 @@
   }
 
   function requestDelete() {
-      if (offlineService.isOffline) return;
+      if (offlineStore.isOffline) return;
       modals.confirm({
           title: $t('settings.delete_group'),
           description: $t('settings.actions.delete_warning'),
@@ -269,7 +269,7 @@
             <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
         </header>
 
-        {#if !offlineService.isOffline}
+        {#if !offlineStore.isOffline}
         <!-- Edit Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in relative z-20">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
@@ -336,7 +336,7 @@
         </div>
         {/if}
 
-        {#if !offlineService.isOffline}
+        {#if !offlineStore.isOffline}
         <!-- Participants Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
@@ -466,7 +466,7 @@
             </div>
         </div>
 
-        {#if !offlineService.isOffline}
+        {#if !offlineStore.isOffline}
         <!-- Bug Report Section -->
         <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
@@ -496,7 +496,7 @@
             <div class="space-y-4">
                 <div class="flex flex-col gap-2">
                     <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.remove_desc')}</p>
-                    <Button variant="outline" class="w-full justify-start gap-2 text-slate-700 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800" onclick={requestLeave} disabled={offlineService.isOffline}>
+                    <Button variant="outline" class="w-full justify-start gap-2 text-slate-700 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800" onclick={requestLeave} disabled={offlineStore.isOffline}>
                         <LogOut class="h-4 w-4" />
                         {$t('settings.leave_group')}
                     </Button>
@@ -510,7 +510,7 @@
                                 {$t('settings.danger_zone')}
                             </h3>
                             <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.delete_desc')}</p>
-                            <Button variant="destructive" class="w-full justify-start gap-2" onclick={requestDelete} disabled={offlineService.isOffline}>
+                            <Button variant="destructive" class="w-full justify-start gap-2" onclick={requestDelete} disabled={offlineStore.isOffline}>
                                 <Trash2 class="h-4 w-4" />
                                 {$t('settings.delete_group')}
                             </Button>

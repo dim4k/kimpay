@@ -49,5 +49,20 @@ export const participantService = {
         if (avatar) formData.append('avatar', avatar);
 
         return await pb.collection('participants').create<Participant>(formData);
-    }
+    },
+
+    /**
+     * Update participant avatar
+     */
+    async updateAvatar(participantId: string, file: File): Promise<Participant> {
+        return await pb.collection('participants').update<Participant>(participantId, { avatar: file });
+    },
+
+    /**
+     * Unclaim a participant (remove user link)
+     */
+    async unclaim(participantId: string): Promise<Participant> {
+        return await pb.collection('participants').update<Participant>(participantId, { user: null });
+    },
 };
+

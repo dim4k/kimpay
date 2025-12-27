@@ -10,7 +10,7 @@
   import { storageService } from '$lib/services/storage';
   import { auth } from '$lib/stores/auth.svelte';
   import { participantService } from '$lib/services/participant';
-  import { recentsService } from '$lib/services/recents.svelte';
+  import { recentsStore } from '$lib/stores/recents.svelte';
   import Modal from './Modal.svelte';
   
   let { isOpen } = $props();
@@ -88,7 +88,7 @@
       if (auth.user) {
           try {
               await participantService.claim(participantId, kimpayId, auth.user.id);
-              recentsService.init(true); // Refresh My Kimpays list
+              recentsStore.init(true); // Refresh My Kimpays list
           } catch (e) {
               console.error("Failed to auto-claim participant", e);
           }

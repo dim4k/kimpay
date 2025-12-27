@@ -45,6 +45,8 @@ export const en = {
     "toast.expense_updated": "Expense updated!",
     "toast.expense_deleted": "Expense deleted!",
     "toast.copied": "Copied!",
+    "toast.avatar_updated": "Photo updated!",
+    "toast.avatar_update_failed": "Failed to update photo",
 
     "sort.created_desc": "Newest first",
     "sort.created_asc": "Oldest first",

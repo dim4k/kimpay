@@ -1,22 +1,20 @@
 <script lang="ts">
     import { LayoutDashboard, LogOut, ArrowRight } from "lucide-svelte";
     import { t } from '$lib/i18n';
-    import { offlineService } from '$lib/services/offline.svelte';
-    import { recentsService } from '$lib/services/recents.svelte';
+    import { offlineStore } from '$lib/stores/offline.svelte';
+    import { recentsStore } from '$lib/stores/recents.svelte';
     import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
-    import { pb } from '$lib/pocketbase';
-    import type { RecordModel } from 'pocketbase';
     import { storageService } from '$lib/services/storage';
+    import { kimpayService } from '$lib/services/kimpay';
     import { modals } from '$lib/stores/modals.svelte';
-    import { EXPAND } from '$lib/constants';
     import { auth } from '$lib/stores/auth.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { haptic } from '$lib/utils/haptic';
 
     let kimpaysToDisplay = $derived(
-        offlineService.isOffline 
-            ? recentsService.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
-            : recentsService.recentKimpays
+        offlineStore.isOffline 
+            ? recentsStore.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
+            : recentsStore.recentKimpays
     );
 
     let kimpayToLeave = $state<string | null>(null);
@@ -33,62 +31,18 @@
         isLeaving = true;
         try {
             const participantId = await storageService.getMyParticipantId(kimpayToLeave);
-            const kimpay = recentsService.recentKimpays.find(k => k.id === kimpayToLeave);
 
             if (participantId) {
-                let canDelete = true;
-
-                // 1. Check if Creator
-                if (kimpay && kimpay.created_by === participantId) {
-                    canDelete = false;
-                }
-
-                // 2. Check if involved in expenses (only if not already blocked)
-                if (canDelete) {
-                    try {
-                        const res = await pb.collection('kimpays').getOne(kimpayToLeave, {
-                            expand: EXPAND.KIMPAY_WITH_EXPENSES
-                        });
-                        const allExpenses = res.expand ? (res.expand['expenses_via_kimpay'] || []) : [];
-                        const isUsed = allExpenses.some((e: RecordModel) => e.payer === participantId || (e.involved && e.involved.includes(participantId)));
-                        
-                        if (isUsed) {
-                            canDelete = false;
-                        }
-                    } catch (e) {
-                        console.warn("Could not check expenses", e);
-                        canDelete = false; // Safe fallback
-                    }
-                }
-
-                if (canDelete) {
-                    try {
-                        await pb.collection('participants').delete(participantId);
-                    } catch(e) {
-                        console.warn("Could not delete participant from server (likely constraint)", e);
-                        // If delete fails, try to unclaim instead
-                        try {
-                            await pb.collection('participants').update(participantId, { user: null });
-                        } catch (uncErr) {
-                            console.warn("Could not unclaim participant", uncErr);
-                        }
-                    }
-                } else {
-                    // Can't delete: unclaim the participant (remove user link)
-                    // This prevents the Kimpay from reappearing after refresh for logged users
-                    try {
-                        await pb.collection('participants').update(participantId, { user: null });
-                    } catch (e) {
-                        console.warn("Could not unclaim participant", e);
-                    }
+                const result = await kimpayService.leave(kimpayToLeave, participantId);
+                if (!result.success) {
+                    modals.alert({ message: "Error leaving group", title: "Error" });
+                    return;
                 }
             }
             
             storageService.removeRecentKimpay(kimpayToLeave);
-            recentsService.removeRecentKimpay(kimpayToLeave);
+            recentsStore.removeRecentKimpay(kimpayToLeave);
             kimpayToLeave = null;
-
-
         } catch (e) {
             console.error("Error leaving kimpay", e);
             modals.alert({ message: "Error leaving group", title: "Error" });
@@ -112,7 +66,7 @@
 </script>
 
 <!-- Only show for logged users OR non-logged users with Kimpays -->
-{#if auth.user || (!recentsService.loading && kimpaysToDisplay.length > 0)}
+{#if auth.user || (!recentsStore.loading && kimpaysToDisplay.length > 0)}
 <div class="w-full">
     <!-- Header -->
     <div class="flex items-center justify-between px-1 mb-4">
@@ -136,7 +90,7 @@
     </div>
 
     <!-- Content -->
-    {#if recentsService.loading}
+    {#if recentsStore.loading}
         <div class="flex justify-center py-8">
             <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         </div>

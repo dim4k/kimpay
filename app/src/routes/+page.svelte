@@ -5,8 +5,8 @@
   import JoinKimpayForm from '$lib/components/home/JoinKimpayForm.svelte';
   import RecentKimpaysList from '$lib/components/home/RecentKimpaysList.svelte';
   import CollapsibleCard from '$lib/components/ui/CollapsibleCard.svelte';
-  import { recentsService } from '$lib/services/recents.svelte';
-  import { offlineService } from '$lib/services/offline.svelte';
+    import { recentsStore } from '$lib/stores/recents.svelte';
+    import { offlineStore } from '$lib/stores/offline.svelte';
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { Plus, ArrowRight, CloudOff } from 'lucide-svelte';
@@ -21,14 +21,14 @@
   
   // Show hero only for guests with no kimpays
   $effect(() => {
-      if (recentsService.initialized && !auth.isValid) {
-          showHero = recentsService.recentKimpays.length === 0;
+      if (recentsStore.initialized && !auth.isValid) {
+          showHero = recentsStore.recentKimpays.length === 0;
       }
   });
 
   onMount(async () => {
       // Store init handles deduplication
-      recentsService.init();
+      recentsStore.init();
   });
 </script>
 
@@ -71,7 +71,7 @@
                 <HomeHero />
             {/if}
             
-            {#if offlineService.isOffline}
+            {#if offlineStore.isOffline}
                 <!-- Offline message for guests -->
                 <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 text-center space-y-3 w-full animate-pop-in" style="animation-delay: 150ms;">
                     <CloudOff class="h-10 w-10 mx-auto text-amber-500" />
