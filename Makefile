@@ -1,5 +1,5 @@
 # Docker Compose
-DC := COMPOSE_IGNORE_ORPHANS=true docker compose
+DC := docker compose
 DC_DEV := $(DC) -f docker-compose.yml -f docker-compose.override.yml
 DC_PROD := $(DC) -f docker-compose.yml
 

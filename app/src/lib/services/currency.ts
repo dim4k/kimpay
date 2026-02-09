@@ -25,6 +25,7 @@ export const CURRENCIES: Record<string, CurrencyInfo> = {
     CAD: { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', decimals: 2 },
     CHF: { code: 'CHF', symbol: 'Fr.', name: 'Swiss Franc', decimals: 2 },
     CNH: { code: 'CNH', symbol: '¥', name: 'Chinese Yuan', decimals: 2 },
+    VND: { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', decimals: 0 },
 } as const;
 
 export const DEFAULT_CURRENCY = 'EUR';

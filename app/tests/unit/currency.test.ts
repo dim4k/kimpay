@@ -38,7 +38,7 @@ describe('services/currency', () => {
         });
 
         it('should have all expected currencies', () => {
-            const expectedCurrencies = ['EUR', 'USD', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNH'];
+            const expectedCurrencies = ['EUR', 'USD', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNH', 'VND'];
             expectedCurrencies.forEach(code => {
                 expect(CURRENCIES[code]).toBeDefined();
             });
@@ -152,6 +152,12 @@ describe('services/currency', () => {
             expect(result.includes('1,000') || result.includes('1000')).toBe(true);
             // Accept both ¥ (half-width) and ￥ (full-width) yen symbols
             expect(result.includes('¥') || result.includes('￥')).toBe(true);
+        });
+
+        it('should format VND without decimals', () => {
+            const result = formatAmount(123456, 'VND', 'vi-VN');
+            expect(result.includes('123.456') || result.includes('123456')).toBe(true);
+            expect(result).toContain('₫');
         });
 
         it('should fallback for unknown currencies', () => {
