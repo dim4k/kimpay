@@ -49,7 +49,11 @@
       participants = data.participants || [];
       
       // Sort manually since check
-      participants.sort((a: Participant, b: Participant) => new Date(a.created).getTime() - new Date(b.created).getTime());
+      participants.sort((a: Participant, b: Participant) => {
+          const timeA = a.created ? new Date(a.created).getTime() : 0;
+          const timeB = b.created ? new Date(b.created).getTime() : 0;
+          return (timeA || 0) - (timeB || 0);
+      });
 
       // Auto-join if already known
       const storedId = await storageService.getMyParticipantId(kimpay!.id);

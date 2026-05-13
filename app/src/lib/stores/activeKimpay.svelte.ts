@@ -27,6 +27,10 @@ export class ActiveKimpay {
 
     // Track pending expense IDs to avoid duplicate from realtime events
     private pendingExpenseIds = new SvelteSet<string>();
+    // Track pending participant IDs to avoid duplicate from realtime events
+    private pendingParticipantIds = new SvelteSet<string>();
+    // Store unsubscribe functions for cleanup
+    private unsubscribeFns: Array<() => void> = [];
 
     // Derived State
     id: string;
@@ -70,18 +74,18 @@ export class ActiveKimpay {
     totalAmount = $derived(
         this.expenses.reduce(
             (sum, e) => sum + (e.is_reimbursement ? 0 : e.amount),
-            0
-        )
+            0,
+        ),
     );
 
     // Transactions calculated with multi-currency support
     transactions = $derived<Transaction[]>(
         calculateDebts(
-            this.expenses, 
-            this.participants, 
+            this.expenses,
+            this.participants,
             this.kimpay?.currency ?? DEFAULT_CURRENCY,
-            this.exchangeRates
-        )
+            this.exchangeRates,
+        ),
     );
 
     myParticipantId = $state<string | null>(null);
@@ -109,7 +113,9 @@ export class ActiveKimpay {
             this.loading = false; // Show cached data immediately
         } else {
             // Fallback: try to get identity separately (for migration compatibility)
-            this.myParticipantId = await storageService.getMyParticipantId(this.id);
+            this.myParticipantId = await storageService.getMyParticipantId(
+                this.id,
+            );
         }
 
         // 2. Network: Fetch fresh data
@@ -145,8 +151,12 @@ export class ActiveKimpay {
 
         // 4. Fetch exchange rates (non-blocking for multi-currency balance)
         getExchangeRates()
-            .then(rates => { this.exchangeRates = rates; })
-            .catch(err => console.warn("Failed to fetch exchange rates", err));
+            .then((rates) => {
+                this.exchangeRates = rates;
+            })
+            .catch((err) =>
+                console.warn("Failed to fetch exchange rates", err),
+            );
     }
 
     private updateStateFromData(data: Kimpay) {
@@ -165,39 +175,47 @@ export class ActiveKimpay {
     }
 
     private updateGlobalStore() {
-        const me = this.participants.find((p) => p.id === this.myParticipantId) || null;
+        const me =
+            this.participants.find((p) => p.id === this.myParticipantId) ||
+            null;
         activeKimpayGlobal.set(this.kimpay, me);
     }
 
     async subscribe() {
         // Subscribe to the main kimpay record (for name changes, etc)
-        await pb.collection("kimpays").subscribe(this.id, async (e) => {
-            if (e.action === "update") {
-                // We need to be careful not to overwrite expenses/participants if they are not in the event
-                // Usually update event only has the changed fields of the record itself.
-                // So we just update the kimpay info.
-                this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
-            } else if (e.action === "delete") {
-                this.error = "Kimpay deleted";
-                this.kimpay = null;
-            }
-        });
+        const unsubKimpay = await pb
+            .collection("kimpays")
+            .subscribe(this.id, async (e) => {
+                if (e.action === "update") {
+                    // We need to be careful not to overwrite expenses/participants if they are not in the event
+                    // Usually update event only has the changed fields of the record itself.
+                    // So we just update the kimpay info.
+                    this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
+                } else if (e.action === "delete") {
+                    this.error = "Kimpay deleted";
+                    this.kimpay = null;
+                }
+            });
 
         // Subscribe to expenses
-        // We can't easily subscribe to "expenses where kimpay = ID" efficiently without a filter
-        // But PocketBase allows subscribing to a collection with a filter.
-        await pb.collection("expenses").subscribe("*", (e) => {
-            if (e.record.kimpay === this.id) {
-                this.handleExpenseEvent(e);
-            }
-        });
+        const unsubExpenses = await pb
+            .collection("expenses")
+            .subscribe("*", (e) => {
+                if (e.record.kimpay === this.id) {
+                    this.handleExpenseEvent(e);
+                }
+            });
 
         // Subscribe to participants
-        await pb.collection("participants").subscribe("*", (e) => {
-            if (e.record.kimpay === this.id) {
-                this.handleParticipantEvent(e);
-            }
-        });
+        const unsubParticipants = await pb
+            .collection("participants")
+            .subscribe("*", (e) => {
+                if (e.record.kimpay === this.id) {
+                    this.handleParticipantEvent(e);
+                }
+            });
+
+        this.unsubscribeFns = [unsubKimpay, unsubExpenses, unsubParticipants];
     }
 
     private handleExpenseEvent(e: RecordSubscription<RecordModel>) {
@@ -208,25 +226,29 @@ export class ActiveKimpay {
                 this.pendingExpenseIds.delete(record.id);
                 return;
             }
-            
+
             // Check if we already have it by ID
             if (this.expenses.find((ex) => ex.id === record.id)) {
                 return;
             }
-            
+
             // Check if we have a temp expense that should be replaced
-            // (matching description, amount, and payer within a short time window)
-            const tempExpenseIndex = this.expenses.findIndex((ex) => 
-                ex.id.startsWith("temp_") && 
-                ex.description === record.description && 
-                ex.amount === record.amount &&
-                ex.payer === record.payer
+            // (matching description, amount, payer, and created within 10s window)
+            const tempExpenseIndex = this.expenses.findIndex(
+                (ex) =>
+                    ex.id.startsWith("temp_") &&
+                    ex.description === record.description &&
+                    ex.amount === record.amount &&
+                    ex.payer === record.payer &&
+                    Math.abs(
+                        Date.parse(ex.created) - Date.parse(record.created),
+                    ) < 10000,
             );
-            
+
             if (tempExpenseIndex !== -1) {
                 // Replace temp with real record
-                this.expenses = this.expenses.map((ex, i) => 
-                    i === tempExpenseIndex ? record : ex
+                this.expenses = this.expenses.map((ex, i) =>
+                    i === tempExpenseIndex ? record : ex,
                 );
             } else {
                 // Truly new expense from another user/device
@@ -234,7 +256,7 @@ export class ActiveKimpay {
             }
         } else if (e.action === "update") {
             this.expenses = this.expenses.map((ex) =>
-                ex.id === record.id ? record : ex
+                ex.id === record.id ? record : ex,
             );
         } else if (e.action === "delete") {
             this.expenses = this.expenses.filter((ex) => ex.id !== record.id);
@@ -245,16 +267,38 @@ export class ActiveKimpay {
     private handleParticipantEvent(e: RecordSubscription<RecordModel>) {
         const record = asParticipant(e.record);
         if (e.action === "create") {
-            if (!this.participants.find((p) => p.id === record.id)) {
+            // Ignore if this is a pending participant we're creating (avoid duplicates)
+            if (this.pendingParticipantIds.has(record.id)) {
+                this.pendingParticipantIds.delete(record.id);
+                return;
+            }
+
+            // Check if we already have it by ID
+            if (this.participants.find((p) => p.id === record.id)) {
+                return;
+            }
+
+            // Check if we have a temp participant that should be replaced
+            const tempIndex = this.participants.findIndex(
+                (p) => p.id.startsWith("temp_p_") && p.name === record.name,
+            );
+
+            if (tempIndex !== -1) {
+                // Replace temp with real record
+                this.participants = this.participants.map((p, i) =>
+                    i === tempIndex ? record : p,
+                );
+            } else {
+                // Truly new participant from another user/device
                 this.participants = [...this.participants, record];
             }
         } else if (e.action === "update") {
             this.participants = this.participants.map((p) =>
-                p.id === record.id ? record : p
+                p.id === record.id ? record : p,
             );
         } else if (e.action === "delete") {
             this.participants = this.participants.filter(
-                (p) => p.id !== record.id
+                (p) => p.id !== record.id,
             );
         }
         this.persist();
@@ -278,9 +322,11 @@ export class ActiveKimpay {
 
     async addExpense(data: Partial<Expense>, photos: File[] = []) {
         // 1. Build expand from in-memory participants for immediate display
-        const payerParticipant = this.participants.find(p => p.id === data.payer);
-        const involvedParticipants = data.involved 
-            ? this.participants.filter(p => data.involved!.includes(p.id))
+        const payerParticipant = this.participants.find(
+            (p) => p.id === data.payer,
+        );
+        const involvedParticipants = data.involved
+            ? this.participants.filter((p) => data.involved!.includes(p.id))
             : [];
 
         // 2. Optimistic Update with expand
@@ -298,7 +344,7 @@ export class ActiveKimpay {
             expand: {
                 payer: payerParticipant,
                 involved: involvedParticipants,
-            }
+            },
         } as Expense;
 
         this.expenses = [optimisticExpense, ...this.expenses];
@@ -314,7 +360,7 @@ export class ActiveKimpay {
                 "CREATE_EXPENSE",
                 { ...plainData, kimpay: this.id },
                 this.id,
-                tempId
+                tempId,
             );
             return;
         }
@@ -334,7 +380,7 @@ export class ActiveKimpay {
 
             // Create and immediately fetch with expand for complete data
             const record = await pb.collection("expenses").create(formData, {
-                expand: "payer,involved"
+                expand: "payer,involved",
             });
 
             // Mark this ID as pending so realtime event is ignored
@@ -342,7 +388,7 @@ export class ActiveKimpay {
 
             // Replace temp with real
             this.expenses = this.expenses.map((e) =>
-                e.id === tempId ? asExpense(record) : e
+                e.id === tempId ? asExpense(record) : e,
             );
             this.persist();
         } catch (e) {
@@ -358,7 +404,7 @@ export class ActiveKimpay {
         expenseId: string,
         data: Partial<Expense>,
         newPhotos: File[] = [],
-        deletedPhotos: string[] = []
+        deletedPhotos: string[] = [],
     ) {
         // 1. Optimistic Update
         const originalExpense = this.expenses.find((e) => e.id === expenseId);
@@ -372,7 +418,7 @@ export class ActiveKimpay {
         };
 
         this.expenses = this.expenses.map((e) =>
-            e.id === expenseId ? updatedExpense : e
+            e.id === expenseId ? updatedExpense : e,
         );
         this.persist();
 
@@ -381,7 +427,7 @@ export class ActiveKimpay {
             offlineStore.queueAction(
                 "UPDATE_EXPENSE",
                 { id: expenseId, ...data, newPhotos, deletedPhotos },
-                this.id
+                this.id,
             );
             return;
         }
@@ -404,18 +450,18 @@ export class ActiveKimpay {
             const record = await pb
                 .collection("expenses")
                 .update(expenseId, formData, {
-                    expand: "payer,involved"
+                    expand: "payer,involved",
                 });
 
             this.expenses = this.expenses.map((e) =>
-                e.id === expenseId ? asExpense(record) : e
+                e.id === expenseId ? asExpense(record) : e,
             );
             this.persist();
         } catch (e) {
             console.error("Failed to update expense", e);
             // Rollback
             this.expenses = this.expenses.map((e) =>
-                e.id === expenseId ? originalExpense : e
+                e.id === expenseId ? originalExpense : e,
             );
             this.persist();
             throw e;
@@ -431,7 +477,7 @@ export class ActiveKimpay {
             offlineStore.queueAction(
                 "DELETE_EXPENSE",
                 { id: expenseId },
-                this.id
+                this.id,
             );
             return;
         }
@@ -470,7 +516,7 @@ export class ActiveKimpay {
                 "CREATE_PARTICIPANT",
                 { name, kimpay: this.id },
                 this.id,
-                tempId
+                tempId,
             );
             return optimisticParticipant;
         }
@@ -481,15 +527,18 @@ export class ActiveKimpay {
                 kimpay: this.id,
             });
 
+            // Mark this ID as pending so realtime event is ignored
+            this.pendingParticipantIds.add(record.id);
+
             this.participants = this.participants.map((p) =>
-                p.id === tempId ? asParticipant(record) : p
+                p.id === tempId ? asParticipant(record) : p,
             );
             this.persist();
             return asParticipant(record);
         } catch (e) {
             console.error("Failed to add participant", e);
             this.participants = this.participants.filter(
-                (p) => p.id !== tempId
+                (p) => p.id !== tempId,
             );
             this.persist();
             throw e;
@@ -506,11 +555,7 @@ export class ActiveKimpay {
         recentsStore.updateRecentKimpay({ id: this.id, name, icon });
 
         if (offlineStore.isOffline) {
-            offlineStore.queueAction(
-                "UPDATE_KIMPAY",
-                { name, icon },
-                this.id
-            );
+            offlineStore.queueAction("UPDATE_KIMPAY", { name, icon }, this.id);
             return;
         }
 
@@ -520,7 +565,10 @@ export class ActiveKimpay {
             this.kimpay = previous;
             this.persist();
             // Revert recentsStore update
-            const revert: { id: string; name: string; icon?: string } = { id: this.id, name: previous.name };
+            const revert: { id: string; name: string; icon?: string } = {
+                id: this.id,
+                name: previous.name,
+            };
             if (previous.icon) revert.icon = previous.icon;
             recentsStore.updateRecentKimpay(revert);
             throw e;
@@ -538,7 +586,7 @@ export class ActiveKimpay {
     async deleteParticipant(participantId: string) {
         const previous = this.participants;
         this.participants = this.participants.filter(
-            (p) => p.id !== participantId
+            (p) => p.id !== participantId,
         );
         this.persist();
 
@@ -546,7 +594,7 @@ export class ActiveKimpay {
             offlineStore.queueAction(
                 "DELETE_PARTICIPANT",
                 { id: participantId },
-                this.id
+                this.id,
             );
             return;
         }
@@ -561,9 +609,8 @@ export class ActiveKimpay {
     }
 
     destroy() {
-        pb.collection("kimpays").unsubscribe(this.id);
-        pb.collection("expenses").unsubscribe("*");
-        pb.collection("participants").unsubscribe("*");
+        this.unsubscribeFns.forEach((fn) => fn());
+        this.unsubscribeFns = [];
         // Note: We don't reset activeKimpayGlobal here because the effect cleanup
         // is called on every navigation, even within the same Kimpay.
         // The navbar uses isInKimpayContext to handle showing/hiding the Kimpay info.

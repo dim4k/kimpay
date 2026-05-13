@@ -18,7 +18,7 @@ class OfflineStore {
             const originalSend = pb.send;
             pb.send = async <T = unknown>(
                 path: string,
-                options: Record<string, unknown>
+                options: Record<string, unknown>,
             ): Promise<T> => {
                 try {
                     const result = await originalSend.call(pb, path, options);
@@ -88,12 +88,19 @@ class OfflineStore {
         type: PendingAction["type"],
         payload: Record<string, unknown>,
         kimpayId: string,
-        id?: string
+        id?: string,
     ) {
         const actionId =
             id ||
             `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log("[OfflineStore] Queuing action:", type, "id:", actionId, "payload:", payload);
+        console.log(
+            "[OfflineStore] Queuing action:",
+            type,
+            "id:",
+            actionId,
+            "payload:",
+            payload,
+        );
         storageService.savePendingAction({
             id: actionId,
             type,
@@ -131,7 +138,7 @@ class OfflineStore {
                     // Replace Involved Dependency
                     if (Array.isArray(payload.involved)) {
                         payload.involved = payload.involved.map(
-                            (id: string) => idMapping[id] || id
+                            (id: string) => idMapping[id] || id,
                         );
                     }
 
@@ -160,7 +167,7 @@ class OfflineStore {
                         Object.entries(payload).forEach(([key, value]) => {
                             if (Array.isArray(value)) {
                                 value.forEach((v) =>
-                                    formData.append(key, v as string)
+                                    formData.append(key, v as string),
                                 );
                             } else {
                                 formData.append(key, value as string);
@@ -174,6 +181,35 @@ class OfflineStore {
                     } else if (action.type === "DELETE_EXPENSE") {
                         await pb
                             .collection("expenses")
+                            .delete(action.payload.id as string);
+                    } else if (action.type === "UPDATE_EXPENSE") {
+                        const {
+                            id,
+                            newPhotos: _newPhotos,
+                            deletedPhotos,
+                            ...updateData
+                        } = payload;
+                        const formData = new FormData();
+                        Object.entries(updateData).forEach(([key, value]) => {
+                            if (Array.isArray(value)) {
+                                value.forEach((v) =>
+                                    formData.append(key, v as string),
+                                );
+                            } else {
+                                formData.append(key, value as string);
+                            }
+                        });
+                        if (Array.isArray(deletedPhotos)) {
+                            deletedPhotos.forEach((photo: string) => {
+                                formData.append("photos-", photo);
+                            });
+                        }
+                        await pb
+                            .collection("expenses")
+                            .update(id as string, formData);
+                    } else if (action.type === "DELETE_PARTICIPANT") {
+                        await pb
+                            .collection("participants")
                             .delete(action.payload.id as string);
                     } else if (action.type === "CREATE_KIMPAY") {
                         await pb.collection("kimpays").create(payload);
@@ -200,7 +236,7 @@ class OfflineStore {
     }
     async withOfflineSupport<T>(
         runOnline: () => Promise<T>,
-        onOffline: () => T | Promise<T>
+        onOffline: () => T | Promise<T>,
     ): Promise<T> {
         if (!this.isOffline) {
             try {

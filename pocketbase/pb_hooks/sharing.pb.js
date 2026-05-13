@@ -5,21 +5,24 @@
 routerAdd("POST", "/api/kimpay/share", (c) => {
     try {
         console.log("Kimpay Share - Request received");
-        
+
         const data = new DynamicModel({
             email: "",
             url: "",
             kimpayName: "",
             locale: "",
             creator: "",
-            participantId: "" // Added participantId
+            participantId: "", // Added participantId
         });
-        
+
         try {
             c.bindBody(data);
         } catch (err) {
             console.log("bindBody failed:", err);
-            return c.json(400, { message: "Invalid JSON body", error: err.message });
+            return c.json(400, {
+                message: "Invalid JSON body",
+                error: err.message,
+            });
         }
 
         console.log("Parsed Data:", JSON.stringify(data));
@@ -28,22 +31,25 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         let url = data.url; // Mutable to append token
         const kimpayName = data.kimpayName;
         const participantId = data.participantId;
-        
+
         let isNewUser = false; // Lifted scope for access in return statement
 
         if (!email || !url) {
-            return c.json(400, { message: "Missing email or url", received: data });
+            return c.json(400, {
+                message: "Missing email or url",
+                received: data,
+            });
         }
 
         // --- User Creation & Participant Linking ---
         // If a new user is created, we'll return a token for auto-login
         let user = null;
         let authToken = null;
-        
+
         try {
             if (participantId) {
                 const users = $app.findCollectionByNameOrId("users");
-                
+
                 // 1. Try to find existing user
                 try {
                     user = $app.findAuthRecordByEmail("users", email);
@@ -59,7 +65,7 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                     user.setVerified(true); // Auto-verify
                     user.set("name", data.creator || "User"); // Default name
                     $app.save(user);
-                    
+
                     // Generate auth token for auto-login
                     authToken = user.newAuthToken();
                     console.log("Generated auth token for new user");
@@ -67,13 +73,22 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
 
                 // 2. Link Participant to User
                 try {
-                    const participant = $app.findRecordById("participants", participantId);
-                    if (!participant.get("user")) { // Only if not already linked
+                    const participant = $app.findRecordById(
+                        "participants",
+                        participantId,
+                    );
+                    if (!participant.get("user")) {
+                        // Only if not already linked
                         participant.set("user", user.id);
                         $app.save(participant);
-                        console.log("Linked participant", participantId, "to user", user.id);
+                        console.log(
+                            "Linked participant",
+                            participantId,
+                            "to user",
+                            user.id,
+                        );
                     }
-                } catch(e) {
+                } catch (e) {
                     console.log("Error linking participant:", e);
                 }
             }
@@ -88,41 +103,43 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         let senderAddress = "no-reply@kimpay.io";
 
         if (settings.meta.senderName) senderName = settings.meta.senderName;
-        if (settings.meta.senderAddress) senderAddress = settings.meta.senderAddress;
+        if (settings.meta.senderAddress)
+            senderAddress = settings.meta.senderAddress;
 
-        const locale = data.locale || 'fr';
+        const locale = data.locale || "fr";
         const creatorName = data.creator || "Un ami";
 
         // 1. Fetch Template
         let template;
         try {
-             const records = $app.findRecordsByFilter(
-                 "email_templates", 
-                 "slug='share_kimpay' && locale='" + locale + "'"
-             );
-             
-             if (records && records.length > 0) {
-                 template = records[0];
-             } else {
-                 const recordsEn = $app.findRecordsByFilter(
-                    "email_templates", 
-                    "slug='share_kimpay' && locale='en'"
-                 );
-                 if (recordsEn && recordsEn.length > 0) {
+            const safeLocale = locale.replace(/'/g, "''");
+            const records = $app.findRecordsByFilter(
+                "email_templates",
+                "slug='share_kimpay' && locale='" + safeLocale + "'",
+            );
+
+            if (records && records.length > 0) {
+                template = records[0];
+            } else {
+                const recordsEn = $app.findRecordsByFilter(
+                    "email_templates",
+                    "slug='share_kimpay' && locale='en'",
+                );
+                if (recordsEn && recordsEn.length > 0) {
                     template = recordsEn[0];
-                 }
-             }
-        } catch(e) {
+                }
+            }
+        } catch (e) {
             console.log("Error fetching template:", e);
         }
 
         // 2. Prepare Content (with defaults if missing)
-        let subject = template 
-            ? template.get("subject") 
+        let subject = template
+            ? template.get("subject")
             : `Lien d'accès : {name}`;
-            
-        let html = template 
-            ? template.get("body") 
+
+        let html = template
+            ? template.get("body")
             : `
                 <div style="font-family: sans-serif; padding: 20px;">
                     <h2>Votre Kimpay "{name}" est prêt !</h2>
@@ -135,28 +152,34 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                     <p style="color: #666; font-size: 12px;">ou copiez ce lien : {url}</p>
                 </div>
             `;
-            
+
         if (template) {
-             const tSenderName = template.get("sender_name");
-             const tSenderAddress = template.get("sender_address");
-             if (tSenderName) senderName = tSenderName;
-             if (tSenderAddress) senderAddress = tSenderAddress;
+            const tSenderName = template.get("sender_name");
+            const tSenderAddress = template.get("sender_address");
+            if (tSenderName) senderName = tSenderName;
+            if (tSenderAddress) senderAddress = tSenderAddress;
         }
 
         // 3. Replace Variables
-        subject = subject.replaceAll("{name}", kimpayName).replaceAll("{url}", url).replaceAll("{creator}", creatorName);
-        html = html.replaceAll("{name}", kimpayName).replaceAll("{url}", url).replaceAll("{creator}", creatorName);
+        subject = subject
+            .replaceAll("{name}", kimpayName)
+            .replaceAll("{url}", url)
+            .replaceAll("{creator}", creatorName);
+        html = html
+            .replaceAll("{name}", kimpayName)
+            .replaceAll("{url}", url)
+            .replaceAll("{creator}", creatorName);
 
         const message = new MailerMessage({
             from: {
                 address: senderAddress,
-                name:    senderName,
+                name: senderName,
             },
-            to:      [{ address: email }],
+            to: [{ address: email }],
             subject: subject,
-            html:    html,
+            html: html,
             // Add plaintext version for better deliverability score
-            text:    `${subject}\n\n${kimpayName}\n${url}`,
+            text: `${subject}\n\n${kimpayName}\n${url}`,
         });
 
         try {
