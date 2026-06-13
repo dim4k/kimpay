@@ -67,10 +67,19 @@
     });
 
     // Handle Magic Link Token or OTP
+    let handledAuthParam = false;
     $effect(() => {
+        if (handledAuthParam) return;
+
         const url = new URL(window.location.href);
         const token = url.searchParams.get('token');
         const code = url.searchParams.get('code');
+
+        if (!code && !token) return;
+        // Ensure we only attempt the login once per page load, even if this
+        // effect re-runs. Otherwise a second verify call could fail and show
+        // a false "Invalid Link" error after a successful login.
+        handledAuthParam = true;
 
         if (code) {
              auth.loginWithOtp(code).then(success => {
@@ -84,7 +93,10 @@
                     // Invalid or expired code
                     url.searchParams.delete('code');
                     window.history.replaceState({}, '', url);
-                    
+
+                    // Don't show the error if we're somehow already logged in.
+                    if (auth.isValid) return;
+
                     modals.alert({
                         title: $t('auth.magic_link_error_title', { default: 'Invalid Link' }),
                         message: $t('auth.magic_link_error_desc', { default: 'This link is invalid or has expired. Please request a new one.' }),

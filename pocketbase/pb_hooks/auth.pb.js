@@ -375,9 +375,11 @@ routerAdd("POST", "/api/login/verify", (c) => {
             // Generate Real Token
             const token = user.newAuthToken();
 
-            // Delete OTP after successful verification (single use)
-            $app.delete(otp);
-
+            // Note: OTP is NOT deleted here. A single magic link is frequently
+            // requested more than once for the same click (e.g. the link opens
+            // first in the mail client's in-app webview, then again in the real
+            // browser/PWA). Deleting on first use breaks those subsequent loads
+            // with "Invalid Link". The link stays valid until it expires.
             return c.json(200, { token: token, user: user });
         } catch (e) {
             console.log("OTP Verify Error:", e);
