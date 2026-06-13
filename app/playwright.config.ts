@@ -21,7 +21,9 @@ export default defineConfig({
     { name: 'Mobile Safari', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: 'node build',
+    // Serve the adapter-static SPA build (with index.html fallback), matching
+    // the production nginx setup. `node build` was an adapter-node leftover.
+    command: 'npm run preview -- --port 3000 --strictPort',
     url: 'http://localhost:3000',
     reuseExistingServer: !isCI,
     timeout: 60 * 1000,

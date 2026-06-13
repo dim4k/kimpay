@@ -14,6 +14,67 @@ export interface Balance {
 }
 
 /**
+ * Calculate the net balance of each participant, with multi-currency support.
+ * All amounts are converted to the target currency before calculation.
+ *
+ * Positive = is owed money, Negative = owes money.
+ *
+ * This is the single source of truth for balances: {@link calculateDebts}
+ * builds on top of it.
+ *
+ * @param expenses - List of expenses (with currency field)
+ * @param participants - List of participants
+ * @param targetCurrency - Currency to convert all amounts to (e.g., Kimpay's currency)
+ * @param rates - Exchange rates from getExchangeRates() (base: EUR)
+ */
+export function calculateBalances(
+    expenses: Expense[],
+    participants: Participant[],
+    targetCurrency: string = DEFAULT_CURRENCY,
+    rates: Record<string, number> = {}
+): Record<string, number> {
+    const balances: Record<string, number> = {};
+
+    // Initialize balances
+    participants.forEach(p => balances[p.id] = 0);
+
+    // Calculate net balance for each person
+    for (const expense of expenses) {
+        // Convert amount to target currency
+        const expenseCurrency = expense.currency || DEFAULT_CURRENCY;
+        const amount = convert(expense.amount, expenseCurrency, targetCurrency, rates);
+
+        const payerId = expense.payer;
+
+        // Who is involved in this expense? (Default: everyone if 'involved' is empty)
+        let involvedIds = expense.involved;
+        if (!involvedIds || involvedIds.length === 0) {
+            involvedIds = participants.map(p => p.id);
+        }
+
+        // Ignore involved IDs that are no longer participants
+        involvedIds = involvedIds.filter(id => balances[id] !== undefined);
+        if (involvedIds.length === 0) continue;
+
+        const splitAmount = amount / involvedIds.length;
+
+        // Payer gets +Amount
+        if (balances[payerId] !== undefined) {
+            balances[payerId] += amount;
+        }
+
+        // Everyone involved gets -SplitAmount
+        involvedIds.forEach((id: string) => {
+            if (balances[id] !== undefined) {
+                balances[id] -= splitAmount;
+            }
+        });
+    }
+
+    return balances;
+}
+
+/**
  * Calculate debts with multi-currency support.
  * All amounts are converted to the target currency before calculation.
  * 
@@ -28,39 +89,7 @@ export function calculateDebts(
     targetCurrency: string = DEFAULT_CURRENCY,
     rates: Record<string, number> = {}
 ): Transaction[] {
-    const balances: Record<string, number> = {};
-
-    // Initialize balances
-    participants.forEach(p => balances[p.id] = 0);
-
-    // Calculate net balance for each person
-    for (const expense of expenses) {
-        // Convert amount to target currency
-        const expenseCurrency = expense.currency || DEFAULT_CURRENCY;
-        const amount = convert(expense.amount, expenseCurrency, targetCurrency, rates);
-        
-        const payerId = expense.payer;
-        
-        // Who acts in this expense? (Default: everyone if 'involved' is empty)
-        let involvedIds = expense.involved;
-        if (!involvedIds || involvedIds.length === 0) {
-            involvedIds = participants.map(p => p.id);
-        }
-
-        const splitAmount = amount / involvedIds.length;
-
-        // Payer gets +Amount
-        if (balances[payerId] !== undefined) {
-             balances[payerId] += amount;
-        }
-
-        // Everyone involved gets -SplitAmount
-        involvedIds.forEach((id: string) => {
-            if (balances[id] !== undefined) {
-                balances[id] -= splitAmount;
-            }
-        });
-    }
+    const balances = calculateBalances(expenses, participants, targetCurrency, rates);
 
     // Separate into debtors and creditors
     const debtors: Balance[] = [];

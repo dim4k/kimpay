@@ -180,8 +180,11 @@
           title: $t('settings.switch_identity'),
           description: $t('settings.switch_modal.desc'),
           confirmText: $t('common.save'), // or 'Switch'
-          onConfirm: () => {
-              storageService.setMyParticipantId(kimpayId, pId);
+          onConfirm: async () => {
+              // Must await the IndexedDB write before reloading, otherwise the
+              // reload can race ahead of the persisted identity and revert to
+              // the previous participant.
+              await storageService.setMyParticipantId(kimpayId, pId);
               window.location.reload(); // Simple reload to refresh all state/derived
           }
       });

@@ -38,7 +38,7 @@ test.describe('Expense CRUD Operations', () => {
     
     // Verify changes
     await expect(page.getByText('Modified Expense')).toBeVisible();
-    await expect(page.getByText('99')).toBeVisible();
+    await expect(page.getByText(/99[.,]00/).first()).toBeVisible();
     await expect(page.getByText('Original Expense')).not.toBeVisible();
   });
 

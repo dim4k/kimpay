@@ -98,49 +98,10 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         }
         // -------------------------------
 
-        const settings = $app.settings();
-        let senderName = "Kimpay";
-        let senderAddress = "no-reply@kimpay.io";
-
-        if (settings.meta.senderName) senderName = settings.meta.senderName;
-        if (settings.meta.senderAddress)
-            senderAddress = settings.meta.senderAddress;
-
         const locale = data.locale || "fr";
         const creatorName = data.creator || "Un ami";
 
-        // 1. Fetch Template
-        let template;
-        try {
-            const safeLocale = locale.replace(/'/g, "''");
-            const records = $app.findRecordsByFilter(
-                "email_templates",
-                "slug='share_kimpay' && locale='" + safeLocale + "'",
-            );
-
-            if (records && records.length > 0) {
-                template = records[0];
-            } else {
-                const recordsEn = $app.findRecordsByFilter(
-                    "email_templates",
-                    "slug='share_kimpay' && locale='en'",
-                );
-                if (recordsEn && recordsEn.length > 0) {
-                    template = recordsEn[0];
-                }
-            }
-        } catch (e) {
-            console.log("Error fetching template:", e);
-        }
-
-        // 2. Prepare Content (with defaults if missing)
-        let subject = template
-            ? template.get("subject")
-            : `Lien d'accès : {name}`;
-
-        let html = template
-            ? template.get("body")
-            : `
+        const defaultHtml = `
                 <div style="font-family: sans-serif; padding: 20px;">
                     <h2>Votre Kimpay "{name}" est prêt !</h2>
                     <p>Voici votre lien d'accès unique :</p>
@@ -153,37 +114,22 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
                 </div>
             `;
 
-        if (template) {
-            const tSenderName = template.get("sender_name");
-            const tSenderAddress = template.get("sender_address");
-            if (tSenderName) senderName = tSenderName;
-            if (tSenderAddress) senderAddress = tSenderAddress;
-        }
-
-        // 3. Replace Variables
-        subject = subject
-            .replaceAll("{name}", kimpayName)
-            .replaceAll("{url}", url)
-            .replaceAll("{creator}", creatorName);
-        html = html
-            .replaceAll("{name}", kimpayName)
-            .replaceAll("{url}", url)
-            .replaceAll("{creator}", creatorName);
-
-        const message = new MailerMessage({
-            from: {
-                address: senderAddress,
-                name: senderName,
-            },
-            to: [{ address: email }],
-            subject: subject,
-            html: html,
-            // Add plaintext version for better deliverability score
-            text: `${subject}\n\n${kimpayName}\n${url}`,
-        });
-
         try {
-            $app.newMailClient().send(message);
+            const { sendTemplatedEmail } = require(`${__hooks}/lib/email.js`);
+            sendTemplatedEmail({
+                slug: "share_kimpay",
+                locale: locale,
+                to: email,
+                vars: {
+                    name: kimpayName,
+                    url: url,
+                    creator: creatorName,
+                },
+                fallbackSubject: `Lien d'accès : {name}`,
+                fallbackHtml: defaultHtml,
+                // Plaintext version for better deliverability score
+                text: `${kimpayName}\n${url}`,
+            });
         } catch (err) {
             console.log("Email send failed (likely no SMTP configured):", err);
         }

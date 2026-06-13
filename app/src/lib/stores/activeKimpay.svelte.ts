@@ -11,10 +11,8 @@ import {
     asExpense,
     asParticipant,
 } from "$lib/types";
-import { calculateDebts, type Transaction } from "$lib/balance";
-import type { RecordSubscription, RecordModel } from "pocketbase";
+import { calculateBalances, calculateDebts, type Transaction } from "$lib/balance";
 import { getExchangeRates, DEFAULT_CURRENCY } from "$lib/services/currency";
-import { SvelteSet } from "svelte/reactivity";
 
 export class ActiveKimpay {
     // Raw State
@@ -25,51 +23,25 @@ export class ActiveKimpay {
     error = $state<string | null>(null);
     exchangeRates = $state<Record<string, number>>({});
 
-    // Track pending expense IDs to avoid duplicate from realtime events
-    private pendingExpenseIds = new SvelteSet<string>();
-    // Track pending participant IDs to avoid duplicate from realtime events
-    private pendingParticipantIds = new SvelteSet<string>();
     // Store unsubscribe functions for cleanup
     private unsubscribeFns: Array<() => void> = [];
+    // Debounce timer for coalescing realtime-triggered refetches
+    private refetchTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Derived State
     id: string;
 
-    // Calculate balances for each participant (Positive = is owed, Negative = owes)
-    balances = $derived.by(() => {
-        const bal: Record<string, number> = {};
-        this.participants.forEach((p) => (bal[p.id] = 0));
-
-        for (const expense of this.expenses) {
-            const amount = expense.amount;
-            const payerId = expense.payer;
-
-            // If involved is empty/null, it usually means everyone (legacy) or no one?
-            // In Kimpay logic, usually empty involved means everyone.
-            let involvedIds = expense.involved;
-            if (!involvedIds || involvedIds.length === 0) {
-                involvedIds = this.participants.map((p) => p.id);
-            }
-
-            // Filter out involved IDs that are not in the participants list anymore
-            involvedIds = involvedIds.filter((id) => bal[id] !== undefined);
-
-            if (involvedIds.length === 0) continue;
-
-            const splitAmount = amount / involvedIds.length;
-
-            if (bal[payerId] !== undefined) {
-                bal[payerId] += amount;
-            }
-
-            involvedIds.forEach((id) => {
-                if (bal[id] !== undefined) {
-                    bal[id] -= splitAmount;
-                }
-            });
-        }
-        return bal;
-    });
+    // Calculate balances for each participant (Positive = is owed, Negative = owes).
+    // Converted to the Kimpay's currency, sharing the single source of truth
+    // used to derive the settlement transactions below.
+    balances = $derived.by(() =>
+        calculateBalances(
+            this.expenses,
+            this.participants,
+            this.kimpay?.currency ?? DEFAULT_CURRENCY,
+            this.exchangeRates,
+        ),
+    );
 
     totalAmount = $derived(
         this.expenses.reduce(
@@ -92,7 +64,7 @@ export class ActiveKimpay {
 
     myBalance = $derived.by(() => {
         const myId = this.myParticipantId;
-        if (!myId || !this.balances[myId]) return 0;
+        if (!myId || this.balances[myId] === undefined) return 0;
         return this.balances[myId];
     });
 
@@ -159,15 +131,33 @@ export class ActiveKimpay {
             );
     }
 
-    private updateStateFromData(data: Kimpay) {
+    private updateStateFromData(data: Kimpay, preserveTemp = false) {
         this.kimpay = data;
         // Extract expanded relations
         // Note: PocketBase returns 'expand' property.
         // We need to be careful: if we save to localStorage, we save the whole object with expand.
 
         if (data.expand) {
-            this.expenses = data.expand.expenses_via_kimpay || [];
-            this.participants = data.expand.participants_via_kimpay || [];
+            const freshExpenses = data.expand.expenses_via_kimpay || [];
+            const freshParticipants =
+                data.expand.participants_via_kimpay || [];
+
+            if (preserveTemp) {
+                // Keep not-yet-synced optimistic items (temp IDs) that the
+                // server fetch doesn't know about yet, to avoid them flashing
+                // out when a realtime refetch lands mid-creation.
+                const tempExpenses = this.expenses.filter((e) =>
+                    e.id.startsWith("temp_"),
+                );
+                const tempParticipants = this.participants.filter((p) =>
+                    p.id.startsWith("temp_p_"),
+                );
+                this.expenses = [...tempExpenses, ...freshExpenses];
+                this.participants = [...freshParticipants, ...tempParticipants];
+            } else {
+                this.expenses = freshExpenses;
+                this.participants = freshParticipants;
+            }
         }
 
         // Update global store for navbar
@@ -182,126 +172,45 @@ export class ActiveKimpay {
     }
 
     async subscribe() {
-        // Subscribe to the main kimpay record (for name changes, etc)
+        // Single-record subscription (uses the kimpays ViewRule, which stays
+        // public-by-UUID). A server hook "touches" the parent Kimpay whenever an
+        // expense or participant changes, so this one event covers the whole
+        // group without an open listRule on the child collections.
         const unsubKimpay = await pb
             .collection("kimpays")
-            .subscribe(this.id, async (e) => {
+            .subscribe(this.id, (e) => {
                 if (e.action === "update") {
-                    // We need to be careful not to overwrite expenses/participants if they are not in the event
-                    // Usually update event only has the changed fields of the record itself.
-                    // So we just update the kimpay info.
-                    this.kimpay = { ...this.kimpay, ...e.record } as Kimpay;
+                    // Coalesce bursts of child changes into a single refetch.
+                    this.scheduleRefetch();
                 } else if (e.action === "delete") {
                     this.error = "Kimpay deleted";
                     this.kimpay = null;
                 }
             });
 
-        // Subscribe to expenses
-        const unsubExpenses = await pb
-            .collection("expenses")
-            .subscribe("*", (e) => {
-                if (e.record.kimpay === this.id) {
-                    this.handleExpenseEvent(e);
-                }
-            });
-
-        // Subscribe to participants
-        const unsubParticipants = await pb
-            .collection("participants")
-            .subscribe("*", (e) => {
-                if (e.record.kimpay === this.id) {
-                    this.handleParticipantEvent(e);
-                }
-            });
-
-        this.unsubscribeFns = [unsubKimpay, unsubExpenses, unsubParticipants];
+        this.unsubscribeFns = [unsubKimpay];
     }
 
-    private handleExpenseEvent(e: RecordSubscription<RecordModel>) {
-        const record = asExpense(e.record);
-        if (e.action === "create") {
-            // Ignore if this is a pending expense we're creating (avoid duplicates)
-            if (this.pendingExpenseIds.has(record.id)) {
-                this.pendingExpenseIds.delete(record.id);
-                return;
-            }
-
-            // Check if we already have it by ID
-            if (this.expenses.find((ex) => ex.id === record.id)) {
-                return;
-            }
-
-            // Check if we have a temp expense that should be replaced
-            // (matching description, amount, payer, and created within 10s window)
-            const tempExpenseIndex = this.expenses.findIndex(
-                (ex) =>
-                    ex.id.startsWith("temp_") &&
-                    ex.description === record.description &&
-                    ex.amount === record.amount &&
-                    ex.payer === record.payer &&
-                    Math.abs(
-                        Date.parse(ex.created) - Date.parse(record.created),
-                    ) < 10000,
-            );
-
-            if (tempExpenseIndex !== -1) {
-                // Replace temp with real record
-                this.expenses = this.expenses.map((ex, i) =>
-                    i === tempExpenseIndex ? record : ex,
-                );
-            } else {
-                // Truly new expense from another user/device
-                this.expenses = [record, ...this.expenses];
-            }
-        } else if (e.action === "update") {
-            this.expenses = this.expenses.map((ex) =>
-                ex.id === record.id ? record : ex,
-            );
-        } else if (e.action === "delete") {
-            this.expenses = this.expenses.filter((ex) => ex.id !== record.id);
-        }
-        this.persist();
+    private scheduleRefetch() {
+        if (this.refetchTimer) clearTimeout(this.refetchTimer);
+        this.refetchTimer = setTimeout(() => {
+            this.refetchTimer = null;
+            this.refetch();
+        }, 300);
     }
 
-    private handleParticipantEvent(e: RecordSubscription<RecordModel>) {
-        const record = asParticipant(e.record);
-        if (e.action === "create") {
-            // Ignore if this is a pending participant we're creating (avoid duplicates)
-            if (this.pendingParticipantIds.has(record.id)) {
-                this.pendingParticipantIds.delete(record.id);
-                return;
-            }
-
-            // Check if we already have it by ID
-            if (this.participants.find((p) => p.id === record.id)) {
-                return;
-            }
-
-            // Check if we have a temp participant that should be replaced
-            const tempIndex = this.participants.findIndex(
-                (p) => p.id.startsWith("temp_p_") && p.name === record.name,
-            );
-
-            if (tempIndex !== -1) {
-                // Replace temp with real record
-                this.participants = this.participants.map((p, i) =>
-                    i === tempIndex ? record : p,
-                );
-            } else {
-                // Truly new participant from another user/device
-                this.participants = [...this.participants, record];
-            }
-        } else if (e.action === "update") {
-            this.participants = this.participants.map((p) =>
-                p.id === record.id ? record : p,
-            );
-        } else if (e.action === "delete") {
-            this.participants = this.participants.filter(
-                (p) => p.id !== record.id,
-            );
+    private async refetch() {
+        try {
+            const fresh = await pb.collection("kimpays").getOne(this.id, {
+                expand: "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+            });
+            const data = asKimpay(fresh);
+            // Preserve not-yet-synced optimistic items during the refetch.
+            this.updateStateFromData(data, true);
+            await storageService.saveKimpayData(this.id, data);
+        } catch (e) {
+            console.error("Failed to refetch kimpay", e);
         }
-        this.persist();
     }
 
     // Persist current state to local storage
@@ -382,9 +291,6 @@ export class ActiveKimpay {
             const record = await pb.collection("expenses").create(formData, {
                 expand: "payer,involved",
             });
-
-            // Mark this ID as pending so realtime event is ignored
-            this.pendingExpenseIds.add(record.id);
 
             // Replace temp with real
             this.expenses = this.expenses.map((e) =>
@@ -527,9 +433,6 @@ export class ActiveKimpay {
                 kimpay: this.id,
             });
 
-            // Mark this ID as pending so realtime event is ignored
-            this.pendingParticipantIds.add(record.id);
-
             this.participants = this.participants.map((p) =>
                 p.id === tempId ? asParticipant(record) : p,
             );
@@ -609,6 +512,10 @@ export class ActiveKimpay {
     }
 
     destroy() {
+        if (this.refetchTimer) {
+            clearTimeout(this.refetchTimer);
+            this.refetchTimer = null;
+        }
         this.unsubscribeFns.forEach((fn) => fn());
         this.unsubscribeFns = [];
         // Note: We don't reset activeKimpayGlobal here because the effect cleanup

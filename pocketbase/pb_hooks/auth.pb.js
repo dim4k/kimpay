@@ -41,9 +41,9 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         otpRecord.set("code", code);
         otpRecord.set("user", user.id);
 
-        // Set Expiration (7 days)
+        // Set Expiration (24 hours)
         const now = new Date();
-        now.setDate(now.getDate() + 7);
+        now.setDate(now.getDate() + 1);
         otpRecord.set(
             "expires",
             now.toISOString().replace("T", " ").replace("Z", ""),
@@ -62,73 +62,15 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         const url = `${cleanOrigin}/?code=${code}`;
 
         // Send Email
-        const settings = $app.settings();
-        let senderName = "Kimpay";
-        let senderAddress = "no-reply@kimpay.io";
-
-        if (settings.meta.senderName) senderName = settings.meta.senderName;
-        if (settings.meta.senderAddress)
-            senderAddress = settings.meta.senderAddress;
-
-        // Fetch Template
-        let template;
-        try {
-            // Sanitize for PocketBase filter strings (prevent injection).
-            // Defined locally because pb_hooks handlers run in isolated scope.
-            const safeLocale =
-                typeof locale === "string" ? locale.replace(/'/g, "''") : "";
-            const records = $app.findRecordsByFilter(
-                "email_templates",
-                "slug='login_magic_link' && locale='" + safeLocale + "'",
-            );
-
-            if (records && records.length > 0) {
-                template = records[0];
-            } else {
-                const recordsEn = $app.findRecordsByFilter(
-                    "email_templates",
-                    "slug='login_magic_link' && locale='en'",
-                );
-                if (recordsEn && recordsEn.length > 0) {
-                    template = recordsEn[0];
-                }
-            }
-        } catch (e) {
-            console.log("Error fetching template:", e);
-        }
-
-        let subject = template ? template.get("subject") : "Login to Kimpay";
-        let html = template
-            ? template.get("body")
-            : `<a href="${url}">Login</a>`;
-
-        if (template) {
-            const tSenderName = template.get("sender_name");
-            const tSenderAddress = template.get("sender_address");
-            if (tSenderName) senderName = tSenderName;
-            if (tSenderAddress) senderAddress = tSenderAddress;
-        }
-
-        // Replace Variables
-        subject = subject
-            .replaceAll("{url}", url)
-            .replaceAll("{name}", user.get("name") || "User");
-        html = html
-            .replaceAll("{url}", url)
-            .replaceAll("{name}", user.get("name") || "User");
-
-        const message = new MailerMessage({
-            from: {
-                address: senderAddress,
-                name: senderName,
-            },
-            to: [{ address: email }],
-            subject: subject,
-            html: html,
-            text: `${subject}\n\n${url}`,
+        const { sendTemplatedEmail } = require(`${__hooks}/lib/email.js`);
+        sendTemplatedEmail({
+            slug: "login_magic_link",
+            locale: locale,
+            to: email,
+            vars: { url: url, name: user.get("name") || "User" },
+            fallbackSubject: "Login to Kimpay",
+            fallbackHtml: `<a href="${url}">Login</a>`,
         });
-
-        $app.newMailClient().send(message);
 
         return c.json(200, { success: true });
     } catch (e) {
@@ -213,9 +155,9 @@ routerAdd("POST", "/api/register", (c) => {
         otpRecord.set("code", code);
         otpRecord.set("user", user.id);
 
-        // Set Expiration (7 days)
+        // Set Expiration (24 hours)
         const now = new Date();
-        now.setDate(now.getDate() + 7);
+        now.setDate(now.getDate() + 1);
         otpRecord.set(
             "expires",
             now.toISOString().replace("T", " ").replace("Z", ""),
@@ -236,70 +178,16 @@ routerAdd("POST", "/api/register", (c) => {
         const cleanOrigin = origin.endsWith("/") ? origin.slice(0, -1) : origin;
         const url = `${cleanOrigin}/?code=${code}`;
 
-        // Send Email
-        const settings = $app.settings();
-        let senderName = "Kimpay";
-        let senderAddress = "no-reply@kimpay.io";
-
-        if (settings.meta.senderName) senderName = settings.meta.senderName;
-        if (settings.meta.senderAddress)
-            senderAddress = settings.meta.senderAddress;
-
-        // Fetch Template (Reuse login magic link template for now)
-        let template;
-        try {
-            // Sanitize for PocketBase filter strings (prevent injection).
-            // Defined locally because pb_hooks handlers run in isolated scope.
-            const safeLocale =
-                typeof locale === "string" ? locale.replace(/'/g, "''") : "";
-            const records = $app.findRecordsByFilter(
-                "email_templates",
-                "slug='login_magic_link' && locale='" + safeLocale + "'",
-            );
-
-            if (records && records.length > 0) {
-                template = records[0];
-            } else {
-                const recordsEn = $app.findRecordsByFilter(
-                    "email_templates",
-                    "slug='login_magic_link' && locale='en'",
-                );
-                if (recordsEn && recordsEn.length > 0) {
-                    template = recordsEn[0];
-                }
-            }
-        } catch (e) {
-            console.log("Error fetching template:", e);
-        }
-
-        let subject = template ? template.get("subject") : "Welcome to Kimpay";
-        let html = template
-            ? template.get("body")
-            : `<a href="${url}">Login</a>`;
-
-        if (template) {
-            const tSenderName = template.get("sender_name");
-            const tSenderAddress = template.get("sender_address");
-            if (tSenderName) senderName = tSenderName;
-            if (tSenderAddress) senderAddress = tSenderAddress;
-        }
-
-        // Replace Variables
-        subject = subject.replaceAll("{url}", url).replaceAll("{name}", name);
-        html = html.replaceAll("{url}", url).replaceAll("{name}", name);
-
-        const message = new MailerMessage({
-            from: {
-                address: senderAddress,
-                name: senderName,
-            },
-            to: [{ address: email }],
-            subject: subject,
-            html: html,
-            text: `${subject}\n\n${url}`,
+        // Send Email (reuses the login magic link template)
+        const { sendTemplatedEmail } = require(`${__hooks}/lib/email.js`);
+        sendTemplatedEmail({
+            slug: "login_magic_link",
+            locale: locale,
+            to: email,
+            vars: { url: url, name: name },
+            fallbackSubject: "Welcome to Kimpay",
+            fallbackHtml: `<a href="${url}">Login</a>`,
         });
-
-        $app.newMailClient().send(message);
 
         return c.json(200, { success: true });
     } catch (e) {

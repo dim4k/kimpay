@@ -23,7 +23,7 @@ test.describe('Expense Management', () => {
     // Verify
     await expect(page).toHaveURL(/\/?$/); // Back to dashboard (regex might need adjust if having params)
     await expect(page.getByText('Pizza')).toBeVisible();
-    await expect(page.getByText('25.00')).toBeVisible();
+    await expect(page.getByText(/25[.,]00/).first()).toBeVisible();
   });
 
   test('Validation: Save disabled without required fields', async ({ page }) => {

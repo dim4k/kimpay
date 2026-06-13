@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { createKimpay, dismissInstallPrompt, switchIdentity } from './test-utils';
 
 test.describe('Balance & Debts', () => {
 
@@ -63,10 +63,7 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Rich Person')).toBeVisible();
 
     // 2. Switch identity to Rich Person so they pay
-    const switchBtn = page.getByRole('button', { name: /switch identity|changer/i });
-    await switchBtn.click();
-    await page.getByRole('dialog').getByRole('button', { name: /save|enregistrer/i }).click();
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await switchIdentity(page);
 
     // 3. Add expense paid by Rich Person (now me), shared with both
     await page.getByRole('link', { name: /expenses/i }).click();
@@ -79,16 +76,15 @@ test.describe('Balance & Debts', () => {
 
     // 4. Switch back to Payer to see debt
     await page.goto(url.replace(/\/?$/, '/settings'));
-    const payerRow = page.locator('.group', { has: page.getByText('Payer') });
-    await payerRow.getByRole('button', { name: /switch identity|changer/i }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /save|enregistrer/i }).click();
+    await switchIdentity(page);
 
     // 5. Go to balance
     await page.getByRole('link', { name: /balance/i }).click();
+    await expect(page).toHaveURL(/\/balance/);
 
     // 6. Verify I owe money (200/2 = 100) - look for the specific "YOU OWE" text
     await expect(page.getByText('YOU OWE')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('100')).toBeVisible();
+    await expect(page.getByText(/100[.,]00/).first()).toBeVisible();
   });
 
 });

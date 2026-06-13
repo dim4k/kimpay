@@ -30,3 +30,22 @@ export async function dismissInstallPrompt(page: Page) {
         await installPromptClose.click();
     }
 }
+
+/**
+ * Switches the current device identity to the other participant from the
+ * settings page. Only the participant that is NOT the current identity exposes
+ * a "Switch identity" button, so with two participants the target is
+ * unambiguous.
+ *
+ * Confirming the modal triggers a full page reload (window.location.reload),
+ * so we explicitly wait for the reload to complete before returning to avoid
+ * racing subsequent navigation.
+ */
+export async function switchIdentity(page: Page) {
+    await page.getByRole('button', { name: /switch identity|changer/i }).first().click();
+
+    const reload = page.waitForEvent('load');
+    await page.getByRole('dialog').getByRole('button', { name: /save|enregistrer/i }).click();
+    await reload;
+}
+
