@@ -2,12 +2,6 @@
 // Authentication (Magic Links, Registration, OTP Verification)
 // =============================================================================
 
-// Sanitize user input for PocketBase filter strings to prevent SQL injection
-function sanitizeFilterValue(value) {
-    if (typeof value !== "string") return "";
-    return value.replace(/'/g, "''");
-}
-
 routerAdd("POST", "/api/login/magic-link", (c) => {
     try {
         const data = new DynamicModel({
@@ -79,7 +73,10 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         // Fetch Template
         let template;
         try {
-            const safeLocale = sanitizeFilterValue(locale);
+            // Sanitize for PocketBase filter strings (prevent injection).
+            // Defined locally because pb_hooks handlers run in isolated scope.
+            const safeLocale =
+                typeof locale === "string" ? locale.replace(/'/g, "''") : "";
             const records = $app.findRecordsByFilter(
                 "email_templates",
                 "slug='login_magic_link' && locale='" + safeLocale + "'",
@@ -251,7 +248,10 @@ routerAdd("POST", "/api/register", (c) => {
         // Fetch Template (Reuse login magic link template for now)
         let template;
         try {
-            const safeLocale = sanitizeFilterValue(locale);
+            // Sanitize for PocketBase filter strings (prevent injection).
+            // Defined locally because pb_hooks handlers run in isolated scope.
+            const safeLocale =
+                typeof locale === "string" ? locale.replace(/'/g, "''") : "";
             const records = $app.findRecordsByFilter(
                 "email_templates",
                 "slug='login_magic_link' && locale='" + safeLocale + "'",
@@ -358,7 +358,12 @@ routerAdd("POST", "/api/login/verify", (c) => {
                 .replace("T", " ")
                 .replace("Z", "");
 
-            const safeCode = sanitizeFilterValue(data.code);
+            // Sanitize for PocketBase filter strings (prevent injection).
+            // Defined locally because pb_hooks handlers run in isolated scope.
+            const safeCode =
+                typeof data.code === "string"
+                    ? data.code.replace(/'/g, "''")
+                    : "";
             const otps = $app.findRecordsByFilter(
                 "auth_otps",
                 `code='${safeCode}' && expires >= '${nowStr}'`,
