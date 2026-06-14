@@ -1,5 +1,6 @@
 import { pb } from "$lib/pocketbase";
 import { storageService, type PendingAction } from "$lib/services/storage";
+import { objectToFormData } from "$lib/utils/formData";
 
 class OfflineStore {
     isOffline = $state(false);
@@ -164,15 +165,7 @@ class OfflineStore {
                             formData.append("id", action.id);
                         }
 
-                        Object.entries(payload).forEach(([key, value]) => {
-                            if (Array.isArray(value)) {
-                                value.forEach((v) =>
-                                    formData.append(key, v as string),
-                                );
-                            } else {
-                                formData.append(key, value as string);
-                            }
-                        });
+                        objectToFormData(payload, formData);
 
                         const record = await pb
                             .collection("expenses")
@@ -189,16 +182,7 @@ class OfflineStore {
                             deletedPhotos,
                             ...updateData
                         } = payload;
-                        const formData = new FormData();
-                        Object.entries(updateData).forEach(([key, value]) => {
-                            if (Array.isArray(value)) {
-                                value.forEach((v) =>
-                                    formData.append(key, v as string),
-                                );
-                            } else {
-                                formData.append(key, value as string);
-                            }
-                        });
+                        const formData = objectToFormData(updateData);
                         if (Array.isArray(deletedPhotos)) {
                             deletedPhotos.forEach((photo: string) => {
                                 formData.append("photos-", photo);

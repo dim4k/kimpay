@@ -1,17 +1,35 @@
 import type { Kimpay, Participant } from "$lib/types";
+import type { ActiveKimpay } from "$lib/stores/activeKimpay.svelte";
 
+/**
+ * Bridges the route-scoped `ActiveKimpay` instance (created in
+ * `/k/[id]/+layout.svelte`) to the root-layout navbar (`SiteHeader`), which
+ * lives outside the Kimpay route context.
+ *
+ * Instead of mirroring state manually, it holds a reference to the active
+ * instance and derives `kimpay`/`myParticipant` from its live reactive state.
+ */
 class ActiveKimpayGlobal {
-    kimpay = $state<Kimpay | null>(null);
-    myParticipant = $state<Participant | null>(null);
+    instance = $state<ActiveKimpay | null>(null);
 
-    set(kimpay: Kimpay | null, myParticipant: Participant | null) {
-        this.kimpay = kimpay;
-        this.myParticipant = myParticipant;
+    get kimpay(): Kimpay | null {
+        return this.instance?.kimpay ?? null;
+    }
+
+    get myParticipant(): Participant | null {
+        const inst = this.instance;
+        if (!inst) return null;
+        return (
+            inst.participants.find((p) => p.id === inst.myParticipantId) ?? null
+        );
+    }
+
+    setInstance(instance: ActiveKimpay | null) {
+        this.instance = instance;
     }
 
     reset() {
-        this.kimpay = null;
-        this.myParticipant = null;
+        this.instance = null;
     }
 }
 

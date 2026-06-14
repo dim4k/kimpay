@@ -17,18 +17,6 @@ class AuthStore {
         pb.authStore.clear();
     }
 
-    async loginWithToken(token: string): Promise<boolean> {
-        pb.authStore.save(token, null);
-        try {
-            await pb.collection('users').authRefresh();
-            return true;
-        } catch (e) {
-            console.error("Login with token failed", e);
-            pb.authStore.clear();
-            return false;
-        }
-    }
-
     async loginWithOtp(code: string): Promise<boolean> {
         try {
             const response = await pb.send("/api/login/verify", {

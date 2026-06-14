@@ -17,7 +17,6 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { page } from '$app/state';
   import { haptic } from '$lib/utils/haptic';
-  import { participantService } from '$lib/services/participant';
   import { toasts } from '$lib/stores/toasts.svelte';
 
   let isMenuOpen = $state(false);
@@ -44,14 +43,9 @@
       if (input.files && input.files[0] && currentParticipant) {
            const file = input.files[0];
            try {
-              const updated = await participantService.updateAvatar(currentParticipant.id, file);
-              // Update global state directly for immediate UI refresh
-              if (activeKimpayGlobal.myParticipant) {
-                  activeKimpayGlobal.myParticipant = { 
-                      ...activeKimpayGlobal.myParticipant, 
-                      avatar: updated.avatar ?? '' 
-                  };
-              }
+              // The instance updates its participants list optimistically, which
+              // the navbar reflects via the activeKimpayGlobal derived getters.
+              await activeKimpayGlobal.instance?.updateMyAvatar(file);
               toasts.success($t('toast.avatar_updated'));
               haptic('light');
            } catch (err) {

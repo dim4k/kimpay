@@ -107,4 +107,51 @@ function sendTemplatedEmail(opts) {
     $app.newMailClient().send(message);
 }
 
-module.exports = { sendTemplatedEmail: sendTemplatedEmail };
+/**
+ * Create a single-use magic-link OTP for `user` and email it to them.
+ *
+ * Generates a 64-char code stored in `auth_otps` (24h expiry), builds the
+ * login URL `${origin}/?code=...`, and sends the `login_magic_link` template.
+ * Shared by /api/login/magic-link and /api/register to avoid duplication.
+ *
+ * @param {object} opts
+ * @param {Record} opts.user    - The target auth user record.
+ * @param {string} opts.email   - Recipient address.
+ * @param {string} opts.name    - Display name used in the email.
+ * @param {string} opts.locale  - Preferred template locale.
+ * @param {string} opts.origin  - Request origin (e.g. https://kimpay.io).
+ * @param {string} [opts.fallbackSubject] - Subject when no template is found.
+ */
+function createOtpAndSendMagicLink(opts) {
+    var code = $security.randomString(64);
+    var otps = $app.findCollectionByNameOrId("auth_otps");
+    var otpRecord = new Record(otps);
+    otpRecord.set("code", code);
+    otpRecord.set("user", opts.user.id);
+
+    // Expiration: 24 hours (PocketBase date format "YYYY-MM-DD HH:MM:SS").
+    var expires = new Date();
+    expires.setDate(expires.getDate() + 1);
+    otpRecord.set("expires", expires.toISOString().replace("T", " ").replace("Z", ""));
+
+    $app.save(otpRecord);
+
+    var cleanOrigin = opts.origin.endsWith("/")
+        ? opts.origin.slice(0, -1)
+        : opts.origin;
+    var url = cleanOrigin + "/?code=" + code;
+
+    sendTemplatedEmail({
+        slug: "login_magic_link",
+        locale: opts.locale,
+        to: opts.email,
+        vars: { url: url, name: opts.name || "User" },
+        fallbackSubject: opts.fallbackSubject || "Login to Kimpay",
+        fallbackHtml: '<a href="' + url + '">Login</a>',
+    });
+}
+
+module.exports = {
+    sendTemplatedEmail: sendTemplatedEmail,
+    createOtpAndSendMagicLink: createOtpAndSendMagicLink,
+};

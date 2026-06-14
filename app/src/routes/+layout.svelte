@@ -29,9 +29,8 @@
      * identity, automatically claim that participant for their account.
      */
     async function tryClaimCurrentParticipant() {
-        // Wait a tick for auth store to update
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        // loginWithOtp has already saved the auth session synchronously, so the
+        // user is available right away — no need to wait for a tick.
         const user = auth.user;
         if (!user) return;
         
@@ -66,55 +65,42 @@
         }
     });
 
-    // Handle Magic Link Token or OTP
+    // Handle Magic Link OTP code
     let handledAuthParam = false;
     $effect(() => {
         if (handledAuthParam) return;
 
         const url = new URL(window.location.href);
-        const token = url.searchParams.get('token');
         const code = url.searchParams.get('code');
 
-        if (!code && !token) return;
+        if (!code) return;
         // Ensure we only attempt the login once per page load, even if this
         // effect re-runs. Otherwise a second verify call could fail and show
         // a false "Invalid Link" error after a successful login.
         handledAuthParam = true;
 
-        if (code) {
-             auth.loginWithOtp(code).then(success => {
-                if (success) {
-                    // Remove code from URL
-                    url.searchParams.delete('code');
-                    window.history.replaceState({}, '', url);
-                    // Auto-claim participant if on a Kimpay page
-                    tryClaimCurrentParticipant();
-                } else {
-                    // Invalid or expired code
-                    url.searchParams.delete('code');
-                    window.history.replaceState({}, '', url);
+        auth.loginWithOtp(code).then(success => {
+            if (success) {
+                // Remove code from URL
+                url.searchParams.delete('code');
+                window.history.replaceState({}, '', url);
+                // Auto-claim participant if on a Kimpay page
+                tryClaimCurrentParticipant();
+            } else {
+                // Invalid or expired code
+                url.searchParams.delete('code');
+                window.history.replaceState({}, '', url);
 
-                    // Don't show the error if we're somehow already logged in.
-                    if (auth.isValid) return;
+                // Don't show the error if we're somehow already logged in.
+                if (auth.isValid) return;
 
-                    modals.alert({
-                        title: $t('auth.magic_link_error_title', { default: 'Invalid Link' }),
-                        message: $t('auth.magic_link_error_desc', { default: 'This link is invalid or has expired. Please request a new one.' }),
-                        variant: 'error'
-                    });
-                }
-             });
-        } else if (token) {
-            // Legacy support during transition (or if old emails are still out there)
-            auth.loginWithToken(token).then(success => {
-                if (success) {
-                    url.searchParams.delete('token');
-                    window.history.replaceState({}, '', url);
-                    // Auto-claim participant if on a Kimpay page
-                    tryClaimCurrentParticipant();
-                }
-            });
-        }
+                modals.alert({
+                    title: $t('auth.magic_link_error_title', { default: 'Invalid Link' }),
+                    message: $t('auth.magic_link_error_desc', { default: 'This link is invalid or has expired. Please request a new one.' }),
+                    variant: 'error'
+                });
+            }
+        });
     });
 
     // Re-load groups on navigation (in case a new one was created)

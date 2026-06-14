@@ -34,12 +34,10 @@
             email = ""; 
             successCallback?.();
         } catch (e) {
+            // The endpoint always responds 200 for valid requests (to avoid
+            // email enumeration), so any error here is a genuine failure.
             console.error(e);
-            if (typeof e === 'object' && e !== null && 'status' in e && (e as { status: number }).status === 404) {
-                error = $t('home.recover.error_not_found');
-            } else {
-                error = $t('home.recover.error');
-            }
+            error = $t('home.recover.error');
         } finally {
             isLoading = false;
         }

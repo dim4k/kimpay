@@ -1,40 +1,23 @@
 migrate((app) => {
-    // We must relax the rules to allow Guests (who are unauthenticated) to access Kimpay data.
-    // The security model shifts to "Capability URL": If you know the UUID of the Kimpay, you can access it.
-    // We still try to prevent mass-enumeration where possible.
+    // Relax view/list rules to support guests (unauthenticated users).
+    // Security model: "Capability URL" — knowing a Kimpay's UUID grants access.
+    // Mass-enumeration is still limited where possible.
 
     // 1. KIMPAYS
-    // View: Public (Anyone with ID can view). Crucial for guests.
-    // List: Auth Only (Prevent crawling all kimpays). Guests don't need to listing "all" kimpays, only "my" kimpays via LocalStorage (which they do by fetching individual IDs via viewRule usually, or we accept list limitation).
-    // Actually, RecentsService loads list by IDs? No, it typically does getOne or getList with filter.
-    // If filtering by ID, ViewRule applies? NO. `getList` checks `listRule`.
-    // If RecentsService uses `getList(filter: "id='a' || id='b'")`, `listRule` MUST be Public.
-    // So we must make listRule Public too? 
-    // If `listRule` is Public, `pb.collection('kimpays').getList()` dumps everything.
-    // WE CANNOT HAVE THAT.
-    // Solution: RecentsService probably iterates IDs and calls getOne?
-    // Let's check RecentsService later. For now, ViewRule Public is minimal req.
+    // View: public (anyone with the ID can read it) — required for guests.
+    // List: left restricted (set elsewhere) to prevent scraping; clients reach
+    // their Kimpays by ID/expand, never by listing the whole collection.
     const kimpays = app.findCollectionByNameOrId("kimpays");
-    kimpays.viewRule = ""; 
-    // Keep listRule strict (or null/auth) to prevent scraping?
-    // The previous migration set listRule to null (Admin only?).
-    // If Dashboard needs to list "My Kimpays", it uses `participants` collection to find them.
-    // So `kimpays.listRule` can remain restricted?
-    // But generic user might need it? No, usually we expand `kimpay` from `participants`.
-    // So `kimpays.listRule` = null/strict is FINE.
+    kimpays.viewRule = "";
     app.save(kimpays);
 
-    // 2. EXPENSES
-    // List: Public. Guests need to fetch expenses.
-    // View: Public.
+    // 2. EXPENSES — public view/list so guests can read a Kimpay's expenses.
     const expenses = app.findCollectionByNameOrId("expenses");
     expenses.listRule = "";
     expenses.viewRule = "";
     app.save(expenses);
 
-    // 3. PARTICIPANTS
-    // List: Public. Guests need to see who paid.
-    // View: Public.
+    // 3. PARTICIPANTS — public view/list so guests can see who paid.
     const participants = app.findCollectionByNameOrId("participants");
     participants.listRule = "";
     participants.viewRule = "";

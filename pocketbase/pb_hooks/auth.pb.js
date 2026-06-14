@@ -26,56 +26,38 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
             return c.json(400, { message: "Missing email" });
         }
 
-        let user;
-
-        try {
-            user = $app.findAuthRecordByEmail("users", email);
-        } catch (e) {
-            return c.json(404, { message: "User not found" });
-        }
-
-        // Generate OTP
-        const code = $security.randomString(64);
-        const otps = $app.findCollectionByNameOrId("auth_otps");
-        const otpRecord = new Record(otps);
-        otpRecord.set("code", code);
-        otpRecord.set("user", user.id);
-
-        // Set Expiration (24 hours)
-        const now = new Date();
-        now.setDate(now.getDate() + 1);
-        otpRecord.set(
-            "expires",
-            now.toISOString().replace("T", " ").replace("Z", ""),
-        ); // PB format
-
-        $app.save(otpRecord);
-
-        // Construct URL
-        let origin = data.url;
-
+        // Construct URL origin (required to build the magic link).
+        const origin = data.url;
         if (!origin || origin.trim() === "") {
             return c.json(400, { message: "Missing url origin" });
         }
 
-        const cleanOrigin = origin.endsWith("/") ? origin.slice(0, -1) : origin;
-        const url = `${cleanOrigin}/?code=${code}`;
+        // Look up the user. To avoid email enumeration, we ALWAYS respond 200
+        // regardless of whether the account exists; the email is only sent when
+        // a matching user is found.
+        let user = null;
+        try {
+            user = $app.findAuthRecordByEmail("users", email);
+        } catch (e) {
+            user = null;
+        }
 
-        // Send Email
-        const { sendTemplatedEmail } = require(`${__hooks}/lib/email.js`);
-        sendTemplatedEmail({
-            slug: "login_magic_link",
-            locale: locale,
-            to: email,
-            vars: { url: url, name: user.get("name") || "User" },
-            fallbackSubject: "Login to Kimpay",
-            fallbackHtml: `<a href="${url}">Login</a>`,
-        });
+        if (user) {
+            const { createOtpAndSendMagicLink } = require(`${__hooks}/lib/email.js`);
+            createOtpAndSendMagicLink({
+                user: user,
+                email: email,
+                name: user.get("name") || "User",
+                locale: locale,
+                origin: origin,
+                fallbackSubject: "Login to Kimpay",
+            });
+        }
 
         return c.json(200, { success: true });
     } catch (e) {
-        console.error("Magic Link Error:", e);
-        return c.json(500, { message: e.message });
+        console.error("Magic Link Error");
+        return c.json(500, { message: "Internal server error" });
     }
 });
 
@@ -140,59 +122,34 @@ routerAdd("POST", "/api/register", (c) => {
                     $app.save(participant);
                 }
             } catch (e) {
-                console.log(
-                    "Error linking participant during registration:",
-                    e,
-                );
+                console.log("Error linking participant during registration");
             }
         }
 
-        // 4. Send Magic Link (Reuse logic by creating OTP)
-        // Generate OTP
-        const code = $security.randomString(64);
-        const otps = $app.findCollectionByNameOrId("auth_otps");
-        const otpRecord = new Record(otps);
-        otpRecord.set("code", code);
-        otpRecord.set("user", user.id);
-
-        // Set Expiration (24 hours)
-        const now = new Date();
-        now.setDate(now.getDate() + 1);
-        otpRecord.set(
-            "expires",
-            now.toISOString().replace("T", " ").replace("Z", ""),
-        );
-
-        $app.save(otpRecord);
-
-        // Construct URL
-        let origin = data.url;
+        // 4. Send the magic link so the new user can log in.
+        const origin = data.url;
         if (!origin || origin.trim() === "") {
-            // Fallback if not provided, though it should be
+            // User created but we can't build a login link without an origin.
             return c.json(200, {
                 success: true,
                 message: "User created but URL missing for magic link",
             });
         }
 
-        const cleanOrigin = origin.endsWith("/") ? origin.slice(0, -1) : origin;
-        const url = `${cleanOrigin}/?code=${code}`;
-
-        // Send Email (reuses the login magic link template)
-        const { sendTemplatedEmail } = require(`${__hooks}/lib/email.js`);
-        sendTemplatedEmail({
-            slug: "login_magic_link",
+        const { createOtpAndSendMagicLink } = require(`${__hooks}/lib/email.js`);
+        createOtpAndSendMagicLink({
+            user: user,
+            email: email,
+            name: name,
             locale: locale,
-            to: email,
-            vars: { url: url, name: name },
+            origin: origin,
             fallbackSubject: "Welcome to Kimpay",
-            fallbackHtml: `<a href="${url}">Login</a>`,
         });
 
         return c.json(200, { success: true });
     } catch (e) {
-        console.error("Register Error:", e);
-        return c.json(500, { message: e.message });
+        console.error("Register Error");
+        return c.json(500, { message: "Internal server error" });
     }
 });
 

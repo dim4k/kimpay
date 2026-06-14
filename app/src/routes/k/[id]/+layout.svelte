@@ -4,6 +4,7 @@
   import { t } from '$lib/i18n';
   import { setContext } from 'svelte';
   import { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
   
   import { modals } from '$lib/stores/modals.svelte';
   import { afterNavigate } from '$app/navigation';
@@ -26,7 +27,11 @@
       const id = page.params.id;
       if (activeKimpay?.id !== id) {
           activeKimpay?.destroy();
-          if (id) activeKimpay = new ActiveKimpay(id);
+          if (id) {
+              activeKimpay = new ActiveKimpay(id);
+              // Expose the instance to the root-layout navbar (SiteHeader).
+              activeKimpayGlobal.setInstance(activeKimpay);
+          }
       }
       // NOTE: No cleanup here! Cleanup in onDestroy only.
   });
@@ -34,6 +39,7 @@
   // Cleanup only when truly leaving the Kimpay context (component unmount)
   onDestroy(() => {
       activeKimpay?.destroy();
+      activeKimpayGlobal.reset();
   });
 
   // Provide context

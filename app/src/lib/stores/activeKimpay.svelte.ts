@@ -2,7 +2,7 @@ import { pb } from "$lib/pocketbase";
 import { storageService } from "$lib/services/storage";
 import { offlineStore } from "$lib/stores/offline.svelte";
 import { recentsStore } from "$lib/stores/recents.svelte";
-import { activeKimpayGlobal } from "$lib/stores/activeKimpayGlobal.svelte";
+import { participantService } from "$lib/services/participant";
 import {
     type Kimpay,
     type Expense,
@@ -13,6 +13,11 @@ import {
 } from "$lib/types";
 import { calculateBalances, calculateDebts, type Transaction } from "$lib/balance";
 import { getExchangeRates, DEFAULT_CURRENCY } from "$lib/services/currency";
+import { objectToFormData } from "$lib/utils/formData";
+
+// Relations expanded when fetching a Kimpay (full graph for the active view).
+const KIMPAY_EXPAND =
+    "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved";
 
 export class ActiveKimpay {
     // Raw State
@@ -93,7 +98,7 @@ export class ActiveKimpay {
         // 2. Network: Fetch fresh data
         try {
             const freshData = await pb.collection("kimpays").getOne(this.id, {
-                expand: "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+                expand: KIMPAY_EXPAND,
             });
 
             const kimpayData = asKimpay(freshData);
@@ -159,16 +164,6 @@ export class ActiveKimpay {
                 this.participants = freshParticipants;
             }
         }
-
-        // Update global store for navbar
-        this.updateGlobalStore();
-    }
-
-    private updateGlobalStore() {
-        const me =
-            this.participants.find((p) => p.id === this.myParticipantId) ||
-            null;
-        activeKimpayGlobal.set(this.kimpay, me);
     }
 
     async subscribe() {
@@ -202,7 +197,7 @@ export class ActiveKimpay {
     private async refetch() {
         try {
             const fresh = await pb.collection("kimpays").getOne(this.id, {
-                expand: "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved",
+                expand: KIMPAY_EXPAND,
             });
             const data = asKimpay(fresh);
             // Preserve not-yet-synced optimistic items during the refetch.
@@ -276,14 +271,7 @@ export class ActiveKimpay {
 
         try {
             // Prepare FormData
-            const formData = new FormData();
-            Object.entries(data).forEach(([key, value]) => {
-                if (Array.isArray(value)) {
-                    value.forEach((v) => formData.append(key, v));
-                } else {
-                    formData.append(key, String(value));
-                }
-            });
+            const formData = objectToFormData(data);
             photos.forEach((photo) => formData.append("photos", photo));
             formData.append("kimpay", this.id);
 
@@ -339,14 +327,7 @@ export class ActiveKimpay {
         }
 
         try {
-            const formData = new FormData();
-            Object.entries(data).forEach(([key, value]) => {
-                if (Array.isArray(value)) {
-                    value.forEach((v) => formData.append(key, v));
-                } else {
-                    formData.append(key, String(value));
-                }
-            });
+            const formData = objectToFormData(data);
             newPhotos.forEach((photo) => formData.append("photos", photo));
 
             deletedPhotos.forEach((photo) => {
@@ -511,6 +492,20 @@ export class ActiveKimpay {
         }
     }
 
+    async updateMyAvatar(file: File) {
+        const myId = this.myParticipantId;
+        if (!myId) return;
+
+        const updated = await participantService.updateAvatar(myId, file);
+
+        // Optimistically update the participant in-memory so the navbar (and any
+        // other consumer of `participants`) reflects the new avatar immediately.
+        this.participants = this.participants.map((p) =>
+            p.id === myId ? { ...p, avatar: updated.avatar ?? "" } : p,
+        );
+        this.persist();
+    }
+
     destroy() {
         if (this.refetchTimer) {
             clearTimeout(this.refetchTimer);
@@ -518,8 +513,7 @@ export class ActiveKimpay {
         }
         this.unsubscribeFns.forEach((fn) => fn());
         this.unsubscribeFns = [];
-        // Note: We don't reset activeKimpayGlobal here because the effect cleanup
-        // is called on every navigation, even within the same Kimpay.
-        // The navbar uses isInKimpayContext to handle showing/hiding the Kimpay info.
+        // The activeKimpayGlobal instance reference is managed by the Kimpay
+        // layout (set on creation, reset on unmount).
     }
 }

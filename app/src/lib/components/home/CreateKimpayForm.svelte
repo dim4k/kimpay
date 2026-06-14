@@ -96,21 +96,15 @@
                     url: kimpayUrl,
                     kimpayName: kimpayName,
                     locale: $locale,
-                    creator: creatorName,
-                    participantId: creatorId
+                    creator: creatorName
                 };
-                
-                // Don't await - fire and forget
+
+                // Don't await - fire and forget. The recipient logs in via the
+                // magic link in the email; account/participant linking happens
+                // then (the share endpoint only sends the email).
                 pb.send("/api/kimpay/share", {
                     method: "POST",
                     body: emailData
-                }).then(res => {
-                    // Auto-login if new user
-                    if (res?.isNewUser && res.token && res.user) {
-                        pb.authStore.save(res.token, res.user);
-                    }
-                    // Note: existing user modal won't show after navigation,
-                    // but the email will still be sent for their magic link
                 }).catch(err => {
                     console.error("Background email error:", err);
                 });
