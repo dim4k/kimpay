@@ -2,11 +2,13 @@
     import type { Snippet } from 'svelte';
 
     let { 
+        title,
         description,
         class: className = "",
         icon,
         action
     } = $props<{
+        title?: string,
         description: string,
         class?: string,
         icon?: Snippet,
@@ -14,13 +16,16 @@
     }>();
 </script>
 
-<div class="flex flex-col items-center justify-center text-center py-8 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 {className}">
+<div class="flex flex-col items-center justify-center text-center py-12 bg-muted/40 dark:bg-slate-900/50 rounded-3xl border border-dashed border-border {className}">
     {#if icon}
-        <div class="mb-3 text-slate-400 dark:text-slate-500">
+        <div class="mb-3 text-muted-foreground/60">
             {@render icon()}
         </div>
     {/if}
-    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xs">{description}</p>
+    {#if title}
+        <p class="font-medium text-foreground/80">{title}</p>
+    {/if}
+    <p class="text-sm text-muted-foreground max-w-xs {title ? 'mt-1' : ''}">{description}</p>
     {#if action}
         <div class="mt-4">
             {@render action()}

@@ -62,7 +62,7 @@
             </div>
         {:else}
             <!-- Standard 404 error -->
-            <h1 class="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-pulse">
+            <h1 class="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 animate-pulse">
                 {errorStatus}
             </h1>
             

@@ -4,6 +4,7 @@
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import { goto } from '$app/navigation';
   import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import { LoaderCircle, Trash2 } from "lucide-svelte";
   import { t } from '$lib/i18n';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
@@ -52,10 +53,7 @@
 </script>
 
 <div class="container p-4 space-y-6 pb-24">
-    <header class="space-y-1">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('expense.edit.title')}</h1>
-        <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('expense.form.subtitle')}</p>
-    </header>
+    <PageHeader title={$t('expense.edit.title')} subtitle={$t('expense.form.subtitle')} />
 
     <div class="bg-card rounded-2xl shadow-sm border p-6 space-y-6 transition-colors animate-pop-in">
         {#if isLoading}

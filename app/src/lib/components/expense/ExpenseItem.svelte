@@ -75,11 +75,10 @@
     {style}
 >
 <div 
-    class="expense-item rounded-xl border shadow-sm overflow-hidden group transition-all duration-300 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-indigo-200 dark:hover:border-indigo-900'}"
+    class="expense-item rounded-2xl border shadow-sm overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-primary/40'}"
     
     class:ring-2={expandedId === expense.id}
-    class:ring-indigo-500={expandedId === expense.id && !expense.is_reimbursement}
-    class:dark:ring-indigo-400={expandedId === expense.id && !expense.is_reimbursement}
+    class:ring-primary={expandedId === expense.id && !expense.is_reimbursement}
     class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
     class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
     role="button"
@@ -102,7 +101,7 @@
                     {/if}
                     <!-- Camera indicator if collapsed -->
                     {#if (!expandedId || expandedId !== expense.id) && expense.photos && expense.photos.length > 0}
-                    <div class="absolute -top-1.5 -right-1.5 h-5 w-5 bg-indigo-500 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
+                    <div class="absolute -top-1.5 -right-1.5 h-5 w-5 bg-primary rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
                         <Camera class="h-2.5 w-2.5 text-white" />
                     </div>
                     {/if}
@@ -126,7 +125,7 @@
                                 <span class="truncate">
                                     {$t('expense.list.paid_by')} 
                                     {#if currentUserId && expense.payer === currentUserId}
-                                        <span class="font-bold text-indigo-600 dark:text-indigo-400">{$t('common.you')}</span>
+                                        <span class="font-bold text-primary">{$t('common.you')}</span>
                                     {:else}
                                         <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
                                     {/if}
@@ -138,7 +137,7 @@
                 {/if}
             </div>
         </div>
-        <div class="font-bold text-lg text-slate-900 dark:text-slate-100 transition-colors text-right leading-none">
+        <div class="shrink-0 font-bold text-sm leading-none text-right tabular-nums px-2.5 py-1.5 rounded-lg transition-colors {expense.is_reimbursement ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/30' : currentUserId && expense.payer === currentUserId ? 'text-primary dark:text-primary-foreground bg-primary/10 dark:bg-primary/25' : 'text-slate-900 dark:text-slate-100 bg-muted dark:bg-slate-800'}">
             {formatAmount(expense.amount, expense.currency || 'EUR')}
         </div>
     </div>
@@ -174,7 +173,7 @@
                             <span>{$t('expense.list.paid_by')}:</span>
                             <div>
                                 {#if currentUserId && expense.payer === currentUserId}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
                                         {$t('common.you')}
                                     </span>
                                 {:else}
@@ -191,7 +190,7 @@
                                 {#if expense.expand?.involved}
                                     {#each expense.expand.involved as p (p.id)}
                                         {#if currentUserId && p.id === currentUserId}
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
                                                 {$t('common.you')}
                                             </span>
                                         {:else}
@@ -208,7 +207,7 @@
                     </div>
 
                     <!-- Action Bar -->
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid {expense.photos && expense.photos.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-2">
                         <button 
                             disabled={offlineStore.isOffline}
                             class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}"
@@ -221,17 +220,12 @@
                         {#if expense.photos && expense.photos.length > 0}
                         <button 
                             disabled={offlineStore.isOffline}
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}"
+                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-primary font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-secondary dark:hover:bg-indigo-900/20'}"
                             onclick={(e) => { e.stopPropagation(); onOpenGallery(expense); }}
                         >
                             <ImageIcon class="h-4 w-4" />
                             Photos
                         </button>
-                        {:else}
-                            <button disabled class="flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 font-medium text-sm cursor-not-allowed">
-                            <ImageIcon class="h-4 w-4" />
-                            Photos
-                            </button>
                         {/if}
 
                         <button 

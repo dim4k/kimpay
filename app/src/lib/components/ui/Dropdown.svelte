@@ -61,15 +61,15 @@
         type="button"
         onclick={toggle}
         onkeydown={handleKeydown}
-        class="flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium {sizeClasses[size]} {triggerClass}"
+        class="flex items-center gap-1.5 rounded-lg bg-muted hover:bg-muted/70 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors font-medium {sizeClasses[size]} {triggerClass}"
     >
         {@render trigger(isOpen)}
-        <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isOpen ? 'rotate-180' : ''}" />
+        <ChevronDown class="h-3 w-3 text-muted-foreground transition-transform {isOpen ? 'rotate-180' : ''}" />
     </button>
 
     {#if isOpen}
         <div 
-            class="absolute top-full mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 min-w-[120px] max-h-48 overflow-y-auto {positionClasses[position]}" 
+            class="absolute top-full mt-1 z-50 bg-popover text-popover-foreground rounded-lg shadow-xl border min-w-[120px] max-h-48 overflow-y-auto {positionClasses[position]}" 
             transition:slide={{ duration: 150 }}
         >
             {@render items(close)}

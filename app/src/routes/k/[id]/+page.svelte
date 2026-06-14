@@ -1,8 +1,10 @@
 <script lang="ts">
   import { getContext } from 'svelte';
-  import { Wallet, AlertTriangle, ChevronDown, Check, ArrowUpDown } from "lucide-svelte"; 
-  import { slide } from 'svelte/transition';
+  import { Wallet, AlertTriangle, Check, ArrowUpDown } from "lucide-svelte"; 
   import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
+  import Dropdown from '$lib/components/ui/Dropdown.svelte';
+  import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
@@ -41,7 +43,6 @@
 
   // Sort state
   let sortOption = $state<SortOption>('created_desc');
-  let isSortOpen = $state(false);
   
   function getCurrentSortLabel(): string {
       const opt = sortOptions.find(o => o.value === sortOption);
@@ -138,15 +139,13 @@
 <div class="container p-4 space-y-6">
   <!-- Kimpay Title Section -->
   <header class="space-y-1">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-            {$t('nav.expenses')}
-        </h1>
-      </div>
-      <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">
-          <span class="font-semibold text-slate-700 dark:text-slate-300">{expenses.length}</span> {$t('expense.list.items')}
+      <h1 class="text-2xl font-extrabold text-gradient-brand w-fit">
+          {$t('nav.expenses')}
+      </h1>
+      <p class="text-muted-foreground font-medium text-sm">
+          <span class="font-semibold text-foreground/80">{expenses.length}</span> {$t('expense.list.items')}
           <span class="mx-1">•</span>
-          <span class="font-semibold text-slate-700 dark:text-slate-300">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
+          <span class="font-semibold text-foreground/80">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
       </p>
   </header>
 
@@ -163,60 +162,48 @@
         <div class="flex items-center justify-between">
             <!-- My Contribution -->
             {#if currentUserId}
-                <span class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">
+                <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">
                     {$t('expense.my_contribution')}: {formatAmount(myContribution, kimpayC)}
                 </span>
             {:else}
                 <div></div>
             {/if}
-            <div class="relative">
-                <button
-                    type="button"
-                    onclick={() => isSortOpen = !isSortOpen}
-                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
-                >
-                    <ArrowUpDown class="h-3 w-3 text-slate-400" />
-                    <span class="text-slate-700 dark:text-slate-200 text-xs">{getCurrentSortLabel()}</span>
-                    <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isSortOpen ? 'rotate-180' : ''}" />
-                </button>
-
-                {#if isSortOpen}
-                    <div class="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 min-w-[140px] max-h-48 overflow-y-auto" transition:slide={{ duration: 150 }}>
-                        {#each sortOptions as opt (opt.value)}
-                            <button
-                                type="button"
-                                onclick={() => { sortOption = opt.value; isSortOpen = false; }}
-                                class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {sortOption === opt.value ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
-                            >
-                                <span class="font-medium text-slate-700 dark:text-slate-200 text-xs">{$t(opt.labelKey as import('$lib/locales/en').TranslationKey)}</span>
-                                {#if sortOption === opt.value}
-                                    <Check class="h-3.5 w-3.5 text-indigo-500" />
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
-                    <div 
-                        class="fixed inset-0 z-40" 
-                        onclick={() => isSortOpen = false} 
-                        role="button" 
-                        tabindex="-1" 
-                        onkeydown={(e) => e.key === 'Escape' && (isSortOpen = false)}
-                    ></div>
-                {/if}
-            </div>
+            <Dropdown size="sm">
+                {#snippet trigger()}
+                    <ArrowUpDown class="h-3 w-3 text-muted-foreground" />
+                    <span class="text-xs">{getCurrentSortLabel()}</span>
+                {/snippet}
+                {#snippet items(close)}
+                    {#each sortOptions as opt (opt.value)}
+                        <button
+                            type="button"
+                            onclick={() => { sortOption = opt.value; close(); }}
+                            class="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors text-sm {sortOption === opt.value ? 'bg-secondary' : ''}"
+                        >
+                            <span class="font-medium text-xs">{$t(opt.labelKey as import('$lib/locales/en').TranslationKey)}</span>
+                            {#if sortOption === opt.value}
+                                <Check class="h-3.5 w-3.5 text-primary" />
+                            {/if}
+                        </button>
+                    {/each}
+                {/snippet}
+            </Dropdown>
         </div>
     {/if}
 
     <!-- Expenses List -->
     {#if isLoading}
-        <div class="text-center py-8 text-slate-500 dark:text-slate-400">{$t('common.loading')}</div>
+        <ListSkeleton />
     {:else if expenses.length === 0}
-
-        <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors animate-pop-in">
-           <Wallet class="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-           <p class="text-slate-500 font-medium dark:text-slate-400">{$t('expense.list.empty.title')}</p>
-           <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{$t('expense.list.empty.desc')}</p>
-        </div>
+        <EmptyState
+            title={$t('expense.list.empty.title')}
+            description={$t('expense.list.empty.desc')}
+            class="animate-pop-in"
+        >
+            {#snippet icon()}
+                <Wallet class="h-12 w-12" />
+            {/snippet}
+        </EmptyState>
     {:else}
         <div class="space-y-3">
             {#each expenses as expense, i (expense.id)}

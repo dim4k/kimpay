@@ -135,23 +135,23 @@
             ✕
         </button>
         {/if}
-        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">{$t('identity.title')}</h2>
+        <h2 class="text-2xl font-bold text-gradient-brand mb-2">{$t('identity.title')}</h2>
         <p class="text-slate-500 dark:text-slate-400 text-sm">{$t('identity.subtitle')}</p>
     </div>
     
     <div class="flex-1 overflow-y-auto p-4 space-y-2">
         {#each selectableParticipants as p (p.id)}
             <button 
-                class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-transparent hover:border-indigo-100 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : ''}"
+                class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted dark:hover:bg-slate-800 border-2 border-transparent hover:border-primary/20 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-secondary border-primary/30' : ''}"
                 onclick={() => selectParticipant(p.id)}
             >
-                <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold overflow-hidden">
+                <div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-primary font-bold overflow-hidden">
                         <!-- Future: Avatar rendering -->
                     {p.name.slice(0, 2).toUpperCase()}
                 </div>
-                <span class="font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
+                <span class="font-medium text-foreground">{p.name}</span>
                 {#if selectedParticipantId === p.id}
-                    <div class="ml-auto text-indigo-600">
+                    <div class="ml-auto text-primary">
                         <Check class="h-5 w-5" />
                     </div>
                 {/if}

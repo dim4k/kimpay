@@ -16,13 +16,10 @@
 <a 
     {href}
     onclick={() => haptic('light')}
-    class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}"
+    class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
 >
-    <div class="relative">
-        <Icon class="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
-        {#if isActive}
-            <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>
-        {/if}
+    <div class="relative flex items-center justify-center h-9 w-12 rounded-full transition-all duration-300 {isActive ? 'bg-secondary' : ''}">
+        <Icon class="h-6 w-6 transition-transform duration-300 {isActive ? 'scale-110' : ''}" strokeWidth={isActive ? 2.5 : 2} />
     </div>
     <span class="text-[10px] font-medium tracking-wide">{label}</span>
 </a>

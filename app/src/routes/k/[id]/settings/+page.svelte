@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import { goto } from '$app/navigation';
   import { getContext } from 'svelte';
   import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table } from "lucide-svelte";
@@ -267,10 +268,7 @@
 </script>
 
 <div class="container p-4 space-y-6">
-        <header class="space-y-1">
-            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('settings.title')}</h1>
-            <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('settings.subtitle')}</p>
-        </header>
+        <PageHeader title={$t('settings.title')} subtitle={$t('settings.subtitle')} />
 
         {#if !offlineStore.isOffline}
         <!-- Edit Section -->

@@ -13,7 +13,7 @@ type FabProps = {
     key: string | number;
 };
 
-const DEFAULT_COLOR = "bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-200 dark:shadow-none";
+const DEFAULT_COLOR = "bg-gradient-to-tr from-indigo-600 to-blue-500 shadow-indigo-200 dark:shadow-none";
 
 class FabState {
     visible = $state(true);

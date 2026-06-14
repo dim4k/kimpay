@@ -142,9 +142,10 @@
                 <a 
                     href={fabState.href} 
                     onclick={() => haptic('light')}
-                    class="flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl hover:scale-105 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50"
+                    class="relative flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50"
                     title={fabState.label}
                 >
+                    <span class="absolute inset-0 rounded-full {fabState.colorClass} blur-lg opacity-50 -z-10"></span>
                     {#key fabState.icon}
                         <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
                             <fabState.icon class="h-8 w-8" strokeWidth={2.5} />
@@ -155,10 +156,13 @@
                     <button
                     onclick={fabState.onClick}
                     disabled={fabState.disabled}
-                    class="flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl hover:scale-105 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                    class="relative flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass + ' shadow-primary/40'} text-white rounded-full h-16 w-16 shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50 disabled:hover:scale-100 disabled:cursor-not-allowed disabled:shadow-none"
                     title={fabState.label}
                     aria-label={fabState.label}
                     >
+                    {#if !fabState.disabled}
+                        <span class="absolute inset-0 rounded-full {fabState.colorClass} blur-lg opacity-50 -z-10"></span>
+                    {/if}
                     {#key fabState.icon}
                         <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
                             <fabState.icon class="h-8 w-8" strokeWidth={2.5} />

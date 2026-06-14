@@ -73,7 +73,7 @@
         <div class="w-20 h-20 mx-auto bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner border border-slate-100 dark:border-slate-700 transition-colors">
             {kimpay?.icon || DEFAULT_KIMPAY_EMOJI}
         </div>
-        <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+        <h1 class="text-3xl font-bold text-gradient-brand">
             {kimpay?.name || $t('common.loading')}
         </h1>
         <p class="text-slate-500 dark:text-slate-400">{$t('share.invite_friends')}</p>
@@ -82,7 +82,7 @@
     <!-- QR Code Block -->
     <!-- QR Code Block -->
     <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 relative group overflow-hidden animate-slide-up" style="animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards;">
-        <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         {#if qrDataUrl}
             <img src={qrDataUrl} alt="QR Code" class="h-48 w-48 mx-auto" />

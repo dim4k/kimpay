@@ -86,7 +86,7 @@
 
       <a href="/" onclick={() => haptic('light')} class="flex items-center transition-transform hover:scale-105">
           <Logo class="h-8 w-8 text-indigo-700 dark:text-indigo-400" />
-          <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-primary to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-br from-indigo-600 to-blue-500 dark:from-indigo-400 dark:to-blue-400 bg-clip-text text-transparent transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden {currentKimpay ? 'max-w-0 opacity-0 ml-0 md:max-w-xs md:opacity-100 md:ml-2' : 'max-w-xs opacity-100 ml-2'}">Kimpay</span>
       </a>
 
       {#if offlineStore.isOffline}

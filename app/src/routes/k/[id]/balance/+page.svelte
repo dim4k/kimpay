@@ -1,10 +1,14 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { type Transaction } from '$lib/balance';
-  import { LoaderCircle, ArrowRight, Wallet, CircleCheck, AlertTriangle, ChevronDown, Check } from "lucide-svelte";
-  import { fade, slide } from 'svelte/transition';
+  import { ArrowRight, Wallet, CircleCheck, AlertTriangle, Check } from "lucide-svelte";
+  import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import Dropdown from '$lib/components/ui/Dropdown.svelte';
+  import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
   import { t } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
@@ -26,7 +30,6 @@
   
   // Display currency selector state (defaults to Kimpay's currency)
   let displayCurrency = $state('');
-  let isCurrencyOpen = $state(false);
   
   // Initialize displayCurrency when kimpay loads
   $effect(() => {
@@ -91,10 +94,7 @@
 </script>
 
 <div class="container p-4 space-y-6">
-    <header class="space-y-1">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 w-fit">{$t('balance.title')}</h1>
-        <p class="text-slate-500 font-medium dark:text-slate-400 text-sm">{$t('balance.subtitle')}</p>
-    </header>
+    <PageHeader title={$t('balance.title')} subtitle={$t('balance.subtitle')} />
 
 
     {#if offlineStore.isOffline}
@@ -105,20 +105,22 @@
     {/if}
 
     {#if isLoading}
-        <div class="flex justify-center py-20">
-            <LoaderCircle class="h-10 w-10 animate-spin text-indigo-500" />
-        </div>
+        <ListSkeleton count={3} />
     {:else if expenses.length === 0}
-         <div class="text-center py-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 transition-colors animate-pop-in">
-            <Wallet class="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <p class="text-slate-500 font-medium dark:text-slate-400">{$t('balance.empty.title')}</p>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{$t('balance.empty.desc')}</p>
-        </div>
+         <EmptyState
+            title={$t('balance.empty.title')}
+            description={$t('balance.empty.desc')}
+            class="animate-pop-in"
+         >
+            {#snippet icon()}
+                <Wallet class="h-12 w-12" />
+            {/snippet}
+         </EmptyState>
     {:else}
         
         <!-- Transactions List or "Settled" Message -->
         {#if transactions.length === 0}
-            <div class="animate-pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200 mb-8">
+            <div class="animate-pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200/60 dark:shadow-emerald-900/40 mb-8">
                 <CircleCheck class="h-16 w-16 mx-auto mb-4 text-white/90" />
                 <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
                 <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
@@ -126,46 +128,31 @@
         {:else}
              <div class="space-y-3 mb-8">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.suggested.title')}</h2>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">{$t('balance.suggested.title')}</h2>
                     <!-- Currency Selector -->
-                    <div class="relative">
-                        <button
-                            type="button"
-                            onclick={() => isCurrencyOpen = !isCurrencyOpen}
-                            class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
-                        >
+                    <Dropdown size="sm">
+                        {#snippet trigger()}
                             <span class="text-xs">{getSymbol(displayCurrency)}</span>
-                            <span class="text-slate-700 dark:text-slate-200 text-xs">{displayCurrency}</span>
-                            <ChevronDown class="h-3 w-3 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
-                        </button>
-
-                        {#if isCurrencyOpen}
-                            <div class="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 min-w-[120px] max-h-48 overflow-y-auto" transition:slide={{ duration: 150 }}>
-                                {#each CURRENCY_CODES as code (code)}
-                                    <button
-                                        type="button"
-                                        onclick={() => { displayCurrency = code; isCurrencyOpen = false; }}
-                                        class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {displayCurrency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
-                                    >
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-base">{getSymbol(code)}</span>
-                                            <span class="font-medium text-slate-700 dark:text-slate-200">{code}</span>
-                                        </div>
-                                        {#if displayCurrency === code}
-                                            <Check class="h-3.5 w-3.5 text-indigo-500" />
-                                        {/if}
-                                    </button>
-                                {/each}
-                            </div>
-                            <div 
-                                class="fixed inset-0 z-40" 
-                                onclick={() => isCurrencyOpen = false} 
-                                role="button" 
-                                tabindex="-1" 
-                                onkeydown={(e) => e.key === 'Escape' && (isCurrencyOpen = false)}
-                            ></div>
-                        {/if}
-                    </div>
+                            <span class="text-xs">{displayCurrency}</span>
+                        {/snippet}
+                        {#snippet items(close)}
+                            {#each CURRENCY_CODES as code (code)}
+                                <button
+                                    type="button"
+                                    onclick={() => { displayCurrency = code; close(); }}
+                                    class="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors text-sm {displayCurrency === code ? 'bg-secondary' : ''}"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">{getSymbol(code)}</span>
+                                        <span class="font-medium">{code}</span>
+                                    </div>
+                                    {#if displayCurrency === code}
+                                        <Check class="h-3.5 w-3.5 text-primary" />
+                                    {/if}
+                                </button>
+                            {/each}
+                        {/snippet}
+                    </Dropdown>
                 </div>
                 
                 <div class="space-y-3">
