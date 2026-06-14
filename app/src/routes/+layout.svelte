@@ -8,7 +8,6 @@
     import { locale, t } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
-    import { page } from '$app/state';
     import { recentsStore } from '$lib/stores/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
@@ -56,7 +55,8 @@
         const migrated = await storageService.migrate();
         theme.init();
         
-        // If migration happened, force reload recents because they might have been initialized empty by +page.svelte
+        // Single entry point for recents init. Force reload if a data migration
+        // just happened so the freshly-migrated Kimpays are picked up.
         recentsStore.init(migrated);
         auth.init();
         
@@ -101,16 +101,6 @@
                 });
             }
         });
-    });
-
-    // Re-load groups on navigation (in case a new one was created)
-    $effect(() => {
-        if (page.url.pathname) {
-            recentsStore.init();
-            
-            // Stores are reset by their init methods when entering a kimpay context.
-            // Explicit reset on exit is optional but nice. For now we skip it.
-        }
     });
 
     locale.subscribe((val) => {

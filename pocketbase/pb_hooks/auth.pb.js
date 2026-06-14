@@ -174,25 +174,12 @@ routerAdd("POST", "/api/login/verify", (c) => {
 
         // Rate limiting: 10 attempts per minute per IP
         const clientIp = c.realIP();
-        const rateLimitKey = `otp_verify_${clientIp}`;
-        const now = Date.now();
-        const windowMs = 60 * 1000; // 1 minute
-        const maxAttempts = 10;
-
-        let rateData = $app.store().get(rateLimitKey);
-        if (!rateData || typeof rateData !== "object") {
-            rateData = { windowStart: now, count: 0 };
-        }
-        if (now - rateData.windowStart > windowMs) {
-            rateData = { windowStart: now, count: 0 };
-        }
-        if (rateData.count >= maxAttempts) {
+        const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+        if (!checkRateLimit(`otp_verify_${clientIp}`, 10, 60 * 1000)) {
             return c.json(429, {
                 message: "Too many attempts. Please wait a minute.",
             });
         }
-        rateData.count++;
-        $app.store().set(rateLimitKey, rateData);
 
         // Find OTP
         try {

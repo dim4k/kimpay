@@ -15,28 +15,10 @@ routerAdd(
             const userId = authRecord.id;
 
             // Rate limiting: 5 requests per minute per user
-            // Using $app.store() for persistent storage across requests
-            const rateLimitKey = `ocr_rate_${userId}`;
-            const now = Date.now();
-            const windowMs = 60 * 1000; // 1 minute
-            const maxRequests = 5;
-            
-            let rateData = $app.store().get(rateLimitKey);
-            if (!rateData || typeof rateData !== "object") {
-                rateData = { windowStart: now, count: 0 };
-            }
-            
-            // Reset window if expired
-            if (now - rateData.windowStart > windowMs) {
-                rateData = { windowStart: now, count: 0 };
-            }
-            
-            if (rateData.count >= maxRequests) {
+            const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+            if (!checkRateLimit(`ocr_rate_${userId}`, 5, 60 * 1000)) {
                 return e.json(429, { message: "Too many requests. Please wait a minute." });
             }
-            
-            rateData.count++;
-            $app.store().set(rateLimitKey, rateData);
 
             // Parse request body
             const data = new DynamicModel({

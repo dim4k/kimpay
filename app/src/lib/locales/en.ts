@@ -195,6 +195,7 @@ export const en = {
     "error.offline.view_cached": "View cached Kimpays",
     "error.network": "Connection error. Please try again.",
     "error.generic": "Something went wrong. Please try again.",
+    "error.generic.title": "Error",
 
     "error.404.title": "Oops! 🛸",
     "error.404.desc":

@@ -8,6 +8,7 @@
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
   import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
+  import type { TranslationKey } from '$lib/locales/en';
   import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
   import { offlineStore } from '$lib/stores/offline.svelte';
   import { DEFAULT_CURRENCY, convert, formatAmount } from '$lib/services/currency';
@@ -29,7 +30,7 @@
   // Sort types and options
   type SortOption = 'created_desc' | 'created_asc' | 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
   
-  const sortOptions: { value: SortOption; labelKey: string; icon?: string }[] = [
+  const sortOptions: { value: SortOption; labelKey: TranslationKey; icon?: string }[] = [
       { value: 'created_desc', labelKey: 'sort.created_desc' },
       { value: 'created_asc', labelKey: 'sort.created_asc' },
       { value: 'date_desc', labelKey: 'sort.date_desc' },
@@ -43,7 +44,8 @@
   let isSortOpen = $state(false);
   
   function getCurrentSortLabel(): string {
-      return $t(sortOptions.find(o => o.value === sortOption)?.labelKey as import('$lib/locales/en').TranslationKey) || sortOption;
+      const opt = sortOptions.find(o => o.value === sortOption);
+      return opt ? $t(opt.labelKey) : sortOption;
   }
 
   // Convert amount to kimpay currency for comparison

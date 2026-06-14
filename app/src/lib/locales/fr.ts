@@ -202,6 +202,7 @@ export const fr: Record<TranslationKey, string> = {
     "error.offline.view_cached": "Voir les Kimpays en cache",
     "error.network": "Erreur de connexion. Veuillez réessayer.",
     "error.generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "error.generic.title": "Erreur",
 
     "error.404.title": "Oups ! 🛸",
     "error.404.desc":

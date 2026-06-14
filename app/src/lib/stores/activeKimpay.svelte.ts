@@ -12,7 +12,7 @@ import {
     asParticipant,
 } from "$lib/types";
 import { calculateBalances, calculateDebts, type Transaction } from "$lib/balance";
-import { getExchangeRates, DEFAULT_CURRENCY } from "$lib/services/currency";
+import { getExchangeRates, DEFAULT_CURRENCY, convert } from "$lib/services/currency";
 import { objectToFormData } from "$lib/utils/formData";
 
 // Relations expanded when fetching a Kimpay (full graph for the active view).
@@ -48,12 +48,24 @@ export class ActiveKimpay {
         ),
     );
 
-    totalAmount = $derived(
-        this.expenses.reduce(
-            (sum, e) => sum + (e.is_reimbursement ? 0 : e.amount),
+    // Sum of all non-reimbursement expenses, converted to the Kimpay's
+    // currency so groups mixing currencies show a correct total.
+    totalAmount = $derived.by(() => {
+        const target = this.kimpay?.currency ?? DEFAULT_CURRENCY;
+        return this.expenses.reduce(
+            (sum, e) =>
+                sum +
+                (e.is_reimbursement
+                    ? 0
+                    : convert(
+                          e.amount,
+                          e.currency || DEFAULT_CURRENCY,
+                          target,
+                          this.exchangeRates,
+                      )),
             0,
-        ),
-    );
+        );
+    });
 
     // Transactions calculated with multi-currency support
     transactions = $derived<Transaction[]>(

@@ -20,6 +20,7 @@
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
     import { toasts } from '$lib/stores/toasts.svelte';
     import { haptic } from '$lib/utils/haptic';
+    import { getErrorMessage } from '$lib/utils/errors';
 
     let kimpayName = $state("");
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
@@ -113,18 +114,10 @@
         } catch (e: unknown) {
             console.error("Kimpay Creation Error:", e);
             haptic('error');
-            const err = e as { response?: { data?: unknown }, message?: string };
-            if (err.response && err.response.data) {
-                modals.alert({ 
-                    message: JSON.stringify(err.response.data, null, 2), 
-                    title: "Error" 
-                });
-            } else {
-                modals.alert({ 
-                    message: "Error creating Kimpay: " + (err.message || String(e)), 
-                    title: "Error" 
-                });
-            }
+            modals.alert({
+                message: getErrorMessage(e, $t),
+                title: $t('error.generic.title')
+            });
         } finally {
             isLoading = false;
         }

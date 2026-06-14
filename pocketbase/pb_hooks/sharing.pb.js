@@ -41,25 +41,12 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
         // Rate limiting: 5 share emails per minute per IP (prevents using this
         // endpoint to spam arbitrary addresses).
         const clientIp = c.realIP();
-        const rateLimitKey = `share_${clientIp}`;
-        const now = Date.now();
-        const windowMs = 60 * 1000;
-        const maxRequests = 5;
-
-        let rateData = $app.store().get(rateLimitKey);
-        if (!rateData || typeof rateData !== "object") {
-            rateData = { windowStart: now, count: 0 };
-        }
-        if (now - rateData.windowStart > windowMs) {
-            rateData = { windowStart: now, count: 0 };
-        }
-        if (rateData.count >= maxRequests) {
+        const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+        if (!checkRateLimit(`share_${clientIp}`, 5, 60 * 1000)) {
             return c.json(429, {
                 message: "Too many requests. Please wait a minute.",
             });
         }
-        rateData.count++;
-        $app.store().set(rateLimitKey, rateData);
 
         const locale = data.locale || "fr";
         const creatorName = data.creator || "Un ami";

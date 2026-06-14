@@ -7,7 +7,6 @@
   import CollapsibleCard from '$lib/components/ui/CollapsibleCard.svelte';
     import { recentsStore } from '$lib/stores/recents.svelte';
     import { offlineStore } from '$lib/stores/offline.svelte';
-  import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { Plus, ArrowRight, CloudOff } from 'lucide-svelte';
   import { t } from '$lib/i18n';
@@ -24,11 +23,6 @@
       if (recentsStore.initialized && !auth.isValid) {
           showHero = recentsStore.recentKimpays.length === 0;
       }
-  });
-
-  onMount(async () => {
-      // Store init handles deduplication
-      recentsStore.init();
   });
 </script>
 
