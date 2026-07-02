@@ -8,6 +8,7 @@
     import { locale, t } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
+    import { afterNavigate } from '$app/navigation';
     import { recentsStore } from '$lib/stores/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
@@ -15,6 +16,13 @@
     import { participantService } from '$lib/services/participant';
 
     let { children, data } = $props();
+
+    // The inner scroll container. Since scrolling now happens inside <main>
+    // (not the document), reset it to the top on each navigation.
+    let mainEl = $state<HTMLElement>();
+    afterNavigate(() => {
+        mainEl?.scrollTo({ top: 0 });
+    });
 
     const seo = $derived(data.seo || {
         title: 'Kimpay',
@@ -146,10 +154,9 @@
     <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>
 
-<div class="flex flex-col min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100">
-	<SiteHeader />
-
-	<main class="flex-1 flex flex-col pt-16">
+<div class="flex flex-col h-dvh overflow-hidden bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100">
+	<main bind:this={mainEl} class="flex-1 flex flex-col overflow-y-auto" style="scrollbar-gutter: stable;">
+		<SiteHeader />
 		{@render children()}
 	</main>
 

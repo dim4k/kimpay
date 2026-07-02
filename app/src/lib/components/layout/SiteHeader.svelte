@@ -81,7 +81,10 @@
 
 <svelte:window onclick={handleOutsideClick} />
 
-<header class="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
+<header
+  class="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800"
+  style="margin-right: calc(100% - 100vw); padding-right: calc(100vw - 100%);"
+>
   <div class="container flex h-16 items-center justify-between px-4">
 
       <a href="/" onclick={() => haptic('light')} class="flex items-center transition-transform hover:scale-105">

@@ -67,7 +67,7 @@
   }
 </script>
 
-<div class="p-6 flex flex-col items-center justify-center min-h-[80vh] space-y-8 text-center">
+<div class="container p-4 flex flex-col items-center justify-center min-h-[80vh] space-y-8 text-center">
     
     <div class="space-y-2 animate-pop-in" style="animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards;">
         <div class="w-20 h-20 mx-auto bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner border border-slate-100 dark:border-slate-700 transition-colors">
