@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.22
 
 # Install dependencies
 RUN apk add --no-cache \
@@ -6,11 +6,15 @@ RUN apk add --no-cache \
     unzip \
     wget
 
-# Download and install PocketBase
-ARG PB_VERSION=0.34.2
-RUN wget https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip \
-    && unzip pocketbase_${PB_VERSION}_linux_amd64.zip -d /usr/local/bin/ \
-    && rm pocketbase_${PB_VERSION}_linux_amd64.zip
+# Download PocketBase for the target architecture and verify its checksum
+ARG PB_VERSION=0.40.5
+ARG TARGETARCH=amd64
+RUN ZIP=pocketbase_${PB_VERSION}_linux_${TARGETARCH}.zip \
+    && wget -q https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/${ZIP} \
+    && wget -q https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/checksums.txt \
+    && grep " ${ZIP}\$" checksums.txt | sha256sum -c - \
+    && unzip ${ZIP} -d /usr/local/bin/ \
+    && rm ${ZIP} checksums.txt
 
 # Copy migrations
 COPY pocketbase/pb_migrations /pb_migrations

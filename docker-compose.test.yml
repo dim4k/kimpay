@@ -32,7 +32,7 @@ services:
 
   # Unit Tests (Vitest) - No PocketBase needed
   unit-tests:
-    image: node:22-slim
+    image: node:24-slim
     working_dir: /app
     volumes:
       - ./app:/app

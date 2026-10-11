@@ -1,17 +1,26 @@
 name: Build and Push Docker Image
 
+# Images are only published once CI (lint, type check, unit tests) passed on
+# main, and are built from exactly the commit CI tested.
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI" ]
+    types: [ completed ]
     branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.COMMIT_SHA }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -32,7 +41,7 @@ jobs:
             PUBLIC_POCKETBASE_URL=${{ secrets.PUBLIC_POCKETBASE_URL }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-app:${{ env.COMMIT_SHA }}
 
       - name: Build and push PocketBase Docker image
         uses: docker/build-push-action@v5
@@ -42,7 +51,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-pb:${{ env.COMMIT_SHA }}
 
       - name: Build and push Homepage Docker image
         uses: docker/build-push-action@v5
@@ -52,4 +61,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-homepage:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-homepage:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kimpay-homepage:${{ env.COMMIT_SHA }}
