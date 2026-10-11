@@ -18,41 +18,41 @@
  * Returns the template record or null.
  */
 function findTemplate(slug, locale) {
-    var safeSlug = String(slug).replace(/'/g, "''");
-    var safeLocale = typeof locale === "string" ? locale.replace(/'/g, "''") : "";
-
-    try {
-        var records = $app.findRecordsByFilter(
-            "email_templates",
-            "slug='" + safeSlug + "' && locale='" + safeLocale + "'",
-        );
-        if (records && records.length > 0) {
-            return records[0];
+    var locales = [typeof locale === "string" ? locale : "", "en"];
+    for (var i = 0; i < locales.length; i++) {
+        try {
+            return $app.findFirstRecordByFilter(
+                "email_templates",
+                "slug = {:slug} && locale = {:locale}",
+                { slug: String(slug), locale: locales[i] },
+            );
+        } catch (e) {
+            // Not found: try the next locale.
         }
-
-        var recordsEn = $app.findRecordsByFilter(
-            "email_templates",
-            "slug='" + safeSlug + "' && locale='en'",
-        );
-        if (recordsEn && recordsEn.length > 0) {
-            return recordsEn[0];
-        }
-    } catch (e) {
-        console.log("Error fetching template:", e);
     }
-
     return null;
+}
+
+function escapeHtml(str) {
+    return str
+        .split("&").join("&amp;")
+        .split("<").join("&lt;")
+        .split(">").join("&gt;")
+        .split('"').join("&quot;")
+        .split("'").join("&#39;");
 }
 
 /**
  * Replace all `{key}` placeholders in `str` with the matching value from `vars`.
+ * Values are HTML-escaped when `html` is true (they are user-supplied).
  * Uses split/join to stay ES5-safe (no String.prototype.replaceAll).
  */
-function applyVars(str, vars) {
+function applyVars(str, vars, html) {
     var result = str;
     for (var key in vars) {
         if (!Object.prototype.hasOwnProperty.call(vars, key)) continue;
         var value = vars[key] == null ? "" : String(vars[key]);
+        if (html) value = escapeHtml(value);
         result = result.split("{" + key + "}").join(value);
     }
     return result;
@@ -91,7 +91,7 @@ function sendTemplatedEmail(opts) {
 
     var vars = opts.vars || {};
     subject = applyVars(subject, vars);
-    html = applyVars(html, vars);
+    html = applyVars(html, vars, true);
 
     var text =
         opts.text != null ? opts.text : subject + "\n\n" + (vars.url || "");

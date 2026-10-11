@@ -13,10 +13,7 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
         try {
             c.bindBody(data);
         } catch (err) {
-            return c.json(400, {
-                message: "Invalid JSON body",
-                error: err.message,
-            });
+            return c.json(400, { message: "Invalid JSON body" });
         }
 
         const email = data.email;
@@ -26,11 +23,21 @@ routerAdd("POST", "/api/login/magic-link", (c) => {
             return c.json(400, { message: "Missing email" });
         }
 
-        // Construct URL origin (required to build the magic link).
-        const origin = data.url;
-        if (!origin || origin.trim() === "") {
-            return c.json(400, { message: "Missing url origin" });
+        // Rate limiting: per IP, and per target address so the endpoint cannot
+        // be used to flood a given mailbox.
+        const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+        if (
+            !checkRateLimit(`magic_ip_${c.realIP()}`, 10, 60 * 1000) ||
+            !checkRateLimit(`magic_mail_${email.toLowerCase()}`, 3, 10 * 60 * 1000)
+        ) {
+            return c.json(429, {
+                message: "Too many requests. Please wait a minute.",
+            });
         }
+
+        // The link origin is taken from an allowlist, never trusted as-is.
+        const { resolveAppOrigin } = require(`${__hooks}/lib/origin.js`);
+        const origin = resolveAppOrigin(data.url);
 
         // Look up the user. To avoid email enumeration, we ALWAYS respond 200
         // regardless of whether the account exists; the email is only sent when
@@ -74,10 +81,7 @@ routerAdd("POST", "/api/register", (c) => {
         try {
             c.bindBody(data);
         } catch (err) {
-            return c.json(400, {
-                message: "Invalid JSON body",
-                error: err.message,
-            });
+            return c.json(400, { message: "Invalid JSON body" });
         }
 
         const email = data.email;
@@ -87,6 +91,13 @@ routerAdd("POST", "/api/register", (c) => {
 
         if (!email || !name) {
             return c.json(400, { message: "Missing email or name" });
+        }
+
+        const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+        if (!checkRateLimit(`register_ip_${c.realIP()}`, 5, 60 * 1000)) {
+            return c.json(429, {
+                message: "Too many requests. Please wait a minute.",
+            });
         }
 
         // 1. Check if user exists
@@ -126,15 +137,10 @@ routerAdd("POST", "/api/register", (c) => {
             }
         }
 
-        // 4. Send the magic link so the new user can log in.
-        const origin = data.url;
-        if (!origin || origin.trim() === "") {
-            // User created but we can't build a login link without an origin.
-            return c.json(200, {
-                success: true,
-                message: "User created but URL missing for magic link",
-            });
-        }
+        // 4. Send the magic link so the new user can log in. The link origin
+        // is taken from an allowlist, never trusted as-is.
+        const { resolveAppOrigin } = require(`${__hooks}/lib/origin.js`);
+        const origin = resolveAppOrigin(data.url);
 
         const { createOtpAndSendMagicLink } = require(`${__hooks}/lib/email.js`);
         createOtpAndSendMagicLink({
@@ -162,10 +168,7 @@ routerAdd("POST", "/api/login/verify", (c) => {
         try {
             c.bindBody(data);
         } catch (err) {
-            return c.json(400, {
-                message: "Invalid JSON body",
-                error: err.message,
-            });
+            return c.json(400, { message: "Invalid JSON body" });
         }
 
         if (!data.code) {
@@ -181,49 +184,37 @@ routerAdd("POST", "/api/login/verify", (c) => {
             });
         }
 
-        // Find OTP
+        // Find a valid (non-expired) OTP. Bound params: no manual escaping.
         try {
-            // Need to filter by code AND expiration > NOW
-            // PocketBase SQL format for dates: YYYY-MM-DD HH:MM:SS.SSSZ
-            const nowStr = new Date()
-                .toISOString()
-                .replace("T", " ")
-                .replace("Z", "");
-
-            // Sanitize for PocketBase filter strings (prevent injection).
-            // Defined locally because pb_hooks handlers run in isolated scope.
-            const safeCode =
-                typeof data.code === "string"
-                    ? data.code.replace(/'/g, "''")
-                    : "";
-            const otps = $app.findRecordsByFilter(
-                "auth_otps",
-                `code='${safeCode}' && expires >= '${nowStr}'`,
-            );
-
-            if (!otps || otps.length === 0) {
+            let otp;
+            try {
+                otp = $app.findFirstRecordByFilter(
+                    "auth_otps",
+                    "code = {:code} && expires >= @now",
+                    { code: String(data.code) },
+                );
+            } catch (e) {
                 return c.json(400, { message: "Invalid or expired code" });
             }
 
-            const otp = otps[0];
-            const userId = otp.get("user");
-            const user = $app.findRecordById("users", userId);
-
-            // Generate Real Token
-            const token = user.newAuthToken();
+            const user = $app.findRecordById("users", otp.get("user"));
 
             // Note: OTP is NOT deleted here. A single magic link is frequently
             // requested more than once for the same click (e.g. the link opens
             // first in the mail client's in-app webview, then again in the real
             // browser/PWA). Deleting on first use breaks those subsequent loads
             // with "Invalid Link". The link stays valid until it expires.
-            return c.json(200, { token: token, user: user });
+
+            // Standard auth response ({ token, record, meta }): serializes the
+            // record like any PocketBase login (email included for its owner)
+            // and runs the OnRecordAuthRequest hooks.
+            return $apis.recordAuthResponse(c, user, "magic_link");
         } catch (e) {
             console.log("OTP Verify Error:", e);
             return c.json(400, { message: "Invalid code or internal error" });
         }
     } catch (e) {
         console.error("Verify Error:", e);
-        return c.json(500, { message: e.message });
+        return c.json(500, { message: "Internal server error" });
     }
 });

@@ -38,6 +38,12 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
             return c.json(400, { message: "Invalid email" });
         }
 
+        // Only links to the app itself can be sent (no open email relay).
+        const { isAllowedOrigin } = require(`${__hooks}/lib/origin.js`);
+        if (!isAllowedOrigin(url)) {
+            return c.json(400, { message: "Invalid url" });
+        }
+
         // Rate limiting: 5 share emails per minute per IP (prevents using this
         // endpoint to spam arbitrary addresses).
         const clientIp = c.realIP();
