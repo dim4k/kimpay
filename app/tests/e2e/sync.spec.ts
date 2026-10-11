@@ -1,9 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { createKimpay, dismissInstallPrompt } from './test-utils';
 
-async function addExpense(page: Page, description: string, amount: string) {
+async function openAddExpense(page: Page) {
     await page.getByRole('link', { name: /add expense/i }).click();
     await expect(page).toHaveURL(/.*\/add/);
+    await expect(page.getByPlaceholder('What was it for?')).toBeVisible();
+}
+
+async function saveExpense(page: Page, description: string, amount: string) {
     await page.getByPlaceholder('What was it for?').fill(description);
     await page.getByPlaceholder('0.00').fill(amount);
     await page.getByRole('button', { name: /save|enregistrer/i }).first().click();
@@ -26,7 +30,8 @@ test.describe('Sync between devices', () => {
         await dismissInstallPrompt(other);
 
         // Realtime: an expense added on device A appears on device B.
-        await addExpense(page, 'Realtime Pizza', '12');
+        await openAddExpense(page);
+        await saveExpense(page, 'Realtime Pizza', '12');
         await expect(other.getByText('Realtime Pizza')).toBeVisible({ timeout: 10000 });
 
         await otherContext.close();
@@ -36,8 +41,12 @@ test.describe('Sync between devices', () => {
         await createKimpay(page, 'Offline Test', 'Olivia');
         await dismissInstallPrompt(page);
 
+        // Open the form while online: Playwright only supports service workers
+        // on Chromium, so on WebKit nothing would serve the route's code offline
+        // (a real Safari has it cached by the service worker).
+        await openAddExpense(page);
         await context.setOffline(true);
-        await addExpense(page, 'Offline Taxi', '30');
+        await saveExpense(page, 'Offline Taxi', '30');
         await expect(page.getByText('Offline Taxi')).toHaveCount(1);
 
         // Back online: the queue is replayed, then the group is refetched
@@ -51,10 +60,9 @@ test.describe('Sync between devices', () => {
             r.url().includes('/api/collections/kimpays/records/') && r.request().method() === 'GET');
         await expect(page.getByText('Offline Taxi')).toHaveCount(1);
 
-        // Once the server has it, a fresh load shows exactly one as well.
-        await expect.poll(async () => {
-            await page.reload();
-            return page.getByText('Offline Taxi').count();
-        }, { timeout: 15000 }).toBe(1);
+        // The server has it (POST above): a fresh load shows exactly one too.
+        await page.reload();
+        await expect(page.getByText('Offline Taxi')).toBeVisible();
+        await expect(page.getByText('Offline Taxi')).toHaveCount(1);
     });
 });

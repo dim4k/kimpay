@@ -24,10 +24,12 @@ services:
     environment:
       - CI=true
       - PUBLIC_POCKETBASE_URL=http://pocketbase-test:8090
+      # Extra Playwright CLI args, e.g. a spec file or --update-snapshots
+      - PLAYWRIGHT_ARGS=${PLAYWRIGHT_ARGS:-}
     depends_on:
       pocketbase-test:
         condition: service_healthy
-    command: /bin/bash -c "npm ci && npm run build && npx playwright test"
+    command: /bin/bash -c "npm ci && npm run build && npx playwright test $${PLAYWRIGHT_ARGS}"
     # No external network - verify isolation default
 
   # Unit Tests (Vitest) - No PocketBase needed

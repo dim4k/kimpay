@@ -13,7 +13,7 @@ RED := $(ESC)[31m$(ESC)[1m
 MAGENTA := $(ESC)[35m$(ESC)[1m
 RESET := $(ESC)[0m
 
-.PHONY: help start start-dev stop restart build logs logs-app logs-pb shell lint check clean ci db-reset
+.PHONY: help start start-dev start-dev-d stop restart build logs logs-app logs-pb shell lint lint-fix check test test-e2e test-unit test-visual-update clean ci db-reset install-dev
 
 help: ## Show this help message
 	@echo '$(BLUE)=========================================$(RESET)'
@@ -83,10 +83,13 @@ check: ## Run Svelte Check inside a temporary container
 # Testing
 # =============================================================================
 
-test-e2e: ## Run Playwright E2E tests (via Docker)
+test-e2e: ## Run Playwright E2E tests (via Docker). Extra args: make test-e2e ARGS="tests/e2e/sync.spec.ts"
 	@echo '$(CYAN)[TEST] Running E2E Tests in Isolated Stack...$(RESET)'
 	@$(DC) -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-	@$(DC) -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests tests pocketbase-test || (echo '$(RED)[ERROR] E2E tests failed!$(RESET)' && exit 1)
+	@PLAYWRIGHT_ARGS='$(ARGS)' $(DC) -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests tests pocketbase-test || (echo '$(RED)[ERROR] E2E tests failed!$(RESET)' && exit 1)
+
+test-visual-update: ARGS = tests/e2e/visual.spec.ts --update-snapshots
+test-visual-update: test-e2e ## Regenerate the visual regression baselines (via Docker)
 
 test-unit: ## Run Vitest unit tests (via Docker)
 	@echo '$(CYAN)[TEST] Running Unit Tests...$(RESET)'

@@ -90,17 +90,24 @@ make start-dev
 
 We use an **isolated CI container** to ensure linting and type-checking run in a consistent Node 24 environment, regardless of your local setup.
 
-| Command         | Description                    |
-| --------------- | ------------------------------ |
-| `make check`    | Run Svelte check (Type Safety) |
-| `make lint`     | Run ESLint (Code Style)        |
-| `make lint-fix` | Auto-fix ESLint issues         |
+| Command                   | Description                                                          |
+| ------------------------- | -------------------------------------------------------------------- |
+| `make check`              | Run Svelte check (Type Safety)                                       |
+| `make lint`               | Run ESLint (Code Style)                                              |
+| `make lint-fix`           | Auto-fix ESLint issues                                               |
+| `make test-unit`          | Run Vitest unit tests                                                |
+| `make test-e2e`           | Run Playwright E2E + visual tests (Chromium & WebKit, isolated PB)   |
+| `make test-e2e ARGS=...`  | Same, with extra Playwright args (e.g. `ARGS="tests/e2e/sync.spec.ts"`) |
+| `make test-visual-update` | Regenerate the visual baselines after an intended UI change          |
+
+Visual baselines (`app/tests/e2e/visual.spec.ts-snapshots/`) are rendered in the Playwright Docker image, so they are only compared when the tests run in Docker. After an intended UI change, run `make test-visual-update`, review the updated PNGs and commit them.
 
 ### 🌍 Environment Variables
 
 Configuration is handled via `docker-compose.yml`.
 
 -   `PUBLIC_POCKETBASE_URL`: PocketBase API URL (default: `http://localhost:8090`)
+-   `APP_ORIGINS` (PocketBase): comma-separated app origins allowed in emailed links, the first one being the default (default: `https://app.kimpay.io`)
 -   `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
 
 ## 📝 License
