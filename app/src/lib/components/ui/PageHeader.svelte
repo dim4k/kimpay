@@ -5,11 +5,11 @@
         title,
         subtitle,
         actions
-    } = $props<{
+    }: {
         title: string;
         subtitle?: string;
         actions?: Snippet;
-    }>();
+    } = $props();
 </script>
 
 <header class="flex items-start justify-between gap-3">

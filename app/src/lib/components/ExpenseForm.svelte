@@ -22,9 +22,11 @@
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { haptic } from '#lib/utils/haptic.js';
+  import { notifyError } from '#lib/utils/notify.js';
+  import type { Expense } from '#lib/types.js';
   import { toLocalISODate } from '#lib/utils/date.js';
 
-  let { kimpayId, initialData = null } = $props();
+  let { kimpayId, initialData = null }: { kimpayId: string; initialData?: Expense | null } = $props();
 
   // Get ActiveKimpay
   const ctx = getActiveKimpayContext();
@@ -55,11 +57,11 @@
   let newParticipantSource = $state<string | null>(null);
   let isAddingParticipant = $state(false);
 
-  onMount(async () => {
+  onMount(() => {
       // Seed state from initialData if present
       if (initialData) {
          description = initialData.description || "";
-         amount = initialData.amount || "";
+         amount = initialData.amount ? String(initialData.amount) : "";
          icon = initialData.icon || DEFAULT_EXPENSE_EMOJI;
          date = initialData.date ? initialData.date.slice(0, 10) : toLocalISODate();
          payer = initialData.payer || "";
@@ -82,18 +84,14 @@
           payer = activeKimpay.myParticipantId;
       }
 
-      updateFab();
   });
 
-  // Reactive Update for FAB state
+  let isValid = $derived(!!description && !!amount && !!payer && involved.length > 0);
+  // Expenses cannot be edited offline (only created).
+  let isOfflineEdit = $derived(!!initialData?.id && offlineStore.isOffline);
+
+  // The floating action button is the form's submit button.
   $effect(() => {
-     const _ = { description, amount, payer, involved, isLoading };
-     updateFab();
-  });
-
-  function updateFab() {
-      const isValid = !!description && !!amount && !!payer && involved.length > 0;
-      
       fabState.configure({
           icon: isLoading ? LoaderCircle : Check,
           colorClass: isValid 
@@ -101,12 +99,12 @@
             : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none",
           onClick: save,
           href: null,
-          label: (initialData?.id && offlineStore.isOffline) 
+          label: isOfflineEdit
             ? $t('common.offline') 
             : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button')),
-          disabled: !isValid || isLoading || (!!initialData?.id && offlineStore.isOffline)
+          disabled: !isValid || isLoading || isOfflineEdit
       });
-  }
+  });
 
   async function goBack() {
       await goto(`/k/${kimpayId}`);
@@ -143,20 +141,19 @@
           
           newParticipantSource = null;
       } catch (e) {
-          console.error(e);
-          modals.alert({ message: "Failed to create participant", title: "Error" });
+          notifyError(e, "Failed to create participant");
       } finally {
           isAddingParticipant = false;
       }
   }
 
   async function save() {
-      if (!description || !amount || !payer || involved.length === 0) return;
+      if (!isValid) return;
       
-      if (initialData?.id && offlineStore.isOffline) {
+      if (isOfflineEdit) {
           modals.alert({ 
-              message: $t('common.offline_edit_error') || "Cannot edit expenses while offline",
-              title: "Offline"
+              message: $t('common.offline_edit_error'),
+              title: $t('common.offline')
           });
           return;
       }
@@ -311,7 +308,7 @@
          <Button variant="outline" class="w-full" size="lg" onclick={goBack} disabled={isLoading}>
             {$t('common.cancel')}
         </Button>
-         <Button onclick={save} class="w-full" size="lg" disabled={isLoading || involved.length === 0 || !amount || !description || !payer}>
+         <Button onclick={save} class="w-full" size="lg" disabled={isLoading || !isValid}>
             {isLoading ? $t('common.loading') : (initialData ? $t('expense.form.update_button') : $t('expense.form.save_button'))}
         </Button>
      </div>

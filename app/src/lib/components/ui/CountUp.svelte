@@ -2,7 +2,7 @@
   import { Tween } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
 
-  let { value, duration = 800, decimals = 2 } = $props();
+  let { value, duration = 800, decimals = 2 }: { value: number; duration?: number; decimals?: number } = $props();
 
   const displayedValue = new Tween(0, {
       easing: cubicOut

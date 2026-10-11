@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { pb } from '#lib/pocketbase.js';
     import { goto } from '$app/navigation';
     import { auth } from '#lib/stores/auth.svelte.js';
     import { t } from '#lib/i18n.js';
@@ -195,7 +194,7 @@
                         <div class="relative group">
                             <Avatar 
                                 name={auth.user.name || auth.user.email} 
-                                src={auth.user.avatar ? pb.files.getURL(auth.user, auth.user.avatar) : null}
+                                record={auth.user}
                                 class="w-20 h-20 text-2xl"
                             />
                             {#if isSavingAvatar}

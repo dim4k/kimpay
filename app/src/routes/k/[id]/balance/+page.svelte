@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { ArrowRight, Wallet, CircleCheck, AlertTriangle } from "@lucide/svelte";
+  import { ArrowRight, Wallet, CircleCheck } from "@lucide/svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '#lib/components/ui/Avatar.svelte';
@@ -12,7 +12,7 @@
   import CountUp from '#lib/components/ui/CountUp.svelte';
   import { modals } from '#lib/stores/modals.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { pb } from '#lib/pocketbase.js';
+  import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { formatAmount, convert, DEFAULT_CURRENCY, getSymbol } from '#lib/services/currency.js';
 
@@ -20,7 +20,6 @@
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
 
-  let participants = $derived(activeKimpay?.participants || []);
   let expenses = $derived(activeKimpay?.expenses || []);
   let myId = $derived(activeKimpay?.myParticipantId ?? null);
   let kimpay = $derived(activeKimpay?.kimpay);
@@ -83,12 +82,7 @@
   }
 
   function getName(id: string) {
-      return participants.find(p => p.id === id)?.name || $t('common.unknown');
-  }
-
-  function getAvatar(id: string) {
-      const p = participants.find(p => p.id === id);
-      return p?.avatar ? pb.files.getURL(p, p.avatar) : null;
+      return activeKimpay?.participantsById.get(id)?.name || $t('common.unknown');
   }
 </script>
 
@@ -96,12 +90,7 @@
     <PageHeader title={$t('balance.title')} subtitle={$t('balance.subtitle')} />
 
 
-    {#if offlineStore.isOffline}
-        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
-            <AlertTriangle class="h-5 w-5 text-amber-500 shrink-0" />
-            <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>
-        </div>
-    {/if}
+    <OfflineBanner message={$t('balance.offline_warning')} />
 
     {#if isLoading}
         <ListSkeleton count={3} />
@@ -145,7 +134,7 @@
                             {/if}
 
                             <div class="flex items-center gap-3 pl-2">
-                                <Avatar name={getName(tx.from)} src={getAvatar(tx.from)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
+                                <Avatar name={getName(tx.from)} record={activeKimpay?.participantsById.get(tx.from)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
                                 <div class="flex flex-col">
                                     <span class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight transition-colors">
                                         {tx.from === myId ? $t('common.you') : getName(tx.from)}
@@ -169,7 +158,7 @@
                                     </span>
                                     <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{$t('balance.receiver')}</span>
                                 </div>
-                                 <Avatar name={getName(tx.to)} src={getAvatar(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
+                                 <Avatar name={getName(tx.to)} record={activeKimpay?.participantsById.get(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
                             </div>
                         </button>
                     {/each}

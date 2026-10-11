@@ -192,6 +192,12 @@ class RecentsStore {
         this.recentKimpays = offlineItems;
     }
 
+    /** Forget a Kimpay on this device (list and local cache). */
+    async forget(id: string) {
+        this.removeRecentKimpay(id);
+        await storageService.removeRecentKimpay(id);
+    }
+
     removeRecentKimpay(id: string) {
         this.recentKimpays = this.recentKimpays.filter((k) => k.id !== id);
         this.unsubscribeFrom(id);

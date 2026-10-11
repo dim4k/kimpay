@@ -4,10 +4,10 @@
     let {
         class: className = "",
         rounded = "rounded-lg"
-    } = $props<{
+    }: {
         class?: string;
         rounded?: string;
-    }>();
+    } = $props();
 </script>
 
 <div class={cn("animate-pulse bg-muted", rounded, className)}></div>

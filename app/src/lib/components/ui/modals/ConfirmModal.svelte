@@ -1,19 +1,32 @@
 <script lang="ts">
   import { LoaderCircle, TriangleAlert, CircleCheck } from "@lucide/svelte";
   import { Button } from "#lib/components/ui/button/index.js";
+  import { t } from '#lib/i18n.js';
   import Modal from './Modal.svelte';
+
+  interface Props {
+    isOpen?: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "destructive";
+    isProcessing?: boolean;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
 
   let { 
     isOpen = false, 
     title, 
     description, 
-    confirmText = "Confirm", 
-    cancelText = "Cancel", 
-    variant = "default", // default | destructive
+    confirmText = $t('common.confirm'), 
+    cancelText = $t('common.cancel'), 
+    variant = "default",
     isProcessing = false,
     onConfirm,
     onCancel
-  } = $props();
+  }: Props = $props();
 </script>
 
 <Modal {isOpen} onClose={isProcessing ? undefined : onCancel}>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Wallet, AlertTriangle, Check, ArrowUpDown } from "@lucide/svelte"; 
+  import { Wallet, Check, ArrowUpDown } from "@lucide/svelte";
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -10,7 +10,7 @@
   import type { Expense } from '#lib/types.js';
   import type { TranslationKey } from '#lib/locales/en.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { DEFAULT_CURRENCY, convert, formatAmount } from '#lib/services/currency.js';
   
   // Get ActiveKimpay from context
@@ -124,12 +124,7 @@
       </p>
   </header>
 
-  {#if offlineStore.isOffline}
-      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
-          <AlertTriangle class="h-5 w-5 text-amber-500 shrink-0" />
-          <p class="text-sm text-amber-700 dark:text-amber-300">{$t('expense.offline_warning')}</p>
-      </div>
-  {/if}
+  <OfflineBanner message={$t('expense.offline_warning')} />
 
   <div class="flex flex-col gap-4">
     <!-- Sort Selector - above expense list -->
@@ -187,9 +182,9 @@
                     {currentUserId}
                     {expandedId}
                     {kimpayId}
-                    onToggleExpand={() => toggleExpand(expense.id)}
-                    onRequestDelete={() => requestDelete(expense.id)}
-                    onOpenGallery={() => openGallery(expense)}
+                    onToggleExpand={toggleExpand}
+                    onRequestDelete={requestDelete}
+                    onOpenGallery={openGallery}
                     style="animation-delay: {i * 50}ms;"
                 />
             {/each}

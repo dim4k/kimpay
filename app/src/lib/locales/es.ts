@@ -31,6 +31,8 @@ export const es: Record<TranslationKey, string> = {
     "modal.delete_expense.confirm": "Eliminar",
 
     "common.cancel": "Cancelar",
+    "modal.delete_participant.title": "¿Eliminar participante?",
+    "share.copy_error": "No se pudo copiar el enlace",
     "install.prompt.dismiss": "Ocultar la sugerencia de instalación",
     "install.ios.title": "Instalar en iPhone",
     "install.ios.step1": "En la barra de Safari, toca",
@@ -227,6 +229,7 @@ export const es: Record<TranslationKey, string> = {
     "settings.export.csv": "CSV",
     "settings.export.md": "Markdown",
     "export.col.date": "Fecha",
+    "export.col.icon": "Icono",
     "export.col.desc": "Descripción",
     "export.col.amount": "Importe",
     "export.col.currency": "Moneda",

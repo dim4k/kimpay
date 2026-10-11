@@ -1,10 +1,9 @@
 <script lang="ts">
   import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus, Settings } from "@lucide/svelte";
   import Logo from "#lib/components/ui/Logo.svelte";
-  import { locale, t } from '#lib/i18n.js';
+  import { locale, t, LOCALE_NAMES } from '#lib/i18n.js';
   import { theme } from '#lib/theme.js';
   import { slide } from 'svelte/transition';
-  import { pb } from '#lib/pocketbase.js';
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { modals } from '#lib/stores/modals.svelte.js';
@@ -118,7 +117,7 @@
             <!-- Inside Kimpay: Participant avatar, Participant name (grey), emoji + Kimpay name (white) -->
             <Avatar
               name={currentParticipant ? currentParticipant.name : "?"}
-                         src={currentParticipant?.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
+                         record={currentParticipant}
               class="w-8 h-8 text-[10px]"
             />
                      <div class="flex flex-col items-start gap-0.5 min-w-0 text-left mr-1">
@@ -136,7 +135,7 @@
 
             <Avatar
               name={auth.user.name}
-              src={auth.user.avatar ? pb.files.getURL(auth.user, auth.user.avatar) : null}
+              record={auth.user}
               class="w-8 h-8 text-[10px]"
             />
 
@@ -179,7 +178,7 @@
                     <div class="relative group">
                       <Avatar
                         name={currentParticipant ? currentParticipant.name : "?"}
-                                               src={currentParticipant?.avatar ? pb.files.getURL(currentParticipant, currentParticipant.avatar) : null}
+                                               record={currentParticipant}
                         class="w-12 h-12 text-xl"
                       />
                       {#if currentParticipant && !offlineStore.isOffline}
@@ -339,41 +338,17 @@
 
                 {#if isLangOptionsOpen}
                                   <div class="pl-2 pr-1 pb-1 space-y-1" transition:slide={{ duration: 150 }}>
-                    <button
-                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'en' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
-                                          onclick={() => { locale.set('en'); isLangOptionsOpen = false; }}
-                    >
-                      <span class="font-medium">English</span>
-                                          {#if $locale === 'en'} <Check class="h-3 w-3" /> {/if}
-                    </button>
-                    <button
-                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'fr' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
-                                          onclick={() => { locale.set('fr'); isLangOptionsOpen = false; }}
-                    >
-                      <span class="font-medium">Français</span>
-                                          {#if $locale === 'fr'} <Check class="h-3 w-3" /> {/if}
-                    </button>
-                    <button
-                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'de' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
-                                          onclick={() => { locale.set('de'); isLangOptionsOpen = false; }}
-                    >
-                      <span class="font-medium">Deutsch</span>
-                                          {#if $locale === 'de'} <Check class="h-3 w-3" /> {/if}
-                    </button>
-                    <button
-                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'es' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
-                                          onclick={() => { locale.set('es'); isLangOptionsOpen = false; }}
-                    >
-                      <span class="font-medium">Español</span>
-                                          {#if $locale === 'es'} <Check class="h-3 w-3" /> {/if}
-                    </button>
-                    <button
-                                          class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === 'pt' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
-                                          onclick={() => { locale.set('pt'); isLangOptionsOpen = false; }}
-                    >
-                      <span class="font-medium">Português</span>
-                                          {#if $locale === 'pt'} <Check class="h-3 w-3" /> {/if}
-                    </button>
+                    {#each Object.entries(LOCALE_NAMES) as [code, name] (code)}
+                      <button
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm transition-colors {$locale === code ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' : 'text-slate-600 dark:text-slate-400'}"
+                        onclick={() => { locale.set(code); isLangOptionsOpen = false; }}
+                        aria-pressed={$locale === code}
+                        lang={code}
+                      >
+                        <span class="font-medium">{name}</span>
+                        {#if $locale === code} <Check class="h-3 w-3" /> {/if}
+                      </button>
+                    {/each}
                   </div>
                 {/if}
               </div>

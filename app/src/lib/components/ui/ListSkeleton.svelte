@@ -1,7 +1,7 @@
 <script lang="ts">
     import Skeleton from './Skeleton.svelte';
 
-    let { count = 4 } = $props<{ count?: number }>();
+    let { count = 4 }: { count?: number } = $props();
 </script>
 
 <div class="space-y-3">

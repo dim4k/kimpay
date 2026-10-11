@@ -1,6 +1,7 @@
 <script lang="ts">
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t } from '#lib/i18n.js';
+  import { notifyError } from '#lib/utils/notify.js';
 
 
   let confirmState = $derived(modals.confirmState);
@@ -17,7 +18,8 @@
             await confirmState.onConfirm();
             modals.closeConfirm();
         } catch (e) {
-            console.error(e);
+            // The modal stays open so the user can retry or cancel.
+            notifyError(e, "Confirmed action failed");
         } finally {
             isProcessing = false;
         }

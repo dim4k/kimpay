@@ -1,39 +1,30 @@
 <script lang="ts">
-    import { UserPlus, LoaderCircle, CircleAlert, CircleCheck } from "@lucide/svelte";
+    import { UserPlus, LoaderCircle } from "@lucide/svelte";
     import { t, locale } from '#lib/i18n.js';
     import BaseInfoModal from './BaseInfoModal.svelte';
     import { Input } from "#lib/components/ui/input/index.js";
     import { Label } from "#lib/components/ui/label/index.js";
     import { Button } from "#lib/components/ui/button/index.js";
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { slide } from 'svelte/transition';
+    import Notice from '#lib/components/ui/Notice.svelte';
+    import FieldError from '#lib/components/ui/FieldError.svelte';
     import { isValidEmail } from '#lib/utils/index.js';
     
-    let { 
-        isOpen = false, 
-        onClose,
-        participantId = ""
-    } = $props<{
+    interface Props {
         isOpen?: boolean;
         onClose: () => void;
         participantId?: string;
-    }>();
+    }
+
+    // Mounted only while open (see GlobalModals): state starts fresh each time.
+    let { isOpen = false, onClose, participantId = "" }: Props = $props();
     
     let name = $state("");
     let email = $state("");
     let isLoading = $state(false);
     let error = $state("");
     let success = $state(false);
-    
-    $effect(() => {
-        if (isOpen) {
-            success = false;
-            error = "";
-            name = "";
-            email = "";
-            isLoading = false;
-        }
-    });
+
 
     async function handleSubmit(e: Event) {
         e.preventDefault();
@@ -70,13 +61,7 @@
     iconColorClass="text-indigo-500 dark:text-indigo-400"
 >
     {#if success}
-        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3 text-green-700 dark:text-green-300" transition:slide>
-            <CircleCheck class="h-5 w-5 shrink-0" />
-            <div class="text-sm">
-                <p class="font-medium">{$t('register.success_title')}</p>
-                <p class="text-xs opacity-90">{$t('register.success_desc')}</p>
-            </div>
-        </div>
+        <Notice title={$t('register.success_title')} description={$t('register.success_desc')} />
         <div class="mt-4">
              <Button variant="outline" class="w-full" onclick={onClose}>{$t('common.got_it')}</Button>
         </div>
@@ -103,12 +88,7 @@
                     />
                 </div>
 
-                {#if error}
-                    <div class="flex items-center gap-2 text-xs text-red-500" transition:slide>
-                        <CircleAlert class="h-3 w-3" />
-                        <span>{error}</span>
-                    </div>
-                {/if}
+                <FieldError message={error} />
             </div>
 
             <Button type="submit" class="w-full" disabled={isLoading || !email || !name}>

@@ -10,13 +10,13 @@
         class: className = "",
         icon,
         children
-    } = $props<{
+    }: {
         title: string,
         isOpen?: boolean,
         class?: string,
         icon?: Snippet,
         children?: Snippet
-    }>();
+    } = $props();
 </script>
 
 <div class="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-xs transition-colors hover:border-border/80 {className}">

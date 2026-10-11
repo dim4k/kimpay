@@ -98,6 +98,10 @@ export class ActiveKimpay {
 
     myParticipantId = $state<string | null>(null);
 
+    /** Participants by id, for lookups in lists (balance, exports...). */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt, never mutated
+    participantsById = $derived(new Map(this.participants.map((p) => [p.id, p])));
+
     myBalance = $derived.by(() => {
         const myId = this.myParticipantId;
         if (!myId || this.balances[myId] === undefined) return 0;

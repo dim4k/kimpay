@@ -46,7 +46,7 @@
           setTimeout(() => copied = false, 2000);
       } catch (err) {
           console.error('Failed to copy', err);
-          toasts.error('Failed to copy link');
+          toasts.error($t('share.copy_error'));
       }
   }
 

@@ -4,7 +4,8 @@
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import { dismissable } from '#lib/attachments/dismissable.js';
 
-  let { value = $bindable() } = $props();
+  /** Local calendar date, "YYYY-MM-DD" */
+  let { value = $bindable() }: { value: string } = $props();
 
   let isOpen = $state(false);
   let openUp = $state(false);

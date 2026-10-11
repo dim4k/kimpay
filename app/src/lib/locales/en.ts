@@ -29,6 +29,8 @@ export const en = {
     "modal.delete_expense.confirm": "Delete",
 
     "common.cancel": "Cancel",
+    "modal.delete_participant.title": "Delete participant?",
+    "share.copy_error": "Could not copy the link",
     "install.prompt.dismiss": "Dismiss install prompt",
     "install.ios.title": "Install on iPhone",
     "install.ios.step1": "In the Safari toolbar, tap",
@@ -225,6 +227,7 @@ export const en = {
     "settings.export.csv": "CSV",
     "settings.export.md": "Markdown",
     "export.col.date": "Date",
+    "export.col.icon": "Icon",
     "export.col.desc": "Description",
     "export.col.amount": "Amount",
     "export.col.currency": "Currency",

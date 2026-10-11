@@ -9,7 +9,7 @@
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
 
-    let { hideTitle = false } = $props<{ hideTitle?: boolean }>();
+    let { hideTitle = false }: { hideTitle?: boolean } = $props();
 
     let code = $state("");
     let joinError = $state("");

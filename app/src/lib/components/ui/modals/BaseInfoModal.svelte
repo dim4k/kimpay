@@ -1,20 +1,11 @@
 <script lang="ts">
-  import { cn } from "#lib/utils/index.js";
-  import type { Component } from 'svelte';
+  import type { Component, Snippet } from 'svelte';
   import type { LucideProps } from '@lucide/svelte';
+  import { cn } from "#lib/utils/index.js";
+  import { t } from '#lib/i18n.js';
   import Modal from './Modal.svelte';
 
-  let { 
-    isOpen = false, 
-    onClose,
-    title,
-    description,
-    icon: Icon,
-    iconColorClass = "text-indigo-500",
-    iconBgClass = "bg-indigo-100 dark:bg-indigo-900/30",
-    maxWidthClass = "max-w-sm",
-    children
-  } = $props<{
+  interface Props {
     isOpen: boolean;
     onClose: () => void;
     title: string;
@@ -23,8 +14,23 @@
     iconColorClass?: string;
     iconBgClass?: string;
     maxWidthClass?: string;
-    children?: import('svelte').Snippet;
-  }>();
+    /** Adds the "Got it" button that closes the modal */
+    dismissible?: boolean;
+    children?: Snippet;
+  }
+
+  let {
+    isOpen = false,
+    onClose,
+    title,
+    description,
+    icon: Icon,
+    iconColorClass = "text-indigo-500",
+    iconBgClass = "bg-indigo-100 dark:bg-indigo-900/30",
+    maxWidthClass = "max-w-sm",
+    dismissible = false,
+    children
+  }: Props = $props();
 </script>
 
 <Modal {isOpen} {onClose} class={maxWidthClass}>
@@ -37,8 +43,17 @@
             {description}
             </p>
     </div>
-    
+
     <div class="space-y-4">
         {@render children?.()}
+
+        {#if dismissible}
+            <button
+                class="w-full py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 transition-colors"
+                onclick={onClose}
+            >
+                {$t('common.got_it')}
+            </button>
+        {/if}
     </div>
 </Modal>

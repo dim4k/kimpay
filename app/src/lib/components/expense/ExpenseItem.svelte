@@ -9,6 +9,7 @@
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
+    import type { Expense } from '#lib/types.js';
 
     let { 
         expense, 
@@ -19,6 +20,15 @@
         onRequestDelete,
         onOpenGallery,
         style = ""
+    }: {
+        expense: Expense;
+        currentUserId: string | null;
+        expandedId: string | null;
+        kimpayId: string;
+        onToggleExpand: (expenseId: string) => void;
+        onRequestDelete: (expenseId: string) => void;
+        onOpenGallery: (expense: Expense) => void;
+        style?: string;
     } = $props();
 
     function slideFade(node: Element, { delay = 0, duration = 400, easing = cubicOut, y = 20 }) {
@@ -69,6 +79,18 @@
     // Disable swipe for reimbursements or when offline (can't edit)
     let swipeDisabled = $derived(expense.is_reimbursement || offlineStore.isOffline);
 </script>
+
+{#snippet personChip(name: string | undefined, isMe: boolean)}
+    {#if isMe}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
+            {$t('common.you')}
+        </span>
+    {:else}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+            {name || $t('common.unknown')}
+        </span>
+    {/if}
+{/snippet}
 
 <SwipeableItem 
     disabled={swipeDisabled} 
@@ -174,15 +196,7 @@
                         <div class="flex justify-between items-center">
                             <span>{$t('expense.list.paid_by')}:</span>
                             <div>
-                                {#if currentUserId && expense.payer === currentUserId}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
-                                        {$t('common.you')}
-                                    </span>
-                                {:else}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                        {expense.expand?.payer?.name || $t('common.unknown')}
-                                    </span>
-                                {/if}
+                                {@render personChip(expense.expand?.payer?.name, !!currentUserId && expense.payer === currentUserId)}
                             </div>
                         </div>
 
@@ -191,15 +205,7 @@
                             <div class="flex flex-wrap gap-1 justify-end">
                                 {#if expense.expand?.involved}
                                     {#each expense.expand.involved as p (p.id)}
-                                        {#if currentUserId && p.id === currentUserId}
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
-                                                {$t('common.you')}
-                                            </span>
-                                        {:else}
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                                                {p.name}
-                                            </span>
-                                        {/if}
+                                        {@render personChip(p.name, !!currentUserId && p.id === currentUserId)}
                                     {/each}
                                 {:else}
                                     <span class="text-slate-400 italic">No participants</span>

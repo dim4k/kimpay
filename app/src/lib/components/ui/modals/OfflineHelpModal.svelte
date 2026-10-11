@@ -3,10 +3,7 @@
   import { t } from '#lib/i18n.js';
   import BaseInfoModal from './BaseInfoModal.svelte';
 
-  let { 
-    isOpen = false, 
-    onClose
-  } = $props();
+  let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();
 </script>
 
 <BaseInfoModal 
@@ -17,6 +14,7 @@
     icon={WifiOff}
     iconBgClass="bg-slate-100 dark:bg-slate-800"
     iconColorClass="text-slate-500 dark:text-slate-400"
+    dismissible
 >
     <!-- Can Do -->
     <div class="space-y-2">
@@ -53,14 +51,8 @@
     </div>
 
     <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
-        <p class="text-xs text-center text-slate-400 mb-4">
+        <p class="text-xs text-center text-slate-400">
             {$t('offline.modal.sync_info')}
         </p>
-        <button 
-            class="w-full py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 transition-colors"
-            onclick={onClose}
-        >
-            {$t('common.got_it')}
-        </button>
     </div>
 </BaseInfoModal>

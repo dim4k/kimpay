@@ -13,15 +13,15 @@
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { storageService } from '#lib/services/storage.js';
   import { kimpayService } from '#lib/services/kimpay.js';
-  import { DEFAULT_CURRENCY } from '#lib/services/currency.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
-  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
+  import { toCsv, toMarkdown, exportFilename, downloadFile, type ExportFormat } from '#lib/utils/export.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import type { Expense } from '#lib/types.js';
   
-  import { DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
+  import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
+  import SettingsSection from '#lib/components/ui/SettingsSection.svelte';
   import { locale } from '#lib/i18n.js';
 
   // Get ActiveKimpay from context
@@ -94,37 +94,30 @@
       }
   }
   
-  async function handleDeleteParticipant(pId: string) {
-      isDeletingParticipant = pId;
-      try {
-           // Check for usage in expenses (Client-side check)
-           const isUsed = checkUsage(pId);
-           
-           if (isUsed) {
-               modals.alert({ message: $t('error.participant.used') });
-               isDeletingParticipant = null;
-               return;
-           }
-           
-           modals.confirm({
-               title: 'Delete Participant?',
-               description: $t('modal.delete_participant.confirm'),
-               confirmText: $t('common.delete'),
-               variant: 'destructive',
-               onConfirm: async () => {
-                   const isSelf = pId === currentParticipantId;
-                   await activeKimpay.deleteParticipant(pId);
-                   // Without an identity, the layout asks "who are you?" again.
-                   if (isSelf) await activeKimpay.setMyParticipant(null);
-                   isDeletingParticipant = null;
-               },
-               onCancel: () => { isDeletingParticipant = null; }
-           });
-      } catch (e) {
-          console.error(e);
-          modals.alert({ message: "Failed to check participant usage" });
-          isDeletingParticipant = null;
+  function handleDeleteParticipant(pId: string) {
+      // Participants involved in an expense cannot be deleted.
+      if (checkUsage(pId)) {
+          modals.alert({ message: $t('error.participant.used') });
+          return;
       }
+
+      modals.confirm({
+          title: $t('modal.delete_participant.title'),
+          description: $t('modal.delete_participant.confirm'),
+          confirmText: $t('common.delete'),
+          variant: 'destructive',
+          onConfirm: async () => {
+              isDeletingParticipant = pId;
+              try {
+                  const isSelf = pId === currentParticipantId;
+                  await activeKimpay.deleteParticipant(pId);
+                  // Without an identity, the layout asks "who are you?" again.
+                  if (isSelf) await activeKimpay.setMyParticipant(null);
+              } finally {
+                  isDeletingParticipant = null;
+              }
+          }
+      });
   }
 
   function requestLeave() {
@@ -184,76 +177,18 @@
       });
   }
 
-  async function handleExport(format: 'csv' | 'md') {
+  function handleExport(format: ExportFormat) {
+      if (!kimpay || !activeKimpay) return;
       try {
-          if (!kimpay) return;
-
-          const expenses = activeKimpay?.expenses || [];
-          const participantsList = activeKimpay?.participants || [];
-          
-          // Map for quick lookup
-          const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));
-          
-          let content = "";
-          const filename = `kimpay_${kimpay.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${toLocalISODate()}.${format}`;
-
-          if (format === 'csv') {
-              // CSV Header
-              content += `${$t('export.col.date')},${$t('export.col.desc')},${$t('export.col.amount')},${$t('export.col.currency')},${$t('export.col.payer')},${$t('export.col.for')}\n`;
-              
-              expenses.forEach((e: Expense) => {
-                  const date = parseLocalISODate(e.date).toLocaleDateString($locale);
-                  const desc = `"${(e.description || '').replace(/"/g, '""')}"`;
-                  const amount = e.amount.toFixed(2);
-                  const currency = e.currency || DEFAULT_CURRENCY;
-                  const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
-
-                  // Get Involved Names
-                  const involvedIds = e.involved || [];
-                  const involvedNames = involvedIds.map((id: string) => participantMap.get(id) || $t('common.unknown')).join('; ');
-                  const involvedField = `"${involvedNames.replace(/"/g, '""')}"`;
-
-                  content += `${date},${desc},${amount},${currency},${payer},${involvedField}\n`;
-              });
-          } else {
-              // Markdown
-              content += `# ${kimpay.icon || ''} ${kimpay.name}\n\n`;
-              content += `**${$t('export.meta.date')}:** ${new Date().toLocaleDateString($locale)}\n`;
-               
-              content += `**${$t('export.meta.participants')}:** ${participantsList.map((p) => p.name).join(', ')}\n\n`;
-              
-              content += `## ${$t('export.meta.expenses')}\n\n`;
-              content += `| Icon | ${$t('export.col.date')} | ${$t('export.col.desc')} | ${$t('export.col.amount')} | ${$t('export.col.payer')} | ${$t('export.col.for')} |\n`;
-              content += `|:---:|---|---|---|---|---|\n`;
-              
-              
-              expenses.forEach((e: Expense) => {
-                  const icon = e.icon || DEFAULT_EXPENSE_EMOJI;
-                  const date = parseLocalISODate(e.date).toLocaleDateString($locale);
-                  const desc = (e.description || '').replace(/\|/g, '-'); 
-                  const amount = `${e.amount.toFixed(2)} ${e.currency || DEFAULT_CURRENCY}`;
-                  const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
-                  
-                  const involvedIds = e.involved || [];
-                  const involvedNames = involvedIds.map((id: string) => participantMap.get(id) || $t('common.unknown')).join(', ');
-
-                  content += `| ${icon} | ${date} | ${desc} | ${amount} | ${payer} | ${involvedNames} |\n`;
-              });
-              
-              content += `\n\n${$t('export.footer')}\n`;
-          }
-
-          // Trigger Download
-          const blob = new Blob([content], { type: format === 'csv' ? 'text/csv' : 'text/markdown' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-
+          const input = {
+              kimpay,
+              expenses: activeKimpay.expenses,
+              participants: activeKimpay.participants,
+              t: $t,
+              locale: $locale,
+          };
+          const content = format === 'csv' ? toCsv(input) : toMarkdown(input);
+          downloadFile(content, exportFilename(kimpay, format), format === 'csv' ? 'text/csv' : 'text/markdown');
       } catch (e) {
           console.error("Export failed", e);
           modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
@@ -266,8 +201,7 @@
 
         {#if !offlineStore.isOffline}
         <!-- Edit Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in relative z-20">
-            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
+        <SettingsSection title={$t('settings.edit_group')} class="relative z-20">
             <div class="space-y-4">
                 <div class="space-y-2">
                     <Label for="name">{$t('home.create.name_label')}</Label>
@@ -285,16 +219,12 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </SettingsSection>
         {/if}
 
         {#if !offlineStore.isOffline}
         <!-- Participants Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
-            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
-                 <Users class="h-4 w-4" />
-                 {$t('settings.participants')}
-            </h2>
+        <SettingsSection title={$t('settings.participants')} icon={Users}>
              <div class="space-y-4">
                 <div class="space-y-2">
                         {#each participants as p (p.id)}
@@ -305,9 +235,7 @@
                                 data-current-participant={currentParticipantId}
                             >
                                 <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
-                                    {p.name.slice(0, 2).toUpperCase()}
-                                </div>
+                                <Avatar name={p.name} record={p} class="w-8 h-8 shrink-0 text-xs" />
                                 <span class="text-sm font-medium dark:text-slate-200">
                                     {p.name}
                                     {#if currentParticipantId === p.id}
@@ -369,15 +297,11 @@
                     </Button>
                 </div>
             </div>
-        </div>
+        </SettingsSection>
         {/if}
 
         {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
-            <div class="bg-card/50 backdrop-blur-xs p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
-                <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
-                    <Download class="h-4 w-4" />
-                    {$t('settings.install.title')}
-                </h2>
+            <SettingsSection title={$t('settings.install.title')} icon={Download} class="bg-card/50 backdrop-blur-xs">
                 <div class="space-y-4">
                     <div class="flex flex-col gap-2">
                         <p class="text-sm text-muted-foreground dark:text-slate-400">
@@ -392,15 +316,11 @@
                         </Button>
                     </div>
                 </div>
-            </div>
+            </SettingsSection>
         {/if}
 
         <!-- Export Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
-            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
-                <FileText class="h-4 w-4" />
-                {$t('settings.export.title')}
-            </h2>
+        <SettingsSection title={$t('settings.export.title')} icon={FileText}>
             <div class="space-y-4">
                 <p class="text-sm text-muted-foreground dark:text-slate-400">
                     {$t('settings.export.desc')}
@@ -416,34 +336,30 @@
                     </Button>
                 </div>
             </div>
-        </div>
+        </SettingsSection>
 
         {#if !offlineStore.isOffline}
         <!-- Bug Report Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
-            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
-                <Bug class="h-4 w-4" />
-                {$t('settings.bug_report.title')}
-            </h2>
+        <SettingsSection title={$t('settings.bug_report.title')} icon={Bug}>
             <div class="space-y-4">
                 <p class="text-sm text-muted-foreground dark:text-slate-400">
                     {$t('settings.bug_report.desc')}
                 </p>
-                <a 
-                    href="https://github.com/dim4k/kimpay/issues" 
-                    target="_blank" 
+                <Button
+                    href="https://github.com/dim4k/kimpay/issues"
+                    target="_blank"
                     rel="noopener noreferrer"
-                    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    variant="outline"
+                    class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                     <Bug class="h-4 w-4" />
                     {$t('settings.bug_report.button')}
-                </a>
+                </Button>
             </div>
-        </div>
+        </SettingsSection>
         {/if}
 
-        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
-            <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.actions.title')}</h2>
+        <SettingsSection title={$t('settings.actions.title')}>
             
             <div class="space-y-4">
                 <div class="flex flex-col gap-2">
@@ -470,7 +386,7 @@
                     </div>
                 {/if}
             </div>
-        </div>
+        </SettingsSection>
         
         <div class="text-center text-xs text-muted-foreground pt-2">
             Kimpay v{__APP_VERSION__}

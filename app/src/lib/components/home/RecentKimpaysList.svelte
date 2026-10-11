@@ -3,7 +3,6 @@
     import { t } from '#lib/i18n.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
-    import ConfirmModal from '#lib/components/ui/modals/ConfirmModal.svelte';
     import { storageService } from '#lib/services/storage.js';
     import { kimpayService } from '#lib/services/kimpay.js';
     import { modals } from '#lib/stores/modals.svelte.js';
@@ -27,38 +26,32 @@
             : recentsStore.recentKimpays
     );
 
-    let kimpayToLeave = $state<string | null>(null);
-    let isLeaving = $state(false);
-
     function requestLeave(id: string, event: Event) {
         event.preventDefault();
         event.stopPropagation();
-        kimpayToLeave = id;
-    }
-
-    async function confirmLeave() {
-        if (!kimpayToLeave) return;
-        isLeaving = true;
-        try {
-            const participantId = await storageService.getMyParticipantId(kimpayToLeave);
-
-            if (participantId) {
-                const result = await kimpayService.leave(kimpayToLeave, participantId);
-                if (!result.success) {
+        modals.confirm({
+            title: $t('modal.leave.title'),
+            description: $t('modal.leave.desc'),
+            confirmText: $t('modal.leave.confirm'),
+            variant: 'destructive',
+            onConfirm: async () => {
+                try {
+                    // Deletes our participant when possible, otherwise unclaims it.
+                    const participantId = await storageService.getMyParticipantId(id);
+                    if (participantId) {
+                        const result = await kimpayService.leave(id, participantId);
+                        if (!result.success) {
+                            modals.alert({ message: $t('error.generic'), variant: 'error' });
+                            return;
+                        }
+                    }
+                    await recentsStore.forget(id);
+                } catch (e) {
+                    console.error("Error leaving kimpay", e);
                     modals.alert({ message: $t('error.generic'), variant: 'error' });
-                    return;
                 }
             }
-            
-            storageService.removeRecentKimpay(kimpayToLeave);
-            recentsStore.removeRecentKimpay(kimpayToLeave);
-            kimpayToLeave = null;
-        } catch (e) {
-            console.error("Error leaving kimpay", e);
-            modals.alert({ message: $t('error.generic'), variant: 'error' });
-        } finally {
-            isLeaving = false;
-        }
+        });
     }
 
     function handleLogout() {
@@ -123,13 +116,3 @@
 </div>
 {/if}
 
-<ConfirmModal 
-    isOpen={!!kimpayToLeave}
-    title={$t('modal.leave.title')}
-    description={$t('modal.leave.desc')}
-    confirmText={$t('modal.leave.confirm')}
-    variant="destructive"
-    isProcessing={isLeaving}
-    onConfirm={confirmLeave}
-    onCancel={() => kimpayToLeave = null}
-/>

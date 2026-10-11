@@ -7,13 +7,13 @@
         class: className = "",
         icon,
         action
-    } = $props<{
+    }: {
         title?: string,
         description: string,
         class?: string,
         icon?: Snippet,
         action?: Snippet
-    }>();
+    } = $props();
 </script>
 
 <div class="flex flex-col items-center justify-center text-center py-12 bg-muted/40 dark:bg-slate-900/50 rounded-3xl border border-dashed border-border {className}">

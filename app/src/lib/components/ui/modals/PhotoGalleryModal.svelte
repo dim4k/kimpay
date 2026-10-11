@@ -4,12 +4,18 @@
   import { pb } from '#lib/pocketbase.js';
   import type { RecordModel } from 'pocketbase';
   import Modal from './Modal.svelte';
+  import type { GalleryOptions } from '#lib/stores/modals.svelte.js';
 
   let { 
     isOpen = false, 
     onClose, 
     photos = [], 
     record 
+  }: {
+    isOpen?: boolean;
+    onClose: () => void;
+    photos?: string[];
+    record: GalleryOptions["record"] | null;
   } = $props();
 
   let currentIndex = $state(0);
@@ -62,7 +68,7 @@
     >
         {#key currentIndex}
             <img 
-                src={getUrl(photos[currentIndex])} 
+                src={getUrl(photos[currentIndex] ?? "")} 
                 alt="Expense attachment {currentIndex + 1} of {photos.length}" 
                 class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                 transition:fade={{ duration: 200 }}

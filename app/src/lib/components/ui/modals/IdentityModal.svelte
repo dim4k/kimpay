@@ -11,8 +11,9 @@
   import { participantService } from '#lib/services/participant.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import Modal from './Modal.svelte';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
   
-  let { isOpen } = $props();
+  let { isOpen }: { isOpen: boolean } = $props();
 
   let identityState = $derived(modals.identityState);
   let kimpayId = $derived(identityState?.kimpayId);
@@ -95,10 +96,7 @@
                 class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted dark:hover:bg-slate-800 border-2 border-transparent hover:border-primary/20 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-secondary border-primary/30' : ''}"
                 onclick={() => selectParticipant(p.id)}
             >
-                <div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-primary font-bold overflow-hidden">
-                        <!-- Future: Avatar rendering -->
-                    {p.name.slice(0, 2).toUpperCase()}
-                </div>
+                <Avatar name={p.name} record={p} class="w-10 h-10 text-sm" />
                 <span class="font-medium text-foreground">{p.name}</span>
                 {#if selectedParticipantId === p.id}
                     <div class="ml-auto text-primary">

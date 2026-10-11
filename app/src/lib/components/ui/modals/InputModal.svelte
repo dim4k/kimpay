@@ -1,18 +1,30 @@
 <script lang="ts">
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
+  import { t } from '#lib/i18n.js';
   import Modal from './Modal.svelte';
+
+  interface Props {
+      isOpen?: boolean;
+      title: string;
+      placeholder?: string;
+      confirmText?: string;
+      cancelText?: string;
+      isProcessing?: boolean;
+      onConfirm: (value: string) => void;
+      onCancel: () => void;
+  }
 
   let { 
       isOpen = false, 
       title, 
       placeholder = "", 
-      confirmText = "Confirm", 
-      cancelText = "Cancel", 
+      confirmText = $t('common.confirm'), 
+      cancelText = $t('common.cancel'), 
       isProcessing = false,
       onConfirm, 
       onCancel 
-  } = $props();
+  }: Props = $props();
 
   let value = $state("");
 

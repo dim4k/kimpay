@@ -10,13 +10,14 @@
     import { onMount } from 'svelte';
     import { afterNavigate, beforeNavigate } from '$app/navigation';
     import { updated } from '$app/state';
+    import type { LayoutProps } from './$types';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
     import { modals } from '#lib/stores/modals.svelte.js';
     import { auth } from '#lib/stores/auth.svelte.js';
     import { storageService } from '#lib/services/storage.js';
     import { participantService } from '#lib/services/participant.js';
 
-    let { children, data } = $props();
+    let { children, data }: LayoutProps = $props();
 
     // The inner scroll container. Since scrolling now happens inside <main>
     // (not the document), reset it to the top on each navigation.

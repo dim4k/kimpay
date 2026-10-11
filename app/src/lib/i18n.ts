@@ -15,6 +15,15 @@ export const locales: Record<string, Record<TranslationKey, string>> = {
     pt,
 };
 
+/** Each language in its own language, for the language switcher */
+export const LOCALE_NAMES: Record<string, string> = {
+    en: "English",
+    fr: "Français",
+    de: "Deutsch",
+    es: "Español",
+    pt: "Português",
+};
+
 function getInitialLocale(): string {
     if (typeof localStorage !== "undefined") {
         const saved = localStorage.getItem("locale");

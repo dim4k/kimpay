@@ -5,11 +5,11 @@
   import { t } from '#lib/i18n.js';
   import Modal from './Modal.svelte';
 
-  let { isOpen = false, onScan, onClose } = $props<{ 
+  let { isOpen = false, onScan, onClose }: { 
       isOpen: boolean, 
       onScan: (decodedText: string) => void, 
       onClose: () => void 
-  }>();
+  } = $props();
 
   let scannerId = "reader";
   let html5QrCode: Html5Qrcode | null = null;

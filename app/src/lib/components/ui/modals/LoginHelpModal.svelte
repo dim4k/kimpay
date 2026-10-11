@@ -2,30 +2,25 @@
   import { Mail, KeyRound } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import BaseInfoModal from './BaseInfoModal.svelte';
+  import InfoPoint from '#lib/components/ui/InfoPoint.svelte';
   import MagicLinkForm from '#lib/components/auth/MagicLinkForm.svelte';
   import { Button } from "#lib/components/ui/button/index.js";
 
-  let { 
-    isOpen = false, 
-    onClose
-  } = $props();
+  let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();
 
-  let success = $state(false);
+  // The form (remounted on each opening) shows its own success message; we
+  // only add a close button once the link is sent.
+  let sent = $state(false);
 
-  $effect(() => {
-    if (isOpen) {
-        success = false;
-    }
-  });
-
-  function onSuccess() {
-      success = true;
+  function close() {
+      sent = false;
+      onClose();
   }
 </script>
 
-<BaseInfoModal 
-    {isOpen} 
-    {onClose}
+<BaseInfoModal
+    {isOpen}
+    onClose={close}
     title={$t('login_help.modal.title')}
     description={$t('login_help.modal.desc')}
     icon={Mail}
@@ -33,31 +28,14 @@
     iconColorClass="text-indigo-500 dark:text-indigo-400"
 >
     <div class="space-y-4">
-        <div class="space-y-2">
-            <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                <KeyRound class="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
-                <div class="text-sm">
-                    <span class="font-bold text-slate-800 dark:text-slate-200 block">{$t('email_help.modal.point1.title')}</span>
-                    <span class="text-slate-500 dark:text-slate-400 text-xs">{$t('email_help.modal.point1.desc')}</span>
-                </div>
-            </div>
+        <InfoPoint icon={KeyRound} title={$t('email_help.modal.point1.title')} description={$t('email_help.modal.point1.desc')} />
+
+        <div class="pt-2">
+            <MagicLinkForm successCallback={() => (sent = true)} />
         </div>
 
-        {#if success}
-            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3 text-green-700 dark:text-green-300">
-                <div class="text-sm">
-                    <p class="font-medium">{$t('home.recover.success_title')}</p>
-                    <p class="text-xs opacity-90">{$t('home.recover.success_desc')}</p>
-                </div>
-            </div>
-            <Button variant="outline" class="w-full" onclick={onClose}>{$t('common.got_it')}</Button>
-        {:else}
-             <div class="pt-2">
-                <MagicLinkForm 
-                    buttonTextKey="home.recover.button"
-                    successCallback={onSuccess}
-                />
-             </div>
+        {#if sent}
+            <Button variant="outline" class="w-full" onclick={close}>{$t('common.got_it')}</Button>
         {/if}
     </div>
 </BaseInfoModal>

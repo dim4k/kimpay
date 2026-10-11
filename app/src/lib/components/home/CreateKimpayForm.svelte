@@ -123,7 +123,7 @@
     }
 
      
-    let { hideTitle = false } = $props<{hideTitle?: boolean}>();
+    let { hideTitle = false }: {hideTitle?: boolean} = $props();
 </script>
 
 <div class="space-y-3 md:space-y-4">

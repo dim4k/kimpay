@@ -13,9 +13,9 @@
   import NavItem from '#lib/components/ui/NavItem.svelte';
   import { haptic } from '#lib/utils/haptic.js';
   
-  import { onDestroy } from 'svelte';
+  import { onDestroy, type Snippet } from 'svelte';
   
-  let { children } = $props();
+  let { children }: { children: Snippet } = $props();
   
   // Initialize ActiveKimpay
   let activeKimpay = $state<ActiveKimpay>();
