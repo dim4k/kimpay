@@ -3,7 +3,7 @@
     import { Button } from "$lib/components/ui/button";
     import { t, locale } from '$lib/i18n';
     import { auth } from '$lib/stores/auth.svelte';
-    import { Mail, LoaderCircle, CircleAlert, CircleCheck } from "lucide-svelte";
+    import { Mail, LoaderCircle, CircleAlert, CircleCheck } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { isValidEmail } from '$lib/utils';
 
@@ -48,8 +48,8 @@
     <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3 text-green-700 dark:text-green-300" transition:slide>
         <CircleCheck class="h-5 w-5 shrink-0" />
         <div class="text-sm">
-            <p class="font-medium">{$t('home.recover.success_title', { default: 'Link sent!' })}</p>
-            <p class="text-xs opacity-90">{$t('home.recover.success_desc', { default: 'Check your email inbox.' })}</p>
+            <p class="font-medium">{$t('home.recover.success_title')}</p>
+            <p class="text-xs opacity-90">{$t('home.recover.success_desc')}</p>
         </div>
     </div>
 {:else}

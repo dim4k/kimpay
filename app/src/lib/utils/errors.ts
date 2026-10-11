@@ -4,10 +4,13 @@
 
 /**
  * Check if an error is a network/connectivity error (status 0 or offline).
+ * A request cancelled by the client (PocketBase auto-cancellation) also has
+ * status 0 but is not a connectivity issue.
  */
 export function isNetworkError(e: unknown): boolean {
-    const status = (e as { status?: number })?.status;
-    return status === 0 || (typeof navigator !== 'undefined' && !navigator.onLine);
+    const error = e as { status?: number; isAbort?: boolean } | null;
+    if (error?.isAbort) return false;
+    return error?.status === 0 || (typeof navigator !== 'undefined' && !navigator.onLine);
 }
 
 import type { TranslationKey } from '$lib/locales/en';

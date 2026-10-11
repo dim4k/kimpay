@@ -2,7 +2,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { onMount, getContext } from 'svelte';
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
   import InputModal from '$lib/components/ui/modals/InputModal.svelte';
@@ -14,20 +14,20 @@
   import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
 
   import { offlineStore } from '$lib/stores/offline.svelte';
-  import { storageService } from '$lib/services/storage';
   import { fabState } from '$lib/stores/fab.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { Check, LoaderCircle } from "lucide-svelte";
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { Check, LoaderCircle } from "@lucide/svelte";
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
   import Dropdown from '$lib/components/ui/Dropdown.svelte';
   import { toasts } from '$lib/stores/toasts.svelte';
   import { haptic } from '$lib/utils/haptic';
+  import { toLocalISODate } from '$lib/utils/date';
 
   let { kimpayId, initialData = null } = $props();
 
   // Get ActiveKimpay
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
 
   // Derive default currency from Kimpay
@@ -38,7 +38,7 @@
   let description = $state("");
   let amount = $state("");
   let icon = $state(DEFAULT_EXPENSE_EMOJI);
-  let date = $state(new Date().toISOString().slice(0, 10));
+  let date = $state(toLocalISODate());
   let payer = $state("");
   let involved = $state<string[]>([]);
   let currency = $state("");
@@ -61,7 +61,7 @@
          description = initialData.description || "";
          amount = initialData.amount || "";
          icon = initialData.icon || DEFAULT_EXPENSE_EMOJI;
-         date = initialData.date ? new Date(initialData.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+         date = initialData.date ? initialData.date.slice(0, 10) : toLocalISODate();
          payer = initialData.payer || "";
          involved = initialData.involved || [];
          currency = initialData.currency || defaultCurrency;
@@ -78,11 +78,8 @@
           involved = participants.map(p => p.id);
       }
 
-      if (!initialData && !payer) {
-          const myId = await storageService.getMyParticipantId(kimpayId);
-          if (myId) {
-              payer = myId;
-          }
+      if (!initialData && !payer && activeKimpay?.myParticipantId) {
+          payer = activeKimpay.myParticipantId;
       }
 
       updateFab();
@@ -98,7 +95,7 @@
       const isValid = !!description && !!amount && !!payer && involved.length > 0;
       
       fabState.configure({
-          icon: (isLoading ? LoaderCircle : Check) as unknown as import('svelte').Component,
+          icon: isLoading ? LoaderCircle : Check,
           colorClass: isValid 
             ? "bg-green-500 hover:bg-green-600 shadow-green-200 dark:shadow-none" 
             : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none",

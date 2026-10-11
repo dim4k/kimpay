@@ -1,9 +1,9 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { offlineStore } from '$lib/stores/offline.svelte';
   import { storageService } from '$lib/services/storage';
-  import { House, WifiOff } from "lucide-svelte";
+  import { House, WifiOff } from "@lucide/svelte";
 
   const isOffline = $derived(offlineStore.isOffline);
   let hasRecentKimpays = $state(false);
@@ -14,7 +14,7 @@
       });
   });
 
-  const errorStatus = $derived($page.status);
+  const errorStatus = $derived(page.status);
 </script>
 
 <div class="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors relative overflow-hidden">

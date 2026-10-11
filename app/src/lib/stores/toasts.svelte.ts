@@ -35,22 +35,12 @@ function createToastStore() {
         return add(message, 'error', duration);
     }
 
-    function info(message: string, duration?: number) {
-        return add(message, 'info', duration);
-    }
-
-    function warning(message: string, duration?: number) {
-        return add(message, 'warning', duration);
-    }
-
     return {
         subscribe,
         add,
         remove,
         success,
-        error,
-        info,
-        warning
+        error
     };
 }
 

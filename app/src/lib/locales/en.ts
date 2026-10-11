@@ -8,18 +8,14 @@ export const en = {
     "home.create.my_name_placeholder": "e.g. Antoine",
     "home.create.email_label": "Email (Optional)",
     "home.create.email_placeholder": "your@email.com",
-    "home.create.email_help":
-        "Leave your email to receive the Kimpay link (useful if you lose access).",
     "home.create.participants_label": "Participants (Optional)",
     "home.create.participants_placeholder": "Add another person",
     "home.create.button": "Create",
-    "home.create.currency_label": "Currency",
     "home.create.loading": "Creating...",
     "home.join.title": "OR JOIN EXISTING",
     "home.join.placeholder": "Enter invite code",
     "home.join.button": "Join",
     "home.join.error_not_found": "Kimpay not found",
-    "home.history.title": "Recent Kimpays",
     "home.history.leave_tooltip": "Leave group",
 
     "modal.leave.title": "Leave Group?",
@@ -33,7 +29,9 @@ export const en = {
     "modal.delete_expense.confirm": "Delete",
 
     "common.cancel": "Cancel",
+    "common.confirm": "Confirm",
     "common.save": "Save",
+    "common.saved": "Saved!",
     "common.loading": "Loading...",
     "common.delete": "Delete",
     "common.edit": "Edit",
@@ -44,7 +42,6 @@ export const en = {
     "toast.expense_added": "Expense added!",
     "toast.expense_updated": "Expense updated!",
     "toast.expense_deleted": "Expense deleted!",
-    "toast.copied": "Copied!",
     "toast.avatar_updated": "Photo updated!",
     "toast.avatar_update_failed": "Failed to update photo",
 
@@ -59,9 +56,7 @@ export const en = {
     "nav.share": "Share",
     "nav.balance": "Balance",
     "nav.settings": "Settings",
-    "nav.new": "New",
 
-    "expense.list.title": "Expenses",
     "expense.list.items": "items",
     "expense.list.paid_by": "Paid by",
     "expense.list.for": "For",
@@ -76,12 +71,12 @@ export const en = {
     "expense.form.amount_label": "Amount",
     "expense.form.amount_placeholder": "0.00",
     "expense.form.paid_by_label": "Paid By",
-    "expense.form.paid_by_select": "Select Payer",
     "expense.form.for_whom_label": "For Whom?",
     "expense.form.select_all": "Select All",
     "expense.form.select_none": "Select None",
     "expense.form.date_label": "Date",
-    "expense.form.currency_label": "Currency",
+    "datepicker.placeholder": "Select a date",
+    "datepicker.today": "Today",
     "expense.form.photos_label": "Photos",
     "expense.form.add_photos": "Add Photos",
     "expense.form.photos_disabled_offline": "Photos disabled offline",
@@ -99,6 +94,7 @@ export const en = {
     "expense.form.scan_unreadable": "Could not read this receipt. Try a clearer photo.",
     "expense.add.title": "Add Expense",
     "expense.edit.title": "Edit Expense",
+    "expense.not_found": "Expense not found",
     "modal.add_participant.title": "Add Participant",
     "modal.add_participant.placeholder": "Name",
     "modal.add_participant.confirm": "Add",
@@ -109,10 +105,6 @@ export const en = {
 
     "settings.title": "Settings",
     "settings.subtitle": "Manage group preferences",
-    "settings.share_link": "Share Link",
-    "settings.share_desc": "Copy the link to invite friends",
-    "settings.share_button": "Copy Link",
-    "settings.copied": "Copied!",
     "settings.edit_group": "Edit Group",
     "settings.participants": "Participants",
     "settings.participants.add": "Add",
@@ -121,7 +113,6 @@ export const en = {
     "settings.switch_identity": "Switch identity",
     "settings.switch_modal.desc":
         "Are you sure you want to switch to this identity?",
-    "settings.switched": "You are now {name}",
     "settings.danger_zone": "Danger Zone",
     "settings.leave_group": "Leave Group",
     "settings.delete_group": "Delete Group",
@@ -135,11 +126,6 @@ export const en = {
 
     "balance.title": "Balance",
     "balance.subtitle": "Who owes who?",
-    "balance.total_spent": "Total Spent",
-    "balance.my_balance": "My Balance",
-    "balance.settle_up": "How to settle up",
-    "balance.owes": "owes",
-    "balance.no_debts": "All settled up! 🎉",
     "balance.empty.title": "No expenses yet.",
     "balance.empty.desc": "Start adding expenses to see how to split them.",
     "balance.settled.title": "All settled up!",
@@ -150,7 +136,6 @@ export const en = {
     "balance.pays": "pays",
     "balance.your_summary": "Summary",
     "balance.total_group": "TOTAL EXPENSES",
-    "balance.display_currency": "Display currency",
     "balance.you_owe": "YOU OWE",
     "balance.owed_to_you": "YOU ARE OWED",
 
@@ -169,11 +154,8 @@ export const en = {
     "common.offline": "Offline",
     "common.offline_edit_error": "Cannot edit expenses while offline",
 
-    "share.title": "Join Group",
-    "share.desc": "Scan to join",
     "share.invite_button": "Share Invite Link",
     "share.invite_friends": "Invite friends to split expenses",
-    "share.copy_link": "Copy Invite Link",
     "share.copy_success": "Copied!",
     "share.copy_button": "Copy Link",
 
@@ -207,12 +189,9 @@ export const en = {
         "Select your name or add a new participant to join this group.",
     "identity.new_name_placeholder": "Your name",
     "identity.create_button": "Join as new",
-    "identity.join_as": "Join as {name}",
 
     "identity.change": "Switch",
     "settings.install.title": "Installation",
-    "settings.install.desc":
-        "Install Kimpay on your device for faster access and a better offline experience.",
     "settings.install.desc_mobile":
         "Install for faster access and offline support.",
     "settings.install.button": "Install Kimpay",
@@ -228,6 +207,7 @@ export const en = {
     "export.col.date": "Date",
     "export.col.desc": "Description",
     "export.col.amount": "Amount",
+    "export.col.currency": "Currency",
     "export.col.payer": "Payer",
     "export.col.for": "For",
     "export.meta.date": "Export Date",
@@ -239,25 +219,18 @@ export const en = {
     "install.prompt.button": "Install",
     "error.email.invalid.title": "Invalid Email",
     "error.email.invalid.message": "Please enter a valid email address",
-    "home.create.existing_user_modal.title": "Check your email",
-    "home.create.existing_user_modal.message":
-        "It looks like this email is already registered. We've sent you a magic link to log in using this email. You may need to log in to access full features.",
     "auth.logout": "Logout",
     "auth.magic_link_error_title": "Invalid Link",
     "auth.magic_link_error_desc":
         "This link is invalid or has expired. Please request a new one.",
     "my_kimpays.title": "My Kimpays",
     "my_kimpays.empty": "You have not joined any Kimpays yet.",
+    "my_kimpays.no_other": "No other Kimpays.",
 
-    "home.recover.title": "Recover my kimpays",
-    "home.recover.subtitle": "Enter your email to receive a magic link",
-    "home.recover.email_placeholder": "your@email.com",
     "home.recover.button": "Send Magic Link",
-    "home.recover.success": "Magic link sent! Check your inbox.",
     "home.recover.success_title": "Link sent!",
     "home.recover.success_desc": "Check your email inbox.",
     "home.recover.error": "Unable to send magic link. Please try again later.",
-    "home.recover.error_not_found": "No account found with this email.",
 
     "register.title": "Sign Up",
     "register.desc": "Create an account to save your kimpays.",
@@ -293,10 +266,6 @@ export const en = {
     "home.offline.desc":
         "Create or join a Kimpay when you're back online. Your cached Kimpays are still available below.",
 
-    "join.offline.title": "Connection required",
-    "join.offline.desc":
-        "Joining a Kimpay requires an internet connection. Please try again when you're online.",
-    "common.back_home": "Back to Home",
 
     "user_settings.title": "Settings",
     "user_settings.currency.title": "Preferred Currency",

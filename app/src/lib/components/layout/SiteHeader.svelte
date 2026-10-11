@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus, Settings } from "lucide-svelte";
+  import { Languages, ChevronDown, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus, Settings } from "@lucide/svelte";
   import Logo from "$lib/components/ui/Logo.svelte";
   import { locale, t } from '$lib/i18n';
   import { theme } from '$lib/theme';
@@ -17,6 +17,7 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { page } from '$app/state';
   import { haptic } from '$lib/utils/haptic';
+  import { DEFAULT_GROUP_ICON } from '$lib/constants';
   import { toasts } from '$lib/stores/toasts.svelte';
 
   let isMenuOpen = $state(false);
@@ -60,10 +61,7 @@
   function openIdentityModal() {
       if (!currentKimpay) return;
       isMenuOpen = false;
-      modals.identity({
-          kimpayId: currentKimpay.id,
-          participants: activeKimpayGlobal.kimpay?.expand?.participants_via_kimpay || []
-      });
+      modals.identity({ kimpayId: currentKimpay.id });
   }
 
   function handleOutsideClick(event: MouseEvent) {
@@ -95,7 +93,7 @@
       {#if offlineStore.isOffline}
           <button 
                 onclick={() => showOfflineHelp = true}
-                class="ml-2 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 animate-in fade-in zoom-in-95 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                class="ml-2 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                 title={$t('offline.modal.title')}
           >
               <WifiOff class="h-3 w-3" />
@@ -126,7 +124,7 @@
                             {currentParticipant ? currentParticipant.name : $t('common.unknown')}
                         </span>
                         <div class="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-100 text-xs leading-none">
-                            <span class="text-sm">{currentKimpay.icon || '📁'}</span>
+                            <span class="text-sm">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
                             <span class="truncate max-w-[100px] md:max-w-[180px]">{currentKimpay.name}</span>
                         </div>
                      </div>
@@ -160,7 +158,7 @@
                               <div class="px-4 pt-3 pb-1 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 mb-2">
                                   <!-- Kimpay Title (Non-clickable Header) -->
                                   <div class="flex items-center gap-2 mb-3 opacity-90">
-                                      <span class="text-xl leading-none">{currentKimpay.icon || '📁'}</span>
+                                      <span class="text-xl leading-none">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
                                       <h3 class="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate">{currentKimpay.name}</h3>
                                   </div>
 
@@ -230,7 +228,7 @@
                                       }}
                                       class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                                   >
-                                      {$t('login_help.button', { default: 'Login' })}
+                                      {$t('login_help.button')}
                                   </button>
                               </div>
                           {/if}
@@ -243,7 +241,7 @@
                               >
                                   <div class="flex items-center gap-3">
                                       <LayoutDashboard class="h-5 w-5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
-                                      <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{$t('my_kimpays.title', { default: 'My Kimpays' })}</span>
+                                      <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{$t('my_kimpays.title')}</span>
                                   </div>
                                   <ChevronDown class="h-4 w-4 text-slate-400 transition-transform {isMyKimpaysOpen ? 'rotate-180' : ''}" />
                               </button>
@@ -262,7 +260,7 @@
                                       
                                       {#if recentsStore.recentKimpays.length === 0}
                                           <div class="px-4 py-3 text-sm text-slate-500 italic text-center">
-                                              {$t('my_kimpays.empty', { default: 'No Kimpays yet.' })}
+                                              {$t('my_kimpays.empty')}
                                           </div>
                                       {:else}
                                           {@const filteredKimpays = recentsStore.recentKimpays.filter(k => k.id !== currentKimpay?.id)}
@@ -273,13 +271,13 @@
                                                   onclick={() => haptic('light')}
                                                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                                               >
-                                                  <span class="text-base">{k.icon || "📁"}</span>
+                                                  <span class="text-base">{k.icon || DEFAULT_GROUP_ICON}</span>
                                                   <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{k.name}</span>
                                               </a>
                                           {/each}
                                           {#if filteredKimpays.length === 0 && currentKimpay}
                                               <div class="px-4 py-2 text-sm text-slate-400 italic">
-                                                  {$t('my_kimpays.empty', { default: 'No other Kimpays.' })}
+                                                  {$t('my_kimpays.no_other')}
                                               </div>
                                           {/if}
                                       {/if}
@@ -379,16 +377,7 @@
                               <button 
                                   onclick={() => {
                                       isMenuOpen = false;
-                                      modals.confirm({
-                                          title: $t('modal.logout.title'),
-                                          description: $t('modal.logout.desc'),
-                                          confirmText: $t('modal.logout.confirm'),
-                                          variant: 'destructive',
-                                          onConfirm: () => {
-                                              auth.logout();
-                                              window.location.href = "/";
-                                          }
-                                      });
+                                      auth.confirmLogout();
                                   }}
                                   class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors group"
                               >

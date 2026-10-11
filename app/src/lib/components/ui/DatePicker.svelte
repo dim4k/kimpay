@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-svelte";
-  
+  import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "@lucide/svelte";
+  import { t, locale } from '$lib/i18n';
+  import { parseLocalISODate, toLocalISODate } from '$lib/utils/date';
+
   let { value = $bindable() } = $props();
 
   let isOpen = $state(false);
@@ -10,10 +12,7 @@
 
   // Parse initial value
   $effect(() => {
-    if (value) {
-      const parts = value.split('-');
-      viewDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-    }
+    if (value) viewDate = parseLocalISODate(value);
   });
 
   function toggleOpen() {
@@ -77,12 +76,7 @@
     return grid;
   });
 
-  function formatDate(d: Date) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-  }
+  const formatDate = toLocalISODate;
 
   function handleSelect(d: Date) {
       value = formatDate(d);
@@ -94,15 +88,20 @@
       viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1);
   }
 
-  let displayValue = $derived(value ? new Date(value).toLocaleDateString('fr-FR', {
+  let displayValue = $derived(value ? parseLocalISODate(value).toLocaleDateString($locale, {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric'
-  }) : "Sélectionner une date");
+  }) : $t('datepicker.placeholder'));
 
-  let monthLabel = $derived(viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
-  const WEEKDAYS = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
+  let monthLabel = $derived(viewDate.toLocaleDateString($locale, { month: 'long', year: 'numeric' }));
+  // Monday-first short weekday names (2024-01-01 was a Monday).
+  let WEEKDAYS = $derived(
+      Array.from({ length: 7 }, (_, i) =>
+          new Date(2024, 0, 1 + i).toLocaleDateString($locale, { weekday: 'short' }).slice(0, 2)
+      )
+  );
 </script>
 
 <div class="relative w-full">
@@ -168,7 +167,7 @@
                     class="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
                     onclick={() => handleSelect(new Date())}
                 >
-                    Aujourd'hui
+                    {$t('datepicker.today')}
                 </button>
             </div>
         </div>

@@ -5,10 +5,12 @@
     import { t } from '$lib/i18n';
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
     import { userService } from '$lib/services/user';
-    import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from 'lucide-svelte';
+    import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
     import { slide } from 'svelte/transition';
     import Avatar from '$lib/components/ui/Avatar.svelte';
     import { modals } from '$lib/stores/modals.svelte';
+    import { toasts } from '$lib/stores/toasts.svelte';
+    import { getErrorMessage } from '$lib/utils/errors';
 
     let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
     let isCurrencyOpen = $state(false);
@@ -45,11 +47,10 @@
 
         try {
             const updated = await userService.updatePreferences(auth.user!.id, { currency: code });
-            if (auth.user) {
-                auth.user.preferred_currency = updated.preferred_currency ?? code;
-            }
+            auth.setUser(updated);
         } catch (e) {
             console.error('Failed to save currency preference', e);
+            toasts.error(getErrorMessage(e, $t));
         } finally {
             isSaving = false;
         }
@@ -61,10 +62,11 @@
         isSavingName = true;
         try {
             const updated = await userService.updatePreferences(auth.user.id, { name: userName.trim() });
-            auth.user.name = updated.name;
+            auth.setUser(updated);
             isEditingName = false;
         } catch (e) {
             console.error('Failed to save name', e);
+            toasts.error(getErrorMessage(e, $t));
         } finally {
             isSavingName = false;
         }
@@ -79,9 +81,10 @@
         
         try {
             const updated = await userService.updateAvatar(auth.user.id, file);
-            auth.user.avatar = updated.avatar ?? '';
+            auth.setUser(updated);
         } catch (err) {
             console.error('Failed to update avatar', err);
+            toasts.error(getErrorMessage(err, $t));
         } finally {
             isSavingAvatar = false;
             if (fileInputRef) fileInputRef.value = '';
@@ -104,9 +107,10 @@
         isSavingAvatar = true;
         try {
             const updated = await userService.removeAvatar(auth.user.id);
-            auth.user.avatar = updated.avatar ?? '';
+            auth.setUser(updated);
         } catch (err) {
             console.error('Failed to remove avatar', err);
+            toasts.error(getErrorMessage(err, $t));
         } finally {
             isSavingAvatar = false;
         }

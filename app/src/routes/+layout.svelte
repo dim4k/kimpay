@@ -8,7 +8,8 @@
     import { locale, t } from '$lib/i18n';
     import { theme } from '$lib/theme';
     import { onMount } from 'svelte';
-    import { afterNavigate } from '$app/navigation';
+    import { afterNavigate, beforeNavigate } from '$app/navigation';
+    import { updated } from '$app/state';
     import { recentsStore } from '$lib/stores/recents.svelte';
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
@@ -22,6 +23,14 @@
     let mainEl = $state<HTMLElement>();
     afterNavigate(() => {
         mainEl?.scrollTo({ top: 0 });
+    });
+
+    // A new version was deployed: turn the next navigation into a full page
+    // load so the old client never mixes stale chunks with the new build.
+    beforeNavigate(({ willUnload, to }) => {
+        if (updated.current && !willUnload && to?.url) {
+            location.href = to.url.href;
+        }
     });
 
     const seo = $derived(data.seo || {
@@ -103,8 +112,8 @@
                 if (auth.isValid) return;
 
                 modals.alert({
-                    title: $t('auth.magic_link_error_title', { default: 'Invalid Link' }),
-                    message: $t('auth.magic_link_error_desc', { default: 'This link is invalid or has expired. Please request a new one.' }),
+                    title: $t('auth.magic_link_error_title'),
+                    message: $t('auth.magic_link_error_desc'),
                     variant: 'error'
                 });
             }

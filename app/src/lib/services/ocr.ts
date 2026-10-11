@@ -8,11 +8,6 @@ export interface OcrResult {
     date: string | null;
 }
 
-export interface OcrError {
-    message: string;
-    error?: string;
-}
-
 /**
  * Scan a receipt image using Gemini Vision API
  * Requires user to be authenticated

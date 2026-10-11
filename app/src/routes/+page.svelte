@@ -8,7 +8,7 @@
     import { recentsStore } from '$lib/stores/recents.svelte';
     import { offlineStore } from '$lib/stores/offline.svelte';
   import { auth } from '$lib/stores/auth.svelte';
-  import { Plus, ArrowRight, CloudOff } from 'lucide-svelte';
+  import { Plus, ArrowRight, CloudOff } from '@lucide/svelte';
   import { t } from '$lib/i18n';
 
   // Fast check for initial render to avoid flash if possible
@@ -38,7 +38,7 @@
 
         {#if auth.isValid}
             <!-- Logged In: Collapsible Create/Join -->
-            <div class="animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
+            <div>
                 <CollapsibleCard title={$t('home.create.title')} bind:isOpen={isCreateExpanded}>
                     {#snippet icon()}
                          <div class="h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
@@ -49,7 +49,7 @@
                 </CollapsibleCard>
             </div>
 
-            <div class="mt-4 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
+            <div class="mt-4 duration-700 delay-200">
                 <CollapsibleCard title={$t('home.join.accordion_title')} bind:isOpen={isJoinExpanded}>
                     {#snippet icon()}
                          <div class="h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform">

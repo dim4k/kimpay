@@ -5,23 +5,26 @@
   import { Label } from "$lib/components/ui/label";
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import { goto } from '$app/navigation';
-  import { getContext } from 'svelte';
-  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table } from "lucide-svelte";
+  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table, LoaderCircle } from "@lucide/svelte";
   import { modals } from '$lib/stores/modals.svelte';
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import { offlineStore } from '$lib/stores/offline.svelte';
   import { storageService } from '$lib/services/storage';
+  import { kimpayService } from '$lib/services/kimpay';
+  import { DEFAULT_CURRENCY } from '$lib/services/currency';
+  import { recentsStore } from '$lib/stores/recents.svelte';
   import { getErrorMessage } from '$lib/utils/errors';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { parseLocalISODate, toLocalISODate } from '$lib/utils/date';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import type { Expense } from '$lib/types';
   
-  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
+  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
   import { locale } from '$lib/i18n';
 
   // Get ActiveKimpay from context
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
   
   let kimpayId = $derived(activeKimpay?.id ?? '');
@@ -111,12 +114,9 @@
                onConfirm: async () => {
                    const isSelf = pId === currentParticipantId;
                    await activeKimpay.deleteParticipant(pId);
-                   if (isSelf) {
-                       storageService.removeRecentKimpay(kimpayId);
-                       window.location.reload();
-                   } else {
-                       isDeletingParticipant = null;
-                   }
+                   // Without an identity, the layout asks "who are you?" again.
+                   if (isSelf) await activeKimpay.setMyParticipant(null);
+                   isDeletingParticipant = null;
                },
                onCancel: () => { isDeletingParticipant = null; }
            });
@@ -136,27 +136,15 @@
           cancelText: $t('common.cancel'),
           variant: 'destructive',
           onConfirm: async () => {
-             // Safe Delete Logic
-             const participantId = currentParticipantId; 
-             let canDelete = true;
-
-             if (isCreator) canDelete = false;
-
-             if (canDelete && participantId) {
-                 const isUsed = checkUsage(participantId);
-                 if (isUsed) canDelete = false;
-             }
-             
-             if (canDelete && participantId) {
-                 try {
-                     await activeKimpay.deleteParticipant(participantId);
-                 } catch (e) {
-                     console.warn("Could not delete participant from server", e);
+             // Deletes our participant when possible, otherwise unclaims it.
+             if (currentParticipantId) {
+                 const result = await kimpayService.leave(kimpayId, currentParticipantId);
+                 if (!result.success) {
+                     modals.alert({ message: $t('error.generic'), variant: 'error' });
+                     return;
                  }
              }
-
-            await storageService.removeRecentKimpay(kimpayId);
-            await goto('/');
+             await leaveKimpayPage();
           }
       });
   }
@@ -170,10 +158,19 @@
           variant: 'destructive',
           onConfirm: async () => {
             await activeKimpay.deleteKimpay();
-            await storageService.removeRecentKimpay(kimpayId);
-            await goto('/');
+            await leaveKimpayPage();
           }
       });
+  }
+
+  /** Forget this Kimpay locally and go home. */
+  async function leaveKimpayPage() {
+      const id = kimpayId;
+      recentsStore.removeRecentKimpay(id);
+      // Navigate first: the active Kimpay is destroyed on unmount, so it can
+      // no longer re-cache the group after it is removed from storage.
+      await goto('/');
+      await storageService.removeRecentKimpay(id);
   }
 
   function handleSwitchIdentity(pId: string) {
@@ -182,11 +179,7 @@
           description: $t('settings.switch_modal.desc'),
           confirmText: $t('common.save'), // or 'Switch'
           onConfirm: async () => {
-              // Must await the IndexedDB write before reloading, otherwise the
-              // reload can race ahead of the persisted identity and revert to
-              // the previous participant.
-              await storageService.setMyParticipantId(kimpayId, pId);
-              window.location.reload(); // Simple reload to refresh all state/derived
+              await activeKimpay.setMyParticipant(pId);
           }
       });
   }
@@ -202,29 +195,30 @@
           const participantMap = new Map(participantsList.map((p) => [p.id, p.name]));
           
           let content = "";
-          const filename = `kimpay_${kimpay.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format}`;
+          const filename = `kimpay_${kimpay.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${toLocalISODate()}.${format}`;
 
           if (format === 'csv') {
               // CSV Header
-              content += `${$t('export.col.date')},${$t('export.col.desc')},${$t('export.col.amount')},${$t('export.col.payer')},${$t('export.col.for')}\n`;
+              content += `${$t('export.col.date')},${$t('export.col.desc')},${$t('export.col.amount')},${$t('export.col.currency')},${$t('export.col.payer')},${$t('export.col.for')}\n`;
               
               expenses.forEach((e: Expense) => {
-                  const date = new Date(e.date).toLocaleDateString();
+                  const date = parseLocalISODate(e.date).toLocaleDateString($locale);
                   const desc = `"${(e.description || '').replace(/"/g, '""')}"`;
                   const amount = e.amount.toFixed(2);
+                  const currency = e.currency || DEFAULT_CURRENCY;
                   const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
-                  
+
                   // Get Involved Names
                   const involvedIds = e.involved || [];
                   const involvedNames = involvedIds.map((id: string) => participantMap.get(id) || $t('common.unknown')).join('; ');
                   const involvedField = `"${involvedNames.replace(/"/g, '""')}"`;
 
-                  content += `${date},${desc},${amount},${payer},${involvedField}\n`;
+                  content += `${date},${desc},${amount},${currency},${payer},${involvedField}\n`;
               });
           } else {
               // Markdown
               content += `# ${kimpay.icon || ''} ${kimpay.name}\n\n`;
-              content += `**${$t('export.meta.date')}:** ${new Date().toLocaleDateString()}\n`;
+              content += `**${$t('export.meta.date')}:** ${new Date().toLocaleDateString($locale)}\n`;
                
               content += `**${$t('export.meta.participants')}:** ${participantsList.map((p) => p.name).join(', ')}\n\n`;
               
@@ -234,10 +228,10 @@
               
               
               expenses.forEach((e: Expense) => {
-                  const icon = e.icon || '💸';
-                  const date = new Date(e.date).toLocaleDateString();
+                  const icon = e.icon || DEFAULT_EXPENSE_EMOJI;
+                  const date = parseLocalISODate(e.date).toLocaleDateString($locale);
                   const desc = (e.description || '').replace(/\|/g, '-'); 
-                  const amount = `${e.amount.toFixed(2)} €`;
+                  const amount = `${e.amount.toFixed(2)} ${e.currency || DEFAULT_CURRENCY}`;
                   const payer = e.expand?.payer?.name || participantMap.get(e.payer) || $t('common.unknown');
                   
                   const involvedIds = e.involved || [];
@@ -262,7 +256,7 @@
 
       } catch (e) {
           console.error("Export failed", e);
-          modals.alert({ message: "Failed to export data" });
+          modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
       }
   }
 </script>
@@ -325,8 +319,8 @@
                         <Input id="name" bind:value={editName} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
                         <Button onclick={handleSave} size="icon" class="shrink-0 relative">
                             {#if saveFeedback === 'updated'}
-                                <span class="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded shadow animate-in fade-in slide-in-from-bottom-2">
-                                    {$t('common.save')}d!
+                                <span class="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded shadow">
+                                    {$t('common.saved')}
                                 </span>
                             {/if}
                             <Save class="h-4 w-4" />
@@ -387,7 +381,7 @@
                                     disabled={isDeletingParticipant === p.id}
                                     >
                                     {#if isDeletingParticipant === p.id}
-                                        <span class="loading loading-spinner loading-xs">...</span>
+                                        <LoaderCircle class="h-4 w-4 animate-spin" />
                                     {:else}
                                         <Trash2 class="h-4 w-4" />
                                     {/if}
@@ -406,7 +400,7 @@
                             onkeydown={(e) => e.key === 'Enter' && handleAddParticipant()}
                         />
                         {#if addFeedback === 'added'}
-                            <span class="absolute right-3 top-2.5 text-xs text-green-600 font-medium animate-in fade-in slide-in-from-bottom-1">{$t('settings.participants.added')}</span>
+                            <span class="absolute right-3 top-2.5 text-xs text-green-600 font-medium">{$t('settings.participants.added')}</span>
                         {/if}
                     </div>
                     <Button onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()} aria-label={$t('settings.participants.add')}>

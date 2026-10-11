@@ -107,8 +107,11 @@ class RecentsStore {
 
         const results = await Promise.all(promises);
 
+        // Server unreachable: keep the cached list as-is. Offline mode is only
+        // entered on a real connectivity loss (see offlineStore), otherwise
+        // writes would be queued while the browser is actually online.
         if (results.some((r) => r.status === "network_error")) {
-            offlineStore.setOffline(true);
+            if (!navigator.onLine) offlineStore.setOffline(true);
             return;
         }
 
@@ -137,19 +140,38 @@ class RecentsStore {
     }
 
     private subscribeToKimpays() {
-        this.recentKimpays.forEach((item) => {
-            pb.collection("kimpays")
-                .subscribe(item.id, (e) => {
+        this.recentKimpays.forEach((item) => this.subscribeTo(item.id));
+    }
+
+    /** Realtime subscriptions by Kimpay id (at most one per Kimpay). */
+    private subscriptions = new Map<string, Promise<(() => void) | null>>();
+
+    private subscribeTo(id: string) {
+        if (this.subscriptions.has(id)) return;
+        this.subscriptions.set(
+            id,
+            pb
+                .collection("kimpays")
+                .subscribe(id, (e) => {
                     if (e.action === "update") {
                         this.updateRecentKimpay(asRecentKimpay(e.record));
                     } else if (e.action === "delete") {
                         this.removeRecentKimpay(e.record.id);
                     }
                 })
-                .catch((err) =>
-                    console.warn("Failed to subscribe to", item.id, err)
-                );
-        });
+                .catch((err) => {
+                    console.warn("Failed to subscribe to", id, err);
+                    this.subscriptions.delete(id);
+                    return null;
+                }),
+        );
+    }
+
+    private unsubscribeFrom(id: string) {
+        const unsubscribe = this.subscriptions.get(id);
+        if (!unsubscribe) return;
+        this.subscriptions.delete(id);
+        unsubscribe.then((fn) => fn?.());
     }
 
     private async loadFromCache(ids: string[]) {
@@ -171,31 +193,14 @@ class RecentsStore {
 
     removeRecentKimpay(id: string) {
         this.recentKimpays = this.recentKimpays.filter((k) => k.id !== id);
+        this.unsubscribeFrom(id);
     }
 
     addRecentKimpay(kimpay: RecentKimpay) {
         if (!kimpay || !kimpay.id) return;
         if (!this.recentKimpays.find((k) => k.id === kimpay.id)) {
             this.recentKimpays = [kimpay, ...this.recentKimpays];
-
-            // Subscribe if possible
-            if (!offlineStore.isOffline) {
-                try {
-                    pb.collection("kimpays")
-                        .subscribe(kimpay.id, (e) => {
-                            if (e.action === "update") {
-                                this.updateRecentKimpay(
-                                    asRecentKimpay(e.record)
-                                );
-                            } else if (e.action === "delete") {
-                                this.removeRecentKimpay(e.record.id);
-                            }
-                        })
-                        .catch(() => {});
-                } catch {
-                    /* ignore */
-                }
-            }
+            if (!offlineStore.isOffline) this.subscribeTo(kimpay.id);
         } else {
             this.updateRecentKimpay(kimpay);
         }

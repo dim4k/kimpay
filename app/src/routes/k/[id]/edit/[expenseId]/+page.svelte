@@ -1,54 +1,28 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getContext } from 'svelte';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
-  import { goto } from '$app/navigation';
-  import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
+  import { confirmDeleteExpense } from '$lib/components/expense/deleteExpense';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
-  import { LoaderCircle, Trash2 } from "lucide-svelte";
+  import { LoaderCircle, Trash2 } from "@lucide/svelte";
   import { t } from '$lib/i18n';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
 
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
-  
+
   let kimpayId = $derived(activeKimpay?.id ?? '');
   let expenseId = $derived((page.params as Record<string, string>).expenseId);
-  
-  let initialData = $state<unknown>(null);
-  let isLoading = $state(true);
-  let error = $state("");
-  let showDeleteConfirm = $state(false);
-  let isDeleting = $state(false);
 
-  $effect(() => {
-      if (activeKimpay && expenseId) {
-          if (activeKimpay.loading) {
-              isLoading = true;
-          } else {
-              const found = activeKimpay.expenses.find(e => e.id === expenseId);
-              if (found) {
-                  initialData = found;
-                  isLoading = false;
-              } else {
-                  error = "Expense not found";
-                  isLoading = false;
-              }
-          }
-      }
-  });
+  // Derived (not copied once): an expense missing from a stale cache shows up
+  // as soon as fresh data arrives.
+  let initialData = $derived(activeKimpay?.expenses.find(e => e.id === expenseId) ?? null);
+  let isLoading = $derived(!initialData && (activeKimpay?.loading ?? true));
+  let notFound = $derived(!initialData && !isLoading);
 
-  async function handleDelete() {
+  function handleDelete() {
       if (!activeKimpay || !expenseId) return;
-      isDeleting = true;
-      try {
-          await activeKimpay.deleteExpense(expenseId);
-          goto(`/k/${kimpayId}`);
-      } catch (e) {
-          console.error(e);
-      } finally {
-          isDeleting = false;
-      }
+      // Leave the page first: it would show the expense as missing otherwise.
+      confirmDeleteExpense(activeKimpay, expenseId, `/k/${kimpayId}`);
   }
 </script>
 
@@ -60,15 +34,15 @@
             <div class="flex justify-center py-8">
                 <LoaderCircle class="h-8 w-8 animate-spin text-primary" />
             </div>
-        {:else if error}
-            <div class="text-red-500 text-center">{error}</div>
+        {:else if notFound}
+            <div class="text-red-500 text-center">{$t('expense.not_found')}</div>
         {:else}
             <ExpenseForm {kimpayId} {initialData} />
-            
+
             <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
-                <button 
+                <button
                     class="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 transition-all flex items-center justify-center gap-2 active:scale-95"
-                    onclick={() => showDeleteConfirm = true}
+                    onclick={handleDelete}
                 >
                     <Trash2 class="h-4 w-4" />
                     {$t('modal.delete_expense.title')}
@@ -76,15 +50,4 @@
             </div>
         {/if}
     </div>
-
-    <ConfirmModal 
-        isOpen={showDeleteConfirm}
-        title={$t('modal.delete_expense.title')}
-        description={$t('modal.delete_expense.desc')}
-        confirmText={$t('modal.delete_expense.confirm')}
-        variant="destructive"
-        isProcessing={isDeleting}
-        onConfirm={handleDelete}
-        onCancel={() => showDeleteConfirm = false}
-    />
 </div>

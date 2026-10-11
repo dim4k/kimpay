@@ -1,5 +1,6 @@
 <script lang="ts">
   import { modals } from '$lib/stores/modals.svelte';
+  import { t } from '$lib/i18n';
 
 
   let confirmState = $derived(modals.confirmState);
@@ -35,8 +36,8 @@
         isOpen={true}
         title={confirmState.title}
         description={confirmState.description}
-        confirmText={confirmState.confirmText ?? "Confirm"}
-        cancelText={confirmState.cancelText ?? "Cancel"}
+        confirmText={confirmState.confirmText ?? $t('common.confirm')}
+        cancelText={confirmState.cancelText ?? $t('common.cancel')}
         variant={confirmState.variant ?? "default"}
         isProcessing={isProcessing}
         onConfirm={handleConfirm}

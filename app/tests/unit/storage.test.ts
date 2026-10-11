@@ -14,6 +14,10 @@ vi.mock("idb-keyval", () => ({
         mockStore[key] = value;
         return Promise.resolve();
     }),
+    update: vi.fn((key: string, updater: (old: unknown) => unknown) => {
+        mockStore[key] = updater(mockStore[key]);
+        return Promise.resolve();
+    }),
     del: vi.fn((key: string) => {
         delete mockStore[key];
         return Promise.resolve();
@@ -95,6 +99,13 @@ describe("Storage Service", () => {
             const retrieved = await storageService.getKimpayData("123");
             expect(retrieved?.myParticipantId).toBe("participant-1");
         });
+
+        it("should let an explicit empty myParticipantId clear the identity", async () => {
+            await storageService.saveKimpayData("123", createMockKimpay("123", "participant-1"));
+            await storageService.saveKimpayData("123", createMockKimpay("123", ""));
+
+            expect(await storageService.getMyParticipantId("123")).toBeNull();
+        });
     });
 
     describe("User Identity & My Kimpays", () => {
@@ -107,6 +118,13 @@ describe("Storage Service", () => {
             expect(
                 await storageService.getMyParticipantId("kimpay2")
             ).toBeNull();
+        });
+
+        it("should clear my participant id with null", async () => {
+            await storageService.setMyParticipantId("kimpay1", "part1");
+            await storageService.setMyParticipantId("kimpay1", null);
+
+            expect(await storageService.getMyParticipantId("kimpay1")).toBeNull();
         });
 
         it("should update existing kimpay with participant id", async () => {

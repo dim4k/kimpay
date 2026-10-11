@@ -1,13 +1,14 @@
 import { pb } from "$lib/pocketbase";
 import { storageService, type PendingAction } from "$lib/services/storage";
 import { objectToFormData } from "$lib/utils/formData";
+import { isNetworkError } from "$lib/utils/errors";
 
 class OfflineStore {
     isOffline = $state(false);
     isSyncing = $state(false);
 
     private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-    private onOnlineCallback: (() => void) | null = null;
+    private syncedListeners = new Set<() => void>();
 
     constructor() {
         if (typeof window !== "undefined") {
@@ -28,16 +29,9 @@ class OfflineStore {
                     }
                     return result as T;
                 } catch (e: unknown) {
-                    const error = e as { status?: number; name?: string };
-                    // Only set offline if:
-                    // 1. Status is 0 (network error)
-                    // 2. Navigator says we're offline
-                    // 3. It's not an AbortError (request cancelled during navigation)
-                    if (
-                        error?.status === 0 &&
-                        !navigator.onLine &&
-                        error?.name !== "AbortError"
-                    ) {
+                    // Only a genuine connectivity loss switches to offline mode
+                    // (not a cancelled request, nor a server-side error).
+                    if (isNetworkError(e) && !navigator.onLine) {
                         this.setOffline(true);
                     }
                     throw e;
@@ -55,20 +49,23 @@ class OfflineStore {
         } else {
             this.stopHealthCheck();
             this.processPendingQueue();
-            // Trigger callback to refresh data
-            this.onOnlineCallback?.();
         }
     }
 
-    registerListener(callback: () => void) {
-        this.onOnlineCallback = callback;
+    /**
+     * Called once the app is back online and the offline queue has been
+     * replayed, so views can refresh. Returns an unsubscribe function.
+     */
+    onSynced(callback: () => void) {
+        this.syncedListeners.add(callback);
+        return () => this.syncedListeners.delete(callback);
     }
 
     private startHealthCheck() {
         if (this.healthCheckInterval) return;
         this.healthCheckInterval = setInterval(async () => {
             try {
-                const health = await pb.health.check();
+                const health = await pb.health.check({ requestKey: null });
                 if (health.code === 200) {
                     this.setOffline(false);
                 }
@@ -85,24 +82,19 @@ class OfflineStore {
         }
     }
 
-    queueAction(
+    /**
+     * Queue a write to replay when back online. `id` is the action id; for
+     * creations it is the (client-generated) id of the record to create.
+     */
+    async queueAction(
         type: PendingAction["type"],
         payload: Record<string, unknown>,
         kimpayId: string,
         id?: string,
     ) {
         const actionId =
-            id ||
-            `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log(
-            "[OfflineStore] Queuing action:",
-            type,
-            "id:",
-            actionId,
-            "payload:",
-            payload,
-        );
-        storageService.savePendingAction({
+            id || `action_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        await storageService.savePendingAction({
             id: actionId,
             type,
             payload,
@@ -114,42 +106,25 @@ class OfflineStore {
 
     async processPendingQueue() {
         if (this.isSyncing || this.isOffline) return;
-
-        const queue = await storageService.getPendingActions();
-        if (queue.length === 0) return;
-
         this.isSyncing = true;
-        const idMapping: Record<string, string> = {}; // TempID -> RealID
-        console.log(`Syncing ${queue.length} offline actions...`);
+
+        // Legacy queues may still reference "temp_" ids created before ids
+        // were generated client-side: map them to the real ids as we go.
+        const idMapping: Record<string, string> = {};
+        const mapId = (id: unknown) =>
+            typeof id === "string" && id in idMapping ? idMapping[id] : id;
 
         try {
+            const queue = await storageService.getPendingActions();
             for (const action of queue) {
                 try {
-                    // Clone payload to allow modification
                     const payload = { ...action.payload };
-
-                    // Replace Payer Dependency
-                    if (
-                        typeof payload.payer === "string" &&
-                        payload.payer in idMapping
-                    ) {
-                        payload.payer = idMapping[payload.payer];
-                    }
-
-                    // Replace Involved Dependency
+                    payload.payer = mapId(payload.payer);
+                    payload.created_by = mapId(payload.created_by);
                     if (Array.isArray(payload.involved)) {
-                        payload.involved = payload.involved.map(
-                            (id: string) => idMapping[id] || id,
-                        );
+                        payload.involved = payload.involved.map(mapId);
                     }
-
-                    // Replace "created_by" Dependency
-                    if (
-                        typeof payload.created_by === "string" &&
-                        payload.created_by in idMapping
-                    ) {
-                        payload.created_by = idMapping[payload.created_by];
-                    }
+                    const targetId = mapId(payload.id) as string;
 
                     if (action.type === "CREATE_PARTICIPANT") {
                         const record = await pb
@@ -157,27 +132,20 @@ class OfflineStore {
                             .create(payload);
                         idMapping[action.id] = record.id;
                     } else if (action.type === "CREATE_EXPENSE") {
-                        // Reconstruct FormData for expense
                         const formData = new FormData();
-
-                        // Use the action ID as the record ID if it's not a temp-timestamp
                         if (!action.id.startsWith("temp_")) {
                             formData.append("id", action.id);
                         }
-
                         objectToFormData(payload, formData);
-
                         const record = await pb
                             .collection("expenses")
                             .create(formData);
                         idMapping[action.id] = record.id;
                     } else if (action.type === "DELETE_EXPENSE") {
-                        await pb
-                            .collection("expenses")
-                            .delete(action.payload.id as string);
+                        await pb.collection("expenses").delete(targetId);
                     } else if (action.type === "UPDATE_EXPENSE") {
                         const {
-                            id,
+                            id: _id,
                             newPhotos: _newPhotos,
                             deletedPhotos,
                             ...updateData
@@ -190,16 +158,12 @@ class OfflineStore {
                         }
                         await pb
                             .collection("expenses")
-                            .update(id as string, formData);
+                            .update(targetId, formData);
                     } else if (action.type === "DELETE_PARTICIPANT") {
-                        await pb
-                            .collection("participants")
-                            .delete(action.payload.id as string);
+                        await pb.collection("participants").delete(targetId);
                     } else if (action.type === "CREATE_KIMPAY") {
                         await pb.collection("kimpays").create(payload);
                     } else if (action.type === "UPDATE_KIMPAY") {
-                        // Use kimpayId from action if payload doesn't have ID, or payload might have it?
-                        // kimpayStore.updateDetails queues {name, icon}
                         await pb
                             .collection("kimpays")
                             .update(action.kimpayId, payload);
@@ -207,17 +171,30 @@ class OfflineStore {
                         await pb.collection("kimpays").delete(action.kimpayId);
                     }
 
-                    storageService.removePendingAction(action.id);
+                    await storageService.removePendingAction(action.id);
                 } catch (e) {
-                    console.error("Failed to sync action", action.id, e);
+                    if (isNetworkError(e)) {
+                        // Connection lost again: keep this and the following
+                        // actions, in order, for the next attempt.
+                        break;
+                    }
+                    const status = (e as { status?: number }).status ?? 0;
+                    if (status >= 400 && status < 500) {
+                        // Rejected for good (deleted meanwhile, invalid...):
+                        // retrying would fail forever and block nothing else.
+                        console.error("Dropping rejected offline action", action, e);
+                        await storageService.removePendingAction(action.id);
+                    } else {
+                        console.error("Failed to sync action", action.id, e);
+                    }
                 }
             }
         } finally {
             this.isSyncing = false;
-            // Trigger refresh after sync
-            this.onOnlineCallback?.();
+            this.syncedListeners.forEach((listener) => listener());
         }
     }
+
     async withOfflineSupport<T>(
         runOnline: () => Promise<T>,
         onOffline: () => T | Promise<T>,
@@ -226,12 +203,7 @@ class OfflineStore {
             try {
                 return await runOnline();
             } catch (e: unknown) {
-                const error = e as { status?: number; name?: string };
-                if (
-                    error?.status === 0 &&
-                    !navigator.onLine &&
-                    error?.name !== "AbortError"
-                ) {
+                if (isNetworkError(e) && !navigator.onLine) {
                     this.setOffline(true);
                 } else {
                     throw e;

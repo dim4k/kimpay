@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
   import { onDestroy } from "svelte";
-  import { X, LoaderCircle } from "lucide-svelte";
+  import { X, LoaderCircle } from "@lucide/svelte";
   import { t } from '$lib/i18n';
   import Modal from './Modal.svelte';
 

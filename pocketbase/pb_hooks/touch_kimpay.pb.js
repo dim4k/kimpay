@@ -10,47 +10,29 @@
 // To propagate child changes (expenses/participants) to those single-record
 // subscribers, we re-save ("touch") the parent Kimpay so PocketBase emits a
 // realtime update event for `kimpays/{id}`. The client then re-fetches.
-//
-// NOTE: PocketBase serializes each hook handler into its own isolated scope,
-// so helper functions declared at module top-level are NOT available inside
-// the handler. The touch logic is therefore inlined in each handler.
-// We use the event's app (`e.app`) so the save enlists in the current
-// transaction context.
+// See lib/touch.js.
 // =============================================================================
 
 onRecordAfterCreateSuccess((e) => {
-    const kimpayId = e.record.get("kimpay");
-    if (kimpayId) {
-        try {
-            e.app.save(e.app.findRecordById("kimpays", kimpayId));
-        } catch (err) {
-            // Parent may be mid cascade-delete; nothing to notify.
-        }
-    }
+    const { touchKimpay } = require(`${__hooks}/lib/touch.js`);
+    touchKimpay(e.app, e.record.get("kimpay"));
     e.next();
 }, "expenses", "participants");
 
 onRecordAfterUpdateSuccess((e) => {
+    const { touchKimpay } = require(`${__hooks}/lib/touch.js`);
     const kimpayId = e.record.get("kimpay");
-    if (kimpayId) {
-        try {
-            e.app.save(e.app.findRecordById("kimpays", kimpayId));
-        } catch (err) {
-            // Parent may be mid cascade-delete; nothing to notify.
-        }
-    }
+    touchKimpay(e.app, kimpayId);
+
+    // A record moved to another Kimpay must also disappear from the old one.
+    const previousId = e.record.original().get("kimpay");
+    if (previousId && previousId !== kimpayId) touchKimpay(e.app, previousId);
+
     e.next();
 }, "expenses", "participants");
 
 onRecordAfterDeleteSuccess((e) => {
-    const kimpayId = e.record.get("kimpay");
-    if (kimpayId) {
-        try {
-            e.app.save(e.app.findRecordById("kimpays", kimpayId));
-        } catch (err) {
-            // Parent itself may have been deleted (cascade); nothing to notify.
-        }
-    }
+    const { touchKimpay } = require(`${__hooks}/lib/touch.js`);
+    touchKimpay(e.app, e.record.get("kimpay"));
     e.next();
 }, "expenses", "participants");
-

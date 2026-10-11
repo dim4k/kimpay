@@ -1,8 +1,13 @@
 import { pb } from '$lib/pocketbase';
+import type { RecordModel } from 'pocketbase';
 import type { User } from '$lib/types';
+import { isNetworkError } from '$lib/utils/errors';
+import { get } from 'svelte/store';
+import { t } from '$lib/i18n';
+import { modals } from '$lib/stores/modals.svelte';
 
 class AuthStore {
-    user = $state<User | null>(pb.authStore.model as User | null);
+    user = $state<User | null>(pb.authStore.record as User | null);
     isValid = $state(pb.authStore.isValid);
 
     constructor() {
@@ -17,6 +22,30 @@ class AuthStore {
         pb.authStore.clear();
     }
 
+    /** Ask for confirmation, then log out and reload the app on the home page. */
+    confirmLogout() {
+        const translate = get(t);
+        modals.confirm({
+            title: translate('modal.logout.title'),
+            description: translate('modal.logout.desc'),
+            confirmText: translate('modal.logout.confirm'),
+            variant: 'destructive',
+            onConfirm: () => {
+                this.logout();
+                window.location.href = "/";
+            }
+        });
+    }
+
+    /**
+     * Replace the logged-in user record (e.g. after a profile update). Goes
+     * through the PocketBase auth store so it stays the single source of truth
+     * (and is persisted); `user` is then updated by the onChange listener.
+     */
+    setUser(user: User) {
+        pb.authStore.save(pb.authStore.token, user as unknown as RecordModel);
+    }
+
     async loginWithOtp(code: string): Promise<boolean> {
         try {
             const response = await pb.send("/api/login/verify", {
@@ -24,8 +53,8 @@ class AuthStore {
                 body: { code }
             });
 
-            if (response.token && response.user) {
-                pb.authStore.save(response.token, response.user);
+            if (response.token && response.record) {
+                pb.authStore.save(response.token, response.record);
                 return true;
             }
             return false;
@@ -64,10 +93,8 @@ class AuthStore {
         try {
             await pb.collection('users').authRefresh();
         } catch (e: unknown) {
-            const err = e as { name: string; status: number };
-            
-            // Keep session on network error (0) or if we are known to be offline
-            if (err.status === 0 || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+            // Keep session on network error or if we are known to be offline
+            if (isNetworkError(e)) {
                 console.warn("Auth refresh failed due to network, keeping session.");
                 return;
             }

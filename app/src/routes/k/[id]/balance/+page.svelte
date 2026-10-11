@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
   import { type Transaction } from '$lib/balance';
-  import { ArrowRight, Wallet, CircleCheck, AlertTriangle, Check } from "lucide-svelte";
+  import { ArrowRight, Wallet, CircleCheck, AlertTriangle, Check } from "@lucide/svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -9,16 +8,16 @@
   import Dropdown from '$lib/components/ui/Dropdown.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
-  import { t } from '$lib/i18n';
+  import { t, locale } from '$lib/i18n';
   import CountUp from '$lib/components/ui/CountUp.svelte';
   import { modals } from '$lib/stores/modals.svelte';
   import { offlineStore } from '$lib/stores/offline.svelte';
   import { pb } from '$lib/pocketbase';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '$lib/services/currency';
 
   // Get ActiveKimpay from context
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
 
   let participants = $derived(activeKimpay?.participants || []);
@@ -62,7 +61,7 @@
       modals.confirm({
           title: $t('balance.settle.modal.title'),
           description: $t('balance.settle.modal.desc', {
-                amount: formatAmount(displayAmount, displayCurrency),
+                amount: formatAmount(displayAmount, displayCurrency, $locale),
                 from: tx.from === myId ? $t('common.you') : getName(tx.from),
                 to: tx.to === myId ? $t('common.you') : getName(tx.to)
           }),
@@ -98,7 +97,7 @@
 
 
     {#if offlineStore.isOffline}
-        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
             <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
             <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>
         </div>
@@ -181,7 +180,7 @@
                             <div class="flex flex-col items-center px-2 z-10">
                                  <span class="text-[10px] font-bold text-slate-400 mb-1">{$t('balance.pays')}</span>
                                  <div class="bg-slate-100 dark:bg-slate-800 rounded-full p-1 px-3 flex items-center gap-1 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                    <span class="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency)}</span>
+                                    <span class="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale)}</span>
                                     <ArrowRight class="h-3 w-3 text-slate-400 group-hover:text-indigo-500" />
                                  </div>
                             </div>
@@ -208,7 +207,7 @@
             {@const totalDebit = myDebts.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
             {@const totalCredit = myCredit.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
             {@const netBalance = totalCredit - totalDebit}
-            {@const totalExpenses = expenses.reduce((sum, e) => sum + (e.is_reimbursement ? 0 : toDisplayCurrency(Number(e.amount)||0, e.currency || 'EUR')), 0)}
+            {@const totalExpenses = expenses.reduce((sum, e) => sum + (e.is_reimbursement ? 0 : toDisplayCurrency(Number(e.amount)||0, e.currency || DEFAULT_CURRENCY)), 0)}
             
             <div class="space-y-3" transition:fade>
                  <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.your_summary')}</h2>

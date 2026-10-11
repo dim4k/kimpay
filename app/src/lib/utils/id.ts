@@ -40,6 +40,11 @@ export function generateUUID(): string {
     );
 }
 
+/** Whether `value` looks like a Kimpay (PocketBase record) ID. */
+export function isKimpayId(value: string | null | undefined): value is string {
+    return !!value && /^[a-zA-Z0-9]{15}$/.test(value);
+}
+
 /**
  * Generate a PocketBase-compatible ID (15 lowercase alphanumeric chars).
  *

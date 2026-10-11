@@ -1,6 +1,7 @@
 import type { Kimpay } from "$lib/types";
 import { STORAGE_KEYS } from "$lib/constants";
-import { get, set, del, keys } from "idb-keyval";
+import { isKimpayId } from "$lib/utils/id";
+import { get, set, del, keys, update } from "idb-keyval";
 
 export interface PendingAction {
     id: string; // Unique ID for the action itself
@@ -78,7 +79,7 @@ export const storageService = {
 
             // Merge participantIds into existing kimpay data
             for (const [kimpayId, participantId] of Object.entries(legacyMap)) {
-                if (!kimpayId || !/^[a-zA-Z0-9]{15}$/.test(kimpayId)) continue;
+                if (!isKimpayId(kimpayId)) continue;
                 
                 const existing = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
                 if (existing) {
@@ -110,12 +111,13 @@ export const storageService = {
 
     saveKimpayData: async (id: string, data: Kimpay) => {
         try {
-            // Preserve myParticipantId if it exists in the current cached version
-            const existing = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${id}`);
-            if (existing?.myParticipantId && !data.myParticipantId) {
-                data.myParticipantId = existing.myParticipantId;
-            }
-            await set(`${KIMPAY_DATA_PREFIX}${id}`, data);
+            // Preserve the cached identity unless the caller sets it explicitly
+            // ("" clears it).
+            await update<Kimpay>(`${KIMPAY_DATA_PREFIX}${id}`, (existing) =>
+                data.myParticipantId === undefined && existing?.myParticipantId
+                    ? { ...data, myParticipantId: existing.myParticipantId }
+                    : data,
+            );
         } catch (e) {
             console.error("Failed to save to storage", e);
         }
@@ -150,7 +152,7 @@ export const storageService = {
                     typeof key === "string" && key.startsWith(KIMPAY_DATA_PREFIX)
                 )
                 .map((key) => key.replace(KIMPAY_DATA_PREFIX, ""))
-                .filter((id) => id && /^[a-zA-Z0-9]{15}$/.test(id));
+                .filter(isKimpayId);
         } catch (_e) {
             return [];
         }
@@ -166,17 +168,14 @@ export const storageService = {
         }
     },
 
-    /** Set the current user's participant ID for a Kimpay */
-    setMyParticipantId: async (kimpayId: string, participantId: string) => {
+    /** Set (or clear, with null) the current user's participant ID for a Kimpay */
+    setMyParticipantId: async (kimpayId: string, participantId: string | null) => {
         try {
-            let kimpay = await get<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
-            if (kimpay) {
-                kimpay.myParticipantId = participantId;
-            } else {
-                // Create minimal entry - will be populated when visiting the kimpay
-                kimpay = { id: kimpayId, myParticipantId: participantId } as Kimpay;
-            }
-            await set(`${KIMPAY_DATA_PREFIX}${kimpayId}`, kimpay);
+            // A missing entry is created minimal and populated on first visit.
+            await update<Kimpay>(`${KIMPAY_DATA_PREFIX}${kimpayId}`, (kimpay) => ({
+                ...(kimpay ?? ({ id: kimpayId } as Kimpay)),
+                myParticipantId: participantId ?? "",
+            }));
         } catch (e) {
             console.error("Failed to save identity", e);
         }
@@ -193,14 +192,11 @@ export const storageService = {
 
     // --- Action Queue (Offline Ops) ---
 
+    // Queue writes use `update` (read + write in one IndexedDB transaction) so
+    // concurrent calls cannot overwrite each other.
     savePendingAction: async (action: PendingAction) => {
         try {
-            console.log("[OfflineQueue] Saving action:", action.type, action.id);
-            const queue = await storageService.getPendingActions();
-            console.log("[OfflineQueue] Current queue length:", queue.length);
-            queue.push(action);
-            await set(OFFLINE_QUEUE, queue);
-            console.log("[OfflineQueue] Action saved successfully, new queue length:", queue.length);
+            await update<PendingAction[]>(OFFLINE_QUEUE, (queue = []) => [...queue, action]);
         } catch (e) {
             console.error("[OfflineQueue] Failed to save pending action:", e);
         }
@@ -216,9 +212,9 @@ export const storageService = {
 
     removePendingAction: async (actionId: string) => {
         try {
-            const queue = await storageService.getPendingActions();
-            const newQueue = queue.filter((a) => a.id !== actionId);
-            await set(OFFLINE_QUEUE, newQueue);
+            await update<PendingAction[]>(OFFLINE_QUEUE, (queue = []) =>
+                queue.filter((a) => a.id !== actionId),
+            );
         } catch (e) {
             console.error("Failed to remove pending action", e);
         }

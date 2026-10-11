@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import { t } from '$lib/i18n';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
 
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
   let kimpayId = $derived(activeKimpay?.id ?? '');
 </script>

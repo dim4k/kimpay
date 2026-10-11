@@ -66,32 +66,7 @@ export const KIMPAY_CATEGORY_ORDER = ['TRAVEL', 'ACTIVITIES', 'FOOD', 'GIFTS', '
 
 export const DEFAULT_KIMPAY_EMOJI = "✨";
 export const DEFAULT_EXPENSE_EMOJI = "💸";
-export const REIMBURSEMENT_EMOJI = "🔄";
-
-// Flat list for backward compatibility
-export const KIMPAY_EMOJIS = [
-    DEFAULT_KIMPAY_EMOJI,
-    ...EMOJI_CATEGORIES['TRAVEL']!.emojis,
-    ...EMOJI_CATEGORIES['ACTIVITIES']!.emojis.slice(0, 10),
-    ...EMOJI_CATEGORIES['FOOD']!.emojis.slice(0, 10),
-].filter((value, index, self) => self.indexOf(value) === index);
-
-export const EXPENSE_EMOJIS = EMOJI_CATEGORY_ORDER.flatMap(
-    cat => [...EMOJI_CATEGORIES[cat]!.emojis]
-).filter((value, index, self) => self.indexOf(value) === index);
-
-
-export const EXPAND = {
-    // Relations to expand when fetching a single Expense
-    EXPENSE_RELATIONS: "payer,involved",
-    
-    // Relations to expand when fetching a Kimpay
-    KIMPAY_WITH_PARTICIPANTS: "participants_via_kimpay",
-    KIMPAY_WITH_EXPENSES: "expenses_via_kimpay.payer,expenses_via_kimpay.involved",
-    
-    // Combined
-    KIMPAY_FULL: "participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved"
-} as const;
+export const DEFAULT_GROUP_ICON = "📁";
 
 // =============================================================================
 // Storage Keys (IndexedDB / localStorage)

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { LayoutDashboard, LogOut, ArrowRight } from "lucide-svelte";
+    import { LayoutDashboard, LogOut, ArrowRight } from "@lucide/svelte";
     import { t } from '$lib/i18n';
     import { offlineStore } from '$lib/stores/offline.svelte';
     import { recentsStore } from '$lib/stores/recents.svelte';
@@ -10,10 +10,20 @@
     import { auth } from '$lib/stores/auth.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { haptic } from '$lib/utils/haptic';
+    import { DEFAULT_GROUP_ICON } from '$lib/constants';
+
+    // Offline, only list the Kimpays whose data is cached (they can be opened).
+    let cachedIds = $state<string[] | null>(null);
+    $effect(() => {
+        if (!offlineStore.isOffline) return;
+        const ids = recentsStore.recentKimpays.map(k => k.id);
+        Promise.all(ids.map(id => storageService.hasKimpayData(id)))
+            .then(found => { cachedIds = ids.filter((_, i) => found[i]); });
+    });
 
     let kimpaysToDisplay = $derived(
-        offlineStore.isOffline 
-            ? recentsStore.recentKimpays.filter(k => storageService.hasKimpayData(k.id))
+        offlineStore.isOffline && cachedIds
+            ? recentsStore.recentKimpays.filter(k => cachedIds!.includes(k.id))
             : recentsStore.recentKimpays
     );
 
@@ -35,7 +45,7 @@
             if (participantId) {
                 const result = await kimpayService.leave(kimpayToLeave, participantId);
                 if (!result.success) {
-                    modals.alert({ message: "Error leaving group", title: "Error" });
+                    modals.alert({ message: $t('error.generic'), variant: 'error' });
                     return;
                 }
             }
@@ -45,23 +55,14 @@
             kimpayToLeave = null;
         } catch (e) {
             console.error("Error leaving kimpay", e);
-            modals.alert({ message: "Error leaving group", title: "Error" });
+            modals.alert({ message: $t('error.generic'), variant: 'error' });
         } finally {
             isLeaving = false;
         }
     }
 
     function handleLogout() {
-        modals.confirm({
-            title: $t('modal.logout.title'),
-            description: $t('modal.logout.desc'),
-            confirmText: $t('modal.logout.confirm'),
-            variant: 'destructive',
-            onConfirm: () => {
-                auth.logout();
-                window.location.href = "/";
-            }
-        });
+        auth.confirmLogout();
     }
 </script>
 
@@ -72,7 +73,7 @@
     <div class="flex items-center justify-between px-1 mb-4">
         <h2 class="font-bold text-2xl flex items-center gap-3">
             <LayoutDashboard class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-            {$t('my_kimpays.title', { default: 'My Kimpays' })}
+            {$t('my_kimpays.title')}
         </h2>
 
         {#if auth.user}
@@ -95,13 +96,13 @@
             <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         </div>
     {:else if kimpaysToDisplay.length === 0}
-        <EmptyState description={$t('my_kimpays.empty', { default: 'No Kimpays joined yet.' })} />
+        <EmptyState description={$t('my_kimpays.empty')} />
     {:else}
         <div class="grid gap-3">
             {#each kimpaysToDisplay as k (k.id)}
                 <a href="/k/{k.id}" data-sveltekit-preload-data="off" onclick={() => haptic('light')} class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
-                        <span class="text-2xl">{k.icon || "📁"}</span>
+                        <span class="text-2xl">{k.icon || DEFAULT_GROUP_ICON}</span>
                         <span class="font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">{k.name}</span>
                     </div>
                     <div class="flex items-center gap-2">

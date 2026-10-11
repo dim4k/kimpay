@@ -2,7 +2,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
-    import { Plus, X, LoaderCircle, ChevronDown, Check } from "lucide-svelte";
+    import { Plus, X, LoaderCircle, ChevronDown, Check } from "@lucide/svelte";
     import { t, locale } from '$lib/i18n';
     import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
     import { fade, slide } from 'svelte/transition';
@@ -16,7 +16,7 @@
     import { modals } from '$lib/stores/modals.svelte';
     import { auth } from '$lib/stores/auth.svelte';
     import EmailHelpModal from '$lib/components/ui/modals/EmailHelpModal.svelte';
-    import { Info } from "lucide-svelte";
+    import { Info } from "@lucide/svelte";
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
     import { toasts } from '$lib/stores/toasts.svelte';
     import { haptic } from '$lib/utils/haptic';
@@ -249,7 +249,7 @@
                 class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
                 <Info class="h-3 w-3" />
-                <span class="underline underline-offset-2">{$t('email_help.modal.title', { default: 'Why your email?' })}</span>
+                <span class="underline underline-offset-2">{$t('email_help.modal.title')}</span>
             </button>
         </div>
     </div>

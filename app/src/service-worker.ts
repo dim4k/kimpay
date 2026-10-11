@@ -57,14 +57,19 @@ sw.addEventListener("fetch", (event) => {
     // ignore extensions or other schemes
     if (!event.request.url.startsWith("http")) return;
 
+    const url = new URL(event.request.url);
+
+    // Leave API requests (PocketBase) to the browser, without calling
+    // respondWith: proxying the realtime event stream (`/api/realtime`)
+    // through the worker makes it stall or drop, especially on iOS.
+    if (
+        url.pathname.startsWith("/api/") ||
+        event.request.headers.get("accept")?.includes("text/event-stream")
+    ) {
+        return;
+    }
+
     async function respond() {
-        const url = new URL(event.request.url);
-
-        // Ignore API requests (PocketBase)
-        if (url.pathname.startsWith("/api/")) {
-            return fetch(event.request);
-        }
-
         const cache = await caches.open(CACHE);
 
         // `build`/`files` can always be served from the cache

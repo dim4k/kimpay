@@ -32,10 +32,3 @@ export function haptic(pattern: HapticPattern = 'light'): boolean {
         return false;
     }
 }
-
-/**
- * Check if haptic feedback is supported on this device.
- */
-export function isHapticSupported(): boolean {
-    return typeof navigator !== 'undefined' && 'vibrate' in navigator;
-}

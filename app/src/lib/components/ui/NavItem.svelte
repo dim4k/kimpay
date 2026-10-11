@@ -1,11 +1,11 @@
 <script lang="ts">
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    import type { ComponentType, SvelteComponent } from 'svelte';
+    import type { Component } from 'svelte';
+    import type { LucideProps } from '@lucide/svelte';
     import { haptic } from '$lib/utils/haptic';
 
     interface Props {
         href: string;
-        icon: ComponentType<SvelteComponent<any>>;
+        icon: Component<LucideProps>;
         label: string;
         isActive: boolean;
     }

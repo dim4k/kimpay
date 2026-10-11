@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LoaderCircle, TriangleAlert, CircleCheck } from "lucide-svelte";
+  import { LoaderCircle, TriangleAlert, CircleCheck } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import Modal from './Modal.svelte';
 

@@ -1,5 +1,3 @@
-import type { Participant } from "$lib/types";
-
 export type ConfirmOptions = {
     title: string;
     description: string;
@@ -24,8 +22,6 @@ export type GalleryOptions = {
 
 export type IdentityOptions = {
     kimpayId: string;
-    participants?: Participant[];
-    onSelect?: () => void;
 };
 
 class ModalStore {
@@ -47,12 +43,6 @@ class ModalStore {
         this.identityState = options;
     }
 
-    close() {
-        this.confirmState = null;
-        this.alertState = null;
-        this.galleryState = null;
-        this.identityState = null;
-    }
     closeConfirm() {
         this.confirmState = null;
     }

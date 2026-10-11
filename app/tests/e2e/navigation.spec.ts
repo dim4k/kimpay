@@ -64,8 +64,9 @@ test.describe('Navigation & UX', () => {
     // Group name should be editable
     await expect(page.getByText('Navigation Test')).toBeVisible();
     
-    // Participant list should show creator
-    await expect(page.getByText('Navigator')).toBeVisible();
+    // Participant list should show the creator as the current identity
+    // (scoped: the header also shows the identity name)
+    await expect(page.locator('[data-is-me="true"]').getByText('Navigator')).toBeVisible();
     
     // Leave/Delete buttons should exist
     await expect(page.getByRole('button', { name: /leave|quitter/i })).toBeVisible();

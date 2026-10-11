@@ -1,17 +1,15 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { ChartPie, Settings, Share2, Wallet } from "lucide-svelte";
+  import { ChartPie, Settings, Share2, Wallet } from "@lucide/svelte";
   import { t } from '$lib/i18n';
-  import { setContext } from 'svelte';
-  import { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+
+  import { ActiveKimpay, setActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
   
   import { modals } from '$lib/stores/modals.svelte';
-  import { afterNavigate } from '$app/navigation';
   import { fabState } from '$lib/stores/fab.svelte';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { storageService } from '$lib/services/storage';
   import NavItem from '$lib/components/ui/NavItem.svelte';
   import { haptic } from '$lib/utils/haptic';
   
@@ -27,6 +25,7 @@
       const id = page.params.id;
       if (activeKimpay?.id !== id) {
           activeKimpay?.destroy();
+          modals.closeIdentity();
           if (id) {
               activeKimpay = new ActiveKimpay(id);
               // Expose the instance to the root-layout navbar (SiteHeader).
@@ -40,14 +39,14 @@
   onDestroy(() => {
       activeKimpay?.destroy();
       activeKimpayGlobal.reset();
+      modals.closeIdentity();
   });
 
   // Provide context
-  setContext('ACTIVE_KIMPAY', { get value() { return activeKimpay; } });
+  setActiveKimpayContext({ get value() { return activeKimpay!; } });
 
   // Derived values
   let kimpayId = $derived(activeKimpay?.id ?? page.params.id ?? '');
-  let participants = $derived(activeKimpay?.participants || []);
 
   $effect(() => {
       // Ensure defaults when kimpayId changes or route changes not handled by child
@@ -56,32 +55,15 @@
       }
   });
   
-  // Context for child pages to know when to refresh data
-  let refreshSignal = $state({ count: 0 });
-  setContext('refreshSignal', refreshSignal);
-
-  async function checkIdentity() {
-      if (!kimpayId) return;
-      
-      // The load function already initialized stores with data.
-      // This function only needs to open the identity modal if no user is stored.
-      const storedUser = await storageService.getMyParticipantId(kimpayId);
-      
-      if (!storedUser) {
-          // Open global identity modal
-          modals.identity({
-              kimpayId,
-              participants
-          });
-      } else {
-          // Just ensure the participant identity is set in the store  
-          // participantsStore.setMyIdentity(kimpayId);
+  // Ask "who are you?" once the Kimpay is loaded and this device has no
+  // identity in it (never chosen, or the participant was deleted).
+  $effect(() => {
+      if (!activeKimpay || activeKimpay.loading || !activeKimpay.kimpay) return;
+      const myId = activeKimpay.myParticipantId;
+      const hasIdentity = !!myId && activeKimpay.participants.some((p) => p.id === myId);
+      if (!hasIdentity && !modals.identityState) {
+          modals.identity({ kimpayId: activeKimpay.id });
       }
-  }
-
-  // Only run checkIdentity after navigation completes to avoid stale state
-  afterNavigate(() => {
-     if (kimpayId) checkIdentity();
   });
 </script>
 
@@ -142,7 +124,7 @@
                 <a 
                     href={fabState.href} 
                     onclick={() => haptic('light')}
-                    class="relative flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50"
+                    class="relative flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950"
                     title={fabState.label}
                 >
                     <span class="absolute inset-0 rounded-full {fabState.colorClass} blur-lg opacity-50 -z-10"></span>
@@ -156,7 +138,7 @@
                     <button
                     onclick={fabState.onClick}
                     disabled={fabState.disabled}
-                    class="relative flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass + ' shadow-primary/40'} text-white rounded-full h-16 w-16 shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 animate-in zoom-in-50 disabled:hover:scale-100 disabled:cursor-not-allowed disabled:shadow-none"
+                    class="relative flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass + ' shadow-primary/40'} text-white rounded-full h-16 w-16 shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 disabled:hover:scale-100 disabled:cursor-not-allowed disabled:shadow-none"
                     title={fabState.label}
                     aria-label={fabState.label}
                     >

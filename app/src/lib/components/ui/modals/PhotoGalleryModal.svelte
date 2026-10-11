@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, X } from "lucide-svelte";
+  import { ChevronLeft, ChevronRight, X } from "@lucide/svelte";
   import { fade } from 'svelte/transition';
   import { pb } from '$lib/pocketbase';
   import type { RecordModel } from 'pocketbase';

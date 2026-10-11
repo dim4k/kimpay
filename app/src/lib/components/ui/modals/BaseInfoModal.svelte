@@ -1,6 +1,7 @@
 <script lang="ts">
   import { cn } from "$lib/utils";
-  import type { ComponentType } from 'svelte';
+  import type { Component } from 'svelte';
+  import type { LucideProps } from '@lucide/svelte';
   import Modal from './Modal.svelte';
 
   let { 
@@ -18,7 +19,7 @@
     onClose: () => void;
     title: string;
     description: string;
-    icon: ComponentType;
+    icon: Component<LucideProps>;
     iconColorClass?: string;
     iconBgClass?: string;
     maxWidthClass?: string;

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { UserPlus, LoaderCircle, CircleAlert, CircleCheck } from "lucide-svelte";
+    import { UserPlus, LoaderCircle, CircleAlert, CircleCheck } from "@lucide/svelte";
     import { t, locale } from '$lib/i18n';
     import BaseInfoModal from './BaseInfoModal.svelte';
     import { Input } from "$lib/components/ui/input";

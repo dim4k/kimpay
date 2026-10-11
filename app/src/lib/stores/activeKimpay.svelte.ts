@@ -1,3 +1,4 @@
+import { createContext } from "svelte";
 import { pb } from "$lib/pocketbase";
 import { storageService } from "$lib/services/storage";
 import { offlineStore } from "$lib/stores/offline.svelte";
@@ -14,6 +15,15 @@ import {
 import { calculateBalances, calculateDebts, type Transaction } from "$lib/balance";
 import { getExchangeRates, DEFAULT_CURRENCY, convert } from "$lib/services/currency";
 import { objectToFormData } from "$lib/utils/formData";
+import { generatePocketBaseId } from "$lib/utils/id";
+
+/**
+ * The `/k/[id]` layout provides its ActiveKimpay to every page and component
+ * below it: `const ctx = getActiveKimpayContext(); ctx.value`.
+ * (`value` is a getter: the instance changes when navigating between Kimpays.)
+ */
+export const [getActiveKimpayContext, setActiveKimpayContext] =
+    createContext<{ readonly value: ActiveKimpay }>();
 
 // Relations expanded when fetching a Kimpay (full graph for the active view).
 const KIMPAY_EXPAND =
@@ -32,6 +42,15 @@ export class ActiveKimpay {
     private unsubscribeFns: Array<() => void> = [];
     // Debounce timer for coalescing realtime-triggered refetches
     private refetchTimer: ReturnType<typeof setTimeout> | null = null;
+    private destroyed = false;
+    // Only the latest fetch may apply its result (responses can arrive out of order).
+    private fetchSeq = 0;
+    // IDs created locally that the server has not returned yet (request in
+    // flight or queued offline). They are kept across refetches until the
+    // server knows them. IDs are generated client-side, so no remapping.
+    // Bookkeeping only (never rendered), hence a plain Set.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    private pendingIds = new Set<string>();
 
     // Derived State
     id: string;
@@ -93,50 +112,35 @@ export class ActiveKimpay {
     async init() {
         this.loading = true;
 
+        // Items created offline (still in the queue) must survive refetches.
+        const queue = await storageService.getPendingActions();
+        for (const action of queue) {
+            if (
+                action.kimpayId === this.id &&
+                (action.type === "CREATE_EXPENSE" ||
+                    action.type === "CREATE_PARTICIPANT")
+            ) {
+                this.pendingIds.add(action.id);
+            }
+        }
+
         // 1. Cache-First: Load from local storage immediately
         const cached = await storageService.getKimpayData(this.id);
-        if (cached) {
-            // Load identity from cached data
-            this.myParticipantId = cached.myParticipantId || null;
-            this.updateStateFromData(cached);
+        if (this.destroyed) return;
+        this.myParticipantId = cached?.myParticipantId || null;
+        // A cache entry may only hold the identity (no data fetched yet).
+        if (cached?.expand) {
+            this.applyData(cached);
             this.loading = false; // Show cached data immediately
-        } else {
-            // Fallback: try to get identity separately (for migration compatibility)
-            this.myParticipantId = await storageService.getMyParticipantId(
-                this.id,
-            );
         }
 
-        // 2. Network: Fetch fresh data
-        try {
-            const freshData = await pb.collection("kimpays").getOne(this.id, {
-                expand: KIMPAY_EXPAND,
-            });
-
-            const kimpayData = asKimpay(freshData);
-            this.updateStateFromData(kimpayData);
-
-            // Save to cache
-            await storageService.saveKimpayData(this.id, kimpayData);
-
-            // Update Recents list
-            recentsStore.addRecentKimpay({
-                id: freshData.id,
-                name: freshData.name,
-                icon: freshData.icon,
-                created_by: freshData.created_by,
-            });
-        } catch (e) {
-            console.error("Failed to load kimpay", e);
-            if (!cached) {
-                this.error = "Failed to load kimpay";
-            }
-        } finally {
-            this.loading = false;
-        }
-
-        // 3. Realtime Subscription
+        // 2. Realtime first, so no change between the fetch and the
+        // subscription can be missed.
         this.subscribe();
+        this.watchConnectivity();
+
+        // 3. Network: Fetch fresh data
+        await this.refetch();
 
         // 4. Fetch exchange rates (non-blocking for multi-currency balance)
         getExchangeRates()
@@ -148,57 +152,77 @@ export class ActiveKimpay {
             );
     }
 
-    private updateStateFromData(data: Kimpay, preserveTemp = false) {
+    private applyData(data: Kimpay) {
+        const expenses = data.expand?.expenses_via_kimpay ?? [];
+        const participants = data.expand?.participants_via_kimpay ?? [];
+
+        // Pending items the server now returns are confirmed.
+        for (const item of [...expenses, ...participants]) {
+            this.pendingIds.delete(item.id);
+        }
+        const pending = <T extends { id: string }>(list: T[]) =>
+            list.filter((item) => this.pendingIds.has(item.id));
+
         this.kimpay = data;
-        // Extract expanded relations
-        // Note: PocketBase returns 'expand' property.
-        // We need to be careful: if we save to localStorage, we save the whole object with expand.
+        this.expenses = [...pending(this.expenses), ...expenses];
+        this.participants = [...participants, ...pending(this.participants)];
+    }
 
-        if (data.expand) {
-            const freshExpenses = data.expand.expenses_via_kimpay || [];
-            const freshParticipants =
-                data.expand.participants_via_kimpay || [];
+    private async subscribe() {
+        try {
+            // Single-record subscription (uses the kimpays ViewRule, which stays
+            // public-by-UUID). A server hook "touches" the parent Kimpay whenever
+            // an expense or participant changes, so this one event covers the
+            // whole group without an open listRule on the child collections.
+            const unsubKimpay = await pb
+                .collection("kimpays")
+                .subscribe(this.id, (e) => {
+                    if (e.action === "update") {
+                        // Coalesce bursts of child changes into a single refetch.
+                        this.scheduleRefetch();
+                    } else if (e.action === "delete") {
+                        this.error = "Kimpay deleted";
+                        this.kimpay = null;
+                    }
+                });
 
-            if (preserveTemp) {
-                // Keep not-yet-synced optimistic items (temp IDs) that the
-                // server fetch doesn't know about yet, to avoid them flashing
-                // out when a realtime refetch lands mid-creation.
-                const tempExpenses = this.expenses.filter((e) =>
-                    e.id.startsWith("temp_"),
-                );
-                const tempParticipants = this.participants.filter((p) =>
-                    p.id.startsWith("temp_p_"),
-                );
-                this.expenses = [...tempExpenses, ...freshExpenses];
-                this.participants = [...freshParticipants, ...tempParticipants];
-            } else {
-                this.expenses = freshExpenses;
-                this.participants = freshParticipants;
-            }
+            // PocketBase does not replay events missed while the realtime
+            // connection was down: resync on every (re)connection.
+            const unsubConnect = await pb.realtime.subscribe("PB_CONNECT", () =>
+                this.scheduleRefetch(),
+            );
+
+            const unsubs = [unsubKimpay, unsubConnect];
+            if (this.destroyed) unsubs.forEach((fn) => fn());
+            else this.unsubscribeFns.push(...unsubs);
+        } catch (e) {
+            console.warn("Realtime subscription failed", e);
         }
     }
 
-    async subscribe() {
-        // Single-record subscription (uses the kimpays ViewRule, which stays
-        // public-by-UUID). A server hook "touches" the parent Kimpay whenever an
-        // expense or participant changes, so this one event covers the whole
-        // group without an open listRule on the child collections.
-        const unsubKimpay = await pb
-            .collection("kimpays")
-            .subscribe(this.id, (e) => {
-                if (e.action === "update") {
-                    // Coalesce bursts of child changes into a single refetch.
-                    this.scheduleRefetch();
-                } else if (e.action === "delete") {
-                    this.error = "Kimpay deleted";
-                    this.kimpay = null;
-                }
-            });
-
-        this.unsubscribeFns = [unsubKimpay];
+    /**
+     * Browsers suspend background tabs/PWAs (and their realtime connection):
+     * resync when the app comes back to the foreground or back online.
+     */
+    private watchConnectivity() {
+        if (typeof window === "undefined") return;
+        const onVisible = () => {
+            if (document.visibilityState === "visible") this.scheduleRefetch();
+        };
+        const onOnline = () => this.scheduleRefetch();
+        document.addEventListener("visibilitychange", onVisible);
+        window.addEventListener("online", onOnline);
+        // Also after the offline queue has been replayed.
+        const unsubSynced = offlineStore.onSynced(onOnline);
+        this.unsubscribeFns.push(
+            () => document.removeEventListener("visibilitychange", onVisible),
+            () => window.removeEventListener("online", onOnline),
+            unsubSynced,
+        );
     }
 
     private scheduleRefetch() {
+        if (this.destroyed) return;
         if (this.refetchTimer) clearTimeout(this.refetchTimer);
         this.refetchTimer = setTimeout(() => {
             this.refetchTimer = null;
@@ -207,31 +231,59 @@ export class ActiveKimpay {
     }
 
     private async refetch() {
+        if (this.destroyed || offlineStore.isOffline) {
+            this.loading = false;
+            return;
+        }
+        const seq = ++this.fetchSeq;
         try {
+            // requestKey: null opts out of the SDK auto-cancellation, which
+            // keys on method + path and would otherwise abort (or be aborted
+            // by) any other getOne on this same Kimpay.
             const fresh = await pb.collection("kimpays").getOne(this.id, {
                 expand: KIMPAY_EXPAND,
+                requestKey: null,
             });
-            const data = asKimpay(fresh);
-            // Preserve not-yet-synced optimistic items during the refetch.
-            this.updateStateFromData(data, true);
-            await storageService.saveKimpayData(this.id, data);
+            if (this.destroyed || seq !== this.fetchSeq) return;
+
+            this.applyData(asKimpay(fresh));
+            this.error = null;
+            this.persist();
+
+            recentsStore.addRecentKimpay({
+                id: fresh.id,
+                name: fresh.name,
+                icon: fresh.icon,
+                created_by: fresh.created_by,
+            });
         } catch (e) {
-            console.error("Failed to refetch kimpay", e);
+            if (this.destroyed || seq !== this.fetchSeq) return;
+            console.error("Failed to load kimpay", e);
+            if (!this.kimpay) this.error = "Failed to load kimpay";
+        } finally {
+            if (seq === this.fetchSeq) this.loading = false;
         }
     }
 
     // Persist current state to local storage
     private persist() {
-        if (this.kimpay) {
-            const fullData = {
-                ...this.kimpay,
-                expand: {
-                    expenses_via_kimpay: $state.snapshot(this.expenses),
-                    participants_via_kimpay: $state.snapshot(this.participants),
-                },
-            };
-            storageService.saveKimpayData(this.id, fullData);
-        }
+        if (!this.kimpay) return;
+        storageService.saveKimpayData(this.id, {
+            ...$state.snapshot(this.kimpay),
+            // Always written explicitly ("" = none), so a stale identity held
+            // in `kimpay` can never overwrite the current one.
+            myParticipantId: this.myParticipantId ?? "",
+            expand: {
+                expenses_via_kimpay: $state.snapshot(this.expenses),
+                participants_via_kimpay: $state.snapshot(this.participants),
+            },
+        });
+    }
+
+    /** Select (or clear) the current device's identity in this Kimpay. */
+    async setMyParticipant(participantId: string | null) {
+        this.myParticipantId = participantId;
+        await storageService.setMyParticipantId(this.id, participantId);
     }
 
     // --- Actions ---
@@ -245,11 +297,13 @@ export class ActiveKimpay {
             ? this.participants.filter((p) => data.involved!.includes(p.id))
             : [];
 
-        // 2. Optimistic Update with expand
-        const tempId = "temp_" + Date.now();
+        // 2. Optimistic Update with expand. The ID is generated client-side
+        // and sent to the server, so the optimistic item never needs remapping.
+        const id = generatePocketBaseId();
+        this.pendingIds.add(id);
         const optimisticExpense = {
             ...data,
-            id: tempId,
+            id,
             kimpay: this.id,
             // eslint-disable-next-line svelte/prefer-svelte-reactivity
             created: new Date().toISOString(),
@@ -272,35 +326,35 @@ export class ActiveKimpay {
             // IMPORTANT: Use $state.snapshot to convert Svelte 5 Proxies to plain objects
             // IndexedDB cannot clone Proxy objects
             const plainData = $state.snapshot(data);
-            offlineStore.queueAction(
+            await offlineStore.queueAction(
                 "CREATE_EXPENSE",
                 { ...plainData, kimpay: this.id },
                 this.id,
-                tempId,
+                id,
             );
             return;
         }
 
         try {
             // Prepare FormData
-            const formData = objectToFormData(data);
+            const formData = objectToFormData({ ...data, id, kimpay: this.id });
             photos.forEach((photo) => formData.append("photos", photo));
-            formData.append("kimpay", this.id);
 
             // Create and immediately fetch with expand for complete data
             const record = await pb.collection("expenses").create(formData, {
                 expand: "payer,involved",
             });
 
-            // Replace temp with real
+            this.pendingIds.delete(id);
             this.expenses = this.expenses.map((e) =>
-                e.id === tempId ? asExpense(record) : e,
+                e.id === id ? asExpense(record) : e,
             );
             this.persist();
         } catch (e) {
             console.error("Failed to create expense", e);
             // Rollback
-            this.expenses = this.expenses.filter((e) => e.id !== tempId);
+            this.pendingIds.delete(id);
+            this.expenses = this.expenses.filter((e) => e.id !== id);
             this.persist();
             throw e;
         }
@@ -392,10 +446,11 @@ export class ActiveKimpay {
     }
 
     async addParticipant(name: string) {
-        // 1. Optimistic
-        const tempId = "temp_p_" + Date.now();
+        // 1. Optimistic (client-generated ID, see addExpense)
+        const id = generatePocketBaseId();
+        this.pendingIds.add(id);
         const optimisticParticipant = {
-            id: tempId,
+            id,
             name,
             kimpay: this.id,
             // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -411,31 +466,32 @@ export class ActiveKimpay {
 
         // 2. Offline / Online
         if (offlineStore.isOffline) {
-            offlineStore.queueAction(
+            await offlineStore.queueAction(
                 "CREATE_PARTICIPANT",
-                { name, kimpay: this.id },
+                { id, name, kimpay: this.id },
                 this.id,
-                tempId,
+                id,
             );
             return optimisticParticipant;
         }
 
         try {
             const record = await pb.collection("participants").create({
+                id,
                 name,
                 kimpay: this.id,
             });
 
+            this.pendingIds.delete(id);
             this.participants = this.participants.map((p) =>
-                p.id === tempId ? asParticipant(record) : p,
+                p.id === id ? asParticipant(record) : p,
             );
             this.persist();
             return asParticipant(record);
         } catch (e) {
             console.error("Failed to add participant", e);
-            this.participants = this.participants.filter(
-                (p) => p.id !== tempId,
-            );
+            this.pendingIds.delete(id);
+            this.participants = this.participants.filter((p) => p.id !== id);
             this.persist();
             throw e;
         }
@@ -519,6 +575,7 @@ export class ActiveKimpay {
     }
 
     destroy() {
+        this.destroyed = true;
         if (this.refetchTimer) {
             clearTimeout(this.refetchTimer);
             this.refetchTimer = null;

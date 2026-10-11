@@ -17,7 +17,6 @@ export interface Participant {
     updated: string;
     name: string;
     kimpay: string;
-    local_id?: string;
     avatar?: string;
     user?: string; // Linked User ID
     expand?: {

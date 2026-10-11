@@ -1,13 +1,12 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { pb } from '$lib/pocketbase';
   import { modals } from '$lib/stores/modals.svelte';
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
-  import { Check } from "lucide-svelte";
+  import { Check } from "@lucide/svelte";
   import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
   import type { Participant } from '$lib/types';
-  import { storageService } from '$lib/services/storage';
+  import { getErrorMessage } from '$lib/utils/errors';
   import { auth } from '$lib/stores/auth.svelte';
   import { participantService } from '$lib/services/participant';
   import { recentsStore } from '$lib/stores/recents.svelte';
@@ -17,10 +16,15 @@
 
   let identityState = $derived(modals.identityState);
   let kimpayId = $derived(identityState?.kimpayId);
-  
-  let participants = $state<Participant[]>([]);
+
+  // The modal is only opened from inside a Kimpay: read the live, reactive
+  // participants of the active instance (no extra fetch needed).
+  let activeKimpay = $derived(
+    activeKimpayGlobal.instance?.id === kimpayId ? activeKimpayGlobal.instance : null
+  );
+  let participants = $derived<Participant[]>(activeKimpay?.participants ?? []);
+  let selectedParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let newParticipantName = $state("");
-  let selectedParticipantId = $state<string | null>(null);
 
   // Filter out participants already linked to a User (unless it's the current logged-in user)
   let selectableParticipants = $derived(
@@ -34,55 +38,12 @@
     })
   );
 
-  // Sync with global state if available to show checkmark
-  $effect(() => {
-      if (activeKimpayGlobal.myParticipant) {
-          selectedParticipantId = activeKimpayGlobal.myParticipant.id;
-      } else {
-        // Try local storage
-        if (kimpayId) {
-             storageService.getMyParticipantId(kimpayId).then(id => {
-                 if (id) selectedParticipantId = id;
-             });
-        }
-      }
-  });
-
-  // Load participants from options or store
-  $effect(() => {
-      if (isOpen) {
-          const globalKimpay = activeKimpayGlobal.kimpay;
-          if (identityState?.participants && identityState.participants.length > 0) {
-              participants = identityState.participants;
-          } else if (globalKimpay && globalKimpay.id === kimpayId && globalKimpay.expand?.participants_via_kimpay) {
-              // Ensure we are looking at the right kimpay's participants
-              participants = globalKimpay.expand.participants_via_kimpay;
-          } else {
-              // Fallback: If not passed and not in store, we must fetch via kimpay expand
-              // We cannot list participants directly (403).
-              fetchParticipantsViaKimpay();
-          }
-      }
-  });
-
-  async function fetchParticipantsViaKimpay() {
-      if (!kimpayId) return;
-      try {
-           const k = await pb.collection('kimpays').getOne(kimpayId, {
-               expand: 'participants_via_kimpay'
-           });
-           participants = k.expand?.participants_via_kimpay || [];
-      } catch (e) {
-          console.error("Failed to fetch participants via kimpay", e);
-      }
-  }
-
   async function selectParticipant(participantId: string) {
-      if (!kimpayId) return;
+      if (!activeKimpay || !kimpayId) return;
 
-      storageService.setMyParticipantId(kimpayId, participantId);
-      
-      selectedParticipantId = participantId;
+      // The store is reactive: every view picks the new identity up at once.
+      await activeKimpay.setMyParticipant(participantId);
+      modals.closeIdentity();
 
       // If user is logged in, auto-claim this participant
       if (auth.user) {
@@ -93,27 +54,16 @@
               console.error("Failed to auto-claim participant", e);
           }
       }
-
-      if (identityState?.onSelect) {
-           identityState.onSelect();
-      } else {
-           window.location.reload();
-      }
-      modals.closeIdentity();
   }
 
   async function createAndSelectParticipant() {
-      if (!newParticipantName.trim() || !kimpayId) return;
+      if (!activeKimpay || !newParticipantName.trim()) return;
       try {
-          const record = await pb.collection('participants').create({
-              name: newParticipantName,
-              kimpay: kimpayId
-          });
-          
-          await selectParticipant(record.id);
+          const participant = await activeKimpay.addParticipant(newParticipantName.trim());
+          await selectParticipant(participant.id);
       } catch (e) {
           console.error("Failed to add participant", e);
-          modals.alert({ message: "Failed to create participant", title: "Error" });
+          modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
       }
   }
 </script>

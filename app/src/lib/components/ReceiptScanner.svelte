@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Camera, Loader2 } from 'lucide-svelte';
+    import { Camera, Loader2 } from '@lucide/svelte';
     import { t, locale } from '$lib/i18n';
-    import { pb } from '$lib/pocketbase';
+    import { auth } from '$lib/stores/auth.svelte';
     import { scanReceipt, compressImage, type OcrResult } from '$lib/services/ocr';
     import { modals } from '$lib/stores/modals.svelte';
 
@@ -19,8 +19,8 @@
     let isScanning = $state(false);
     let fileInput: HTMLInputElement | null = $state(null);
     
-    // Check if user is authenticated
-    let isAuthenticated = $derived(pb.authStore.isValid);
+    // Reactive auth state (pb.authStore itself is not reactive)
+    let isAuthenticated = $derived(auth.isValid);
 
     async function handleFileSelect(event: Event) {
         const input = event.target as HTMLInputElement;
@@ -34,7 +34,7 @@
         if (!file.type.startsWith('image/')) {
             modals.alert({
                 title: $t('expense.form.scan_error'),
-                message: 'Please select an image file'
+                message: $t('expense.form.scan_unreadable')
             });
             return;
         }
@@ -54,17 +54,15 @@
         } catch (error) {
             console.error('OCR Error:', error);
             
+            // PocketBase errors carry the HTTP status (not in the message).
+            const status = (error as { status?: number }).status;
             let errorMessage = $t('expense.form.scan_error');
-            
-            if (error instanceof Error) {
-                // Check for specific error codes
-                if (error.message.includes('401')) {
-                    errorMessage = $t('expense.form.scan_login_required');
-                } else if (error.message.includes('429')) {
-                    errorMessage = $t('expense.form.scan_rate_limited');
-                } else if (error.message.includes('422')) {
-                    errorMessage = $t('expense.form.scan_unreadable');
-                }
+            if (status === 401) {
+                errorMessage = $t('expense.form.scan_login_required');
+            } else if (status === 429) {
+                errorMessage = $t('expense.form.scan_rate_limited');
+            } else if (status === 422) {
+                errorMessage = $t('expense.form.scan_unreadable');
             }
             
             modals.alert({

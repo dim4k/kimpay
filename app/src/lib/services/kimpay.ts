@@ -116,7 +116,8 @@ export const kimpayService = {
         try {
             // Fetch kimpay with expenses to check involvement
             const kimpay = await pb.collection('kimpays').getOne(kimpayId, {
-                expand: 'expenses_via_kimpay'
+                expand: 'expenses_via_kimpay',
+                requestKey: null,
             });
 
             let canDelete = true;

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Pencil, Trash2 } from "lucide-svelte";
+    import { Pencil, Trash2 } from "@lucide/svelte";
     import { haptic } from '$lib/utils/haptic';
     import { t } from '$lib/i18n';
 
@@ -159,6 +159,7 @@
     <!-- Swipeable Content -->
     <div
         class="swipeable-content relative z-10"
+        role="group"
         style={contentStyle}
         ontouchstart={handleTouchStart}
         ontouchmove={handleTouchMove}

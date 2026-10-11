@@ -1,11 +1,13 @@
 <script lang="ts">
-    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "lucide-svelte";
-    import { t } from '$lib/i18n';
+    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "@lucide/svelte";
+    import { t, locale } from '$lib/i18n';
+    import { parseLocalISODate } from '$lib/utils/date';
+    import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
     import { cubicOut } from 'svelte/easing';
     import { offlineStore } from '$lib/stores/offline.svelte';
-    import { formatAmount } from '$lib/services/currency';
+    import { formatAmount, DEFAULT_CURRENCY } from '$lib/services/currency';
     import SwipeableItem from '$lib/components/ui/SwipeableItem.svelte';
 
     let { 
@@ -97,7 +99,7 @@
                     {#if expense.is_reimbursement}
                         <HandCoins class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     {:else}
-                        {expense.icon || '💸'}
+                        {expense.icon || DEFAULT_EXPENSE_EMOJI}
                     {/if}
                     <!-- Camera indicator if collapsed -->
                     {#if (!expandedId || expandedId !== expense.id) && expense.photos && expense.photos.length > 0}
@@ -138,7 +140,7 @@
             </div>
         </div>
         <div class="shrink-0 font-bold text-sm leading-none text-right tabular-nums px-2.5 py-1.5 rounded-lg transition-colors {expense.is_reimbursement ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/30' : currentUserId && expense.payer === currentUserId ? 'text-primary dark:text-primary-foreground bg-primary/10 dark:bg-primary/25' : 'text-slate-900 dark:text-slate-100 bg-muted dark:bg-slate-800'}">
-            {formatAmount(expense.amount, expense.currency || 'EUR')}
+            {formatAmount(expense.amount, expense.currency || DEFAULT_CURRENCY, $locale)}
         </div>
     </div>
 
@@ -150,7 +152,7 @@
                     <!-- Simplified Layout for Reimbursements -->
                      <div class="text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center">
                         <span>Date</span>
-                        <span class="font-medium text-slate-700 dark:text-slate-300">{new Date(expense.date).toLocaleDateString()}</span>
+                        <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
                     </div>
 
                     <button 
@@ -166,7 +168,7 @@
                     <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
                         <div class="flex justify-between">
                             <span>Date:</span>
-                            <span class="font-medium text-slate-700 dark:text-slate-300">{new Date(expense.date).toLocaleDateString()}</span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
                         </div>
                         
                         <div class="flex justify-between items-center">
@@ -244,6 +246,3 @@
 </div>
 </SwipeableItem>
 
-<style>
-  /* Styles handled inline via class bindings */
-</style>

@@ -1,6 +1,5 @@
 
 import type { Config } from 'tailwindcss';
-import typography from '@tailwindcss/typography';
 import { fontFamily } from "tailwindcss/defaultTheme";
 
 const config: Config = {
@@ -60,7 +59,7 @@ const config: Config = {
 			}
 		}
 	},
-	plugins: [typography]
+	plugins: []
 };
 
 export default config;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WifiOff, Check, X } from "lucide-svelte";
+  import { WifiOff, Check, X } from "@lucide/svelte";
   import { t } from '$lib/i18n';
   import BaseInfoModal from './BaseInfoModal.svelte';
 

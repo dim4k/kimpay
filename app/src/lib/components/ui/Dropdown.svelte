@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ChevronDown } from "lucide-svelte";
+    import { ChevronDown } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
 
     type Position = 'bottom-right' | 'bottom-left';

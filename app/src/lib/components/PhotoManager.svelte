@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Camera, X } from "lucide-svelte";
+    import { Camera, X } from "@lucide/svelte";
     import { pb } from '$lib/pocketbase';
     import { t } from '$lib/i18n';
     import { offlineStore } from '$lib/stores/offline.svelte';

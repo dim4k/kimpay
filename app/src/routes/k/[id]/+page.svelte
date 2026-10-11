@@ -1,24 +1,20 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
-  import { Wallet, AlertTriangle, Check, ArrowUpDown } from "lucide-svelte"; 
-  import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
+  import { Wallet, AlertTriangle, Check, ArrowUpDown } from "@lucide/svelte"; 
+  import { confirmDeleteExpense } from '$lib/components/expense/deleteExpense';
   import Dropdown from '$lib/components/ui/Dropdown.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
   import { modals } from '$lib/stores/modals.svelte';
-  import { t } from '$lib/i18n';
+  import { t, locale } from '$lib/i18n';
   import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
-  import { getErrorMessage } from '$lib/utils/errors';
   import type { Expense } from '$lib/types';
   import type { TranslationKey } from '$lib/locales/en';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import { offlineStore } from '$lib/stores/offline.svelte';
   import { DEFAULT_CURRENCY, convert, formatAmount } from '$lib/services/currency';
-  import { toasts } from '$lib/stores/toasts.svelte';
-  import { haptic } from '$lib/utils/haptic';
   
   // Get ActiveKimpay from context
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
   
   let kimpayId = $derived(activeKimpay?.id ?? '');
@@ -90,10 +86,6 @@
           .reduce((sum, e) => sum + toKimpayCurrency(e.amount, e.currency), 0);
   });
 
-  // Modal State
-  let expenseToDelete = $state<string | null>(null);
-  let isDeleting = $state(false);
-
   // Accordion State
   let expandedId = $state<string | null>(null);
 
@@ -115,24 +107,7 @@
   }
 
   function requestDelete(id: string) {
-      expenseToDelete = id;
-  }
-
-  async function confirmDelete() {
-      if (!expenseToDelete || !activeKimpay) return;
-      isDeleting = true;
-      try {
-          await activeKimpay.deleteExpense(expenseToDelete);
-          expenseToDelete = null;
-          haptic('success');
-          toasts.success($t('toast.expense_deleted'));
-      } catch (e) {
-          console.error("Failed to delete", e);
-          haptic('error');
-          toasts.error(getErrorMessage(e, $t));
-      } finally {
-          isDeleting = false;
-      }
+      if (activeKimpay) confirmDeleteExpense(activeKimpay, id);
   }
 </script>
 
@@ -150,7 +125,7 @@
   </header>
 
   {#if offlineStore.isOffline}
-      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
+      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
           <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
           <p class="text-sm text-amber-700 dark:text-amber-300">{$t('expense.offline_warning')}</p>
       </div>
@@ -163,7 +138,7 @@
             <!-- My Contribution -->
             {#if currentUserId}
                 <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">
-                    {$t('expense.my_contribution')}: {formatAmount(myContribution, kimpayC)}
+                    {$t('expense.my_contribution')}: {formatAmount(myContribution, kimpayC, $locale)}
                 </span>
             {:else}
                 <div></div>
@@ -221,15 +196,4 @@
         </div>
     {/if}
   </div>
-
-  <ConfirmModal 
-      isOpen={!!expenseToDelete}
-      title={$t('modal.delete_expense.title')}
-      description={$t('modal.delete_expense.desc')}
-      confirmText={$t('modal.delete_expense.confirm')}
-      variant="destructive"
-      isProcessing={isDeleting}
-      onConfirm={confirmDelete}
-      onCancel={() => expenseToDelete = null}
-  />
 </div>

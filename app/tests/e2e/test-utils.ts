@@ -37,15 +37,14 @@ export async function dismissInstallPrompt(page: Page) {
  * a "Switch identity" button, so with two participants the target is
  * unambiguous.
  *
- * Confirming the modal triggers a full page reload (window.location.reload),
- * so we explicitly wait for the reload to complete before returning to avoid
- * racing subsequent navigation.
+ * The identity is applied in place (no page reload): wait for the confirm
+ * dialog to close before returning.
  */
 export async function switchIdentity(page: Page) {
     await page.getByRole('button', { name: /switch identity|changer/i }).first().click();
 
-    const reload = page.waitForEvent('load');
-    await page.getByRole('dialog').getByRole('button', { name: /save|enregistrer/i }).click();
-    await reload;
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: /save|enregistrer/i }).click();
+    await expect(dialog).toBeHidden();
 }
 

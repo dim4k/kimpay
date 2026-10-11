@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { X, Download } from 'lucide-svelte';
+  import { X, Download } from '@lucide/svelte';
   import { fly } from 'svelte/transition';
   import { t } from '$lib/i18n';
   import { installStore } from '$lib/stores/install.svelte';
@@ -85,14 +85,14 @@
 {#if installStore.showIOSInstructions}
   <!-- iOS Instructions Modal -->
   <div 
-    class="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in"
+    class="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
     onclick={() => installStore.showIOSInstructions = false}
      role="button" 
      tabindex="-1" 
      onkeydown={(e) => e.key === 'Escape' && (installStore.showIOSInstructions = false)}
   >
     <div 
-        class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 relative shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95"
+        class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 relative shadow-2xl sm:zoom-in-95"
         onclick={(e) => e.stopPropagation()}
         role="button" 
         tabindex="-1" 

@@ -10,18 +10,14 @@ export const es: Record<TranslationKey, string> = {
     "home.create.my_name_placeholder": "ej. Carlos",
     "home.create.email_label": "Email (Opcional)",
     "home.create.email_placeholder": "tu@email.com",
-    "home.create.email_help":
-        "Deja tu email para recibir el enlace del Kimpay (útil si pierdes el acceso).",
     "home.create.participants_label": "Participantes (Opcional)",
     "home.create.participants_placeholder": "Añadir persona",
     "home.create.button": "Crear",
-    "home.create.currency_label": "Moneda",
     "home.create.loading": "Creando...",
     "home.join.title": "O UNIRSE",
     "home.join.placeholder": "Código de invitación",
     "home.join.button": "Unirse",
     "home.join.error_not_found": "Kimpay no encontrado",
-    "home.history.title": "Kimpays recientes",
     "home.history.leave_tooltip": "Abandonar grupo",
 
     "modal.leave.title": "¿Abandonar grupo?",
@@ -35,7 +31,9 @@ export const es: Record<TranslationKey, string> = {
     "modal.delete_expense.confirm": "Eliminar",
 
     "common.cancel": "Cancelar",
+    "common.confirm": "Confirmar",
     "common.save": "Guardar",
+    "common.saved": "¡Guardado!",
     "common.loading": "Cargando...",
     "common.delete": "Eliminar",
     "common.edit": "Editar",
@@ -46,7 +44,6 @@ export const es: Record<TranslationKey, string> = {
     "toast.expense_added": "¡Gasto añadido!",
     "toast.expense_updated": "¡Gasto actualizado!",
     "toast.expense_deleted": "¡Gasto eliminado!",
-    "toast.copied": "¡Copiado!",
     "toast.avatar_updated": "¡Foto actualizada!",
     "toast.avatar_update_failed": "Error al actualizar la foto",
 
@@ -61,9 +58,7 @@ export const es: Record<TranslationKey, string> = {
     "nav.share": "Compartir",
     "nav.balance": "Balance",
     "nav.settings": "Ajustes",
-    "nav.new": "Nuevo",
 
-    "expense.list.title": "Gastos",
     "expense.list.items": "elementos",
     "expense.list.paid_by": "Pagado por",
     "expense.list.for": "Para",
@@ -78,12 +73,12 @@ export const es: Record<TranslationKey, string> = {
     "expense.form.amount_label": "Importe",
     "expense.form.amount_placeholder": "0.00",
     "expense.form.paid_by_label": "Pagado por",
-    "expense.form.paid_by_select": "Seleccionar pagador",
     "expense.form.for_whom_label": "¿Para quién?",
     "expense.form.select_all": "Seleccionar todos",
     "expense.form.select_none": "Ninguno",
     "expense.form.date_label": "Fecha",
-    "expense.form.currency_label": "Moneda",
+    "datepicker.placeholder": "Seleccionar una fecha",
+    "datepicker.today": "Hoy",
     "expense.form.photos_label": "Fotos",
     "expense.form.add_photos": "Añadir fotos",
     "expense.form.photos_disabled_offline": "Fotos desactivadas offline",
@@ -101,6 +96,7 @@ export const es: Record<TranslationKey, string> = {
     "expense.form.scan_unreadable": "No se pudo leer este recibo. Intenta con una foto más clara.",
     "expense.add.title": "Añadir gasto",
     "expense.edit.title": "Editar gasto",
+    "expense.not_found": "Gasto no encontrado",
     "modal.add_participant.title": "Añadir participante",
     "modal.add_participant.placeholder": "Nombre",
     "modal.add_participant.confirm": "Añadir",
@@ -111,10 +107,6 @@ export const es: Record<TranslationKey, string> = {
 
     "settings.title": "Ajustes",
     "settings.subtitle": "Gestionar preferencias del grupo",
-    "settings.share_link": "Compartir enlace",
-    "settings.share_desc": "Copia el enlace para invitar amigos",
-    "settings.share_button": "Copiar enlace",
-    "settings.copied": "¡Copiado!",
     "settings.edit_group": "Editar grupo",
     "settings.participants": "Participantes",
     "settings.participants.add": "Añadir",
@@ -123,7 +115,6 @@ export const es: Record<TranslationKey, string> = {
     "settings.switch_identity": "Cambiar identidad",
     "settings.switch_modal.desc":
         "¿Seguro que quieres cambiar a esta identidad?",
-    "settings.switched": "Ahora eres {name}",
     "settings.danger_zone": "Zona de peligro",
     "settings.leave_group": "Abandonar grupo",
     "settings.delete_group": "Eliminar grupo",
@@ -137,11 +128,6 @@ export const es: Record<TranslationKey, string> = {
 
     "balance.title": "Balance",
     "balance.subtitle": "¿Quién debe a quién?",
-    "balance.total_spent": "Total gastado",
-    "balance.my_balance": "Mi balance",
-    "balance.settle_up": "Cómo saldar",
-    "balance.owes": "debe a",
-    "balance.no_debts": "¡Todo saldado! 🎉",
     "balance.empty.title": "Sin gastos aún.",
     "balance.empty.desc": "Añade gastos para ver cómo dividirlos.",
     "balance.settled.title": "¡Todo saldado!",
@@ -152,7 +138,6 @@ export const es: Record<TranslationKey, string> = {
     "balance.pays": "paga",
     "balance.your_summary": "Resumen",
     "balance.total_group": "GASTOS TOTALES",
-    "balance.display_currency": "Moneda de visualización",
     "balance.you_owe": "DEBES",
     "balance.owed_to_you": "TE DEBEN",
 
@@ -171,11 +156,8 @@ export const es: Record<TranslationKey, string> = {
     "common.offline": "Sin conexión",
     "common.offline_edit_error": "No se pueden editar gastos offline",
 
-    "share.title": "Unirse al grupo",
-    "share.desc": "Escanea para unirte",
     "share.invite_button": "Compartir enlace de invitación",
     "share.invite_friends": "Invita amigos a dividir gastos",
-    "share.copy_link": "Copiar enlace de invitación",
     "share.copy_success": "¡Copiado!",
     "share.copy_button": "Copiar enlace",
 
@@ -209,12 +191,9 @@ export const es: Record<TranslationKey, string> = {
         "Selecciona tu nombre o añade un nuevo participante para unirte a este grupo.",
     "identity.new_name_placeholder": "Tu nombre",
     "identity.create_button": "Unirse como nuevo",
-    "identity.join_as": "Unirse como {name}",
 
     "identity.change": "Cambiar",
     "settings.install.title": "Instalación",
-    "settings.install.desc":
-        "Instala Kimpay en tu dispositivo para acceso más rápido y mejor experiencia offline.",
     "settings.install.desc_mobile":
         "Instala para acceso rápido y soporte offline.",
     "settings.install.button": "Instalar Kimpay",
@@ -230,6 +209,7 @@ export const es: Record<TranslationKey, string> = {
     "export.col.date": "Fecha",
     "export.col.desc": "Descripción",
     "export.col.amount": "Importe",
+    "export.col.currency": "Moneda",
     "export.col.payer": "Pagador",
     "export.col.for": "Para",
     "export.meta.date": "Fecha de exportación",
@@ -241,25 +221,18 @@ export const es: Record<TranslationKey, string> = {
     "install.prompt.button": "Instalar",
     "error.email.invalid.title": "Email inválido",
     "error.email.invalid.message": "Por favor introduce un email válido",
-    "home.create.existing_user_modal.title": "Revisa tu email",
-    "home.create.existing_user_modal.message":
-        "Parece que este email ya está registrado. Te hemos enviado un enlace mágico para iniciar sesión.",
     "auth.logout": "Cerrar sesión",
     "auth.magic_link_error_title": "Enlace inválido",
     "auth.magic_link_error_desc":
         "Este enlace es inválido o ha expirado. Por favor solicita uno nuevo.",
     "my_kimpays.title": "Mis Kimpays",
     "my_kimpays.empty": "Aún no te has unido a ningún Kimpay.",
+    "my_kimpays.no_other": "No hay otros Kimpays.",
 
-    "home.recover.title": "Recuperar mis kimpays",
-    "home.recover.subtitle": "Introduce tu email para recibir un enlace mágico",
-    "home.recover.email_placeholder": "tu@email.com",
     "home.recover.button": "Enviar enlace mágico",
-    "home.recover.success": "¡Enlace enviado! Revisa tu bandeja de entrada.",
     "home.recover.success_title": "¡Enlace enviado!",
     "home.recover.success_desc": "Revisa tu bandeja de entrada.",
     "home.recover.error": "No se pudo enviar el enlace. Inténtalo más tarde.",
-    "home.recover.error_not_found": "No se encontró cuenta con este email.",
 
     "register.title": "Registrarse",
     "register.desc": "Crea una cuenta para guardar tus kimpays.",
@@ -295,10 +268,6 @@ export const es: Record<TranslationKey, string> = {
     "home.offline.desc":
         "Crea o únete a un Kimpay cuando estés online. Tus Kimpays en caché siguen disponibles abajo.",
 
-    "join.offline.title": "Conexión requerida",
-    "join.offline.desc":
-        "Unirse a un Kimpay requiere conexión a internet. Inténtalo cuando estés online.",
-    "common.back_home": "Volver al inicio",
 
     "user_settings.title": "Ajustes",
     "user_settings.currency.title": "Moneda preferida",

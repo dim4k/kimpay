@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { onMount, getContext } from 'svelte';
+  import { onMount } from 'svelte';
 
-  import { Copy, Check, Share2, LoaderCircle } from "lucide-svelte";
+  import { Copy, Check, Share2, LoaderCircle } from "@lucide/svelte";
   import { t } from '$lib/i18n';
   import QRCode from 'qrcode';
   import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
   import { toasts } from '$lib/stores/toasts.svelte';
   import { haptic } from '$lib/utils/haptic';
 
   // Get ActiveKimpay from context
-  const ctx = getContext<{ value: ActiveKimpay }>('ACTIVE_KIMPAY');
+  const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
 
   let kimpayId = $derived(activeKimpay?.id ?? '');

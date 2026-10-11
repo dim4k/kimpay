@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
-    import { CircleAlert, Info, CircleCheck } from "lucide-svelte";
+    import { CircleAlert, Info, CircleCheck } from "@lucide/svelte";
     import Modal from './Modal.svelte';
     
     let { isOpen, title, message, variant = 'error', onConfirm }: { 

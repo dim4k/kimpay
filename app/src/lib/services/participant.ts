@@ -9,8 +9,11 @@ export const participantService = {
      */
     async claim(participantId: string, kimpayId: string, userId: string): Promise<Participant> {
         // 1. Fetch Kimpay with participants (Allowed via getOne if we have access)
+        // requestKey: null: don't cancel (or get cancelled by) the active
+        // Kimpay's own fetch of this same record.
         const kimpay = await pb.collection('kimpays').getOne(kimpayId, {
-            expand: 'participants_via_kimpay'
+            expand: 'participants_via_kimpay',
+            requestKey: null,
         });
         
         const records = (kimpay.expand?.participants_via_kimpay || []) as Participant[];
@@ -38,31 +41,10 @@ export const participantService = {
     },
 
     /**
-     * Creates a new participant.
-     */
-    async create(kimpayId: string, name: string, localId?: string, userId?: string, avatar?: File): Promise<Participant> {
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('kimpay', kimpayId);
-        if (localId) formData.append('local_id', localId);
-        if (userId) formData.append('user', userId);
-        if (avatar) formData.append('avatar', avatar);
-
-        return await pb.collection('participants').create<Participant>(formData);
-    },
-
-    /**
      * Update participant avatar
      */
     async updateAvatar(participantId: string, file: File): Promise<Participant> {
         return await pb.collection('participants').update<Participant>(participantId, { avatar: file });
-    },
-
-    /**
-     * Unclaim a participant (remove user link)
-     */
-    async unclaim(participantId: string): Promise<Participant> {
-        return await pb.collection('participants').update<Participant>(participantId, { user: null });
     },
 };
 

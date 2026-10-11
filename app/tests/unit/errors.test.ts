@@ -16,6 +16,10 @@ describe('utils/errors', () => {
             expect(isNetworkError({ status: 0 })).toBe(true);
         });
 
+        it('should return false for a request cancelled by the client', () => {
+            expect(isNetworkError({ status: 0, isAbort: true })).toBe(false);
+        });
+
         it('should return true when navigator is offline', () => {
             vi.stubGlobal('navigator', { onLine: false });
             expect(isNetworkError({ status: 500 })).toBe(true);
