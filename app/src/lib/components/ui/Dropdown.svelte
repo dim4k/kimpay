@@ -1,6 +1,9 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte';
     import { ChevronDown } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
+    import { cn } from '#lib/utils/cn.js';
+    import { dismissable } from '#lib/attachments/dismissable.js';
 
     type Position = 'bottom-right' | 'bottom-left';
     type DropdownSize = 'sm' | 'md';
@@ -11,38 +14,31 @@
         /** Size variant */
         size?: DropdownSize;
         /** Trigger button content - receives isOpen state */
-        trigger: import('svelte').Snippet<[boolean]>;
+        trigger: Snippet<[boolean]>;
         /** Dropdown menu content - receives close function */
-        items: import('svelte').Snippet<[() => void]>;
+        items: Snippet<[() => void]>;
         /** Optional class for the container */
         class?: string;
-        /** Optional class for the trigger button */
+        /** Optional class for the trigger button (merged, so it can override defaults) */
         triggerClass?: string;
+        /** Accessible label of the trigger */
+        label?: string;
     }
 
-    let { 
+    let {
         position = 'bottom-right',
         size = 'md',
         trigger,
         items,
         class: className = '',
-        triggerClass = ''
+        triggerClass = '',
+        label
     }: Props = $props();
 
     let isOpen = $state(false);
 
     function close() {
         isOpen = false;
-    }
-
-    function toggle() {
-        isOpen = !isOpen;
-    }
-
-    function handleKeydown(e: KeyboardEvent) {
-        if (e.key === 'Escape') {
-            close();
-        }
     }
 
     const sizeClasses = {
@@ -56,31 +52,25 @@
     };
 </script>
 
-<div class="relative {className}">
+<div class="relative {className}" {@attach isOpen && dismissable(close)}>
     <button
         type="button"
-        onclick={toggle}
-        onkeydown={handleKeydown}
-        class="flex items-center gap-1.5 rounded-lg bg-muted hover:bg-muted/70 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors font-medium {sizeClasses[size]} {triggerClass}"
+        onclick={() => (isOpen = !isOpen)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={label}
+        class={cn("flex items-center gap-1.5 rounded-lg bg-muted hover:bg-muted/70 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors font-medium", sizeClasses[size], triggerClass)}
     >
         {@render trigger(isOpen)}
         <ChevronDown class="h-3 w-3 text-muted-foreground transition-transform {isOpen ? 'rotate-180' : ''}" />
     </button>
 
     {#if isOpen}
-        <div 
-            class="absolute top-full mt-1 z-50 bg-popover text-popover-foreground rounded-lg shadow-xl border min-w-[120px] max-h-48 overflow-y-auto {positionClasses[position]}" 
+        <div
+            class="absolute top-full mt-1 z-50 bg-popover text-popover-foreground rounded-lg shadow-xl border min-w-[120px] max-h-48 overflow-y-auto {positionClasses[position]}"
             transition:slide={{ duration: 150 }}
         >
             {@render items(close)}
         </div>
-        <!-- Backdrop to close on outside click -->
-        <div 
-            class="fixed inset-0 z-40" 
-            onclick={close} 
-            role="button" 
-            tabindex="-1" 
-            onkeydown={handleKeydown}
-        ></div>
     {/if}
 </div>

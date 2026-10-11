@@ -4,6 +4,7 @@
   import { fly } from 'svelte/transition';
   import { t } from '#lib/i18n.js';
   import { installStore } from '#lib/stores/install.svelte.js';
+  import Modal from '#lib/components/ui/modals/Modal.svelte';
   import { get, set } from 'idb-keyval';
 
   let showPrompt = $state(false);
@@ -74,7 +75,7 @@
         <button 
             onclick={dismiss}
             class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
-            aria-label="Dismiss install prompt"
+            aria-label={$t('install.prompt.dismiss')}
         >
             <X class="h-5 w-5" />
         </button>
@@ -82,40 +83,33 @@
   </div>
 {/if}
 
-{#if installStore.showIOSInstructions}
-  <!-- iOS Instructions Modal -->
-  <div 
-    class="fixed inset-0 z-110 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4"
-    onclick={() => installStore.showIOSInstructions = false}
-     role="button" 
-     tabindex="-1" 
-     onkeydown={(e) => e.key === 'Escape' && (installStore.showIOSInstructions = false)}
-  >
-    <div 
-        class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 relative shadow-2xl sm:zoom-in-95"
-        onclick={(e) => e.stopPropagation()}
-        role="button" 
-        tabindex="-1" 
-        onkeydown={() => {}}
+<Modal
+    isOpen={installStore.showIOSInstructions}
+    onClose={() => (installStore.showIOSInstructions = false)}
+    class="relative rounded-2xl space-y-0"
+    backdropClass="bg-black/60 items-end sm:items-center"
+>
+    <button
+        onclick={() => (installStore.showIOSInstructions = false)}
+        class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+        aria-label={$t('common.close')}
     >
-        <button onclick={() => installStore.showIOSInstructions = false} class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-            <X class="h-5 w-5" />
-        </button>
+        <X class="h-5 w-5" />
+    </button>
 
-        <div class="flex flex-col items-center text-center gap-4">
-            <div class="h-14 w-14 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none mb-2">
-                 <Download class="h-7 w-7 text-white" />
-            </div>
-            
-            <h3 class="text-lg font-bold">Install on iPhone</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
-                1. Tap the <strong class="text-indigo-600 dark:text-indigo-400">Share</strong> icon <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg> in the Safari toolbar
-            </p>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
-                2. Select <strong class="text-indigo-600 dark:text-indigo-400">Add to Home Screen</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            </p>
+    <div class="flex flex-col items-center text-center gap-4">
+        <div class="h-14 w-14 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none mb-2">
+             <Download class="h-7 w-7 text-white" />
         </div>
-        <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-t-10 border-t-white dark:border-t-slate-900"></div>
+
+        <h3 class="text-lg font-bold">{$t('install.ios.title')}</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+            1. {$t('install.ios.step1')} <strong class="text-indigo-600 dark:text-indigo-400">{$t('install.ios.share')}</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+        </p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+            2. {$t('install.ios.step2')} <strong class="text-indigo-600 dark:text-indigo-400">{$t('install.ios.add_to_home')}</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+        </p>
     </div>
-  </div>
-{/if}
+    <!-- Arrow pointing at the Safari toolbar (bottom of the screen) -->
+    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-t-10 border-t-white dark:border-t-slate-900 sm:hidden"></div>
+</Modal>

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { ArrowRight, Wallet, CircleCheck, AlertTriangle, Check } from "@lucide/svelte";
+  import { ArrowRight, Wallet, CircleCheck, AlertTriangle } from "@lucide/svelte";
   import { fade } from 'svelte/transition';
 
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import PageHeader from '#lib/components/ui/PageHeader.svelte';
-  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import { t, locale } from '#lib/i18n.js';
@@ -14,7 +14,7 @@
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { pb } from '#lib/pocketbase.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '#lib/services/currency.js';
+  import { formatAmount, convert, DEFAULT_CURRENCY, getSymbol } from '#lib/services/currency.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -128,30 +128,7 @@
              <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">{$t('balance.suggested.title')}</h2>
-                    <!-- Currency Selector -->
-                    <Dropdown size="sm">
-                        {#snippet trigger()}
-                            <span class="text-xs">{getSymbol(displayCurrency)}</span>
-                            <span class="text-xs">{displayCurrency}</span>
-                        {/snippet}
-                        {#snippet items(close)}
-                            {#each CURRENCY_CODES as code (code)}
-                                <button
-                                    type="button"
-                                    onclick={() => { displayCurrency = code; close(); }}
-                                    class="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors text-sm {displayCurrency === code ? 'bg-secondary' : ''}"
-                                >
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-base">{getSymbol(code)}</span>
-                                        <span class="font-medium">{code}</span>
-                                    </div>
-                                    {#if displayCurrency === code}
-                                        <Check class="h-3.5 w-3.5 text-primary" />
-                                    {/if}
-                                </button>
-                            {/each}
-                        {/snippet}
-                    </Dropdown>
+                    <CurrencySelect size="sm" bind:value={displayCurrency} />
                 </div>
                 
                 <div class="space-y-3">

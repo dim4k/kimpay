@@ -2,6 +2,7 @@
   import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "@lucide/svelte";
   import { t, locale } from '#lib/i18n.js';
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
+  import { dismissable } from '#lib/attachments/dismissable.js';
 
   let { value = $bindable() } = $props();
 
@@ -104,7 +105,7 @@
   );
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full" {@attach isOpen && dismissable(() => (isOpen = false))}>
     <!-- Trigger -->
     <button 
         bind:this={triggerRef}
@@ -117,14 +118,10 @@
     </button>
 
     {#if isOpen}
-        <!-- Backdrop (Transparent, purely for closing logic) -->
-        <div class="fixed inset-0 z-40" onclick={() => isOpen = false} aria-hidden="true"></div>
-
         <!-- Dropdown -->
         <div 
             class="absolute left-0 z-50 w-[300px] rounded-xl border bg-card text-card-foreground shadow-xl p-4 space-y-4 {openUp ? 'bottom-full mb-2' : 'top-full mt-2'}"
             role="dialog"
-            aria-modal="true"
         >
             <!-- Header -->
             <div class="flex items-center justify-between">

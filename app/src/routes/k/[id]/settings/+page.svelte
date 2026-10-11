@@ -20,7 +20,8 @@
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import type { Expense } from '#lib/types.js';
   
-  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
+  import { DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
+  import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
   import { locale } from '#lib/i18n.js';
 
   // Get ActiveKimpay from context
@@ -38,7 +39,6 @@
   // Edit State
   let editName = $state("");
   let editIcon = $state("");
-  let isEditing = $state(false);
   
   // Feedback State
   let saveFeedback = $state("");
@@ -272,50 +272,7 @@
                 <div class="space-y-2">
                     <Label for="name">{$t('home.create.name_label')}</Label>
                     <div class="flex gap-2">
-                        <div class="relative">
-                            <Input 
-                                class="w-14 text-center text-xl p-0 cursor-pointer selection:bg-transparent dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" 
-                                value={editIcon} 
-                                readonly 
-                                onclick={() => isEditing = !isEditing} 
-                            />
-                            
-                            {#if isEditing}
-                                <div class="absolute top-full mt-2 left-0 z-50 w-80 max-h-64 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2">
-                                    {#each KIMPAY_CATEGORY_ORDER as categoryKey (categoryKey)}
-                                        {@const category = EMOJI_CATEGORIES[categoryKey]}
-                                        {#if category}
-                                            <div class="mb-3 last:mb-0">
-                                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-1">
-                                                    {$locale === 'fr' ? category.labelFr : category.label}
-                                                </div>
-                                                <div class="grid grid-cols-8 gap-0.5">
-                                                    {#each category.emojis as emoji (emoji)}
-                                                        <button 
-                                                            type="button"
-                                                            class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-lg flex items-center justify-center transition-colors {editIcon === emoji ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}"
-                                                            onclick={() => {
-                                                                editIcon = emoji;
-                                                                isEditing = false;
-                                                            }}
-                                                        >
-                                                            {emoji}
-                                                        </button>
-                                                    {/each}
-                                                </div>
-                                            </div>
-                                        {/if}
-                                    {/each}
-                                </div>
-                                <div 
-                                    class="fixed inset-0 z-40" 
-                                    onclick={() => isEditing = false} 
-                                    role="button" 
-                                    tabindex="-1" 
-                                    onkeydown={(e) => e.key === 'Escape' && (isEditing = false)}
-                                ></div>
-                            {/if}
-                        </div>
+                        <EmojiInput variant="kimpay" bind:value={editIcon} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
                         <Input id="name" bind:value={editName} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
                         <Button onclick={handleSave} size="icon" class="shrink-0 relative">
                             {#if saveFeedback === 'updated'}

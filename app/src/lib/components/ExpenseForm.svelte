@@ -18,8 +18,8 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { Check, LoaderCircle } from "@lucide/svelte";
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import { CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+  import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { haptic } from '#lib/utils/haptic.js';
   import { toLocalISODate } from '#lib/utils/date.js';
@@ -41,7 +41,7 @@
   let date = $state(toLocalISODate());
   let payer = $state("");
   let involved = $state<string[]>([]);
-  let currency = $state("");
+  let currency = $state(DEFAULT_CURRENCY);
   
   let participants = $derived(activeKimpay?.participants || []);
   let isLoading = $state(false);
@@ -268,30 +268,7 @@
                     }
                 }}
             />
-            <!-- Currency Selector (compact) -->
-            <Dropdown position="bottom-right" triggerClass="h-full border border-slate-200 dark:border-slate-700">
-                {#snippet trigger(_isOpen)}
-                    <span class="text-base font-medium">{CURRENCIES[currency]?.symbol ?? '€'}</span>
-                    <span class="font-medium text-sm text-slate-700 dark:text-slate-200">{currency || DEFAULT_CURRENCY}</span>
-                {/snippet}
-                {#snippet items(close)}
-                    {#each CURRENCY_CODES as code (code)}
-                        <button
-                            type="button"
-                            onclick={() => { currency = code; close(); }}
-                            class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {currency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
-                        >
-                            <div class="flex items-center gap-2">
-                                <span class="text-base w-5 text-center">{CURRENCIES[code]?.symbol}</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{code}</span>
-                            </div>
-                            {#if currency === code}
-                                <Check class="h-3.5 w-3.5 text-indigo-500" />
-                            {/if}
-                        </button>
-                    {/each}
-                {/snippet}
-            </Dropdown>
+            <CurrencySelect bind:value={currency} triggerClass="h-full border border-slate-200 dark:border-slate-700" />
         </div>
     </div>
 

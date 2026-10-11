@@ -17,6 +17,7 @@
   import { auth } from '#lib/stores/auth.svelte.js';
   import { page } from '$app/state';
   import { haptic } from '#lib/utils/haptic.js';
+  import { dismissable } from '#lib/attachments/dismissable.js';
   import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
 
@@ -26,8 +27,6 @@
   let showOfflineHelp = $state(false);
   let isLoginHelpOpen = $state(false);
   
-  let menuRef = $state<HTMLElement | null>(null);
-  let triggerRef = $state<HTMLElement | null>(null);
   let fileInputRef = $state<HTMLInputElement | null>(null);
   
   // Only show Kimpay context if we are actually on a /k/[id] route
@@ -66,20 +65,7 @@
       modals.identity({ kimpayId: currentKimpay.id });
   }
 
-  function handleOutsideClick(event: MouseEvent) {
-      if (
-          isMenuOpen && 
-          menuRef && 
-          triggerRef && 
-          !menuRef.contains(event.target as Node) && 
-          !triggerRef.contains(event.target as Node)
-      ) {
-          isMenuOpen = false;
-      }
-  }
 </script>
-
-<svelte:window onclick={handleOutsideClick}></svelte:window>
 
 <header
   class="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800"
@@ -117,14 +103,16 @@
 
     <div class="flex items-center gap-2">
       <!-- Burger Menu -->
-      <div class="relative">
+      <div class="relative" {@attach isMenuOpen && dismissable(() => (isMenuOpen = false))}>
         <button
-          bind:this={triggerRef}
           onclick={() => isMenuOpen = !isMenuOpen}
           class={currentKimpay || auth.user
             ? "flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all max-w-[200px] md:max-w-none"
             : "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"}
-          title="Menu"
+          title={$t('nav.menu')}
+          aria-label={$t('nav.menu')}
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
         >
           {#if currentKimpay}
             <!-- Inside Kimpay: Participant avatar, Participant name (grey), emoji + Kimpay name (white) -->
@@ -173,7 +161,6 @@
 
         {#if isMenuOpen}
           <div
-            bind:this={menuRef}
             class="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col"
             transition:slide={{ duration: 200 }}
           >
