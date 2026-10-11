@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { Button } from "$lib/components/ui/button";
-    import { Input } from "$lib/components/ui/input";
+    import { Button } from "#lib/components/ui/button/index.js";
+    import { Input } from "#lib/components/ui/input/index.js";
     import { LoaderCircle, QrCode } from "@lucide/svelte";
-    import { t } from '$lib/i18n';
-    import ScannerModal from "$lib/components/ui/modals/ScannerModal.svelte";
-    import { pb } from '$lib/pocketbase';
-    import { isKimpayId } from '$lib/utils/id';
+    import { t } from '#lib/i18n.js';
+    import ScannerModal from "#lib/components/ui/modals/ScannerModal.svelte";
+    import { pb } from '#lib/pocketbase.js';
+    import { isKimpayId } from '#lib/utils/id.js';
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
 

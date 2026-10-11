@@ -1,16 +1,16 @@
 <script lang="ts">
     import { LayoutDashboard, LogOut, ArrowRight } from "@lucide/svelte";
-    import { t } from '$lib/i18n';
-    import { offlineStore } from '$lib/stores/offline.svelte';
-    import { recentsStore } from '$lib/stores/recents.svelte';
-    import ConfirmModal from '$lib/components/ui/modals/ConfirmModal.svelte';
-    import { storageService } from '$lib/services/storage';
-    import { kimpayService } from '$lib/services/kimpay';
-    import { modals } from '$lib/stores/modals.svelte';
-    import { auth } from '$lib/stores/auth.svelte';
-    import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import { haptic } from '$lib/utils/haptic';
-    import { DEFAULT_GROUP_ICON } from '$lib/constants';
+    import { t } from '#lib/i18n.js';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
+    import { recentsStore } from '#lib/stores/recents.svelte.js';
+    import ConfirmModal from '#lib/components/ui/modals/ConfirmModal.svelte';
+    import { storageService } from '#lib/services/storage.js';
+    import { kimpayService } from '#lib/services/kimpay.js';
+    import { modals } from '#lib/stores/modals.svelte.js';
+    import { auth } from '#lib/stores/auth.svelte.js';
+    import EmptyState from '#lib/components/ui/EmptyState.svelte';
+    import { haptic } from '#lib/utils/haptic.js';
+    import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
 
     // Offline, only list the Kimpays whose data is cached (they can be opened).
     let cachedIds = $state<string[] | null>(null);
@@ -100,7 +100,7 @@
     {:else}
         <div class="grid gap-3">
             {#each kimpaysToDisplay as k (k.id)}
-                <a href="/k/{k.id}" data-sveltekit-preload-data="off" onclick={() => haptic('light')} class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs rounded-2xl border border-white/20 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
+                <a href="/k/{k.id}" data-sveltekit-preload-data="false" onclick={() => haptic('light')} class="flex items-center justify-between p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs rounded-2xl border border-white/20 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/20 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">{k.icon || DEFAULT_GROUP_ICON}</span>
                         <span class="font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">{k.name}</span>

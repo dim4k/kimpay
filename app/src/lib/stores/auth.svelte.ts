@@ -1,10 +1,10 @@
-import { pb } from '$lib/pocketbase';
+import { pb } from '#lib/pocketbase.js';
 import type { RecordModel } from 'pocketbase';
-import type { User } from '$lib/types';
-import { isNetworkError } from '$lib/utils/errors';
+import type { User } from '#lib/types.js';
+import { isNetworkError } from '#lib/utils/errors.js';
 import { get } from 'svelte/store';
-import { t } from '$lib/i18n';
-import { modals } from '$lib/stores/modals.svelte';
+import { t } from '#lib/i18n.js';
+import { modals } from '#lib/stores/modals.svelte.js';
 
 class AuthStore {
     user = $state<User | null>(pb.authStore.record as User | null);

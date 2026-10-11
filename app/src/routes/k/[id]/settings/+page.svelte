@@ -1,27 +1,27 @@
 <script lang="ts">
 
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
-  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import PageHeader from '#lib/components/ui/PageHeader.svelte';
   import { goto } from '$app/navigation';
   import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table, LoaderCircle } from "@lucide/svelte";
-  import { modals } from '$lib/stores/modals.svelte';
-  import { t } from '$lib/i18n';
-  import { installStore } from '$lib/stores/install.svelte';
-  import { auth } from '$lib/stores/auth.svelte';
-  import { offlineStore } from '$lib/stores/offline.svelte';
-  import { storageService } from '$lib/services/storage';
-  import { kimpayService } from '$lib/services/kimpay';
-  import { DEFAULT_CURRENCY } from '$lib/services/currency';
-  import { recentsStore } from '$lib/stores/recents.svelte';
-  import { getErrorMessage } from '$lib/utils/errors';
-  import { parseLocalISODate, toLocalISODate } from '$lib/utils/date';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import type { Expense } from '$lib/types';
+  import { modals } from '#lib/stores/modals.svelte.js';
+  import { t } from '#lib/i18n.js';
+  import { installStore } from '#lib/stores/install.svelte.js';
+  import { auth } from '#lib/stores/auth.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { storageService } from '#lib/services/storage.js';
+  import { kimpayService } from '#lib/services/kimpay.js';
+  import { DEFAULT_CURRENCY } from '#lib/services/currency.js';
+  import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { getErrorMessage } from '#lib/utils/errors.js';
+  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import type { Expense } from '#lib/types.js';
   
-  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
-  import { locale } from '$lib/i18n';
+  import { EMOJI_CATEGORIES, KIMPAY_CATEGORY_ORDER, DEFAULT_KIMPAY_EMOJI, DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
+  import { locale } from '#lib/i18n.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();

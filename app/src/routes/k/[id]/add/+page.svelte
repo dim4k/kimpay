@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ExpenseForm from '$lib/components/ExpenseForm.svelte';
-  import PageHeader from '$lib/components/ui/PageHeader.svelte';
-  import { t } from '$lib/i18n';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
+  import ExpenseForm from '#lib/components/ExpenseForm.svelte';
+  import PageHeader from '#lib/components/ui/PageHeader.svelte';
+  import { t } from '#lib/i18n.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);

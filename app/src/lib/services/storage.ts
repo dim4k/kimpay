@@ -1,6 +1,6 @@
-import type { Kimpay } from "$lib/types";
-import { STORAGE_KEYS } from "$lib/constants";
-import { isKimpayId } from "$lib/utils/id";
+import type { Kimpay } from "#lib/types.js";
+import { STORAGE_KEYS } from "#lib/constants.js";
+import { isKimpayId } from "#lib/utils/id.js";
 import { get, set, del, keys, update } from "idb-keyval";
 
 export interface PendingAction {

@@ -42,7 +42,7 @@ const API_PRIMARY =
     "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
 const API_FALLBACK = "https://latest.currency-api.pages.dev/v1/currencies";
 
-import { STORAGE_KEYS } from "$lib/constants";
+import { STORAGE_KEYS } from "#lib/constants.js";
 const CACHE_KEY_PREFIX = STORAGE_KEYS.RATES_CACHE_PREFIX;
 
 interface RatesCache {

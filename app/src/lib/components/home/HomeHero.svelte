@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Logo from "$lib/components/ui/Logo.svelte";
-    import { t } from '$lib/i18n';
+    import Logo from "#lib/components/ui/Logo.svelte";
+    import { t } from '#lib/i18n.js';
 </script>
 
 <div class="text-center space-y-2 md:space-y-4 mb-6 md:mb-10 animate-slide-up">

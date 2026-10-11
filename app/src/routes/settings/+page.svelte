@@ -1,16 +1,16 @@
 <script lang="ts">
-    import { pb } from '$lib/pocketbase';
+    import { pb } from '#lib/pocketbase.js';
     import { goto } from '$app/navigation';
-    import { auth } from '$lib/stores/auth.svelte';
-    import { t } from '$lib/i18n';
-    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
-    import { userService } from '$lib/services/user';
+    import { auth } from '#lib/stores/auth.svelte.js';
+    import { t } from '#lib/i18n.js';
+    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+    import { userService } from '#lib/services/user.js';
     import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
     import { slide } from 'svelte/transition';
-    import Avatar from '$lib/components/ui/Avatar.svelte';
-    import { modals } from '$lib/stores/modals.svelte';
-    import { toasts } from '$lib/stores/toasts.svelte';
-    import { getErrorMessage } from '$lib/utils/errors';
+    import Avatar from '#lib/components/ui/Avatar.svelte';
+    import { modals } from '#lib/stores/modals.svelte.js';
+    import { toasts } from '#lib/stores/toasts.svelte.js';
+    import { getErrorMessage } from '#lib/utils/errors.js';
 
     let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
     let isCurrencyOpen = $state(false);

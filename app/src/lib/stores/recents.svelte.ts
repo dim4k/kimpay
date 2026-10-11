@@ -1,9 +1,9 @@
-import { pb } from "$lib/pocketbase";
-import type { RecentKimpay, Participant } from "$lib/types";
-import { asRecentKimpay } from "$lib/types";
-import { storageService } from "$lib/services/storage";
-import { offlineStore } from "$lib/stores/offline.svelte";
-import { auth } from "$lib/stores/auth.svelte";
+import { pb } from "#lib/pocketbase.js";
+import type { RecentKimpay, Participant } from "#lib/types.js";
+import { asRecentKimpay } from "#lib/types.js";
+import { storageService } from "#lib/services/storage.js";
+import { offlineStore } from "#lib/stores/offline.svelte.js";
+import { auth } from "#lib/stores/auth.svelte.js";
 
 class RecentsStore {
     recentKimpays: RecentKimpay[] = $state([]);
@@ -115,7 +115,6 @@ class RecentsStore {
             return;
         }
 
-        // Update existing items with fresh data
         const fetchedItems = results
             .filter(
                 (r): r is { id: string; data: RecentKimpay; status: "found" } =>
@@ -123,9 +122,11 @@ class RecentsStore {
             )
             .map((r) => r.data);
 
-        // Merge fetched data with existing list
+        // Merge fetched data with the list. A Kimpay may not be listed yet:
+        // right after creating/joining one, its local entry only holds the
+        // identity until the group page has cached its data.
         for (const item of fetchedItems) {
-            this.updateRecentKimpay(item);
+            this.addRecentKimpay(item);
         }
 
         // Remove missing items

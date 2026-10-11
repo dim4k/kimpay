@@ -1,17 +1,17 @@
 <script lang="ts">
   import { Wallet, AlertTriangle, Check, ArrowUpDown } from "@lucide/svelte"; 
-  import { confirmDeleteExpense } from '$lib/components/expense/deleteExpense';
-  import Dropdown from '$lib/components/ui/Dropdown.svelte';
-  import EmptyState from '$lib/components/ui/EmptyState.svelte';
-  import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
-  import { modals } from '$lib/stores/modals.svelte';
-  import { t, locale } from '$lib/i18n';
-  import ExpenseItem from '$lib/components/expense/ExpenseItem.svelte';
-  import type { Expense } from '$lib/types';
-  import type { TranslationKey } from '$lib/locales/en';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import { offlineStore } from '$lib/stores/offline.svelte';
-  import { DEFAULT_CURRENCY, convert, formatAmount } from '$lib/services/currency';
+  import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
+  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import EmptyState from '#lib/components/ui/EmptyState.svelte';
+  import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
+  import { modals } from '#lib/stores/modals.svelte.js';
+  import { t, locale } from '#lib/i18n.js';
+  import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
+  import type { Expense } from '#lib/types.js';
+  import type { TranslationKey } from '#lib/locales/en.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { DEFAULT_CURRENCY, convert, formatAmount } from '#lib/services/currency.js';
   
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -155,7 +155,7 @@
                             onclick={() => { sortOption = opt.value; close(); }}
                             class="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors text-sm {sortOption === opt.value ? 'bg-secondary' : ''}"
                         >
-                            <span class="font-medium text-xs">{$t(opt.labelKey as import('$lib/locales/en').TranslationKey)}</span>
+                            <span class="font-medium text-xs">{$t(opt.labelKey as import('#lib/locales/en.js').TranslationKey)}</span>
                             {#if sortOption === opt.value}
                                 <Check class="h-3.5 w-3.5 text-primary" />
                             {/if}

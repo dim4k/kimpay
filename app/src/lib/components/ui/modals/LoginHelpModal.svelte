@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Mail, KeyRound } from "@lucide/svelte";
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n.js';
   import BaseInfoModal from './BaseInfoModal.svelte';
-  import MagicLinkForm from '$lib/components/auth/MagicLinkForm.svelte';
-  import { Button } from "$lib/components/ui/button";
+  import MagicLinkForm from '#lib/components/auth/MagicLinkForm.svelte';
+  import { Button } from "#lib/components/ui/button/index.js";
 
   let { 
     isOpen = false, 

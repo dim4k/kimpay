@@ -1,7 +1,7 @@
-import { pb } from "$lib/pocketbase";
-import { offlineStore } from "$lib/stores/offline.svelte";
-import { generatePocketBaseId, generateUUID } from "$lib/utils";
-import { DEFAULT_CURRENCY } from "$lib/services/currency";
+import { pb } from "#lib/pocketbase.js";
+import { offlineStore } from "#lib/stores/offline.svelte.js";
+import { generatePocketBaseId, generateUUID } from "#lib/utils/index.js";
+import { DEFAULT_CURRENCY } from "#lib/services/currency.js";
 
 export const kimpayService = {
     async create(

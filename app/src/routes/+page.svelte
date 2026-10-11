@@ -1,15 +1,15 @@
 <script lang="ts">
-  import Background from '$lib/components/ui/Background.svelte';
-  import HomeHero from '$lib/components/home/HomeHero.svelte';
-  import CreateKimpayForm from '$lib/components/home/CreateKimpayForm.svelte';
-  import JoinKimpayForm from '$lib/components/home/JoinKimpayForm.svelte';
-  import RecentKimpaysList from '$lib/components/home/RecentKimpaysList.svelte';
-  import CollapsibleCard from '$lib/components/ui/CollapsibleCard.svelte';
-    import { recentsStore } from '$lib/stores/recents.svelte';
-    import { offlineStore } from '$lib/stores/offline.svelte';
-  import { auth } from '$lib/stores/auth.svelte';
+  import Background from '#lib/components/ui/Background.svelte';
+  import HomeHero from '#lib/components/home/HomeHero.svelte';
+  import CreateKimpayForm from '#lib/components/home/CreateKimpayForm.svelte';
+  import JoinKimpayForm from '#lib/components/home/JoinKimpayForm.svelte';
+  import RecentKimpaysList from '#lib/components/home/RecentKimpaysList.svelte';
+  import CollapsibleCard from '#lib/components/ui/CollapsibleCard.svelte';
+    import { recentsStore } from '#lib/stores/recents.svelte.js';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { auth } from '#lib/stores/auth.svelte.js';
   import { Plus, ArrowRight, CloudOff } from '@lucide/svelte';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n.js';
 
   // Fast check for initial render to avoid flash if possible
   let showHero = $state(false);

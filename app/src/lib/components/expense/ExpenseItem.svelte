@@ -1,14 +1,14 @@
 <script lang="ts">
     import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "@lucide/svelte";
-    import { t, locale } from '$lib/i18n';
-    import { parseLocalISODate } from '$lib/utils/date';
-    import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
+    import { t, locale } from '#lib/i18n.js';
+    import { parseLocalISODate } from '#lib/utils/date.js';
+    import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
     import { cubicOut } from 'svelte/easing';
-    import { offlineStore } from '$lib/stores/offline.svelte';
-    import { formatAmount, DEFAULT_CURRENCY } from '$lib/services/currency';
-    import SwipeableItem from '$lib/components/ui/SwipeableItem.svelte';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
+    import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+    import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
 
     let { 
         expense, 

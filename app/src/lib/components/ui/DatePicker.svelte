@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "@lucide/svelte";
-  import { t, locale } from '$lib/i18n';
-  import { parseLocalISODate, toLocalISODate } from '$lib/utils/date';
+  import { t, locale } from '#lib/i18n.js';
+  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
 
   let { value = $bindable() } = $props();
 

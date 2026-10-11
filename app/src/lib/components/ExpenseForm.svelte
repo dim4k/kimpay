@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import EmojiInput from '$lib/components/ui/EmojiInput.svelte';
-  import InputModal from '$lib/components/ui/modals/InputModal.svelte';
-  import DatePicker from '$lib/components/ui/DatePicker.svelte';
-  import PhotoManager from '$lib/components/PhotoManager.svelte';
-  import ParticipantSelector from '$lib/components/ParticipantSelector.svelte';
-  import ReceiptScanner from '$lib/components/ReceiptScanner.svelte';
-  import { t } from '$lib/i18n';
-  import { DEFAULT_EXPENSE_EMOJI } from '$lib/constants';
+  import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
+  import InputModal from '#lib/components/ui/modals/InputModal.svelte';
+  import DatePicker from '#lib/components/ui/DatePicker.svelte';
+  import PhotoManager from '#lib/components/PhotoManager.svelte';
+  import ParticipantSelector from '#lib/components/ParticipantSelector.svelte';
+  import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
+  import { t } from '#lib/i18n.js';
+  import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
 
-  import { offlineStore } from '$lib/stores/offline.svelte';
-  import { fabState } from '$lib/stores/fab.svelte';
-  import { modals } from '$lib/stores/modals.svelte';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { fabState } from '#lib/stores/fab.svelte.js';
+  import { modals } from '#lib/stores/modals.svelte.js';
   import { Check, LoaderCircle } from "@lucide/svelte";
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '$lib/services/currency';
-  import Dropdown from '$lib/components/ui/Dropdown.svelte';
-  import { toasts } from '$lib/stores/toasts.svelte';
-  import { haptic } from '$lib/utils/haptic';
-  import { toLocalISODate } from '$lib/utils/date';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { haptic } from '#lib/utils/haptic.js';
+  import { toLocalISODate } from '#lib/utils/date.js';
 
   let { kimpayId, initialData = null } = $props();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Pencil, Trash2 } from "@lucide/svelte";
-    import { haptic } from '$lib/utils/haptic';
-    import { t } from '$lib/i18n';
+    import { haptic } from '#lib/utils/haptic.js';
+    import { t } from '#lib/i18n.js';
 
     interface Props {
         /** Whether swipe is disabled (e.g. in offline mode for editing) */

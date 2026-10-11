@@ -1,13 +1,13 @@
 <script lang="ts">
     import { UserPlus, LoaderCircle, CircleAlert, CircleCheck } from "@lucide/svelte";
-    import { t, locale } from '$lib/i18n';
+    import { t, locale } from '#lib/i18n.js';
     import BaseInfoModal from './BaseInfoModal.svelte';
-    import { Input } from "$lib/components/ui/input";
-    import { Label } from "$lib/components/ui/label";
-    import { Button } from "$lib/components/ui/button";
-    import { auth } from '$lib/stores/auth.svelte';
+    import { Input } from "#lib/components/ui/input/index.js";
+    import { Label } from "#lib/components/ui/label/index.js";
+    import { Button } from "#lib/components/ui/button/index.js";
+    import { auth } from '#lib/stores/auth.svelte.js';
     import { slide } from 'svelte/transition';
-    import { isValidEmail } from '$lib/utils';
+    import { isValidEmail } from '#lib/utils/index.js';
     
     let { 
         isOpen = false, 

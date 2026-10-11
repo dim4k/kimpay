@@ -13,7 +13,7 @@ export function isNetworkError(e: unknown): boolean {
     return error?.status === 0 || (typeof navigator !== 'undefined' && !navigator.onLine);
 }
 
-import type { TranslationKey } from '$lib/locales/en';
+import type { TranslationKey } from '#lib/locales/en.js';
 
 /**
  * Get a user-friendly error message based on the error type.

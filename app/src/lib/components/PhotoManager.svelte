@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Camera, X } from "@lucide/svelte";
-    import { pb } from '$lib/pocketbase';
-    import { t } from '$lib/i18n';
-    import { offlineStore } from '$lib/stores/offline.svelte';
+    import { pb } from '#lib/pocketbase.js';
+    import { t } from '#lib/i18n.js';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
     import type { RecordModel } from 'pocketbase';
 
     interface Props {

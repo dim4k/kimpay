@@ -1,17 +1,17 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { ChartPie, Settings, Share2, Wallet } from "@lucide/svelte";
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n.js';
 
-  import { ActiveKimpay, setActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
+  import { ActiveKimpay, setActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   
-  import { modals } from '$lib/stores/modals.svelte';
-  import { fabState } from '$lib/stores/fab.svelte';
+  import { modals } from '#lib/stores/modals.svelte.js';
+  import { fabState } from '#lib/stores/fab.svelte.js';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import NavItem from '$lib/components/ui/NavItem.svelte';
-  import { haptic } from '$lib/utils/haptic';
+  import NavItem from '#lib/components/ui/NavItem.svelte';
+  import { haptic } from '#lib/utils/haptic.js';
   
   import { onDestroy } from 'svelte';
   

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { Participant } from '$lib/types';
-    import { t } from '$lib/i18n';
+    import type { Participant } from '#lib/types.js';
+    import { t } from '#lib/i18n.js';
 
     interface Props {
         /** List of available participants */

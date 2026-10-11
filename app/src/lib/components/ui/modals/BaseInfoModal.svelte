@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cn } from "$lib/utils";
+  import { cn } from "#lib/utils/index.js";
   import type { Component } from 'svelte';
   import type { LucideProps } from '@lucide/svelte';
   import Modal from './Modal.svelte';

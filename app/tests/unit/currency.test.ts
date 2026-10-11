@@ -23,18 +23,18 @@ describe('services/currency', () => {
     describe('CURRENCIES constant', () => {
         it('should have EUR as a currency', () => {
             expect(CURRENCIES.EUR).toBeDefined();
-            expect(CURRENCIES.EUR.symbol).toBe('€');
-            expect(CURRENCIES.EUR.decimals).toBe(2);
+            expect(CURRENCIES.EUR!.symbol).toBe('€');
+            expect(CURRENCIES.EUR!.decimals).toBe(2);
         });
 
         it('should have USD as a currency', () => {
             expect(CURRENCIES.USD).toBeDefined();
-            expect(CURRENCIES.USD.symbol).toBe('$');
+            expect(CURRENCIES.USD!.symbol).toBe('$');
         });
 
         it('should have JPY with 0 decimals', () => {
             expect(CURRENCIES.JPY).toBeDefined();
-            expect(CURRENCIES.JPY.decimals).toBe(0);
+            expect(CURRENCIES.JPY!.decimals).toBe(0);
         });
 
         it('should have all expected currencies', () => {

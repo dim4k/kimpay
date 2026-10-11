@@ -48,9 +48,9 @@
 ## <a id="tech-stack"></a>🛠️ Tech Stack
 
 -   **Runtime**: **Node.js 24 (LTS)**
--   **Frontend**: [SvelteKit](https://kit.svelte.dev/) (SSR/CSR) + [TailwindCSS](https://tailwindcss.com/)
+-   **Frontend**: [SvelteKit 3](https://svelte.dev/docs/kit) (static SPA/PWA, Svelte 5) + [Tailwind CSS 4](https://tailwindcss.com/)
 -   **Backend**: [PocketBase](https://pocketbase.io/) (Real-time SQLite database + Auth)
--   **Language**: TypeScript 5 (Strict Mode)
+-   **Language**: TypeScript 6 (Strict Mode)
 -   **Infrastructure**: Docker Compose (Production & CI environments)
 
 ## <a id="quick-start"></a>🚀 Quick Start

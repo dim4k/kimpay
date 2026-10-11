@@ -2,12 +2,12 @@
   import { onMount } from 'svelte';
 
   import { Copy, Check, Share2, LoaderCircle } from "@lucide/svelte";
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n.js';
   import QRCode from 'qrcode';
-  import { DEFAULT_KIMPAY_EMOJI } from '$lib/constants';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import { toasts } from '$lib/stores/toasts.svelte';
-  import { haptic } from '$lib/utils/haptic';
+  import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { haptic } from '#lib/utils/haptic.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();

@@ -28,6 +28,7 @@ function createExpense(
         updated: new Date().toISOString(),
         amount,
         description: 'Test expense',
+        currency: 'EUR',
         date: new Date().toISOString(),
         payer: payerId,
         involved: involvedIds,
@@ -180,6 +181,7 @@ describe('calculateDebts', () => {
         ];
         const expenses: Expense[] = [{
             id: '1',
+            currency: 'EUR',
             collectionId: 'expenses',
             collectionName: 'expenses',
             created: new Date().toISOString(),

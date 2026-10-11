@@ -1,9 +1,9 @@
 import { createContext } from "svelte";
-import { pb } from "$lib/pocketbase";
-import { storageService } from "$lib/services/storage";
-import { offlineStore } from "$lib/stores/offline.svelte";
-import { recentsStore } from "$lib/stores/recents.svelte";
-import { participantService } from "$lib/services/participant";
+import { pb } from "#lib/pocketbase.js";
+import { storageService } from "#lib/services/storage.js";
+import { offlineStore } from "#lib/stores/offline.svelte.js";
+import { recentsStore } from "#lib/stores/recents.svelte.js";
+import { participantService } from "#lib/services/participant.js";
 import {
     type Kimpay,
     type Expense,
@@ -11,11 +11,11 @@ import {
     asKimpay,
     asExpense,
     asParticipant,
-} from "$lib/types";
-import { calculateBalances, calculateDebts, type Transaction } from "$lib/balance";
-import { getExchangeRates, DEFAULT_CURRENCY, convert } from "$lib/services/currency";
-import { objectToFormData } from "$lib/utils/formData";
-import { generatePocketBaseId } from "$lib/utils/id";
+} from "#lib/types.js";
+import { calculateBalances, calculateDebts, type Transaction } from "#lib/balance.js";
+import { getExchangeRates, DEFAULT_CURRENCY, convert } from "#lib/services/currency.js";
+import { objectToFormData } from "#lib/utils/formData.js";
+import { generatePocketBaseId } from "#lib/utils/id.js";
 
 /**
  * The `/k/[id]` layout provides its ActiveKimpay to every page and component

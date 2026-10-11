@@ -1,11 +1,11 @@
 import { get } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { t } from '$lib/i18n';
-import { modals } from '$lib/stores/modals.svelte';
-import { toasts } from '$lib/stores/toasts.svelte';
-import { getErrorMessage } from '$lib/utils/errors';
-import { haptic } from '$lib/utils/haptic';
-import type { ActiveKimpay } from '$lib/stores/activeKimpay.svelte';
+import { t } from '#lib/i18n.js';
+import { modals } from '#lib/stores/modals.svelte.js';
+import { toasts } from '#lib/stores/toasts.svelte.js';
+import { getErrorMessage } from '#lib/utils/errors.js';
+import { haptic } from '#lib/utils/haptic.js';
+import type { ActiveKimpay } from '#lib/stores/activeKimpay.svelte.js';
 
 /**
  * Ask for confirmation, then delete an expense (optimistically) with

@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { X, Download } from '@lucide/svelte';
   import { fly } from 'svelte/transition';
-  import { t } from '$lib/i18n';
-  import { installStore } from '$lib/stores/install.svelte';
+  import { t } from '#lib/i18n.js';
+  import { installStore } from '#lib/stores/install.svelte.js';
   import { get, set } from 'idb-keyval';
 
   let showPrompt = $state(false);

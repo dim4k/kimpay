@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { toasts } from '$lib/stores/toasts.svelte';
+    import { toasts } from '#lib/stores/toasts.svelte.js';
     import { fly, fade } from 'svelte/transition';
     import { Check, X, Info, AlertTriangle } from '@lucide/svelte';
 

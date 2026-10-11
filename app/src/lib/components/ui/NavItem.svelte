@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Component } from 'svelte';
     import type { LucideProps } from '@lucide/svelte';
-    import { haptic } from '$lib/utils/haptic';
+    import { haptic } from '#lib/utils/haptic.js';
 
     interface Props {
         href: string;

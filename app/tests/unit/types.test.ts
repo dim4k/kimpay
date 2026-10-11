@@ -54,8 +54,8 @@ describe('Type Conversion Functions', () => {
             const expenses = asExpenses(records);
 
             expect(expenses).toHaveLength(2);
-            expect(expenses[0].id).toBe('exp1');
-            expect(expenses[1].id).toBe('exp2');
+            expect(expenses[0]!.id).toBe('exp1');
+            expect(expenses[1]!.id).toBe('exp2');
         });
 
         it('should return empty array for empty input', () => {
@@ -90,8 +90,8 @@ describe('Type Conversion Functions', () => {
             const participants = asParticipants(records);
 
             expect(participants).toHaveLength(2);
-            expect(participants[0].id).toBe('p1');
-            expect(participants[1].id).toBe('p2');
+            expect(participants[0]!.id).toBe('p1');
+            expect(participants[1]!.id).toBe('p2');
         });
     });
 

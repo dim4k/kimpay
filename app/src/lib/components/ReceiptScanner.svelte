@@ -1,9 +1,9 @@
 <script lang="ts">
     import { Camera, Loader2 } from '@lucide/svelte';
-    import { t, locale } from '$lib/i18n';
-    import { auth } from '$lib/stores/auth.svelte';
-    import { scanReceipt, compressImage, type OcrResult } from '$lib/services/ocr';
-    import { modals } from '$lib/stores/modals.svelte';
+    import { t, locale } from '#lib/i18n.js';
+    import { auth } from '#lib/stores/auth.svelte.js';
+    import { scanReceipt, compressImage, type OcrResult } from '#lib/services/ocr.js';
+    import { modals } from '#lib/stores/modals.svelte.js';
 
     export interface ScanResult extends OcrResult {
         photo: File;

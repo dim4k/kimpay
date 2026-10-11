@@ -1,7 +1,7 @@
-import { pb } from "$lib/pocketbase";
-import { storageService, type PendingAction } from "$lib/services/storage";
-import { objectToFormData } from "$lib/utils/formData";
-import { isNetworkError } from "$lib/utils/errors";
+import { pb } from "#lib/pocketbase.js";
+import { storageService, type PendingAction } from "#lib/services/storage.js";
+import { objectToFormData } from "#lib/utils/formData.js";
+import { isNetworkError } from "#lib/utils/errors.js";
 
 class OfflineStore {
     isOffline = $state(false);

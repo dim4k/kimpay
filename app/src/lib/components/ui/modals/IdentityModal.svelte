@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { t } from '$lib/i18n';
-  import { modals } from '$lib/stores/modals.svelte';
-  import { Input } from "$lib/components/ui/input";
-  import { Button } from "$lib/components/ui/button";
+  import { t } from '#lib/i18n.js';
+  import { modals } from '#lib/stores/modals.svelte.js';
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
   import { Check } from "@lucide/svelte";
-  import { activeKimpayGlobal } from '$lib/stores/activeKimpayGlobal.svelte';
-  import type { Participant } from '$lib/types';
-  import { getErrorMessage } from '$lib/utils/errors';
-  import { auth } from '$lib/stores/auth.svelte';
-  import { participantService } from '$lib/services/participant';
-  import { recentsStore } from '$lib/stores/recents.svelte';
+  import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
+  import type { Participant } from '#lib/types.js';
+  import { getErrorMessage } from '#lib/utils/errors.js';
+  import { auth } from '#lib/stores/auth.svelte.js';
+  import { participantService } from '#lib/services/participant.js';
+  import { recentsStore } from '#lib/stores/recents.svelte.js';
   import Modal from './Modal.svelte';
   
   let { isOpen } = $props();

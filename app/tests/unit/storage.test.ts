@@ -47,7 +47,7 @@ function createMockKimpay(id: string, myParticipantId?: string): Kimpay {
         name: "Test Kimpay",
         created_by: "user123",
         currency: "EUR",
-        myParticipantId,
+        ...(myParticipantId !== undefined && { myParticipantId }),
     };
 }
 

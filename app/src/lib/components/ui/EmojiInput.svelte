@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, KIMPAY_CATEGORY_ORDER, DEFAULT_EXPENSE_EMOJI } from "$lib/constants";
-  import { locale } from "$lib/i18n";
+  import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, KIMPAY_CATEGORY_ORDER, DEFAULT_EXPENSE_EMOJI } from "#lib/constants.js";
+  import { locale } from "#lib/i18n.js";
 
   let { value = $bindable(DEFAULT_EXPENSE_EMOJI), variant = "expense" } = $props<{ 
       value?: string, 

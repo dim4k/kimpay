@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { Input } from "$lib/components/ui/input";
-    import { Button } from "$lib/components/ui/button";
-    import { t, locale } from '$lib/i18n';
-    import { auth } from '$lib/stores/auth.svelte';
+    import { Input } from "#lib/components/ui/input/index.js";
+    import { Button } from "#lib/components/ui/button/index.js";
+    import { t, locale } from '#lib/i18n.js';
+    import { auth } from '#lib/stores/auth.svelte.js';
     import { Mail, LoaderCircle, CircleAlert, CircleCheck } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
-    import { isValidEmail } from '$lib/utils';
+    import { isValidEmail } from '#lib/utils/index.js';
 
     let { 
         buttonTextKey = 'home.recover.button',

@@ -1,20 +1,20 @@
 <script lang="ts">
-  import { type Transaction } from '$lib/balance';
+  import { type Transaction } from '#lib/balance.js';
   import { ArrowRight, Wallet, CircleCheck, AlertTriangle, Check } from "@lucide/svelte";
   import { fade } from 'svelte/transition';
 
-  import Avatar from '$lib/components/ui/Avatar.svelte';
-  import PageHeader from '$lib/components/ui/PageHeader.svelte';
-  import Dropdown from '$lib/components/ui/Dropdown.svelte';
-  import EmptyState from '$lib/components/ui/EmptyState.svelte';
-  import ListSkeleton from '$lib/components/ui/ListSkeleton.svelte';
-  import { t, locale } from '$lib/i18n';
-  import CountUp from '$lib/components/ui/CountUp.svelte';
-  import { modals } from '$lib/stores/modals.svelte';
-  import { offlineStore } from '$lib/stores/offline.svelte';
-  import { pb } from '$lib/pocketbase';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
-  import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '$lib/services/currency';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
+  import PageHeader from '#lib/components/ui/PageHeader.svelte';
+  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import EmptyState from '#lib/components/ui/EmptyState.svelte';
+  import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
+  import { t, locale } from '#lib/i18n.js';
+  import CountUp from '#lib/components/ui/CountUp.svelte';
+  import { modals } from '#lib/stores/modals.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { pb } from '#lib/pocketbase.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { formatAmount, convert, CURRENCY_CODES, DEFAULT_CURRENCY, getSymbol } from '#lib/services/currency.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();

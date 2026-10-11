@@ -1,5 +1,5 @@
-import { pb } from '$lib/pocketbase';
-import type { User } from '$lib/types';
+import { pb } from '#lib/pocketbase.js';
+import type { User } from '#lib/types.js';
 
 export const userService = {
     /**

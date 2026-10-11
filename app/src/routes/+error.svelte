@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n.js';
   import { page } from '$app/state';
-  import { offlineStore } from '$lib/stores/offline.svelte';
-  import { storageService } from '$lib/services/storage';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { storageService } from '#lib/services/storage.js';
   import { House, WifiOff } from "@lucide/svelte";
 
   const isOffline = $derived(offlineStore.isOffline);

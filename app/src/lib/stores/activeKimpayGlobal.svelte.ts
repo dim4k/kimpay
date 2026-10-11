@@ -1,5 +1,5 @@
-import type { Kimpay, Participant } from "$lib/types";
-import type { ActiveKimpay } from "$lib/stores/activeKimpay.svelte";
+import type { Kimpay, Participant } from "#lib/types.js";
+import type { ActiveKimpay } from "#lib/stores/activeKimpay.svelte.js";
 
 /**
  * Bridges the route-scoped `ActiveKimpay` instance (created in

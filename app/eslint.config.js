@@ -2,12 +2,12 @@ import js from "@eslint/js";
 import ts from "typescript-eslint";
 import svelte from "eslint-plugin-svelte";
 import globals from "globals";
+import { defineConfig } from "eslint/config";
 
-/** @type {import('eslint').Linter.Config[]} */
-export default [
+export default defineConfig([
     js.configs.recommended,
     ...ts.configs.recommended,
-    ...svelte.configs["flat/recommended"],
+    ...svelte.configs.recommended,
     {
         languageOptions: {
             globals: {
@@ -49,4 +49,4 @@ export default [
             "svelte/no-navigation-without-resolve": "off",
         },
     },
-];
+]);

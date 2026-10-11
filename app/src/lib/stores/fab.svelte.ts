@@ -1,7 +1,7 @@
 import { Plus, type LucideProps } from "@lucide/svelte";
 import type { Component } from "svelte";
 import { get } from "svelte/store";
-import { t } from "$lib/i18n";
+import { t } from "#lib/i18n.js";
 
 // Define the shape of our FAB state
 type FabProps = {

@@ -1,33 +1,38 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '#lib/assets/favicon.svg';
 	import '../app.css';
-    import InstallPrompt from "$lib/components/ui/InstallPrompt.svelte";
-    import GlobalModals from "$lib/components/GlobalModals.svelte";
-    import SiteHeader from "$lib/components/layout/SiteHeader.svelte";
-    import Toast from "$lib/components/ui/Toast.svelte";
-    import { locale, t } from '$lib/i18n';
-    import { theme } from '$lib/theme';
+    import InstallPrompt from "#lib/components/ui/InstallPrompt.svelte";
+    import GlobalModals from "#lib/components/GlobalModals.svelte";
+    import SiteHeader from "#lib/components/layout/SiteHeader.svelte";
+    import Toast from "#lib/components/ui/Toast.svelte";
+    import { locale, t } from '#lib/i18n.js';
+    import { theme } from '#lib/theme.js';
     import { onMount } from 'svelte';
     import { afterNavigate, beforeNavigate } from '$app/navigation';
     import { updated } from '$app/state';
-    import { recentsStore } from '$lib/stores/recents.svelte';
-    import { modals } from '$lib/stores/modals.svelte';
-    import { auth } from '$lib/stores/auth.svelte';
-    import { storageService } from '$lib/services/storage';
-    import { participantService } from '$lib/services/participant';
+    import { recentsStore } from '#lib/stores/recents.svelte.js';
+    import { modals } from '#lib/stores/modals.svelte.js';
+    import { auth } from '#lib/stores/auth.svelte.js';
+    import { storageService } from '#lib/services/storage.js';
+    import { participantService } from '#lib/services/participant.js';
 
     let { children, data } = $props();
 
     // The inner scroll container. Since scrolling now happens inside <main>
     // (not the document), reset it to the top on each navigation.
     let mainEl = $state<HTMLElement>();
-    afterNavigate(() => {
+
+    afterNavigate(({ shallow, type }) => {
+        if (shallow && type === 'goto') return;
+
         mainEl?.scrollTo({ top: 0 });
     });
 
     // A new version was deployed: turn the next navigation into a full page
     // load so the old client never mixes stale chunks with the new build.
-    beforeNavigate(({ willUnload, to }) => {
+    beforeNavigate(({ willUnload, to, shallow, type }) => {
+        if (shallow && type === 'goto') return;
+
         if (updated.current && !willUnload && to?.url) {
             location.href = to.url.href;
         }
@@ -96,7 +101,7 @@
         // a false "Invalid Link" error after a successful login.
         handledAuthParam = true;
 
-        auth.loginWithOtp(code).then(success => {
+        auth.loginWithOtp(code).then((success) => {
             if (success) {
                 // Remove code from URL
                 url.searchParams.delete('code');

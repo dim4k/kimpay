@@ -1,11 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import ExpenseForm from '$lib/components/ExpenseForm.svelte';
-  import { confirmDeleteExpense } from '$lib/components/expense/deleteExpense';
-  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import ExpenseForm from '#lib/components/ExpenseForm.svelte';
+  import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
+  import PageHeader from '#lib/components/ui/PageHeader.svelte';
   import { LoaderCircle, Trash2 } from "@lucide/svelte";
-  import { t } from '$lib/i18n';
-  import { getActiveKimpayContext } from '$lib/stores/activeKimpay.svelte';
+  import { t } from '#lib/i18n.js';
+  import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);

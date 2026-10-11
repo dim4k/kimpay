@@ -1,16 +1,16 @@
-/// <reference types="@sveltejs/kit" />
-/// <reference lib="webworker" />
-
-import { build, files, version } from "$service-worker";
+import { self as sw } from "$app/service-worker";
+import { version } from "$app/env";
+import { immutable, assets } from "$app/manifest";
 
 const CACHE = `cache-${version}`;
 
-const ASSETS = [
-    ...build, // the app itself
-    ...files, // everything in `static`
+// Manifest paths are relative to the base path (the worker's scope): resolve
+// them to absolute pathnames, matched against `url.pathname` in `fetch`.
+const toPathname = (path: string) => new URL(path, sw.registration.scope).pathname;
+const ASSETS: string[] = [
+    ...immutable.map((file) => toPathname(file.path)), // the app itself
+    ...assets.map((file) => toPathname(file.path)), // everything in `static`
 ];
-
-const sw = self as unknown as ServiceWorkerGlobalScope;
 
 sw.addEventListener("install", (event) => {
     // Create a new cache and add all files to it

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade, scale } from 'svelte/transition';
-  import { portal } from '$lib/actions/portal';
-  import { cn } from "$lib/utils";
+  import { portal } from '#lib/actions/portal.js';
+  import { cn } from "#lib/utils/index.js";
 
   let { 
     isOpen = false, 
