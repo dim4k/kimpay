@@ -1,7 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
     <head>
         <meta charset="utf-8" />
+        <!-- The app handles its own i18n: browser auto-translation replaces text nodes and breaks Svelte updates -->
+        <meta name="google" content="notranslate" />
+        <script>
+            // Set the real language before first paint (same logic as getInitialLocale in lib/i18n.ts)
+            (function () {
+                var supported = ["en", "fr", "de", "es", "pt"];
+                var lang = null;
+                try {
+                    lang = localStorage.getItem("locale");
+                } catch (e) {}
+                if (supported.indexOf(lang) === -1) {
+                    lang = ((navigator.language || "").split("-")[0]);
+                }
+                document.documentElement.lang = supported.indexOf(lang) === -1 ? "en" : lang;
+            })();
+        </script>
         <meta
             name="viewport"
             content="width=device-width, initial-scale=1, viewport-fit=cover"
