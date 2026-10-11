@@ -153,6 +153,63 @@ export async function getExchangeRates(): Promise<Record<string, number>> {
     return rates;
 }
 
+// Historical rates never change: kept for the session, per day.
+const historicalRates = new Map<string, Promise<Record<string, number> | null>>();
+
+/** EUR-based rates of a past day ("YYYY-MM-DD"), or null when unavailable. */
+function getHistoricalRates(day: string): Promise<Record<string, number> | null> {
+    let pending = historicalRates.get(day);
+    if (!pending) {
+        pending = (async () => {
+            const urls = [
+                `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${day}/v1/currencies/eur.min.json`,
+                `https://${day}.currency-api.pages.dev/v1/currencies/eur.min.json`,
+            ];
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+                    if (response.ok) return ((await response.json()).eur as Record<string, number>) ?? null;
+                } catch {
+                    // Try the next mirror.
+                }
+            }
+            return null;
+        })();
+        historicalRates.set(day, pending);
+        // Do not cache failures (offline...): retry on the next call.
+        pending.then((rates) => rates || historicalRates.delete(day));
+    }
+    return pending;
+}
+
+/** Rate to convert an amount from `from` to `to`, given EUR-based rates (0 if unknown). */
+export function rateBetween(from: string, to: string, rates: Record<string, number>): number {
+    const fromRate = from.toLowerCase() === "eur" ? 1 : rates[from.toLowerCase()];
+    const toRate = to.toLowerCase() === "eur" ? 1 : rates[to.toLowerCase()];
+    return fromRate && toRate ? toRate / fromRate : 0;
+}
+
+/**
+ * Exchange rate from `from` to `to` on a given day ("YYYY-MM-DD"), used to
+ * freeze the value of an expense at its date. Falls back to today's rates
+ * (cached or fetched), and returns 0 when no rate can be found (offline).
+ */
+export async function getExchangeRateAt(from: string, to: string, day: string): Promise<number> {
+    if (from === to) return 1;
+
+    if (day < getTodayDate()) {
+        const rates = await getHistoricalRates(day);
+        const rate = rates ? rateBetween(from, to, rates) : 0;
+        if (rate) return rate;
+    }
+
+    try {
+        return rateBetween(from, to, await getExchangeRates());
+    } catch {
+        return 0;
+    }
+}
+
 /**
  * Check if rates are available in cache (for offline scenarios)
  */

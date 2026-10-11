@@ -34,16 +34,21 @@
 -   **No Login Required**: Start immediately—no account creation needed
 -   **Cross-Platform**: Optimized for both mobile and desktop browsers
 -   **Quick Setup**: Create a group in seconds with an emoji and a name
--   **Easy Sharing**: Invite friends via a short 6-character code or direct link
--   **Expense Management**: Add expenses specifying who paid and for whom
--   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom")
+-   **Easy Sharing**: Invite friends with a link, a QR code or the group code
+-   **Read-Only Link**: Share a summary (expenses, balances, payments to make) with people who must not edit the group
+-   **Expense Management**: Add expenses specifying who paid and for whom, then search and filter them by person, type or category
+-   **Flexible Splits**: Split equally, by shares, by exact amounts or by percentage
+-   **Money Received**: Record refunds or returned deposits, shared back between the group
+-   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom"), with no cent lost to rounding
+-   **Pay in One Tap**: PayPal.me and Revolut.me links on the payments you owe
 -   **Real-Time**: Updates align instantly across devices
--   **Multilingual**: Available in English 🇬🇧 and French 🇫🇷
--   **Multi-Currency**: Support for 8 currencies (EUR, USD, GBP, JPY, AUD, CAD, CHF, CNH) with real-time exchange rates
+-   **Multilingual**: Available in English 🇬🇧, French 🇫🇷, German 🇩🇪, Spanish 🇪🇸 and Portuguese 🇵🇹
+-   **Multi-Currency**: Support for 9 currencies (EUR, USD, GBP, JPY, AUD, CAD, CHF, CNH, VND); each expense keeps the exchange rate of its date
+-   **Export**: CSV and Markdown, with balances and suggested payments
 -   **Dark Mode**: Elegant interface supporting both light and dark themes
 -   **Delightful UX**: Smooth animations, emojis, and polished design
--   **PWA Ready**: Install as a Progressive Web App on any device
--   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category
+-   **PWA Ready**: Install as a Progressive Web App on any device, usable offline
+-   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category, and suggest who it was for
 
 ## <a id="tech-stack"></a>🛠️ Tech Stack
 
@@ -107,6 +112,7 @@ Visual baselines (`app/tests/e2e/visual.spec.ts-snapshots/`) are rendered in the
 Configuration is handled via `docker-compose.yml`.
 
 -   `PUBLIC_POCKETBASE_URL`: PocketBase API URL (default: `http://localhost:8090`)
+-   `GEMINI_API_KEY` (PocketBase): Gemini API key used by the receipt scanner (optional, the scanner is disabled without it)
 -   `APP_ORIGINS` (PocketBase): comma-separated app origins allowed in emailed links, the first one being the default (default: `https://app.kimpay.io`)
 -   `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
 

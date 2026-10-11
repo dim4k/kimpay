@@ -19,10 +19,27 @@ export interface Participant {
     kimpay: string;
     avatar?: string;
     user?: string; // Linked User ID
+    /** Public payment handles: paypal.me/<paypal>, revolut.me/<revolut> */
+    paypal?: string;
+    revolut?: string;
     expand?: {
         kimpay?: Kimpay;
         user?: User;
     };
+}
+
+/**
+ * How an expense is shared between its involved participants.
+ * - equal:   same share for everyone (also when `split` is missing)
+ * - shares:  `values` = number of shares per participant
+ * - amounts: `values` = exact amount per participant, in the expense currency
+ * - percent: `values` = percentage per participant
+ */
+export type SplitMode = 'equal' | 'shares' | 'amounts' | 'percent';
+
+export interface ExpenseSplit {
+    mode: SplitMode;
+    values?: Record<string, number>; // participant ID -> value
 }
 
 export interface Expense {
@@ -39,7 +56,12 @@ export interface Expense {
     kimpay: string;
     created_by: string;
     is_reimbursement: boolean;
+    /** Money received by the group: `payer` is the one who received it. */
+    is_income?: boolean;
     currency: string;
+    /** Expense currency -> Kimpay currency, frozen at the expense date (0 = unknown). */
+    exchange_rate?: number;
+    split?: ExpenseSplit | null;
     icon?: string;
     photos?: string[];
     expand?: {
@@ -58,6 +80,8 @@ export interface Kimpay {
     currency: string;
     icon?: string;
     invite_token?: string;
+    /** Secret of the read-only summary link ("" = no link). */
+    readonly_token?: string;
     created_by: string;
     /** Local-only: ID of the current user's participant in this Kimpay */
     myParticipantId?: string;

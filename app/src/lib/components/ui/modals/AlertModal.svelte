@@ -32,7 +32,7 @@
             {#if title}
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
             {/if}
-            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-line">
                 {message}
             </p>
         </div>

@@ -4,6 +4,7 @@
   import { fade } from 'svelte/transition';
 
   import Avatar from '#lib/components/ui/Avatar.svelte';
+  import PaymentLinks from '#lib/components/PaymentLinks.svelte';
   import PageHeader from '#lib/components/ui/PageHeader.svelte';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -122,9 +123,9 @@
                 
                 <div class="space-y-3">
                     {#each transactions as tx, i (i)}
+                        <div class="balance-item space-y-2" style="animation-delay: {i * 50}ms;">
                         <button 
-                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-xs border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left balance-item"  
-                            style="animation-delay: {i * 50}ms;"
+                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-xs border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left"  
                             onclick={() => openSettleModal(tx)}
                             disabled={!myId} 
                         >
@@ -161,6 +162,11 @@
                                  <Avatar name={getName(tx.to)} record={activeKimpay?.participantsById.get(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
                             </div>
                         </button>
+                        <!-- What I owe: pay directly with the receiver's payment links -->
+                        {#if tx.from === myId}
+                            <PaymentLinks to={activeKimpay?.participantsById.get(tx.to)} amount={tx.amount} currency={tx.currency} class="pl-3" />
+                        {/if}
+                        </div>
                     {/each}
                 </div>
             </div>
@@ -173,7 +179,7 @@
             {@const totalDebit = myDebts.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
             {@const totalCredit = myCredit.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
             {@const netBalance = totalCredit - totalDebit}
-            {@const totalExpenses = expenses.reduce((sum, e) => sum + (e.is_reimbursement ? 0 : toDisplayCurrency(Number(e.amount)||0, e.currency || DEFAULT_CURRENCY)), 0)}
+            {@const totalExpenses = toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency)}
             
             <div class="space-y-3" transition:fade>
                  <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.your_summary')}</h2>

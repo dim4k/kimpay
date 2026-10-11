@@ -41,8 +41,9 @@ routerAdd(
                 return e.json(500, { message: "OCR service not configured" });
             }
 
-            // Get target language from request (default to English)
-            const targetLang = data.language === "fr" ? "French" : "English";
+            // Target language of the description: the app's languages (default English)
+            const languages = { en: "English", fr: "French", de: "German", es: "Spanish", pt: "Portuguese" };
+            const targetLang = languages[String(data.language).slice(0, 2).toLowerCase()] || "English";
 
             const prompt = `Analyze this receipt/invoice image and extract:
 1. A short description (store name + main category, max 50 chars) - TRANSLATE TO ${targetLang}
@@ -57,7 +58,18 @@ Respond ONLY with valid JSON in this exact format:
 If you cannot read the receipt clearly, respond with:
 {"error": "unreadable"}`;
 
+            // A data URL ("data:image/png;base64,...") tells the image type: the
+            // app only re-encodes large photos (to JPEG), smaller ones are sent as is.
+            const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
             let imageBase64 = data.image;
+            let mimeType = "image/jpeg";
+            const dataUrl = /^data:([^;,]+);base64,/.exec(imageBase64);
+            if (dataUrl) {
+                if (imageTypes.indexOf(dataUrl[1].toLowerCase()) === -1) {
+                    return e.json(400, { message: "Unsupported image type" });
+                }
+                mimeType = dataUrl[1].toLowerCase();
+            }
             if (imageBase64.includes(",")) {
                 imageBase64 = imageBase64.split(",")[1];
             }
@@ -68,7 +80,7 @@ If you cannot read the receipt clearly, respond with:
                         { text: prompt },
                         {
                             inline_data: {
-                                mime_type: "image/jpeg",
+                                mime_type: mimeType,
                                 data: imageBase64
                             }
                         }
@@ -88,12 +100,13 @@ If you cannot read the receipt clearly, respond with:
             let lastError = null;
 
             for (const model of models) {
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
                 response = $http.send({
                     url: geminiUrl,
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    // Key in a header, not the URL: URLs end up in proxy/error logs.
+                    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
                     body: JSON.stringify(geminiBody),
                     timeout: 30
                 });

@@ -2,7 +2,7 @@
     import { Camera, Loader2 } from '@lucide/svelte';
     import { t, locale } from '#lib/i18n.js';
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { scanReceipt, compressImage, type OcrResult } from '#lib/services/ocr.js';
+    import { scanReceipt, compressImage, fileToBase64, type OcrResult } from '#lib/services/ocr.js';
     import { modals } from '#lib/stores/modals.svelte.js';
 
     export interface ScanResult extends OcrResult {
@@ -42,8 +42,9 @@
         isScanning = true;
 
         try {
-            // Compress image to reduce upload size
-            const compressedBase64 = await compressImage(file);
+            // Compress image to reduce upload size. Formats the browser cannot
+            // draw (HEIC outside Safari...) are sent as is: the scanner reads them.
+            const compressedBase64 = await compressImage(file).catch(() => fileToBase64(file));
             
             // Call OCR API with current language
             const result = await scanReceipt(compressedBase64, $locale);

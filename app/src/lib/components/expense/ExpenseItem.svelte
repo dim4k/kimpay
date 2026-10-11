@@ -10,6 +10,7 @@
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import type { Expense } from '#lib/types.js';
+    import { expenseShares, isCustomSplit } from '#lib/split.js';
 
     let { 
         expense, 
@@ -30,6 +31,12 @@
         onOpenGallery: (expense: Expense) => void;
         style?: string;
     } = $props();
+
+    // Each person's share, shown when the expense is not split equally.
+    let shares = $derived(
+        isCustomSplit(expense) ? expenseShares(expense, expense.expand?.involved?.map((p) => p.id) ?? expense.involved ?? []) : null
+    );
+    let currency = $derived(expense.currency || DEFAULT_CURRENCY);
 
     function slideFade(node: Element, { delay = 0, duration = 400, easing = cubicOut, y = 20 }) {
       const style = getComputedStyle(node);
@@ -80,10 +87,10 @@
     let swipeDisabled = $derived(expense.is_reimbursement || offlineStore.isOffline);
 </script>
 
-{#snippet personChip(name: string | undefined, isMe: boolean)}
+{#snippet personChip(name: string | undefined, isMe: boolean, share?: number)}
     {#if isMe}
         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
-            {$t('common.you')}
+            {$t('common.you')}{share !== undefined ? ` · ${formatAmount(share, currency, $locale)}` : ''}
         </span>
     {:else}
         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
@@ -147,7 +154,7 @@
                     <div transition:slideFade={{ y: 20, duration: 300 }}>
                         <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
                                 <span class="truncate">
-                                    {$t('expense.list.paid_by')} 
+                                    {expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')} 
                                     {#if currentUserId && expense.payer === currentUserId}
                                         <span class="font-bold text-primary">{$t('common.you')}</span>
                                     {:else}
@@ -161,8 +168,8 @@
                 {/if}
             </div>
         </div>
-        <div class="shrink-0 font-bold text-sm leading-none text-right tabular-nums px-2.5 py-1.5 rounded-lg transition-colors {expense.is_reimbursement ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/30' : currentUserId && expense.payer === currentUserId ? 'text-primary dark:text-primary-foreground bg-primary/10 dark:bg-primary/25' : 'text-slate-900 dark:text-slate-100 bg-muted dark:bg-slate-800'}">
-            {formatAmount(expense.amount, expense.currency || DEFAULT_CURRENCY, $locale)}
+        <div class="shrink-0 font-bold text-sm leading-none text-right tabular-nums px-2.5 py-1.5 rounded-lg transition-colors {expense.is_reimbursement ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/30' : expense.is_income ? 'text-teal-700 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-900/30' : currentUserId && expense.payer === currentUserId ? 'text-primary dark:text-primary-foreground bg-primary/10 dark:bg-primary/25' : 'text-slate-900 dark:text-slate-100 bg-muted dark:bg-slate-800'}">
+            {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
         </div>
     </div>
 
@@ -194,7 +201,7 @@
                         </div>
                         
                         <div class="flex justify-between items-center">
-                            <span>{$t('expense.list.paid_by')}:</span>
+                            <span>{expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')}:</span>
                             <div>
                                 {@render personChip(expense.expand?.payer?.name, !!currentUserId && expense.payer === currentUserId)}
                             </div>
@@ -205,7 +212,13 @@
                             <div class="flex flex-wrap gap-1 justify-end">
                                 {#if expense.expand?.involved}
                                     {#each expense.expand.involved as p (p.id)}
-                                        {@render personChip(p.name, !!currentUserId && p.id === currentUserId)}
+                                        {@render personChip(
+                                            shares && shares[p.id] !== undefined
+                                                ? `${p.name} · ${formatAmount(shares[p.id]!, currency, $locale)}`
+                                                : p.name,
+                                            !!currentUserId && p.id === currentUserId,
+                                            shares?.[p.id],
+                                        )}
                                     {/each}
                                 {:else}
                                     <span class="text-slate-400 italic">{$t('expense.no_participants')}</span>

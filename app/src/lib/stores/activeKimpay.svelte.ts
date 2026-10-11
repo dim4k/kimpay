@@ -12,8 +12,8 @@ import {
     asExpense,
     asParticipant,
 } from "#lib/types.js";
-import { calculateBalances, calculateDebts, type Transaction } from "#lib/balance.js";
-import { getExchangeRates, DEFAULT_CURRENCY, convert } from "#lib/services/currency.js";
+import { calculateBalances, calculateDebts, totalSpent, type Transaction } from "#lib/balance.js";
+import { getExchangeRates, DEFAULT_CURRENCY } from "#lib/services/currency.js";
 import { objectToFormData } from "#lib/utils/formData.js";
 import { generatePocketBaseId } from "#lib/utils/id.js";
 
@@ -67,24 +67,15 @@ export class ActiveKimpay {
         ),
     );
 
-    // Sum of all non-reimbursement expenses, converted to the Kimpay's
-    // currency so groups mixing currencies show a correct total.
-    totalAmount = $derived.by(() => {
-        const target = this.kimpay?.currency ?? DEFAULT_CURRENCY;
-        return this.expenses.reduce(
-            (sum, e) =>
-                sum +
-                (e.is_reimbursement
-                    ? 0
-                    : convert(
-                          e.amount,
-                          e.currency || DEFAULT_CURRENCY,
-                          target,
-                          this.exchangeRates,
-                      )),
-            0,
-        );
-    });
+    // Net spending of the group (expenses minus money received), converted
+    // to the Kimpay's currency so groups mixing currencies show a correct total.
+    totalAmount = $derived(
+        totalSpent(
+            this.expenses,
+            this.kimpay?.currency ?? DEFAULT_CURRENCY,
+            this.exchangeRates,
+        ),
+    );
 
     // Transactions calculated with multi-currency support
     transactions = $derived<Transaction[]>(
@@ -562,6 +553,29 @@ export class ActiveKimpay {
             this.persist();
             throw e;
         }
+    }
+
+    /** Set the payment handles (PayPal.me, Revolut.me) of the current identity. */
+    async updateMyPaymentHandles(handles: { paypal: string; revolut: string }) {
+        const myId = this.myParticipantId;
+        if (!myId) return;
+
+        const record = await pb.collection("participants").update(myId, handles);
+        this.participants = this.participants.map((p) =>
+            p.id === myId ? { ...p, ...handles, updated: record.updated } : p,
+        );
+        this.persist();
+    }
+
+    /**
+     * Create (new token) or disable ("") the read-only summary link.
+     * Online only: the link is useless until the server knows the token.
+     */
+    async setReadonlyToken(token: string) {
+        if (!this.kimpay) return;
+        await pb.collection("kimpays").update(this.id, { readonly_token: token });
+        this.kimpay = { ...this.kimpay, readonly_token: token };
+        this.persist();
     }
 
     async updateMyAvatar(file: File) {

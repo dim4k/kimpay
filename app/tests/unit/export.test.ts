@@ -40,6 +40,7 @@ const input = (expenses: Expense[]): ExportInput => ({
     kimpay,
     expenses,
     participants: [participant('p1', 'Alice'), participant('p2', 'Bob, Jr.')],
+    rates: {},
     t,
     locale: 'en-US',
 });
@@ -50,12 +51,31 @@ describe('utils/export', () => {
     });
 
     it('exports one CSV line per expense, with its currency', () => {
-        const lines = toCsv(input([expense({}), expense({ amount: 3, currency: 'USD' })])).trim().split('\n');
+        const [table] = toCsv(input([expense({}), expense({ amount: 3, currency: 'USD', exchange_rate: 0.9 })])).split('\n\n');
+        const lines = table!.split('\n');
 
-        expect(lines[0]).toBe('export.col.date,export.col.desc,export.col.amount,export.col.currency,export.col.payer,export.col.for');
+        expect(lines[0]).toBe('export.col.date,export.col.desc,export.col.amount,export.col.currency,export.col.payer,export.col.for,export.col.type');
         expect(lines).toHaveLength(3);
-        expect(lines[1]).toBe('1/15/2026,Dinner,12.50,EUR,Alice,"Alice; Bob, Jr."');
+        expect(lines[1]).toBe('1/15/2026,Dinner,12.50,EUR,Alice,"Alice; Bob, Jr.",export.type.expense');
         expect(lines[2]).toContain(',3.00,USD,');
+    });
+
+    it('shows each share of a custom split, and the line type', () => {
+        const csv = toCsv(input([
+            expense({ amount: 30, split: { mode: 'shares', values: { p1: 2, p2: 1 } } }),
+            expense({ amount: 10, is_income: true }),
+        ]));
+
+        expect(csv).toContain(',30.00,EUR,Alice,"Alice (20.00); Bob, Jr. (10.00)",export.type.expense');
+        expect(csv).toContain(',10.00,EUR,Alice,"Alice; Bob, Jr.",export.type.income');
+    });
+
+    it('ends the CSV with the balances and the suggested payments', () => {
+        const sections = toCsv(input([expense({ amount: 30 })])).trim().split('\n\n');
+
+        expect(sections).toHaveLength(3);
+        expect(sections[1]).toBe(['export.meta.balances,EUR', 'export.col.participant,export.col.balance', 'Alice,15.00', '"Bob, Jr.",-15.00'].join('\n'));
+        expect(sections[2]).toBe(['export.meta.transfers,EUR', 'export.col.from,export.col.to,export.col.amount', '"Bob, Jr.",Alice,15.00'].join('\n'));
     });
 
     it('quotes CSV fields containing separators or quotes', () => {
@@ -69,7 +89,13 @@ describe('utils/export', () => {
 
         expect(md).toContain('# ✈️ Trip to Lisbon!');
         expect(md).toContain('**export.meta.participants:** Alice, Bob, Jr.');
-        expect(md).toContain('| A - B | 12.50 EUR | Alice | Alice, Bob, Jr. |');
+        expect(md).toContain('| A - B | 12.50 EUR | Alice | Alice, Bob, Jr. | export.type.expense |');
+        expect(md).toContain('## export.meta.balances (EUR)');
+        expect(md).toContain('| Bob, Jr. | Alice | 6.25 |');
+    });
+
+    it('says when everything is settled in Markdown', () => {
+        expect(toMarkdown(input([]))).toContain('export.meta.settled');
     });
 
     it('falls back to "unknown" for deleted participants', () => {

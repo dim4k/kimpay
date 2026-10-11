@@ -5,7 +5,7 @@
   import { Label } from "#lib/components/ui/label/index.js";
   import PageHeader from '#lib/components/ui/PageHeader.svelte';
   import { goto } from '$app/navigation';
-  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table, LoaderCircle } from "@lucide/svelte";
+  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table, LoaderCircle, Wallet, Eye, Copy, Share2, Link } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t } from '#lib/i18n.js';
   import { installStore } from '#lib/stores/install.svelte.js';
@@ -23,6 +23,9 @@
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import SettingsSection from '#lib/components/ui/SettingsSection.svelte';
   import { locale } from '#lib/i18n.js';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { normalizeHandle } from '#lib/utils/payment.js';
+  import { generateUUID } from '#lib/utils/id.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -184,6 +187,7 @@
               kimpay,
               expenses: activeKimpay.expenses,
               participants: activeKimpay.participants,
+              rates: activeKimpay.exchangeRates,
               t: $t,
               locale: $locale,
           };
@@ -194,7 +198,102 @@
           modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
       }
   }
+
+  // Payment handles of the current identity
+  let me = $derived(currentParticipantId ? activeKimpay?.participantsById.get(currentParticipantId) : undefined);
+  let paypalInput = $state("");
+  let revolutInput = $state("");
+  let loadedHandlesFor = $state<string | null>(null);
+  let isSavingHandles = $state(false);
+
+  // Fill the inputs once per identity (not on every realtime refresh).
+  $effect(() => {
+      if (me && loadedHandlesFor !== me.id) {
+          loadedHandlesFor = me.id;
+          paypalInput = me.paypal ?? "";
+          revolutInput = me.revolut ?? "";
+      }
+  });
+
+  async function savePaymentHandles() {
+      const paypal = normalizeHandle(paypalInput);
+      const revolut = normalizeHandle(revolutInput);
+      if (paypal === null || revolut === null) {
+          modals.alert({ message: $t('payment.invalid_handle') });
+          return;
+      }
+      isSavingHandles = true;
+      try {
+          await activeKimpay.updateMyPaymentHandles({ paypal, revolut });
+          paypalInput = paypal;
+          revolutInput = revolut;
+          toasts.success($t('common.saved'));
+      } catch (e) {
+          console.error("Failed to save payment handles", e);
+          modals.alert({ message: getErrorMessage(e, $t) });
+      } finally {
+          isSavingHandles = false;
+      }
+  }
+
+  // Read-only summary link
+  let readonlyLink = $derived(kimpay?.readonly_token ? `${window.location.origin}/r/${kimpay.readonly_token}` : "");
+  let isUpdatingLink = $state(false);
+
+  async function setReadonlyLink(enabled: boolean) {
+      isUpdatingLink = true;
+      try {
+          await activeKimpay.setReadonlyToken(enabled ? generateUUID() : "");
+      } catch (e) {
+          console.error("Failed to update the read-only link", e);
+          modals.alert({ message: getErrorMessage(e, $t) });
+      } finally {
+          isUpdatingLink = false;
+      }
+  }
+
+  function requestDisableReadonlyLink() {
+      modals.confirm({
+          title: $t('settings.readonly.disable_title'),
+          description: $t('settings.readonly.disable_desc'),
+          confirmText: $t('settings.readonly.disable'),
+          variant: 'destructive',
+          onConfirm: () => setReadonlyLink(false)
+      });
+  }
+
+  async function copyReadonlyLink() {
+      try {
+          await navigator.clipboard.writeText(readonlyLink);
+          toasts.success($t('share.copy_success'));
+      } catch {
+          toasts.error($t('share.copy_error'));
+      }
+  }
+
+  async function shareReadonlyLink() {
+      if (!navigator.share) return copyReadonlyLink();
+      try {
+          await navigator.share({ title: kimpay?.name ?? 'Kimpay', url: readonlyLink });
+      } catch {
+          // Share sheet dismissed.
+      }
+  }
 </script>
+
+{#snippet handleInput(id: 'paypal' | 'revolut', label: string, prefix: string)}
+    <div class="space-y-2">
+        <Label for={id}>{label}</Label>
+        <div class="flex items-center rounded-md border border-input bg-background dark:bg-slate-800 dark:border-slate-700 focus-within:ring-2 focus-within:ring-ring">
+            <span class="pl-3 text-sm text-muted-foreground select-none">{prefix}</span>
+            {#if id === 'paypal'}
+                <input {id} bind:value={paypalInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-10 flex-1 min-w-0 bg-transparent pr-3 text-sm outline-hidden" />
+            {:else}
+                <input {id} bind:value={revolutInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-10 flex-1 min-w-0 bg-transparent pr-3 text-sm outline-hidden" />
+            {/if}
+        </div>
+    </div>
+{/snippet}
 
 <div class="container p-4 space-y-6">
         <PageHeader title={$t('settings.title')} subtitle={$t('settings.subtitle')} />
@@ -296,6 +395,63 @@
                         {/if}
                     </Button>
                 </div>
+            </div>
+        </SettingsSection>
+        {/if}
+
+        {#if !offlineStore.isOffline && me}
+        <!-- My payment details -->
+        <SettingsSection title={$t('settings.payment.title')} icon={Wallet}>
+            <div class="space-y-4">
+                <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.payment.desc')}</p>
+                {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}
+                {@render handleInput('revolut', 'Revolut.me', 'revolut.me/')}
+                <Button onclick={savePaymentHandles} disabled={isSavingHandles} class="w-full gap-2">
+                    {#if isSavingHandles}
+                        <LoaderCircle class="h-4 w-4 animate-spin" />
+                    {:else}
+                        <Save class="h-4 w-4" />
+                    {/if}
+                    {$t('common.save')}
+                </Button>
+            </div>
+        </SettingsSection>
+        {/if}
+
+        {#if !offlineStore.isOffline}
+        <!-- Read-only link -->
+        <SettingsSection title={$t('settings.readonly.title')} icon={Eye}>
+            <div class="space-y-4">
+                <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.readonly.desc')}</p>
+                {#if readonlyLink}
+                    <div class="flex items-center gap-2 rounded-lg border bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
+                        <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span class="flex-1 truncate font-mono text-xs dark:text-slate-300">{readonlyLink}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={copyReadonlyLink}>
+                            <Copy class="h-4 w-4" />
+                            {$t('share.copy_button')}
+                        </Button>
+                        <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={shareReadonlyLink}>
+                            <Share2 class="h-4 w-4" />
+                            {$t('nav.share')}
+                        </Button>
+                    </div>
+                    <Button variant="ghost" class="w-full justify-start gap-2 text-red-600 hover:text-red-700 dark:text-red-400" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
+                        <Trash2 class="h-4 w-4" />
+                        {$t('settings.readonly.disable')}
+                    </Button>
+                {:else}
+                    <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={() => setReadonlyLink(true)} disabled={isUpdatingLink}>
+                        {#if isUpdatingLink}
+                            <LoaderCircle class="h-4 w-4 animate-spin" />
+                        {:else}
+                            <Link class="h-4 w-4" />
+                        {/if}
+                        {$t('settings.readonly.create')}
+                    </Button>
+                {/if}
             </div>
         </SettingsSection>
         {/if}

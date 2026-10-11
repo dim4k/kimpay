@@ -10,6 +10,8 @@
   import PhotoManager from '#lib/components/PhotoManager.svelte';
   import ParticipantSelector from '#lib/components/ParticipantSelector.svelte';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
+  import SplitEditor from '#lib/components/expense/SplitEditor.svelte';
+  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import { t } from '#lib/i18n.js';
   import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
 
@@ -18,13 +20,15 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { Check, LoaderCircle } from "@lucide/svelte";
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+  import { CURRENCY_CODES, DEFAULT_CURRENCY, getExchangeRateAt } from '#lib/services/currency.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { haptic } from '#lib/utils/haptic.js';
   import { notifyError } from '#lib/utils/notify.js';
-  import type { Expense } from '#lib/types.js';
+  import type { Expense, SplitMode } from '#lib/types.js';
   import { toLocalISODate } from '#lib/utils/date.js';
+  import { buildSplit, checkSplit } from '#lib/split.js';
+  import { findSimilarExpense } from '#lib/utils/suggest.js';
 
   let { kimpayId, initialData = null }: { kimpayId: string; initialData?: Expense | null } = $props();
 
@@ -44,8 +48,13 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   let currency = $state(DEFAULT_CURRENCY);
+  let isIncome = $state(false);
+  let splitMode = $state<SplitMode>('equal');
+  let splitValues = $state<Record<string, number>>({});
   
   let participants = $derived(activeKimpay?.participants || []);
+  let involvedParticipants = $derived(participants.filter(p => involved.includes(p.id)));
+  let splitCheck = $derived(checkSplit(splitMode, splitValues, involved, parseFloat(amount) || 0, currency));
   let isLoading = $state(false);
 
   // Photo State (managed by PhotoManager)
@@ -67,6 +76,11 @@
          payer = initialData.payer || "";
          involved = initialData.involved || [];
          currency = initialData.currency || defaultCurrency;
+         isIncome = !!initialData.is_income;
+         if (initialData.split && initialData.split.mode !== 'equal') {
+             splitMode = initialData.split.mode;
+             splitValues = { ...initialData.split.values };
+         }
          
          if (initialData.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
@@ -86,7 +100,7 @@
 
   });
 
-  let isValid = $derived(!!description && !!amount && !!payer && involved.length > 0);
+  let isValid = $derived(!!description && !!amount && !!payer && involved.length > 0 && splitCheck.valid);
   // Expenses cannot be edited offline (only created).
   let isOfflineEdit = $derived(!!initialData?.id && offlineStore.isOffline);
 
@@ -160,12 +174,17 @@
 
       isLoading = true;
       try {
+          const split = buildSplit(splitMode, splitValues, involved);
           const expenseData = {
               description,
               amount: parseFloat(amount),
               currency,
+              exchange_rate: await exchangeRate(),
               payer,
-              involved,
+              // Nobody is left out by a 0 share / amount / percent.
+              involved: split.values ? involved.filter(id => (split.values![id] ?? 0) > 0) : involved,
+              split,
+              is_income: isIncome,
               date: new Date(date).toISOString(),
               icon,
               kimpay: kimpayId
@@ -188,6 +207,26 @@
       } finally {
           isLoading = false;
       }
+  }
+
+  /**
+   * Rate from the expense currency to the Kimpay's, frozen at the expense
+   * date (0 when it cannot be fetched, e.g. offline: today's rate is then
+   * used when computing balances). Kept as is when editing an expense whose
+   * currency and date did not change.
+   */
+  async function exchangeRate(): Promise<number> {
+      if (currency === defaultCurrency) return 0;
+      if (
+          initialData?.exchange_rate &&
+          initialData.currency === currency &&
+          initialData.date.slice(0, 10) === date
+      ) {
+          return initialData.exchange_rate;
+      }
+      // A slow rates API must not hold the save: today's rate is used instead.
+      const timeout = new Promise<number>((resolve) => setTimeout(() => resolve(0), 6000));
+      return Promise.race([getExchangeRateAt(currency, defaultCurrency, date), timeout]);
   }
 
   function handleScanComplete(result: import('./ReceiptScanner.svelte').ScanResult) {
@@ -214,18 +253,49 @@
       if (result.photo) {
           newPhotos = [...newPhotos, result.photo];
       }
+
+      // Same shop as a previous expense: suggest the same people (and split).
+      const similar = findSimilarExpense(activeKimpay?.expenses ?? [], result.description);
+      const known = new Set(participants.map(p => p.id));
+      const suggested = similar?.involved?.filter(id => known.has(id)) ?? [];
+      if (similar && suggested.length > 0) {
+          involved = suggested;
+          // Exact amounts belong to that other receipt: keep the proportions only.
+          const mode = similar.split?.mode;
+          if (mode === 'shares' || mode === 'percent') {
+              splitMode = mode;
+              splitValues = { ...similar.split!.values };
+          } else {
+              splitMode = 'equal';
+              splitValues = {};
+          }
+      }
       
       modals.alert({
           title: $t('expense.form.scan_success'),
-          message: `${result.description} - ${result.amount} ${result.currency}`,
+          message: `${result.description} - ${result.amount} ${result.currency}` +
+              (similar && suggested.length > 0 ? `
+
+${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
           variant: 'success'
       });
   }
 </script>
 
 <div class="space-y-6">
+    <!-- Expense or money received -->
+    <SegmentedControl
+        options={[
+            { value: 'expense', label: $t('expense.type.expense') },
+            { value: 'income', label: $t('expense.type.income') },
+        ]}
+        value={isIncome ? 'income' : 'expense'}
+        label={$t('expense.type.label')}
+        onchange={(v) => isIncome = v === 'income'}
+    />
+
     <!-- Receipt Scanner (only for new expenses) -->
-    {#if !initialData}
+    {#if !initialData && !isIncome}
         <div class="-mt-2 mb-6">
             <ReceiptScanner 
                 onScanComplete={handleScanComplete}
@@ -241,7 +311,7 @@
             <div class="shrink-0">
                 <EmojiInput bind:value={icon} />
             </div>
-            <Input bind:value={description} placeholder={$t('expense.form.desc_placeholder')} />
+            <Input bind:value={description} placeholder={isIncome ? $t('expense.form.income_desc_placeholder') : $t('expense.form.desc_placeholder')} />
         </div>
     </div>
     
@@ -274,7 +344,7 @@
         {participants}
         selected={payer ? [payer] : []}
         mode="single"
-        label={$t('expense.form.paid_by_label')}
+        label={isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label')}
         onSelectionChange={handlePayerChange}
         onAddNew={() => newParticipantSource = 'payer'}
     />
@@ -289,6 +359,17 @@
         onAddNew={() => newParticipantSource = 'involved'}
         showToggleAll={true}
     />
+
+    <!-- How it is split -->
+    {#if involved.length > 0}
+        <SplitEditor
+            involved={involvedParticipants}
+            bind:mode={splitMode}
+            bind:values={splitValues}
+            amount={parseFloat(amount) || 0}
+            {currency}
+        />
+    {/if}
 
     <!-- Date -->
     <div class="space-y-2">
