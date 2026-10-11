@@ -78,14 +78,14 @@
                 <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 group">
                     <img 
                         src={getExistingPhotoUrl(filename)} 
-                        alt="Existing attachment" 
+                        alt={$t('photos.attachment_alt')} 
                         class="w-full h-full object-cover" 
                     />
                     <button 
                         type="button"
                         onclick={() => removeExistingPhoto(filename)}
                         class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Remove photo"
+                        aria-label={$t('photos.remove')}
                     >
                         <X class="h-3 w-3" />
                     </button>
@@ -99,12 +99,12 @@
         <div class="flex gap-2 overflow-x-auto pb-2">
             {#each photoPreviews as preview, i (i)}
                 <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                    <img src={preview} alt="New Upload" class="w-full h-full object-cover" />
+                    <img src={preview} alt={$t('photos.new_alt')} class="w-full h-full object-cover" />
                     <button 
                         type="button"
                         onclick={() => removeNewPhoto(i)}
                         class="absolute top-1 right-1 bg-slate-900/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors"
-                        aria-label="Remove photo"
+                        aria-label={$t('photos.remove')}
                     >
                         <X class="h-3 w-3" />
                     </button>

@@ -81,7 +81,8 @@
             <button 
             onclick={() => modals.closeIdentity()}
             class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 z-10"
-            title="Close"
+            title={$t('common.close')}
+            aria-label={$t('common.close')}
         >
             ✕
         </button>

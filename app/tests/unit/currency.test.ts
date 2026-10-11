@@ -7,6 +7,7 @@ import {
     getSymbol,
     formatAmount,
     formatAmountCompact,
+    getCurrencyName,
     hasRatesInCache
 } from '../../src/lib/services/currency';
 
@@ -205,5 +206,17 @@ describe('services/currency', () => {
         it('should return false when cache is empty', () => {
             expect(hasRatesInCache()).toBe(false);
         });
+    });
+});
+
+
+describe('getCurrencyName', () => {
+    it('names the currency in the requested language', () => {
+        expect(getCurrencyName('USD', 'en')).toBe('US Dollar');
+        expect(getCurrencyName('EUR', 'fr')).toBe('euro');
+    });
+
+    it('falls back to the built-in name for unknown codes', () => {
+        expect(getCurrencyName('XYZ', 'en')).toBe('XYZ');
     });
 });

@@ -190,7 +190,7 @@
                 {#each otherParticipants as p, i (p)}
                     <div class="bg-slate-100 dark:bg-slate-800 text-sm px-3 py-1 rounded-full flex items-center gap-1 group transition-colors">
                         {p}
-                        <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500" aria-label="Remove participant">
+                        <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500" aria-label={$t('home.create.remove_participant')}>
                             <X class="h-3 w-3" />
                         </button>
                     </div>

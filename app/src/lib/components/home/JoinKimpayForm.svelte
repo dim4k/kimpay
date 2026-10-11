@@ -6,6 +6,7 @@
     import ScannerModal from "#lib/components/ui/modals/ScannerModal.svelte";
     import { pb } from '#lib/pocketbase.js';
     import { isKimpayId } from '#lib/utils/id.js';
+    import { modals } from '#lib/stores/modals.svelte.js';
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
 
@@ -56,8 +57,7 @@
             isScannerOpen = false;
             join(); // Auto join
         } else {
-            // Feedback could be improved, but for now just close and fill text
-            alert("QR Code invalide ou lien Kimpay non reconnu.");
+            modals.alert({ message: $t('join.invalid_qr'), variant: 'error' });
             isScannerOpen = false;
         }
     }
@@ -99,7 +99,7 @@
             size="icon"
             class="aspect-square shrink-0"
             onclick={() => isScannerOpen = true}
-            aria-label="Scan QR Code"
+            aria-label={$t('join.scan_qr')}
         >
             <QrCode class="h-4 w-4" />
         </Button>

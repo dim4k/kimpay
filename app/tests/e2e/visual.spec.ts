@@ -31,6 +31,13 @@ async function setup(page: Page) {
 /** Waits for transient UI (toasts) to go away, then compares the viewport. */
 async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['locator']>[]) {
     await expect(page.getByRole('alert')).toHaveCount(0, { timeout: 10000 });
+    // Focusing a field may scroll it into view (mobile): always compare the
+    // top of the page, without focus.
+    await page.evaluate(() => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        document.querySelectorAll('main').forEach((main) => main.scrollTo(0, 0));
+        window.scrollTo(0, 0);
+    });
     // Soft: compare every screen of a test even when one differs.
     await expect.soft(page).toHaveScreenshot(`${name}.png`, { mask, maxDiffPixelRatio: 0.001 });
 }
@@ -97,8 +104,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // The QR code and the link contain the (random) group id.
             await navTo(page, /share/i);
-            await expect(page.getByAltText('QR Code')).toBeVisible();
-            await snapshot(page, `share-${colorScheme}`, [page.getByAltText('QR Code'), page.locator('.font-mono')]);
+            await expect(page.getByAltText(/QR code/i)).toBeVisible();
+            await snapshot(page, `share-${colorScheme}`, [page.getByAltText(/QR code/i), page.locator('.font-mono')]);
 
             // Another device opening the link is asked who they are.
             const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = test.info().project.use;

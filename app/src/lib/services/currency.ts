@@ -204,6 +204,21 @@ export function convert(
 /**
  * Get currency symbol
  */
+/**
+ * Currency name in the given language (e.g. "dollar des États-Unis"),
+ * falling back to the English name.
+ */
+export function getCurrencyName(currencyCode: string, locale: string): string {
+    const code = currencyCode.toUpperCase();
+    try {
+        const name = new Intl.DisplayNames([locale], { type: "currency" }).of(code);
+        if (name && name !== code) return name;
+    } catch {
+        // Unsupported locale/code: use the built-in English name.
+    }
+    return CURRENCIES[code]?.name ?? code;
+}
+
 export function getSymbol(currencyCode: string): string {
     return CURRENCIES[currencyCode.toUpperCase()]?.symbol ?? currencyCode;
 }

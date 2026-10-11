@@ -4,6 +4,7 @@
   import { pb } from '#lib/pocketbase.js';
   import type { RecordModel } from 'pocketbase';
   import Modal from './Modal.svelte';
+  import { t } from '#lib/i18n.js';
   import type { GalleryOptions } from '#lib/stores/modals.svelte.js';
 
   let { 
@@ -56,7 +57,7 @@
     <button 
         class="fixed top-4 right-4 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-50 backdrop-blur-xs"
         onclick={onClose}
-        aria-label="Close gallery"
+        aria-label={$t('common.close')}
     >
         <X class="h-6 w-6" />
     </button>
@@ -69,7 +70,7 @@
         {#key currentIndex}
             <img 
                 src={getUrl(photos[currentIndex] ?? "")} 
-                alt="Expense attachment {currentIndex + 1} of {photos.length}" 
+                alt={$t('gallery.photo_alt', { current: String(currentIndex + 1), total: String(photos.length) })} 
                 class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                 transition:fade={{ duration: 200 }}
             />
@@ -81,7 +82,7 @@
                 <button 
                     class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-xs"
                     onclick={(e) => { e.stopPropagation(); prev(); }}
-                    aria-label="Previous photo"
+                    aria-label={$t('gallery.previous')}
                 >
                     <ChevronLeft class="h-8 w-8" />
                 </button>
@@ -91,7 +92,7 @@
                 <button 
                     class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-xs"
                     onclick={(e) => { e.stopPropagation(); next(); }}
-                    aria-label="Next photo"
+                    aria-label={$t('gallery.next')}
                 >
                     <ChevronRight class="h-8 w-8" />
                 </button>
@@ -106,7 +107,7 @@
                 <button 
                     class={`h-2.5 w-2.5 rounded-full transition-colors ${i === currentIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/60'}`}
                     onclick={(e) => { e.stopPropagation(); currentIndex = i; }}
-                    aria-label="Go to photo {i + 1}"
+                    aria-label={$t('gallery.go_to', { n: String(i + 1) })}
                 ></button>
             {/each}
         </div>

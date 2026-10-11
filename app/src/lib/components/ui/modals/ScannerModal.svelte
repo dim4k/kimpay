@@ -62,13 +62,13 @@
           // Handle specific errors
           const e = err as Error;
           if (e?.name === 'NotAllowedError') {
-              errorMsg = "Camera access denied. Please allow camera permissions.";
+              errorMsg = $t('scanner.error_denied');
           } else if (e?.name === 'NotFoundError') {
-              errorMsg = "No camera found on this device.";
+              errorMsg = $t('scanner.error_no_camera');
           } else if (typeof err === 'string' && (err.includes('Is not defined') || err.includes('Secure Context'))) {
-              errorMsg = "Secure context check failed. Use HTTPS."; // Common issue
+              errorMsg = $t('scanner.error_insecure');
           } else {
-              errorMsg = "Could not start camera.";
+              errorMsg = $t('scanner.error_generic');
           }
       }
   }
@@ -101,8 +101,8 @@
 >
     <!-- Header -->
     <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start bg-linear-to-b from-black/80 to-transparent">
-        <h2 class="text-white font-bold text-lg drop-shadow-md">Scan QR Code</h2>
-        <button onclick={handleClose} class="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-md transition-colors">
+        <h2 class="text-white font-bold text-lg drop-shadow-md">{$t('join.scan_qr')}</h2>
+        <button onclick={handleClose} aria-label={$t('common.close')} class="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-md transition-colors">
             <X class="h-5 w-5" />
         </button>
     </div>
@@ -137,7 +137,7 @@
             </div>
             </div>
             <p class="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm font-medium drop-shadow-xs px-4">
-                Align text code within frame
+                {$t('scanner.hint')}
             </p>
         {/if}
     </div>

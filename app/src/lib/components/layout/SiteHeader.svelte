@@ -267,7 +267,7 @@
                       class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-sm text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                     >
                       <span class="text-base">🏠</span>
-                      <span class="font-medium">Home</span>
+                      <span class="font-medium">{$t('nav.home')}</span>
                     </a>
 
                     {#if recentsStore.recentKimpays.length === 0}

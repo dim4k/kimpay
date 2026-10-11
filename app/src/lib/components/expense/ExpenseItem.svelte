@@ -173,7 +173,7 @@
                 {#if expense.is_reimbursement}
                     <!-- Simplified Layout for Reimbursements -->
                      <div class="text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center">
-                        <span>Date</span>
+                        <span>{$t('expense.form.date_label')}</span>
                         <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
                     </div>
 
@@ -189,7 +189,7 @@
                     <!-- Standard Layout -->
                     <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
                         <div class="flex justify-between">
-                            <span>Date:</span>
+                            <span>{$t('expense.form.date_label')}:</span>
                             <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
                         </div>
                         
@@ -208,7 +208,7 @@
                                         {@render personChip(p.name, !!currentUserId && p.id === currentUserId)}
                                     {/each}
                                 {:else}
-                                    <span class="text-slate-400 italic">No participants</span>
+                                    <span class="text-slate-400 italic">{$t('expense.no_participants')}</span>
                                 {/if}
                             </div>
                         </div>
@@ -232,7 +232,7 @@
                             onclick={(e) => { e.stopPropagation(); onOpenGallery(expense); }}
                         >
                             <ImageIcon class="h-4 w-4" />
-                            Photos
+                            {$t('expense.form.photos_label')}
                         </button>
                         {/if}
 

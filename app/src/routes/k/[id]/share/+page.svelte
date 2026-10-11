@@ -54,8 +54,8 @@
       if (navigator.share) {
           try {
               await navigator.share({
-                  title: `Join ${kimpay?.name || 'Kimpay'}`,
-                  text: 'Join my group on Kimpay to split expenses!',
+                  title: $t('share.native_title', { name: kimpay?.name || 'Kimpay' }),
+                  text: $t('share.native_text'),
                   url: inviteLink
               });
           } catch (err) {
@@ -85,7 +85,7 @@
         <div class="absolute inset-0 bg-linear-to-tr from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         {#if qrDataUrl}
-            <img src={qrDataUrl} alt="QR Code" class="h-48 w-48 mx-auto" />
+            <img src={qrDataUrl} alt={$t('share.qr_alt')} class="h-48 w-48 mx-auto" />
         {:else}
             <!-- Fallback / Loading -->
              <div class="h-48 w-48 flex items-center justify-center text-slate-300">

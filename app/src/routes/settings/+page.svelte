@@ -1,8 +1,8 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { t } from '#lib/i18n.js';
-    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+    import { t, locale } from '#lib/i18n.js';
+    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY, getCurrencyName } from '#lib/services/currency.js';
     import { userService } from '#lib/services/user.js';
     import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
     import { slide } from 'svelte/transition';
@@ -151,7 +151,7 @@
                         <span class="text-xl">{CURRENCIES[selectedCurrency]?.symbol}</span>
                         <div class="text-left">
                             <div class="font-medium text-slate-900 dark:text-slate-100">{selectedCurrency}</div>
-                            <div class="text-xs text-slate-500 dark:text-slate-400">{CURRENCIES[selectedCurrency]?.name}</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">{getCurrencyName(selectedCurrency, $locale)}</div>
                         </div>
                     </div>
                     <ChevronDown class="h-5 w-5 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
@@ -169,7 +169,7 @@
                                     <span class="text-xl w-8 text-center">{CURRENCIES[code]?.symbol}</span>
                                     <div class="text-left">
                                         <div class="font-medium text-slate-900 dark:text-slate-100">{code}</div>
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">{CURRENCIES[code]?.name}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">{getCurrencyName(code, $locale)}</div>
                                     </div>
                                 </div>
                                 {#if selectedCurrency === code}
