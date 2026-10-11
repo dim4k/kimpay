@@ -75,13 +75,15 @@ If you cannot read the receipt clearly, respond with:
                     ]
                 }],
                 generationConfig: {
-                    temperature: 0.1,
-                    maxOutputTokens: 1024
+                    // temperature is ignored on Gemini 3.x (and rejected by future models)
+                    responseMimeType: "application/json",
+                    // Thinking tokens count against this limit (3.6 Flash thinks at "medium" by default)
+                    maxOutputTokens: 4096
                 }
             };
 
             // Use lite model by default (cheaper), fallback to flash if needed
-            const models = ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
+            const models = ["gemini-3.5-flash-lite", "gemini-3.6-flash"];
             let response = null;
             let lastError = null;
 
@@ -115,7 +117,9 @@ If you cannot read the receipt clearly, respond with:
 
             // Parse Gemini response
             const geminiResult = JSON.parse(response.raw);
-            const textContent = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+            // Gemini 3.x may return several parts (thought signatures, thoughts): keep the answer text only
+            const parts = geminiResult.candidates?.[0]?.content?.parts || [];
+            const textContent = parts.filter(p => p.text && !p.thought).map(p => p.text).join("");
 
             if (!textContent) {
                 return e.json(502, { message: "Invalid response from OCR service" });
