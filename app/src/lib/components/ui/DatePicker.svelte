@@ -109,7 +109,7 @@
     <button 
         bind:this={triggerRef}
         type="button"
-        class="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         onclick={toggleOpen}
     >
         <span class="capitalize">{displayValue}</span>
@@ -151,7 +151,7 @@
                             type="button"
                             class="h-9 w-9 mx-auto flex items-center justify-center rounded-full text-sm transition-all
                                 {item.currentMonth ? 'text-foreground hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-muted-foreground opacity-30'}
-                                {formatDate(item.date) === value ? 'bg-indigo-600 text-white hover:bg-indigo-700 !opacity-100 font-bold shadow-md scale-105' : ''}
+                                {formatDate(item.date) === value ? 'bg-indigo-600 text-white hover:bg-indigo-700 opacity-100! font-bold shadow-md scale-105' : ''}
                                 {formatDate(new Date()) === formatDate(item.date) && formatDate(item.date) !== value ? 'border-2 border-indigo-600 text-indigo-600 font-semibold' : ''}
                             "
                             onclick={() => handleSelect(item.date)}

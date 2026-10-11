@@ -126,7 +126,7 @@
 
   {#if offlineStore.isOffline}
       <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
-          <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <AlertTriangle class="h-5 w-5 text-amber-500 shrink-0" />
           <p class="text-sm text-amber-700 dark:text-amber-300">{$t('expense.offline_warning')}</p>
       </div>
   {/if}
@@ -180,7 +180,7 @@
             {/snippet}
         </EmptyState>
     {:else}
-        <div class="space-y-3">
+        <div class="flex flex-col gap-4">
             {#each expenses as expense, i (expense.id)}
                 <ExpenseItem 
                     {expense}

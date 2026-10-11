@@ -21,7 +21,7 @@
     
     <!-- Animated background elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-[20%] left-[10%] text-6xl opacity-20 animate-bounce duration-[3000ms]">🪐</div>
+        <div class="absolute top-[20%] left-[10%] text-6xl opacity-20 animate-bounce duration-3000">🪐</div>
         <div class="absolute bottom-[20%] right-[10%] text-4xl opacity-20 animate-pulse">✨</div>
         <div class="absolute top-[10%] right-[20%] text-2xl opacity-10 animate-ping">⭐</div>
         <div class="absolute bottom-[30%] left-[20%] text-8xl opacity-5 dark:opacity-10 rotate-12">🚀</div>
@@ -62,7 +62,7 @@
             </div>
         {:else}
             <!-- Standard 404 error -->
-            <h1 class="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 animate-pulse">
+            <h1 class="text-8xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-500 via-blue-500 to-cyan-500 animate-pulse">
                 {errorStatus}
             </h1>
             

@@ -261,12 +261,12 @@
                     <!-- Name (editable) -->
                     {#if isEditingName}
                         <div class="space-y-2">
-                            <span class="text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
+                            <span class="block text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
                             <div class="space-y-2" transition:slide={{ duration: 150 }}>
                                 <input
                                     type="text"
                                     bind:value={userName}
-                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                                     placeholder={$t('user_settings.account.name_placeholder')}
                                 />
                                 <div class="flex gap-2 justify-end">
@@ -293,7 +293,7 @@
                         </div>
                     {:else}
                         <div class="flex items-center justify-between">
-                            <span class="text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
+                            <span class="block text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
                             <button
                                 onclick={() => { isEditingName = true; userName = auth.user?.name ?? ''; }}
                                 class="flex items-center gap-2 group"

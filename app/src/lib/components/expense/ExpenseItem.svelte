@@ -77,7 +77,7 @@
     {style}
 >
 <div 
-    class="expense-item rounded-2xl border shadow-sm overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-primary/40'}"
+    class="expense-item rounded-2xl border shadow-xs overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-primary/40'}"
     
     class:ring-2={expandedId === expense.id}
     class:ring-primary={expandedId === expense.id && !expense.is_reimbursement}
@@ -156,7 +156,7 @@
                     </div>
 
                     <button 
-                        class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-sm"
+                        class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-xs"
                         onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
                     >
                         <Undo2 class="h-4 w-4" />

@@ -49,7 +49,7 @@
                 </CollapsibleCard>
             </div>
 
-            <div class="mt-4 duration-700 delay-200">
+            <div>
                 <CollapsibleCard title={$t('home.join.accordion_title')} bind:isOpen={isJoinExpanded}>
                     {#snippet icon()}
                          <div class="h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform">
@@ -75,7 +75,7 @@
                     </div>
                 </div>
             {:else}
-                <div class="bg-card p-4 md:p-6 rounded-2xl shadow-sm border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
+                <div class="bg-card p-4 md:p-6 rounded-2xl shadow-xs border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
                     <CreateKimpayForm />
                     <JoinKimpayForm />
                 </div>

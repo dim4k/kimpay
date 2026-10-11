@@ -82,7 +82,7 @@
     <!-- QR Code Block -->
     <!-- QR Code Block -->
     <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 relative group overflow-hidden animate-slide-up" style="animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards;">
-        <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div class="absolute inset-0 bg-linear-to-tr from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         {#if qrDataUrl}
             <img src={qrDataUrl} alt="QR Code" class="h-48 w-48 mx-auto" />

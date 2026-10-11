@@ -1,4 +1,5 @@
 import { sveltekit } from "@sveltejs/kit/vite";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
@@ -11,7 +12,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), "");
     
     return {
-        plugins: [sveltekit()],
+        plugins: [tailwindcss(), sveltekit()],
         define: {
             __APP_VERSION__: JSON.stringify(pkg.version),
             __POCKETBASE_URL__: JSON.stringify(env.PUBLIC_POCKETBASE_URL || ""),

@@ -7,7 +7,7 @@
 <div class="space-y-3">
     {#each Array(count) as _, i (i)}
         <div
-            class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm animate-pop-in"
+            class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-xs animate-pop-in"
             style="animation-delay: {i * 60}ms;"
         >
             <Skeleton class="h-10 w-10 shrink-0" rounded="rounded-full" />

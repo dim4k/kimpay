@@ -98,7 +98,7 @@
 
     {#if offlineStore.isOffline}
         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
-            <AlertTriangle class="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <AlertTriangle class="h-5 w-5 text-amber-500 shrink-0" />
             <p class="text-sm text-amber-700 dark:text-amber-300">{$t('balance.offline_warning')}</p>
         </div>
     {/if}
@@ -119,13 +119,13 @@
         
         <!-- Transactions List or "Settled" Message -->
         {#if transactions.length === 0}
-            <div class="animate-pop-in bg-gradient-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200/60 dark:shadow-emerald-900/40 mb-8">
+            <div class="animate-pop-in bg-linear-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200/60 dark:shadow-emerald-900/40">
                 <CircleCheck class="h-16 w-16 mx-auto mb-4 text-white/90" />
                 <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
                 <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
             </div>
         {:else}
-             <div class="space-y-3 mb-8">
+             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">{$t('balance.suggested.title')}</h2>
                     <!-- Currency Selector -->
@@ -157,7 +157,7 @@
                 <div class="space-y-3">
                     {#each transactions as tx, i (i)}
                         <button 
-                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-sm border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left balance-item"  
+                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-xs border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left balance-item"  
                             style="animation-delay: {i * 50}ms;"
                             onclick={() => openSettleModal(tx)}
                             disabled={!myId} 
@@ -216,7 +216,7 @@
                     
                     {#if Math.abs(netBalance) < 0.01}
                         <!-- All Good State -->
-                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-3xl border border-green-100 dark:border-green-900/50 relative overflow-hidden transition-colors">
+                        <div class="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-3xl border border-green-100 dark:border-green-900/50 relative overflow-hidden transition-colors">
                             <div class="absolute -right-4 -top-4 bg-green-200/50 dark:bg-green-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-green-600 dark:text-green-400 font-bold tracking-wider relative z-10">{$t('balance.status')}</span>
                             <div class="text-xl font-black text-green-600/90 dark:text-green-400 mt-2 relative z-10 tracking-tight leading-tight">
@@ -225,7 +225,7 @@
                         </div>
                     {:else if netBalance < 0}
                         <!-- You Owe State -->
-                        <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/50 relative overflow-hidden transition-colors">
+                        <div class="bg-linear-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/50 relative overflow-hidden transition-colors">
                             <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
                             <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
@@ -234,7 +234,7 @@
                         </div>
                     {:else}
                          <!-- Owed To You State -->
-                         <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
+                         <div class="bg-linear-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
                             <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                             <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
                             <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
@@ -244,7 +244,7 @@
                     {/if}
 
                      <!-- Block 2: Total Expenses -->
-                     <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50 relative overflow-hidden transition-colors">
+                     <div class="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50 relative overflow-hidden transition-colors">
                         <div class="absolute -right-4 -top-4 bg-blue-200/50 dark:bg-blue-800/20 w-24 h-24 rounded-full blur-2xl"></div>
                         <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold tracking-wider relative z-10">{$t('balance.total_group')}</span>
                         <div class="text-2xl font-black text-blue-600/90 dark:text-blue-400 mt-1 relative z-10 tracking-tight">

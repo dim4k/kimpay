@@ -48,7 +48,7 @@
 >
     <!-- Close Button -->
     <button 
-        class="fixed top-4 right-4 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-50 backdrop-blur-sm"
+        class="fixed top-4 right-4 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-50 backdrop-blur-xs"
         onclick={onClose}
         aria-label="Close gallery"
     >
@@ -73,7 +73,7 @@
             <!-- Navigation -->
             {#if currentIndex > 0}
                 <button 
-                    class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-sm"
+                    class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-xs"
                     onclick={(e) => { e.stopPropagation(); prev(); }}
                     aria-label="Previous photo"
                 >
@@ -83,7 +83,7 @@
             
             {#if currentIndex < photos.length - 1}
                 <button 
-                    class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-sm"
+                    class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10 backdrop-blur-xs"
                     onclick={(e) => { e.stopPropagation(); next(); }}
                     aria-label="Next photo"
                 >

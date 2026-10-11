@@ -52,7 +52,7 @@
 {#if showPrompt}
   <div 
     transition:fly={{ y: 50, duration: 500 }}
-    class="fixed bottom-4 left-4 right-4 z-[100] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-900 dark:text-white p-4 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-between gap-4 transition-colors"
+    class="fixed bottom-4 left-4 right-4 z-100 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-900 dark:text-white p-4 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-between gap-4 transition-colors"
   >
     <div class="flex items-center gap-3">
         <div class="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none">
@@ -85,7 +85,7 @@
 {#if installStore.showIOSInstructions}
   <!-- iOS Instructions Modal -->
   <div 
-    class="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+    class="fixed inset-0 z-110 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4"
     onclick={() => installStore.showIOSInstructions = false}
      role="button" 
      tabindex="-1" 
@@ -115,7 +115,7 @@
                 2. Select <strong class="text-indigo-600 dark:text-indigo-400">Add to Home Screen</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
             </p>
         </div>
-        <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-white dark:border-t-slate-900"></div>
+        <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-t-10 border-t-white dark:border-t-slate-900"></div>
     </div>
   </div>
 {/if}

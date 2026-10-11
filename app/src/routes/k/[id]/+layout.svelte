@@ -77,7 +77,7 @@
 <div class="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
     <!-- Navigation Bar -->
     <nav class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-800 shadow-2xl safe-area-pb pointer-events-auto relative z-40 transition-colors">
-        <div class="grid grid-cols-5 h-[4.5rem] items-end pb-2">
+        <div class="grid grid-cols-5 h-18 items-end pb-2">
             <NavItem 
                 href="/k/{kimpayId}" 
                 icon={Wallet} 

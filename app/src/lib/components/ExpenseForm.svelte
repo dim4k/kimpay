@@ -229,7 +229,7 @@
 <div class="space-y-6">
     <!-- Receipt Scanner (only for new expenses) -->
     {#if !initialData}
-        <div class="-mt-2 mb-4">
+        <div class="-mt-2 mb-6">
             <ReceiptScanner 
                 onScanComplete={handleScanComplete}
                 disabled={isLoading}

@@ -102,7 +102,7 @@
     onclick={openFilePicker}
     disabled={disabled || isScanning}
     class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl 
-           bg-gradient-to-r from-indigo-500/10 to-blue-500/10 
+           bg-linear-to-r from-indigo-500/10 to-blue-500/10 
            dark:from-indigo-500/20 dark:to-blue-500/20
            border border-indigo-200 dark:border-indigo-800
            hover:from-indigo-500/20 hover:to-blue-500/20

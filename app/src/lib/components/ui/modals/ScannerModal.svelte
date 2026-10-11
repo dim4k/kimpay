@@ -97,10 +97,10 @@
     {isOpen} 
     onClose={handleClose}
     class="max-w-sm bg-black rounded-3xl overflow-hidden relative shadow-2xl border border-white/10 p-0 space-y-0"
-    backdropClass="bg-black/90 backdrop-blur-sm"
+    backdropClass="bg-black/90 backdrop-blur-xs"
 >
     <!-- Header -->
-    <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
+    <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start bg-linear-to-b from-black/80 to-transparent">
         <h2 class="text-white font-bold text-lg drop-shadow-md">Scan QR Code</h2>
         <button onclick={handleClose} class="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-md transition-colors">
             <X class="h-5 w-5" />
@@ -108,7 +108,7 @@
     </div>
 
     <!-- Scanner Area -->
-    <div class="relative aspect-[3/4] bg-black">
+    <div class="relative aspect-3/4 bg-black">
         <div id={scannerId} class="w-full h-full object-cover"></div>
         
         {#if !isScanning && !errorMsg}
@@ -128,7 +128,7 @@
 
         <!-- Visual Guide Overlay -->
         {#if isScanning}
-            <div class="absolute inset-0 pointer-events-none border-[30px] border-black/50">
+            <div class="absolute inset-0 pointer-events-none border-30 border-black/50">
             <div class="absolute inset-0 border-2 border-white/30 rounded-lg">
                 <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl"></div>
                 <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl"></div>
@@ -136,7 +136,7 @@
                 <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl"></div>
             </div>
             </div>
-            <p class="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm font-medium drop-shadow-sm px-4">
+            <p class="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm font-medium drop-shadow-xs px-4">
                 Align text code within frame
             </p>
         {/if}

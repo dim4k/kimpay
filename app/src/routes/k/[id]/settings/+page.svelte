@@ -266,7 +266,7 @@
 
         {#if !offlineStore.isOffline}
         <!-- Edit Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in relative z-20">
+        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in relative z-20">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.edit_group')}</h2>
             <div class="space-y-4">
                 <div class="space-y-2">
@@ -319,7 +319,7 @@
                         <Input id="name" bind:value={editName} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
                         <Button onclick={handleSave} size="icon" class="shrink-0 relative">
                             {#if saveFeedback === 'updated'}
-                                <span class="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded shadow">
+                                <span class="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded shadow-sm">
                                     {$t('common.saved')}
                                 </span>
                             {/if}
@@ -333,7 +333,7 @@
 
         {#if !offlineStore.isOffline}
         <!-- Participants Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                  <Users class="h-4 w-4" />
                  {$t('settings.participants')}
@@ -416,7 +416,7 @@
         {/if}
 
         {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
-            <div class="bg-card/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+            <div class="bg-card/50 backdrop-blur-xs p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
                 <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                     <Download class="h-4 w-4" />
                     {$t('settings.install.title')}
@@ -439,7 +439,7 @@
         {/if}
 
         <!-- Export Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                 <FileText class="h-4 w-4" />
                 {$t('settings.export.title')}
@@ -463,7 +463,7 @@
 
         {#if !offlineStore.isOffline}
         <!-- Bug Report Section -->
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100 flex items-center gap-2">
                 <Bug class="h-4 w-4" />
                 {$t('settings.bug_report.title')}
@@ -476,7 +476,7 @@
                     href="https://github.com/dim4k/kimpay/issues" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                     <Bug class="h-4 w-4" />
                     {$t('settings.bug_report.button')}
@@ -485,7 +485,7 @@
         </div>
         {/if}
 
-        <div class="bg-card p-6 rounded-xl border shadow-sm space-y-6 transition-colors animate-pop-in">
+        <div class="bg-card p-6 rounded-xl border shadow-xs space-y-6 transition-colors animate-pop-in">
             <h2 class="font-semibold text-lg border-b dark:border-slate-800 pb-2 dark:text-slate-100">{$t('settings.actions.title')}</h2>
             
             <div class="space-y-4">

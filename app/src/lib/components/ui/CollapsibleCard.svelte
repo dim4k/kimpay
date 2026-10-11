@@ -19,7 +19,7 @@
     }>();
 </script>
 
-<div class="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm transition-colors hover:border-border/80 {className}">
+<div class="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-xs transition-colors hover:border-border/80 {className}">
     <button 
         onclick={() => isOpen = !isOpen}
         class="w-full flex items-center justify-between p-3 hover:bg-accent/50 transition-colors group"

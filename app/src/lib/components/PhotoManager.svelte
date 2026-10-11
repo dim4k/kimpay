@@ -69,7 +69,7 @@
 </script>
 
 <div class="space-y-2">
-    <span class="text-sm font-medium">{$t('expense.form.photos_label')}</span>
+    <span class="block text-sm font-medium">{$t('expense.form.photos_label')}</span>
     
     <!-- Existing Photos (Edit Mode) -->
     {#if existingPhotos.length > 0}

@@ -31,7 +31,8 @@ async function setup(page: Page) {
 /** Waits for transient UI (toasts) to go away, then compares the viewport. */
 async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['locator']>[]) {
     await expect(page.getByRole('alert')).toHaveCount(0, { timeout: 10000 });
-    await expect(page).toHaveScreenshot(`${name}.png`, { mask, maxDiffPixelRatio: 0.001 });
+    // Soft: compare every screen of a test even when one differs.
+    await expect.soft(page).toHaveScreenshot(`${name}.png`, { mask, maxDiffPixelRatio: 0.001 });
 }
 
 async function navTo(page: Page, name: RegExp) {

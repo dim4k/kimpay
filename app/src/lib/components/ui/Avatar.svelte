@@ -21,14 +21,14 @@
     ];
     
     const index = Math.abs(hash) % colors.length;
-    return `bg-gradient-to-br ${colors[index]![0]} ${colors[index]![1]}`;
+    return `bg-linear-to-br ${colors[index]![0]} ${colors[index]![1]}`;
   }
 
   let gradient = $derived(getGradient(name || ""));
   let initials = $derived(name ? name.slice(0, 2).toUpperCase() : "?");
 </script>
 
-<div class={cn("rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden", !src && gradient, className)}>
+<div class={cn("rounded-full flex items-center justify-center text-white font-bold shadow-xs overflow-hidden", !src && gradient, className)}>
   {#if src}
     <img src={src} alt={name} class="w-full h-full object-cover" />
   {:else}

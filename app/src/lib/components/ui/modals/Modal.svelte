@@ -25,7 +25,7 @@
 {#if isOpen}
     <div 
         use:portal
-        class={cn("fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm", backdropClass)}
+        class={cn("fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs", backdropClass)}
         transition:fade 
         onclick={handleBackdropClick} 
         role="button" 

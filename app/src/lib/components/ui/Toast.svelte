@@ -19,7 +19,7 @@
 </script>
 
 <!-- Compact toast positioned at bottom for mobile-friendly UX -->
-<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none">
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-200 flex flex-col items-center gap-2 pointer-events-none">
     {#each $toasts as toast (toast.id)}
         {@const Icon = icons[toast.type]}
         <div
@@ -28,7 +28,7 @@
             out:fade={{ duration: 150 }}
             role="alert"
         >
-            <div class="flex-shrink-0 w-5 h-5 rounded-full {colors[toast.type]} flex items-center justify-center">
+            <div class="shrink-0 w-5 h-5 rounded-full {colors[toast.type]} flex items-center justify-center">
                 <Icon class="w-3 h-3 text-white" strokeWidth={3} />
             </div>
             <p class="font-medium whitespace-nowrap">{toast.message}</p>

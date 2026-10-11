@@ -243,7 +243,7 @@
             bind:value={creatorEmail} 
             placeholder={$t('home.create.email_placeholder')} 
         />
-        <div class="flex items-center gap-2 mt-1.5">
+        <div class="flex items-center gap-2">
             <button 
                 onclick={() => isEmailHelpOpen = true}
                 class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
@@ -269,7 +269,7 @@
         </div>
         
         {#if otherParticipants.length > 0}
-            <div class="flex flex-wrap gap-2 mt-2">
+            <div class="flex flex-wrap gap-2">
                 {#each otherParticipants as p, i (p)}
                     <div class="bg-slate-100 dark:bg-slate-800 text-sm px-3 py-1 rounded-full flex items-center gap-1 group transition-colors">
                         {p}

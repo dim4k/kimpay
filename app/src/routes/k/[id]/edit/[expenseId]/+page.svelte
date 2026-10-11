@@ -29,7 +29,7 @@
 <div class="container p-4 space-y-6 pb-24">
     <PageHeader title={$t('expense.edit.title')} subtitle={$t('expense.form.subtitle')} />
 
-    <div class="bg-card rounded-2xl shadow-sm border p-6 space-y-6 transition-colors animate-pop-in">
+    <div class="bg-card rounded-2xl shadow-xs border p-6 space-y-6 transition-colors animate-pop-in">
         {#if isLoading}
             <div class="flex justify-center py-8">
                 <LoaderCircle class="h-8 w-8 animate-spin text-primary" />
