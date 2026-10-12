@@ -17,6 +17,7 @@
     import { storageService } from '#lib/services/storage.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { participantService } from '#lib/services/participant.js';
+    import { kimpayService } from '#lib/services/kimpay.js';
     import { trackNavigation } from '#lib/utils/navigation.js';
 
     let { children, data }: LayoutProps = $props();
@@ -73,6 +74,11 @@
                 await participantService.claim(participantId, kimpayId, user.id);
             } catch (e) {
                 console.error("Failed to auto-claim participant", kimpayId, e);
+            }
+            try {
+                await kimpayService.claimOwnership(kimpayId);
+            } catch (e) {
+                console.error("Failed to claim the group's ownership", kimpayId, e);
             }
         }
         

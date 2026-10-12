@@ -37,7 +37,9 @@
 
   let kimpay = $derived(activeKimpay?.kimpay);
   let currentParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
-  let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
+  // Deleting needs the group's owner account (set at creation, or claimed
+  // with the creator key of this device), not only the creator's participant.
+  let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user && kimpay?.owner === auth.user.id);
   // Created from this device without an account: deleting needs one (the
   // server checks the creator's account).
   let isGuestCreator = $derived(!!currentParticipantId && kimpay?.created_by === currentParticipantId && !auth.user);

@@ -84,6 +84,8 @@ export const DEFAULT_GROUP_ICON = "📁";
 export const STORAGE_KEYS = {
     /** Prefix for Kimpay data in IndexedDB */
     KIMPAY_DATA_PREFIX: 'kimpay_data_',
+    /** Prefix: creator key of a group created on this device (IndexedDB) */
+    OWNER_KEY_PREFIX: 'kimpay_owner_key_',
     /** Key for offline action queue */
     OFFLINE_QUEUE: 'kimpay_offline_queue',
     /** Prefix for currency rates cache in localStorage */

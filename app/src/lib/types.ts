@@ -88,6 +88,8 @@ export interface Kimpay {
     /** Secret of the read-only summary link ("" = no link). */
     readonly_token?: string;
     created_by: string;
+    /** Account allowed to delete the group ("" = none yet) */
+    owner?: string;
     /** Local-only: ID of the current user's participant in this Kimpay */
     myParticipantId?: string;
     expand?: {

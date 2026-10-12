@@ -12,6 +12,8 @@ interface NewKimpay {
     icon: string;
     currency: string;
     invite_token: string;
+    /** Creator key: proves later that this device created the group (only its hash is stored) */
+    owner_key: string;
     creator: { id: string; name: string };
     participants: { id: string; name: string }[];
 }
@@ -69,6 +71,9 @@ export const kimpayService = {
      * Create a group with its creator (linked to the logged-in account, if
      * any) and other members, in a single server transaction: never half a
      * group, even if the connection drops. Queued when offline.
+     *
+     * The device keeps a creator key: logged in later, it makes the account
+     * the group's owner (see claimOwnership).
      */
     async create(
         name: string,
@@ -83,6 +88,7 @@ export const kimpayService = {
             icon,
             currency,
             invite_token: generateUUID(),
+            owner_key: generateUUID(),
             creator: { id: generatePocketBaseId(), name: creatorName },
             participants: otherParticipants.map((pName) => ({
                 id: generatePocketBaseId(),
@@ -90,6 +96,7 @@ export const kimpayService = {
             })),
         };
 
+        await storageService.setOwnerKey(data.id, data.owner_key);
         const result = await offlineStore.write(
             () =>
                 pb.send("/api/kimpay/create", {
@@ -102,6 +109,25 @@ export const kimpayService = {
         if (result === QUEUED) await cacheOfflineKimpay(data);
 
         return { id: data.id, creatorId: data.creator.id };
+    },
+
+    /**
+     * Make the logged-in account the owner of a group this device created (the
+     * one allowed to delete it), with the creator key kept at creation. The
+     * key is dropped once used or refused; kept on a network error, or while
+     * the server does not know the group yet (created offline).
+     */
+    async claimOwnership(kimpayId: string): Promise<void> {
+        if (!pb.authStore.record) return;
+        const key = await storageService.getOwnerKey(kimpayId);
+        if (!key) return;
+        try {
+            await pb.send(`/api/kimpay/${kimpayId}/own`, { method: 'POST', body: { key }, requestKey: null });
+        } catch (e) {
+            const status = (e as { status?: number }).status;
+            if (status !== 403) throw e;
+        }
+        await storageService.removeOwnerKey(kimpayId);
     },
 
     /**

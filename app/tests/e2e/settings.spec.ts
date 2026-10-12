@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, openProfile, switchIdentity } from './test-utils';
+import { createKimpay, dismissInstallPrompt, loginWithNewAccount, openProfile, switchIdentity } from './test-utils';
+
+const PB_URL = process.env.PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
 
 test.describe('Members & group settings', () => {
 
@@ -79,6 +81,22 @@ test.describe('Members & group settings', () => {
   test('Tells a creator without an account how to delete the group', async ({ page }) => {
      await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
      await expect(page.getByRole('button', { name: /delete group/i })).toContainText('Create a free account');
+  });
+
+  test('Lets the creator delete the group once logged in on this device', async ({ page, request }) => {
+     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     const kimpayId = new URL(page.url()).pathname.split('/')[2];
+     // The account claims the creator and, with this device's creator key,
+     // becomes the group's owner.
+     const owned = page.waitForResponse((r) => r.url().includes('/own') && r.request().method() === 'POST');
+     await loginWithNewAccount(page, request, 'Admin');
+     expect((await owned).ok()).toBe(true);
+
+     await page.getByRole('button', { name: /delete group/i }).click();
+     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+     await expect(page).toHaveURL(/\/$/);
+     const gone = await request.get(`${PB_URL}/api/kimpay/${kimpayId}/data`);
+     expect(gone.status()).toBe(404);
   });
 
   test('Verify Offline Buttons (Online Mode)', async ({ page }) => {

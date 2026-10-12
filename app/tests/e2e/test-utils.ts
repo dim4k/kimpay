@@ -1,4 +1,9 @@
-import { type Page, expect } from '@playwright/test';
+import { type APIRequestContext, type Page, expect } from '@playwright/test';
+import { createHash, randomBytes } from 'node:crypto';
+
+const PB_URL = process.env.PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
+/** Superuser of the e2e stack (created by docker-compose.test.yml). */
+const SUPERUSER = { identity: 'e2e@kimpay.test', password: 'e2e-superuser-password' };
 
 /**
  * Creates a new Kimpay with the given name and creator name.
@@ -70,3 +75,41 @@ export async function switchIdentity(page: Page, name: string) {
     await expect(dialog).toBeHidden();
 }
 
+/**
+ * Logs this device in with a new account named `name`, through a real magic
+ * link opened on the current page: like after a real login, the account
+ * claims the device's participants (and the groups it created). The email is
+ * skipped: the superuser stores the link's code.
+ */
+export async function loginWithNewAccount(page: Page, request: APIRequestContext, name: string) {
+    const auth = await request.post(`${PB_URL}/api/collections/_superusers/auth-with-password`, { data: SUPERUSER });
+    expect(auth.ok()).toBe(true);
+    const headers = { Authorization: (await auth.json()).token };
+
+    const password = randomBytes(12).toString('hex');
+    const email = `${name.toLowerCase()}-${randomBytes(6).toString('hex')}@kimpay.test`;
+    const user = await request.post(`${PB_URL}/api/collections/users/records`, {
+        headers,
+        data: { email, name, password, passwordConfirm: password, verified: true },
+    });
+    expect(user.ok()).toBe(true);
+
+    // Only the code's hash is stored (see pb_hooks/lib/email.js).
+    const code = randomBytes(32).toString('hex');
+    const otp = await request.post(`${PB_URL}/api/collections/auth_otps/records`, {
+        headers,
+        data: {
+            code: createHash('sha256').update(code).digest('hex'),
+            user: (await user.json()).id,
+            expires: new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' '),
+        },
+    });
+    expect(otp.ok()).toBe(true);
+
+    const claimed = page.waitForResponse((r) => r.url().includes('/api/collections/participants/records/') && r.request().method() === 'PATCH');
+    const url = new URL(page.url());
+    url.searchParams.set('code', code);
+    await page.goto(url.toString());
+    expect((await claimed).ok()).toBe(true);
+    await expect(page).not.toHaveURL(/[?&]code=/);
+}

@@ -22,7 +22,7 @@ export interface PendingAction {
     retryAt?: number; // Not replayed before this time (ms) after such a failure
 }
 
-const { KIMPAY_DATA_PREFIX, OFFLINE_QUEUE, LEGACY_MY_KIMPAYS } = STORAGE_KEYS;
+const { KIMPAY_DATA_PREFIX, OWNER_KEY_PREFIX, OFFLINE_QUEUE, LEGACY_MY_KIMPAYS } = STORAGE_KEYS;
 
 export const storageService = {
     // --- Migration ---
@@ -187,8 +187,36 @@ export const storageService = {
     removeRecentKimpay: async (kimpayId: string) => {
         try {
             await del(`${KIMPAY_DATA_PREFIX}${kimpayId}`);
+            await del(`${OWNER_KEY_PREFIX}${kimpayId}`);
         } catch (e) {
             console.error("Failed to remove kimpay", e);
+        }
+    },
+
+    // --- Creator keys ---
+
+    /** Creator key of a group created on this device, until the account owning it is set */
+    getOwnerKey: async (kimpayId: string): Promise<string | null> => {
+        try {
+            return (await get<string>(`${OWNER_KEY_PREFIX}${kimpayId}`)) || null;
+        } catch {
+            return null;
+        }
+    },
+
+    setOwnerKey: async (kimpayId: string, key: string) => {
+        try {
+            await set(`${OWNER_KEY_PREFIX}${kimpayId}`, key);
+        } catch (e) {
+            console.error("Failed to save the creator key", e);
+        }
+    },
+
+    removeOwnerKey: async (kimpayId: string) => {
+        try {
+            await del(`${OWNER_KEY_PREFIX}${kimpayId}`);
+        } catch (e) {
+            console.error("Failed to remove the creator key", e);
         }
     },
 

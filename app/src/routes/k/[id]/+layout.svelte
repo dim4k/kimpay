@@ -12,6 +12,9 @@
   import { installStore } from '#lib/stores/install.svelte.js';
   import { profileStore } from '#lib/stores/profile.svelte.js';
   import { setRequestActor } from '#lib/pocketbase.js';
+  import { auth } from '#lib/stores/auth.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { kimpayService } from '#lib/services/kimpay.js';
   
   import { onDestroy, type Snippet } from 'svelte';
   
@@ -69,6 +72,17 @@
       if (!hasIdentity && !modals.identityState) {
           modals.identity({ kimpayId: activeKimpay.id });
       }
+  });
+
+  // Created on this device as a guest, opened logged in: the account becomes
+  // the group's owner (allowed to delete it).
+  let groupLoaded = $derived(!!activeKimpay?.kimpay);
+  $effect(() => {
+      const id = activeKimpay?.id;
+      if (!auth.user || !id || !groupLoaded || offlineStore.isOffline) return;
+      kimpayService.claimOwnership(id).catch((e) =>
+          console.warn("Could not claim the group's ownership", e),
+      );
   });
 
   // Payment handles used to be entered per group: the first ones found

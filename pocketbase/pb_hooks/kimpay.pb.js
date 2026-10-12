@@ -13,7 +13,10 @@
 // the response was lost) changes nothing.
 //
 // The creator is linked to the logged-in account, if any (never to a user id
-// taken from the body).
+// taken from the body), which also becomes the group's owner (allowed to
+// delete it). A guest sends a creator key instead: only its hash is kept, and
+// the device proves with it that it created the group once logged in (see
+// /api/kimpay/{id}/own below).
 // =============================================================================
 
 routerAdd("POST", "/api/kimpay/create", (e) => {
@@ -21,6 +24,7 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
     const body = JSON.parse(JSON.stringify(e.requestInfo().body || {}));
     const isId = (v) => typeof v === "string" && /^[a-z0-9]{15}$/.test(v);
     const isMember = (p) => !!p && isId(p.id) && typeof p.name === "string" && p.name.trim() !== "";
+    const isKey = (v) => typeof v === "string" && v.length >= 32 && v.length <= 128;
     const creator = body.creator;
     const others = Array.isArray(body.participants) ? body.participants : [];
 
@@ -30,7 +34,8 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
         typeof body.invite_token !== "string" ||
         !isMember(creator) ||
         !others.every(isMember) ||
-        others.length > 49 // expenses.involved holds 50 participants at most
+        others.length > 49 || // expenses.involved holds 50 participants at most
+        (body.owner_key != null && !isKey(body.owner_key))
     ) {
         return e.json(400, { message: "Invalid body" });
     }
@@ -56,6 +61,8 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
         kimpay.set("icon", body.icon || "");
         kimpay.set("currency", body.currency || "");
         kimpay.set("invite_token", body.invite_token);
+        if (userId) kimpay.set("owner", userId);
+        else if (body.owner_key) kimpay.set("owner_key_hash", $security.sha256(body.owner_key));
         txApp.save(kimpay);
 
         [creator].concat(others).forEach((member, i) => {
@@ -74,6 +81,37 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
 
     return e.json(200, { id: body.id });
 });
+
+// =============================================================================
+// Become the owner of a group created as a guest, with its creator key: the
+// device that created it, once logged in. The key is single use.
+// =============================================================================
+
+routerAdd("POST", "/api/kimpay/{id}/own", (e) => {
+    const id = String(e.request.pathValue("id") || "");
+    const body = JSON.parse(JSON.stringify(e.requestInfo().body || {}));
+    const forbidden = () => e.json(403, { message: "Forbidden" });
+    if (!/^[a-zA-Z0-9]{15}$/.test(id) || typeof body.key !== "string" || body.key === "") {
+        return e.json(400, { message: "Invalid body" });
+    }
+
+    let kimpay;
+    try {
+        kimpay = e.app.findRecordById("kimpays", id);
+    } catch (err) {
+        return e.json(404, { message: "Not found" });
+    }
+
+    const owner = kimpay.getString("owner");
+    if (owner === e.auth.id) return e.json(200, { owner: owner });
+    const hash = kimpay.getString("owner_key_hash");
+    if (owner || !hash || !$security.equal(hash, $security.sha256(body.key))) return forbidden();
+
+    kimpay.set("owner", e.auth.id);
+    kimpay.set("owner_key_hash", "");
+    e.app.save(kimpay);
+    return e.json(200, { owner: e.auth.id });
+}, $apis.requireAuth("users"));
 
 // =============================================================================
 // A Kimpay with all its participants and expenses (the group view).
