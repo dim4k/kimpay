@@ -69,6 +69,7 @@
         isOpen={true}
         photos={galleryState.photos}
         record={galleryState.record}
+        start={galleryState.start}
         onClose={() => modals.closeGallery()}
     />
     {/await}

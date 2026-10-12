@@ -43,11 +43,14 @@
   let {
       kimpayId,
       initialData = null,
+      template = null,
       title,
       onDelete,
   }: {
       kimpayId: string;
       initialData?: Expense | null;
+      /** A new expense filled in from this one (duplicate), dated today, without its photos */
+      template?: Expense | null;
       /** Title of the top bar */
       title: string;
       /**
@@ -128,27 +131,35 @@
   let leaving = false;
 
   onMount(() => {
-      // Seed state from initialData if present
-      if (initialData) {
-         description = initialData.description || "";
-         amount = initialData.amount ? String(initialData.amount) : "";
-         icon = initialData.icon || DEFAULT_EXPENSE_EMOJI;
-         date = initialData.date ? initialData.date.slice(0, 10) : toLocalISODate();
-         payer = initialData.payer || "";
-         involved = initialData.involved || [];
-         currency = initialData.currency || defaultCurrency;
-         isIncome = !!initialData.is_income;
-         if (initialData.split && initialData.split.mode !== 'equal') {
-             splitMode = initialData.split.mode;
-             splitValues = { ...initialData.split.values };
+      // Seed state from the expense edited, or the one duplicated
+      const seed = initialData ?? template;
+      if (seed) {
+         description = seed.description || "";
+         amount = seed.amount ? String(seed.amount) : "";
+         icon = seed.icon || DEFAULT_EXPENSE_EMOJI;
+         date = initialData?.date ? initialData.date.slice(0, 10) : toLocalISODate();
+         payer = seed.payer || "";
+         involved = seed.involved || [];
+         currency = seed.currency || defaultCurrency;
+         isIncome = !!seed.is_income;
+         if (seed.split && seed.split.mode !== 'equal') {
+             splitMode = seed.split.mode;
+             splitValues = { ...seed.split.values };
          }
 
-         if (initialData.photos && Array.isArray(initialData.photos)) {
+         if (initialData?.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
          }
       } else {
          // New expense: use Kimpay currency
          currency = defaultCurrency;
+      }
+
+      // A duplicate keeps the people still in the group.
+      if (template) {
+          const known = new Set(participants.map(p => p.id));
+          involved = involved.filter(id => known.has(id));
+          if (!known.has(payer)) payer = "";
       }
 
       if (!initialData && involved.length === 0) {

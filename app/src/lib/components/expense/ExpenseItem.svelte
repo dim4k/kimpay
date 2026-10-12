@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Pencil, Trash2, Image as ImageIcon, Camera, HandCoins, Undo2 } from "@lucide/svelte";
+    import { Pencil, Trash2, Camera, Copy, HandCoins, Undo2 } from "@lucide/svelte";
+    import { pb } from '#lib/pocketbase.js';
     import { t, locale } from '#lib/i18n.js';
     import { parseLocalISODate } from '#lib/utils/date.js';
     import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
@@ -45,7 +46,8 @@
         kimpayId: string;
         onToggleExpand: (expenseId: string) => void;
         onRequestDelete: (expenseId: string) => void;
-        onOpenGallery: (expense: Expense) => void;
+        /** Opens the photos of the expense, on the one at `index` */
+        onOpenGallery: (expense: Expense, index: number) => void;
         /**
          * `total`: who paid and the amount. `me`: what the expense changes
          * for me on the right ("you owe €12.50"), the amount in the details.
@@ -145,12 +147,8 @@
             : null
     );
 
-    function handleKeydown(e: KeyboardEvent) {
-        if (e.target !== e.currentTarget) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onToggleExpand(expense.id);
-        }
+    function thumbnail(filename: string): string {
+        return pb.files.getURL(expense, filename, { thumb: '100x100' });
     }
 
     // Disable swipe for reimbursements or when offline (can't edit)
@@ -167,7 +165,7 @@
 {#snippet approxLine(value: number)}
     {@const text = approx(value)}
     {#if text}
-        <p class="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{text}</p>
+        <span class="block whitespace-nowrap text-xs tabular-nums text-muted-foreground">{text}</span>
     {/if}
 {/snippet}
 
@@ -176,16 +174,15 @@
     onEdit={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
     onDelete={() => onRequestDelete(expense.id)}
 >
-<div
-    class="expense-item cursor-pointer outline-hidden focus-visible:bg-muted/60"
-    data-expense={expense.id}
-    role="button"
-    tabindex="0"
-    aria-expanded={isExpanded}
-    onclick={() => onToggleExpand(expense.id)}
-    onkeydown={handleKeydown}
->
-    <div class="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-muted/50 {isExpanded ? 'bg-muted/50' : ''}">
+<div class="expense-item" data-expense={expense.id}>
+    <!-- The line opens its details; the actions live in them, outside the button. -->
+    <button
+        type="button"
+        aria-expanded={isExpanded}
+        aria-controls="details-{expense.id}"
+        onclick={() => onToggleExpand(expense.id)}
+        class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-hidden {isExpanded ? 'bg-muted/50' : ''}"
+    >
         <IconTile tone={expense.is_reimbursement ? 'success' : 'muted'} class="relative {expense.is_reimbursement ? '' : 'text-foreground'}">
             {#if expense.is_reimbursement}
                 <HandCoins />
@@ -199,11 +196,11 @@
             {/if}
         </IconTile>
 
-        <div class="min-w-0 flex-1">
-            <p class="truncate text-base font-medium">
+        <span class="min-w-0 flex-1">
+            <span class="block truncate text-base font-medium">
                 {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
-            </p>
-            <p class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+            </span>
+            <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
                 {#if expense.is_reimbursement}
                     <span class="truncate">{payerLabel}</span>
                 {:else if showImpact}
@@ -217,45 +214,45 @@
                         <span class="shrink-0">{people}</span>
                     {/if}
                 {/if}
-            </p>
-        </div>
+            </span>
+        </span>
 
         {#if isNew}
             <span class="h-2 w-2 shrink-0 rounded-full bg-primary" role="img" aria-label={$t('expense.list.new')}></span>
         {/if}
-        <div class="shrink-0 text-right">
+        <span class="shrink-0 text-right">
             {#if myReimbursement === 'none'}
-                <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
+                <span class="block whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</span>
             {:else if myReimbursement}
-                <p class="whitespace-nowrap text-xs text-muted-foreground">
+                <span class="block whitespace-nowrap text-xs text-muted-foreground">
                     {myReimbursement === 'got_back' ? $t('expense.list.you_got_back') : $t('expense.list.you_paid_back')}
-                </p>
-                <p class="whitespace-nowrap text-base font-semibold tabular-nums">{formatAmount(expense.amount, currency, $locale)}</p>
+                </span>
+                <span class="block whitespace-nowrap text-base font-semibold tabular-nums">{formatAmount(expense.amount, currency, $locale)}</span>
                 {@render approxLine(expense.amount)}
             {:else if showImpact}
                 <!-- Two words over my amount: what the expense means for me. -->
                 {#if impact === undefined}
-                    <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
+                    <span class="block whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</span>
                 {:else if isSettled(impact ?? 0)}
-                    <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('members.settled')}</p>
+                    <span class="block whitespace-nowrap text-xs text-muted-foreground">{$t('members.settled')}</span>
                 {:else}
-                    <p class="whitespace-nowrap text-xs text-muted-foreground">{impact! > 0 ? $t('expense.list.owed_to_you') : $t('expense.list.you_owe')}</p>
-                    <p class="whitespace-nowrap text-base font-semibold tabular-nums {impact! > 0 ? 'text-success' : 'text-warning'}">
+                    <span class="block whitespace-nowrap text-xs text-muted-foreground">{impact! > 0 ? $t('expense.list.owed_to_you') : $t('expense.list.you_owe')}</span>
+                    <span class="block whitespace-nowrap text-base font-semibold tabular-nums {impact! > 0 ? 'text-success' : 'text-warning'}">
                         {formatAmount(Math.abs(impact!), currency, $locale)}
-                    </p>
+                    </span>
                     {@render approxLine(Math.abs(impact!))}
                 {/if}
             {:else}
-                <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                <span class="block whitespace-nowrap text-base font-semibold tabular-nums">
                     {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
-                </p>
+                </span>
                 {@render approxLine(expense.amount)}
             {/if}
-        </div>
-    </div>
+        </span>
+    </button>
 
     {#if isExpanded}
-        <div class="space-y-3 border-t bg-muted/30 px-4 py-3" transition:slide={{ duration: 150 }}>
+        <div id="details-{expense.id}" class="space-y-3 border-t bg-muted/30 px-4 py-3" transition:slide={{ duration: 150 }}>
             <dl class="space-y-1.5 text-sm">
                 <div class="flex items-center justify-between gap-3">
                     <dt class="text-muted-foreground">{$t('expense.form.date_label')}:</dt>
@@ -292,44 +289,59 @@
                 {/if}
             </dl>
 
+            {#if hasPhotos}
+                <ul class="flex gap-2 overflow-x-auto" aria-label={$t('expense.form.photos_label')}>
+                    {#each expense.photos ?? [] as filename, index (filename)}
+                        <li class="shrink-0">
+                            <button
+                                type="button"
+                                onclick={() => onOpenGallery(expense, index)}
+                                class="block h-16 w-16 overflow-hidden rounded-control border bg-muted transition-opacity hover:opacity-80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label={$t('expense.list.open_photo', { index: String(index + 1) })}
+                            >
+                                <img src={thumbnail(filename)} alt="" loading="lazy" class="h-full w-full object-cover" />
+                            </button>
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+
             {#if expense.is_reimbursement}
                 <Button
                     variant="outline"
                     size="sm"
                     class="w-full text-destructive"
-                    onclick={(e: MouseEvent) => { e.stopPropagation(); onRequestDelete(expense.id); }}
+                    onclick={() => onRequestDelete(expense.id)}
                 >
                     <Undo2 />
                     {$t('expense.reimbursement.undo')}
                 </Button>
             {:else}
-                <div class="grid gap-2 {hasPhotos ? 'grid-cols-3' : 'grid-cols-2'}">
+                <div class="grid grid-cols-3 gap-2">
                     <Button
                         variant="outline"
                         size="sm"
                         disabled={offlineStore.isOffline}
-                        onclick={async (e: MouseEvent) => { e.stopPropagation(); await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
+                        onclick={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
                     >
                         <Pencil />
                         {$t('common.edit')}
                     </Button>
-                    {#if hasPhotos}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={offlineStore.isOffline}
-                            onclick={(e: MouseEvent) => { e.stopPropagation(); onOpenGallery(expense); }}
-                        >
-                            <ImageIcon />
-                            {$t('expense.form.photos_label')}
-                        </Button>
-                    {/if}
+                    <!-- The same again (breakfast, fuel...): a new expense, filled in. -->
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => goto(`/k/${kimpayId}/add?from=${expense.id}`)}
+                    >
+                        <Copy />
+                        {$t('expense.list.duplicate')}
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"
                         class="text-destructive"
                         disabled={offlineStore.isOffline}
-                        onclick={(e: MouseEvent) => { e.stopPropagation(); onRequestDelete(expense.id); }}
+                        onclick={() => onRequestDelete(expense.id)}
                     >
                         <Trash2 />
                         {$t('common.delete')}

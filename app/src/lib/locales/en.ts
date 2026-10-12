@@ -83,12 +83,6 @@ export const en = {
     "toast.avatar_updated": "Photo updated!",
     "toast.avatar_update_failed": "Failed to update photo",
 
-    "sort.created_desc": "Newest first",
-    "sort.created_asc": "Oldest first",
-    "sort.date_desc": "Date (newest)",
-    "sort.date_asc": "Date (oldest)",
-    "sort.amount_desc": "Amount (highest)",
-    "sort.amount_asc": "Amount (lowest)",
 
     "nav.expenses": "Expenses",
     "nav.share": "Share",
@@ -464,6 +458,11 @@ export const en = {
     "expense.form.income_hint": "A deposit returned, a refund, a sale…",
     "expense.split.equal_summary": "Split equally",
     "expense.split.give_rest": "Give the rest to {name}",
+    "sort.date": "Date",
+    "sort.created": "Date added",
+    "sort.amount": "Amount",
+    "expense.list.duplicate": "Duplicate",
+    "expense.list.open_photo": "Open photo {index}",
 } as const;
 
 export type TranslationKey = keyof typeof en;

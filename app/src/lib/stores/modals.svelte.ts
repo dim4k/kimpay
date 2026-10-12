@@ -18,6 +18,8 @@ export type AlertOptions = {
 export type GalleryOptions = {
     photos: string[];
     record: { id: string; collectionId: string; collectionName: string };
+    /** Index of the photo shown first */
+    start?: number;
 };
 
 export type RegisterOptions = {

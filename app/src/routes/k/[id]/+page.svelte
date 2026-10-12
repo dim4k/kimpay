@@ -42,34 +42,35 @@
   let exchangeRates = $derived(activeKimpay?.exchangeRates || {});
   let kimpayC = $derived(activeKimpay?.kimpay?.currency || DEFAULT_CURRENCY);
 
-  // Sort types and options
-  type SortOption = 'created_desc' | 'created_asc' | 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
+  // Sort: by date, by date added or by amount, the latest / biggest first;
+  // a second tap on the same choice reverses it. Remembered on this device.
+  type SortKey = 'date' | 'created' | 'amount';
+  type SortOption = `${SortKey}_${'desc' | 'asc'}`;
 
-  const sortOptions: { value: SortOption; labelKey: TranslationKey }[] = [
-      { value: 'date_desc', labelKey: 'sort.date_desc' },
-      { value: 'date_asc', labelKey: 'sort.date_asc' },
-      { value: 'created_desc', labelKey: 'sort.created_desc' },
-      { value: 'created_asc', labelKey: 'sort.created_asc' },
-      { value: 'amount_desc', labelKey: 'sort.amount_desc' },
-      { value: 'amount_asc', labelKey: 'sort.amount_asc' },
+  const sortKeys: { key: SortKey; labelKey: TranslationKey }[] = [
+      { key: 'date', labelKey: 'sort.date' },
+      { key: 'created', labelKey: 'sort.created' },
+      { key: 'amount', labelKey: 'sort.amount' },
   ];
 
-  // Sort state, remembered on this device
   function loadSort(): SortOption {
-      const saved = prefs.get(STORAGE_KEYS.EXPENSE_SORT);
-      return sortOptions.find(o => o.value === saved)?.value ?? 'date_desc';
+      const saved = prefs.get(STORAGE_KEYS.EXPENSE_SORT) ?? '';
+      return /^(date|created|amount)_(desc|asc)$/.test(saved) ? (saved as SortOption) : 'date_desc';
   }
 
   let sortOption = $state<SortOption>(loadSort());
+  let sortKey = $derived(sortOption.split('_')[0] as SortKey);
+  let sortReversed = $derived(sortOption.endsWith('_asc'));
 
-  function setSort(value: SortOption) {
-      sortOption = value;
-      prefs.set(STORAGE_KEYS.EXPENSE_SORT, value);
+  function chooseSort(key: SortKey) {
+      sortOption = key === sortKey && !sortReversed ? `${key}_asc` : `${key}_desc`;
+      prefs.set(STORAGE_KEYS.EXPENSE_SORT, sortOption);
   }
 
-  function getCurrentSortLabel(): string {
-      const opt = sortOptions.find(o => o.value === sortOption);
-      return opt ? $t(opt.labelKey) : sortOption;
+  /** "Date ↓": the choice, and which way. */
+  function sortLabel(key: SortKey): string {
+      const label = $t(sortKeys.find(s => s.key === key)!.labelKey);
+      return key === sortKey ? `${label} ${sortReversed ? '↑' : '↓'}` : label;
   }
 
   // Search & filters
@@ -319,17 +320,18 @@
       }
   }
 
-  function openGallery(expense: Expense) {
+  function openGallery(expense: Expense, start: number) {
       if (expense.photos && expense.photos.length > 0) {
-          modals.gallery({
-              photos: expense.photos,
-              record: expense
-          });
+          modals.gallery({ photos: expense.photos, record: expense, start });
       }
   }
 
-  // Only me in the group (once loaded): nobody to share with yet.
-  let isAlone = $derived(!isLoading && participants.length <= 1 && !offlineStore.isOffline);
+  // Only me in the group (once loaded): nobody to share with yet. Said on the
+  // empty list only: the dot on the Members tab keeps saying it after.
+  let isAlone = $derived(!isLoading && participants.length <= 1 && !offlineStore.isOffline && rawExpenses.length === 0);
+
+  let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId);
+  let hasNews = $derived(!isLoading && newIds.size > 0);
 
   /** A receipt photographed from the empty list: the form reads it. */
   function scanFromList(file: File) {
@@ -388,12 +390,15 @@
       </section>
   {/if}
 
-  {#if !isLoading && rawExpenses.length > 0 && currentUserId}
+  {#if showBalance || hasNews}
+  <!-- Where I stand, then what the others added since my last visit: one card. -->
+  <div class="divide-y overflow-hidden rounded-control border bg-card animate-pop-in">
+  {#if showBalance}
       <!-- My balance in one line; the details are in the Balance tab. -->
       <a
           href="/k/{kimpayId}/balance"
           data-sveltekit-replacestate
-          class="flex min-h-11 items-center gap-2 rounded-control border bg-card px-4 py-2 transition-colors duration-150 hover:bg-muted/50 animate-pop-in"
+          class="flex min-h-11 items-center gap-2 px-4 py-2 transition-colors duration-150 hover:bg-muted/50"
       >
           {#if owesMoney || isOwed}
               <span class="text-sm text-muted-foreground">{owesMoney ? $t('balance.you_owe') : $t('balance.owed_to_you')}</span>
@@ -409,9 +414,9 @@
       </a>
   {/if}
 
-  {#if !isLoading && newIds.size > 0}
-      <!-- What the others added since my last visit: a dot marks each line. -->
-      <div class="flex min-h-11 items-center gap-1 rounded-control border bg-card pl-4 pr-1 animate-pop-in">
+  {#if hasNews}
+      <!-- A dot marks each of these lines in the list. -->
+      <div class="flex min-h-11 items-center gap-1 pl-4 pr-1">
           <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
           <button type="button" onclick={showNews} class="min-w-0 flex-1 truncate py-2 pl-2 text-left text-sm font-medium">
               {$t('expense.list.new_since', { count: String(newIds.size) })}
@@ -425,6 +430,8 @@
               <X class="h-4 w-4" />
           </button>
       </div>
+  {/if}
+  </div>
   {/if}
 
   {#if rawExpenses.length > 0}
@@ -542,11 +549,11 @@
 
                   <Dropdown position="bottom-left" label={$t('sort.label')} triggerClass={chipClass(false)}>
                       {#snippet trigger()}
-                          <span>{getCurrentSortLabel()}</span>
+                          <span>{sortLabel(sortKey)}</span>
                       {/snippet}
                       {#snippet items(close)}
-                          {#each sortOptions as opt (opt.value)}
-                              {@render filterOption($t(opt.labelKey), sortOption === opt.value, () => { setSort(opt.value); close(); })}
+                          {#each sortKeys as s (s.key)}
+                              {@render filterOption(sortLabel(s.key), sortKey === s.key, () => { chooseSort(s.key); close(); })}
                           {/each}
                       {/snippet}
                   </Dropdown>

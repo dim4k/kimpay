@@ -3,23 +3,28 @@
   import { fade } from 'svelte/transition';
   import { pb } from '#lib/pocketbase.js';
   import type { RecordModel } from 'pocketbase';
+  import { untrack } from 'svelte';
   import Modal from './Modal.svelte';
   import { t } from '#lib/i18n.js';
   import type { GalleryOptions } from '#lib/stores/modals.svelte.js';
 
-  let { 
-    isOpen = false, 
-    onClose, 
-    photos = [], 
-    record 
+  let {
+    isOpen = false,
+    onClose,
+    photos = [],
+    record,
+    start = 0,
   }: {
     isOpen?: boolean;
     onClose: () => void;
     photos?: string[];
     record: GalleryOptions["record"] | null;
+    /** Index of the photo shown first */
+    start?: number | undefined;
   } = $props();
 
-  let currentIndex = $state(0);
+  // Mounted for each opening: starts on the photo tapped.
+  let currentIndex = $state(untrack(() => start ?? 0));
 
   function next() {
       if (currentIndex < photos.length - 1) currentIndex++;

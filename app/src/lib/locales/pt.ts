@@ -85,12 +85,6 @@ export const pt: Record<TranslationKey, string> = {
     "toast.avatar_updated": "Foto atualizada!",
     "toast.avatar_update_failed": "Falha ao atualizar foto",
 
-    "sort.created_desc": "Mais recentes",
-    "sort.created_asc": "Mais antigos",
-    "sort.date_desc": "Data (recentes)",
-    "sort.date_asc": "Data (antigos)",
-    "sort.amount_desc": "Valor (maior)",
-    "sort.amount_asc": "Valor (menor)",
 
     "nav.expenses": "Despesas",
     "nav.share": "Compartilhar",
@@ -466,4 +460,9 @@ export const pt: Record<TranslationKey, string> = {
     "expense.form.income_hint": "Caução devolvida, reembolso, venda…",
     "expense.split.equal_summary": "Dividido em partes iguais",
     "expense.split.give_rest": "Atribuir o resto a {name}",
+    "sort.date": "Data",
+    "sort.created": "Data de adição",
+    "sort.amount": "Valor",
+    "expense.list.duplicate": "Duplicar",
+    "expense.list.open_photo": "Abrir a foto {index}",
 };
