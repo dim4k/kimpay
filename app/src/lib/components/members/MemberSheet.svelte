@@ -140,7 +140,7 @@
                     <UserRound />
                     {$t('settings.my_profile')}
                 </Button>
-            {:else if !used && !offlineStore.isOffline}
+            {:else if !used && !ownedByOther && !offlineStore.isOffline}
                 <Button variant="ghost-destructive" class="w-full" onclick={() => { const p = participant!; onClose(); onDelete(p); }}>
                     <Trash2 />
                     {$t('modal.delete_participant.title')}
