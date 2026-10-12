@@ -9,6 +9,7 @@
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { DEFAULT_CURRENCY, formatAmount } from '#lib/services/currency.js';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
+  import { balanceSign, balanceTone, type BalanceTone } from '#lib/balance.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import Avatar from '#lib/components/ui/Avatar.svelte';
@@ -82,11 +83,11 @@
   }
 
   /** "+€12.00", "−€8.50", or "settled". */
-  function balanceBadge(id: string): { tone: 'success' | 'warning' | 'neutral'; text: string } {
+  function balanceBadge(id: string): { tone: BalanceTone; text: string } {
       const amount = activeKimpay?.balances[id] ?? 0;
-      if (amount > 0.005) return { tone: 'success', text: `+${formatAmount(amount, currency, $locale)}` };
-      if (amount < -0.005) return { tone: 'warning', text: `−${formatAmount(-amount, currency, $locale)}` };
-      return { tone: 'neutral', text: $t('members.settled') };
+      const tone = balanceTone(amount);
+      if (tone === 'neutral') return { tone, text: $t('members.settled') };
+      return { tone, text: `${balanceSign(amount)}${formatAmount(Math.abs(amount), currency, $locale)}` };
   }
 </script>
 

@@ -96,6 +96,10 @@ export const STORAGE_KEYS = {
     PAYMENT_HANDLES: 'kimpay_payment_handles',
     /** Prefix: "show my payment links" card dismissed in a group (localStorage) */
     PAYMENT_NUDGE_DISMISSED_PREFIX: 'kimpay_payment_nudge_dismissed_',
+    /** Language of the app (localStorage) */
+    LOCALE: 'locale',
+    /** Theme picked: "light" or "dark", none for the system's (localStorage) */
+    THEME: 'theme',
     /** Legacy key for migration (deprecated) */
     LEGACY_MY_KIMPAYS: 'my_kimpays',
 } as const;

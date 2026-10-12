@@ -316,3 +316,24 @@ describe('expenseImpact', () => {
         expect(expenseImpact(reimbursement, 'a', ids)).toBeNull();
     });
 });
+
+describe('settled amounts', () => {
+    it('counts less than half a cent as settled', async () => {
+        const { isSettled } = await import('../../src/lib/balance');
+        expect(isSettled(0)).toBe(true);
+        expect(isSettled(0.004)).toBe(true);
+        expect(isSettled(-0.004)).toBe(true);
+        expect(isSettled(0.01)).toBe(false);
+        expect(isSettled(-12.5)).toBe(false);
+    });
+
+    it('gives the tone and sign of a balance', async () => {
+        const { balanceTone, balanceSign } = await import('../../src/lib/balance');
+        expect(balanceTone(12)).toBe('success');
+        expect(balanceTone(-12)).toBe('warning');
+        expect(balanceTone(0.001)).toBe('neutral');
+        expect(balanceSign(12)).toBe('+');
+        expect(balanceSign(-12)).toBe('−');
+        expect(balanceSign(-0.001)).toBe('');
+    });
+});

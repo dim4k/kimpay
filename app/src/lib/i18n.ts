@@ -4,6 +4,8 @@ import { fr } from "./locales/fr";
 import { de } from "./locales/de";
 import { es } from "./locales/es";
 import { pt } from "./locales/pt";
+import { STORAGE_KEYS } from "./constants";
+import { prefs } from "./utils/prefs";
 
 export type { TranslationKey };
 
@@ -25,10 +27,8 @@ export const LOCALE_NAMES: Record<string, string> = {
 };
 
 function getInitialLocale(): string {
-    if (typeof localStorage !== "undefined") {
-        const saved = localStorage.getItem("locale");
-        if (saved && saved in locales) return saved;
-    }
+    const saved = prefs.get(STORAGE_KEYS.LOCALE);
+    if (saved && saved in locales) return saved;
     if (typeof navigator !== "undefined") {
         const lang = navigator.language?.split("-")[0];
         return lang && lang in locales ? lang : "en";
@@ -39,12 +39,8 @@ function getInitialLocale(): string {
 /** Writable store for the current locale */
 export const locale = writable(getInitialLocale());
 
-// Persist locale changes to localStorage
-locale.subscribe((value) => {
-    if (typeof localStorage !== "undefined") {
-        localStorage.setItem("locale", value);
-    }
-});
+// Remembered on this device
+locale.subscribe((value) => prefs.set(STORAGE_KEYS.LOCALE, value));
 
 /**
  * Derived translation function store.

@@ -1,5 +1,5 @@
 import type { Expense } from './types';
-import { expenseShare, toKimpayAmount } from './balance';
+import { expenseShare, isSettled, toKimpayAmount } from './balance';
 import { EMOJI_CATEGORY_ORDER, emojiCategory, type EmojiCategoryKey } from './constants';
 
 /** Spending (expenses minus money received), never reimbursements. */
@@ -28,7 +28,7 @@ export function spendingByCategory(
     }
     return [...totals]
         .map(([key, amount]) => ({ key, amount }))
-        .filter((c) => c.amount > 0.005)
+        .filter((c) => c.amount > 0 && !isSettled(c.amount))
         .sort((a, b) => b.amount - a.amount || EMOJI_CATEGORY_ORDER.indexOf(a.key) - EMOJI_CATEGORY_ORDER.indexOf(b.key));
 }
 

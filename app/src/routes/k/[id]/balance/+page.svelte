@@ -9,7 +9,9 @@
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import { shareOf } from '#lib/balance.js';
+  import { balanceTone, shareOf } from '#lib/balance.js';
+  import { expenseView } from '#lib/stores/expenseView.svelte.js';
+  import { prefs } from '#lib/utils/prefs.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
@@ -101,6 +103,7 @@
 
   let participants = $derived(activeKimpay?.participants || []);
   let myNet = $derived(toDisplayCurrency(activeKimpay?.myBalance ?? 0, kimpayDefaultCurrency));
+  let myTone = $derived(balanceTone(myNet));
   let totalExpenses = $derived(toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency));
   let myShare = $derived(
       myId ? toDisplayCurrency(shareOf(expenses, participants, myId, kimpayDefaultCurrency, exchangeRates), kimpayDefaultCurrency) : 0
@@ -110,14 +113,8 @@
   // links here (they are private until shown in a group).
   let owingMe = $derived([...new Set(transactions.filter((tx) => myId && tx.to === myId).map((tx) => tx.from))]);
   let nudgeKey = $derived(`${STORAGE_KEYS.PAYMENT_NUDGE_DISMISSED_PREFIX}${activeKimpay?.id ?? ''}`);
-  let nudgeDismissed = $state(false);
-  $effect(() => {
-      try {
-          nudgeDismissed = localStorage.getItem(nudgeKey) === 'true';
-      } catch {
-          nudgeDismissed = false;
-      }
-  });
+  // Read again for each group; set right away when dismissed.
+  let nudgeDismissed = $derived(prefs.get(nudgeKey) === 'true');
   let showNudge = $derived(
       !!myId && owingMe.length > 0 && !nudgeDismissed && !offlineStore.isOffline &&
           !hasHandles(activeKimpay?.participantsById.get(myId))
@@ -144,11 +141,7 @@
 
   function dismissNudge() {
       nudgeDismissed = true;
-      try {
-          localStorage.setItem(nudgeKey, 'true');
-      } catch {
-          // Hidden for this visit only.
-      }
+      prefs.set(nudgeKey, 'true');
   }
 
   // Everyone's net balance, the biggest creditor first.
@@ -163,25 +156,8 @@
   );
 
   // Where the money went: the group's spending or my part, the same choice
-  // as on the expense list (remembered on this device).
-  type View = 'total' | 'me';
-  function loadView(): View {
-      try {
-          return localStorage.getItem(STORAGE_KEYS.EXPENSE_VIEW) === 'total' ? 'total' : 'me';
-      } catch {
-          return 'me';
-      }
-  }
-  let viewChoice = $state<View>(loadView());
-  let view = $derived<View>(myId ? viewChoice : 'total');
-  function setView(value: View) {
-      viewChoice = value;
-      try {
-          localStorage.setItem(STORAGE_KEYS.EXPENSE_VIEW, value);
-      } catch {
-          // Not remembered, still applied.
-      }
-  }
+  // as on the expense list.
+  let view = $derived(myId ? expenseView.choice : 'total');
 
   let participantIds = $derived(participants.map((p) => p.id));
   let categories = $derived.by(() => {
@@ -251,11 +227,11 @@
             </BalanceHero>
         {:else}
             <BalanceHero
-                label={myNet < -0.005 ? $t('balance.you_owe') : myNet > 0.005 ? $t('balance.owed_to_you') : $t('expense.hero.label')}
-                amount={Math.abs(myNet) > 0.005 ? myNet : undefined}
+                label={myTone === 'warning' ? $t('balance.you_owe') : myTone === 'success' ? $t('balance.owed_to_you') : $t('expense.hero.label')}
+                amount={myTone !== 'neutral' ? myNet : undefined}
                 text={$t('balance.settled.title')}
                 currency={displayCurrency}
-                tone={myNet < -0.005 ? 'warning' : myNet > 0.005 ? 'success' : 'neutral'}
+                tone={myTone}
             >
                 <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
                 <span>{$t('balance.hero.share', { amount: formatAmount(myShare, displayCurrency, $locale) })}</span>
@@ -348,7 +324,7 @@
                                 ]}
                                 value={view}
                                 label={$t('expense.view.label')}
-                                onchange={setView}
+                                onchange={(v) => expenseView.set(v)}
                             />
                         {/if}
                     {/snippet}

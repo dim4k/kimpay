@@ -24,7 +24,9 @@
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { DEFAULT_CURRENCY, formatAmount } from '#lib/services/currency.js';
-  import { expenseImpact, toKimpayAmount } from '#lib/balance.js';
+  import { balanceSign, balanceTone, expenseImpact, isSettled, toKimpayAmount } from '#lib/balance.js';
+  import { expenseView } from '#lib/stores/expenseView.svelte.js';
+  import { prefs } from '#lib/utils/prefs.js';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, STORAGE_KEYS, emojiCategory, type EmojiCategoryKey } from '#lib/constants.js';
 
@@ -54,25 +56,15 @@
 
   // Sort state, remembered on this device
   function loadSort(): SortOption {
-      try {
-          const saved = localStorage.getItem(STORAGE_KEYS.EXPENSE_SORT);
-          const option = sortOptions.find(o => o.value === saved);
-          if (option) return option.value;
-      } catch {
-          // Storage unavailable (private mode...): default order.
-      }
-      return 'date_desc';
+      const saved = prefs.get(STORAGE_KEYS.EXPENSE_SORT);
+      return sortOptions.find(o => o.value === saved)?.value ?? 'date_desc';
   }
 
   let sortOption = $state<SortOption>(loadSort());
 
   function setSort(value: SortOption) {
       sortOption = value;
-      try {
-          localStorage.setItem(STORAGE_KEYS.EXPENSE_SORT, value);
-      } catch {
-          // Not remembered, still applied.
-      }
+      prefs.set(STORAGE_KEYS.EXPENSE_SORT, value);
   }
 
   function getCurrentSortLabel(): string {
@@ -192,8 +184,8 @@
 
   let participantIds = $derived(participants.map(p => p.id));
   let myBalance = $derived(activeKimpay?.myBalance ?? 0);
-  let owesMoney = $derived(myBalance < -0.005);
-  let isOwed = $derived(myBalance > 0.005);
+  let owesMoney = $derived(balanceTone(myBalance) === 'warning');
+  let isOwed = $derived(balanceTone(myBalance) === 'success');
 
   /** "Today", "Yesterday", then the date ("Sat 19 Sep" when `short`). */
   function dayLabel(key: string, short = false): string {
@@ -242,30 +234,10 @@
       return days.map((day) => ({ ...day, ...amounts(day.items) }));
   });
 
-  // Total or "for me": what the amounts of the list say, remembered on this
-  // device. "For me" needs an identity in the group.
-  type View = 'total' | 'me';
-
-  function loadView(): View {
-      try {
-          return localStorage.getItem(STORAGE_KEYS.EXPENSE_VIEW) === 'total' ? 'total' : 'me';
-      } catch {
-          return 'me';
-      }
-  }
-
-  let viewChoice = $state<View>(loadView());
+  // Total or "for me": what the amounts of the list say (shared with the
+  // balance page). "For me" needs an identity in the group.
   let canChooseView = $derived(!!currentUserId);
-  let view = $derived<View>(canChooseView ? viewChoice : 'total');
-
-  function setView(value: View) {
-      viewChoice = value;
-      try {
-          localStorage.setItem(STORAGE_KEYS.EXPENSE_VIEW, value);
-      } catch {
-          // Not remembered, still applied.
-      }
-  }
+  let view = $derived(canChooseView ? expenseView.choice : 'total');
 
   // The search bar sticks under the header. Once the list scrolls under it,
   // it shrinks to one line: the day in view and its amount, the search
@@ -372,12 +344,12 @@
 
 <!-- A day's (or the list's) amount: what the group spent, or what it changed for me. -->
 {#snippet sectionAmount(section: { total: number; mine: number; reimbursements: number })}
-    {#if view === 'me' && Math.abs(section.mine) < 0.005}
+    {#if view === 'me' && isSettled(section.mine)}
         <!-- Nothing changed for me that day (reimbursements between others...). -->
         <span>—</span>
     {:else if view === 'me'}
-        <span class="whitespace-nowrap tabular-nums {section.mine > 0.005 ? 'text-success' : section.mine < -0.005 ? 'text-warning' : ''}">
-            {section.mine > 0.005 ? '+' : section.mine < -0.005 ? '−' : ''}{formatAmount(Math.abs(section.mine), kimpayC, $locale)}
+        <span class="whitespace-nowrap tabular-nums {balanceTone(section.mine) === 'success' ? 'text-success' : 'text-warning'}">
+            {balanceSign(section.mine)}{formatAmount(Math.abs(section.mine), kimpayC, $locale)}
         </span>
     {:else if section.reimbursements > 0}
         <span class="whitespace-nowrap">{$t('expense.list.reimbursements_count', { count: String(section.reimbursements) })}</span>
@@ -514,7 +486,7 @@
                       ]}
                       value={view}
                       label={$t('expense.view.label')}
-                      onchange={setView}
+                      onchange={(v) => expenseView.set(v)}
                       class="shrink-0"
                   />
               {/if}

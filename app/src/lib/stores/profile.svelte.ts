@@ -1,5 +1,6 @@
 import { pb } from "#lib/pocketbase.js";
 import { STORAGE_KEYS } from "#lib/constants.js";
+import { prefs } from "#lib/utils/prefs.js";
 import { auth } from "#lib/stores/auth.svelte.js";
 import { activeKimpayGlobal } from "#lib/stores/activeKimpayGlobal.svelte.js";
 import { storageService } from "#lib/services/storage.js";
@@ -18,21 +19,12 @@ export function hasHandles(handles: Partial<PaymentHandles> | null | undefined):
 }
 
 function readLocal(): PaymentHandles {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENT_HANDLES) ?? "null");
-        return { paypal: saved?.paypal ?? "", revolut: saved?.revolut ?? "" };
-    } catch {
-        return NONE;
-    }
+    const saved = prefs.getJSON<Partial<PaymentHandles>>(STORAGE_KEYS.PAYMENT_HANDLES);
+    return { paypal: saved?.paypal ?? "", revolut: saved?.revolut ?? "" };
 }
 
 function writeLocal(handles: PaymentHandles) {
-    try {
-        if (hasHandles(handles)) localStorage.setItem(STORAGE_KEYS.PAYMENT_HANDLES, JSON.stringify(handles));
-        else localStorage.removeItem(STORAGE_KEYS.PAYMENT_HANDLES);
-    } catch {
-        // Storage unavailable (private mode...): kept for this session only.
-    }
+    prefs.setJSON(STORAGE_KEYS.PAYMENT_HANDLES, hasHandles(handles) ? handles : null);
 }
 
 /**
@@ -42,7 +34,7 @@ function writeLocal(handles: PaymentHandles) {
  * there (the record the other members read).
  */
 class ProfileStore {
-    private local = $state<PaymentHandles>(typeof localStorage === "undefined" ? NONE : readLocal());
+    private local = $state<PaymentHandles>(readLocal());
 
     /** The account's handles, or this device's (a guest, or an account without any yet). */
     handles = $derived<PaymentHandles>(

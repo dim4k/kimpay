@@ -1,6 +1,7 @@
 <script lang="ts">
     import { t, locale } from '#lib/i18n.js';
     import { formatAmount } from '#lib/services/currency.js';
+    import { balanceTone, isSettled } from '#lib/balance.js';
     import { Check } from '@lucide/svelte';
 
     interface Row {
@@ -13,8 +14,8 @@
     let { rows, currency }: { rows: Row[]; currency: string } = $props();
 
     // Only the balances that are not settled get a bar; the others share one line.
-    let open = $derived(rows.filter((r) => Math.abs(r.amount) >= 0.005));
-    let even = $derived(rows.filter((r) => Math.abs(r.amount) < 0.005));
+    let open = $derived(rows.filter((r) => !isSettled(r.amount)));
+    let even = $derived(rows.filter((r) => isSettled(r.amount)));
     let max = $derived(Math.max(...open.map((r) => Math.abs(r.amount)), 0.01));
 
     function width(amount: number): number {
@@ -32,8 +33,8 @@
 <div class="rounded-card border bg-card p-4 space-y-3">
 <ul class="space-y-3" aria-label={$t('readonly.balances')}>
     {#each open as row (row.id)}
-        {@const owed = row.amount > 0.005}
-        {@const owes = row.amount < -0.005}
+        {@const owed = balanceTone(row.amount) === 'success'}
+        {@const owes = balanceTone(row.amount) === 'warning'}
         <li class="grid grid-cols-[minmax(0,6rem)_1fr_auto] items-center gap-3 text-sm">
             <span class="truncate font-medium">{row.name}</span>
             <span class="relative h-2.5" aria-hidden="true">

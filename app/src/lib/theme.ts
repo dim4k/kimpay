@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/env';
+import { STORAGE_KEYS } from '#lib/constants.js';
+import { prefs } from '#lib/utils/prefs.js';
 
 type Theme = 'light' | 'dark';
 
@@ -26,7 +28,7 @@ function createThemeStore() {
         init: () => {
             if (!browser) return;
             media = window.matchMedia('(prefers-color-scheme: dark)');
-            const stored = localStorage.getItem('theme');
+            const stored = prefs.get(STORAGE_KEYS.THEME);
             current = stored === 'light' || stored === 'dark' ? stored : 'system';
             choice.set(current);
             apply();
@@ -39,12 +41,7 @@ function createThemeStore() {
             if (!browser) return;
             current = next;
             choice.set(next);
-            try {
-                if (next === 'system') localStorage.removeItem('theme');
-                else localStorage.setItem('theme', next);
-            } catch {
-                // Not remembered, still applied.
-            }
+            prefs.set(STORAGE_KEYS.THEME, next === 'system' ? null : next);
             apply();
         },
     };

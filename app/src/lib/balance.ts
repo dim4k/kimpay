@@ -21,6 +21,29 @@ export interface Balance {
     amount: number; // Positive = owns money, Negative = owes money
 }
 
+/** Less than half a cent: what conversions leave behind, worth nothing. */
+const EPSILON = 0.005;
+
+/** Owed money, owes money, or settled. */
+export type BalanceTone = 'success' | 'warning' | 'neutral';
+
+/** An amount (a balance, an impact...) small enough to mean "settled". */
+export function isSettled(amount: number): boolean {
+    return Math.abs(amount) < EPSILON;
+}
+
+/** `success` when owed money, `warning` when owing it, `neutral` when settled. */
+export function balanceTone(amount: number): BalanceTone {
+    if (isSettled(amount)) return 'neutral';
+    return amount > 0 ? 'success' : 'warning';
+}
+
+/** "+" when owed money, "−" when owing it, nothing when settled. */
+export function balanceSign(amount: number): string {
+    if (isSettled(amount)) return '';
+    return amount > 0 ? '+' : '−';
+}
+
 /**
  * Value of an expense in the Kimpay's currency: converted with the rate
  * frozen at the expense date when known, with today's rate otherwise

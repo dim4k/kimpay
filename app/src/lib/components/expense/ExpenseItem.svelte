@@ -7,7 +7,7 @@
     import { goto } from '$app/navigation';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-    import { expenseImpact, expenseShare, toKimpayAmount } from '#lib/balance.js';
+    import { expenseImpact, expenseShare, isSettled, toKimpayAmount } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import IconTile from '#lib/components/ui/IconTile.svelte';
@@ -236,7 +236,7 @@
                 <!-- Two words over my amount: what the expense means for me. -->
                 {#if impact === undefined}
                     <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
-                {:else if Math.abs(impact ?? 0) < 0.005}
+                {:else if isSettled(impact ?? 0)}
                     <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('members.settled')}</p>
                 {:else}
                     <p class="whitespace-nowrap text-xs text-muted-foreground">{impact! > 0 ? $t('expense.list.owed_to_you') : $t('expense.list.you_owe')}</p>
