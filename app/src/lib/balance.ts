@@ -66,6 +66,22 @@ export function expenseShare(expense: Expense, participantId: string, participan
 }
 
 /**
+ * What one expense changes to a participant's balance, in the expense
+ * currency: what they advanced minus their share (the other way round for
+ * money received). Positive: they are owed money; negative: they owe it.
+ * null for reimbursements (their line already says who paid whom), undefined
+ * when the expense does not concern them.
+ */
+export function expenseImpact(expense: Expense, participantId: string, participantIds: string[]): number | null | undefined {
+    if (expense.is_reimbursement) return null;
+    const paid = expense.payer === participantId;
+    const involved = (expense.involved ?? []).includes(participantId);
+    if (!paid && !involved) return undefined;
+    const share = involved ? expenseShare(expense, participantId, participantIds) : 0;
+    return (expense.is_income ? -1 : 1) * ((paid ? expense.amount : 0) - share);
+}
+
+/**
  * One participant's share of the group's spending (expenses minus money
  * received, reimbursements excluded), in the Kimpay's currency.
  */

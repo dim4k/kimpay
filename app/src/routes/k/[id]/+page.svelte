@@ -22,7 +22,8 @@
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { DEFAULT_CURRENCY, formatAmount } from '#lib/services/currency.js';
-  import { toKimpayAmount } from '#lib/balance.js';
+  import { expenseImpact, toKimpayAmount } from '#lib/balance.js';
+  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, STORAGE_KEYS, emojiCategory, type EmojiCategoryKey } from '#lib/constants.js';
 
   // Get ActiveKimpay from context
@@ -182,39 +183,129 @@
   let owesMoney = $derived(myBalance < -0.005);
   let isOwed = $derived(myBalance > 0.005);
 
-  /** "Today", "Yesterday", then the full date. */
-  function dayLabel(key: string): string {
+  /** "Today", "Yesterday", then the date ("Sat 19 Sep" when `short`). */
+  function dayLabel(key: string, short = false): string {
       const today = new Date();
       if (key === toLocalISODate(today)) return $t('datepicker.today');
       if (key === toLocalISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))) return $t('date.yesterday');
       return parseLocalISODate(key).toLocaleDateString($locale, {
-          weekday: 'long',
+          weekday: short ? 'short' : 'long',
           day: 'numeric',
-          month: 'long',
+          month: short ? 'short' : 'long',
           ...(key.slice(0, 4) !== String(today.getFullYear()) && { year: 'numeric' }),
       });
+  }
+
+  /**
+   * What the group spent (reimbursements are not spending), and what it
+   * changed to my balance, in the Kimpay currency.
+   */
+  function amounts(items: Expense[]): { total: number; mine: number } {
+      let total = 0;
+      let mine = 0;
+      for (const e of items) {
+          const value = toKimpayCurrency(e);
+          if (!e.is_reimbursement) total += (e.is_income ? -1 : 1) * value;
+          const impact = currentUserId ? expenseImpact(e, currentUserId, participantIds) : null;
+          if (typeof impact === 'number' && e.amount > 0) mine += impact * (value / e.amount);
+      }
+      return { total, mine };
   }
 
   // Sorted by date: one list per day. Other sorts: a single list.
   let sections = $derived.by(() => {
       if (sortOption !== 'date_desc' && sortOption !== 'date_asc') {
-          return [{ key: 'all', label: '', items: expenses, total: undefined as number | undefined }];
+          const shortLabel = $t('expense.list.count', { count: String(expenses.length) });
+          return [{ key: 'all', label: '', shortLabel, items: expenses, ...amounts(expenses) }];
       }
-      const days: { key: string; label: string; items: Expense[]; total?: number }[] = [];
+      const days: { key: string; label: string; shortLabel: string; items: Expense[] }[] = [];
       for (const expense of expenses) {
           const key = expense.date.slice(0, 10);
           const last = days[days.length - 1];
           if (last?.key === key) last.items.push(expense);
-          else days.push({ key, label: dayLabel(key), items: [expense] });
+          else days.push({ key, label: dayLabel(key), shortLabel: dayLabel(key, true), items: [expense] });
       }
-      // What the group spent that day (reimbursements are not spending).
-      for (const day of days) {
-          day.total = day.items.reduce(
-              (sum, e) => (e.is_reimbursement ? sum : sum + (e.is_income ? -1 : 1) * toKimpayCurrency(e)),
-              0,
-          );
+      return days.map((day) => ({ ...day, ...amounts(day.items) }));
+  });
+
+  // Total or "for me": what the amounts of the list say, remembered on this
+  // device. "For me" needs an identity in the group.
+  type View = 'total' | 'me';
+
+  function loadView(): View {
+      try {
+          return localStorage.getItem(STORAGE_KEYS.EXPENSE_VIEW) === 'total' ? 'total' : 'me';
+      } catch {
+          return 'me';
       }
-      return days;
+  }
+
+  let viewChoice = $state<View>(loadView());
+  let canChooseView = $derived(!!currentUserId);
+  let view = $derived<View>(canChooseView ? viewChoice : 'total');
+
+  function setView(value: View) {
+      viewChoice = value;
+      try {
+          localStorage.setItem(STORAGE_KEYS.EXPENSE_VIEW, value);
+      } catch {
+          // Not remembered, still applied.
+      }
+  }
+
+  // The search bar sticks under the header. Once the list scrolls under it,
+  // it shrinks to one line: the day in view and its amount, the search
+  // button and the view switch.
+  let sentinel = $state<HTMLElement>();
+  let bar = $state<HTMLElement>();
+  let searchInput = $state<HTMLInputElement | null>(null);
+  let isCompact = $state(false);
+  let currentKey = $state<string | null>(null);
+  let focusSearch = false;
+  let current = $derived(sections.find((section) => section.key === currentKey) ?? sections[0]);
+
+  $effect(() => {
+      const top = sentinel;
+      const stuck = bar;
+      const scroller = top?.closest('main');
+      if (!top || !stuck || !scroller) return;
+      let frame = 0;
+      const update = () => {
+          frame = 0;
+          const barBox = stuck.getBoundingClientRect();
+          // The line right above the bar went up while the bar stayed: stuck.
+          isCompact = top.getBoundingClientRect().top < barBox.top - 1;
+          if (!isCompact) return;
+          let key: string | null = null;
+          for (const section of scroller.querySelectorAll<HTMLElement>('[data-section]')) {
+              if (section.getBoundingClientRect().top > barBox.bottom + 1) break;
+              key = section.dataset.section ?? null;
+          }
+          currentKey = key;
+      };
+      const onScroll = () => {
+          if (!frame) frame = requestAnimationFrame(update);
+      };
+      scroller.addEventListener('scroll', onScroll, { passive: true });
+      update();
+      return () => {
+          scroller.removeEventListener('scroll', onScroll);
+          cancelAnimationFrame(frame);
+      };
+  });
+
+  /** Back to the full bar, at the top of the list, with the search field focused. */
+  function openSearch() {
+      focusSearch = true;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      sentinel?.closest('main')?.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  }
+
+  $effect(() => {
+      if (!isCompact && searchInput && focusSearch) {
+          focusSearch = false;
+          searchInput.focus({ preventScroll: true });
+      }
   });
 
   // Accordion State
@@ -250,6 +341,17 @@
       if (activeKimpay) confirmDeleteExpense(activeKimpay, id);
   }
 </script>
+
+<!-- A day's (or the list's) amount: what the group spent, or what it changed for me. -->
+{#snippet sectionAmount(section: { total: number; mine: number })}
+    {#if view === 'me'}
+        <span class="whitespace-nowrap tabular-nums {section.mine > 0.005 ? 'text-success' : section.mine < -0.005 ? 'text-warning' : ''}">
+            {section.mine > 0.005 ? '+' : section.mine < -0.005 ? '−' : ''}{formatAmount(Math.abs(section.mine), kimpayC, $locale)}
+        </span>
+    {:else}
+        <span class="whitespace-nowrap tabular-nums">{formatAmount(section.total, kimpayC, $locale)}</span>
+    {/if}
+{/snippet}
 
 {#snippet filterOption(label: string, selected: boolean, onclick: () => void)}
     <button
@@ -303,32 +405,73 @@
   {/if}
 
   {#if rawExpenses.length > 0}
-      <div class="space-y-2">
-          <div class="flex gap-2">
-              <div class="relative flex-1">
-                  <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                      type="search"
-                      bind:value={search}
-                      placeholder={$t('filter.search_placeholder')}
+      <!-- Right above the bar: tells when the bar got stuck under the header. -->
+      <div bind:this={sentinel} class="mb-0! h-0" aria-hidden="true"></div>
+      <div
+          bind:this={bar}
+          class="sticky top-14 z-20 -mx-4 border-b bg-background px-4 py-2 transition-colors duration-150 {isCompact ? 'border-border' : 'border-transparent'}"
+      >
+          <div class="flex items-center gap-2">
+              {#if isCompact}
+                  <p class="flex min-w-0 flex-1 items-center justify-between gap-2 text-sm font-semibold text-muted-foreground">
+                      <span class="truncate">{current?.shortLabel}</span>
+                      {#if current}
+                          <span class="shrink-0">{@render sectionAmount(current)}</span>
+                      {/if}
+                  </p>
+                  <button
+                      type="button"
+                      onclick={openSearch}
                       aria-label={$t('filter.search_placeholder')}
-                      class="pl-9"
+                      class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {isFiltering ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
+                  >
+                      <Search class="h-4 w-4" />
+                      {#if isFiltering}
+                          <span class="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" aria-hidden="true"></span>
+                      {/if}
+                  </button>
+              {:else}
+                  <div class="relative min-w-0 flex-1">
+                      <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                          type="search"
+                          bind:ref={searchInput}
+                          bind:value={search}
+                          placeholder={$t('filter.search_placeholder')}
+                          aria-label={$t('filter.search_placeholder')}
+                          class="pl-9"
+                      />
+                  </div>
+                  <button
+                      type="button"
+                      onclick={() => showFilters = !showFilters}
+                      aria-expanded={showFilters}
+                      aria-label={$t('filter.toggle')}
+                      class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {showFilters || activeFilterCount > 0 ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
+                  >
+                      <SlidersHorizontal class="h-4 w-4" />
+                      {#if activeFilterCount > 0}
+                          <span class="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{activeFilterCount}</span>
+                      {/if}
+                  </button>
+              {/if}
+              {#if canChooseView}
+                  <SegmentedControl
+                      options={[
+                          { value: 'total', label: $t('expense.view.total') },
+                          { value: 'me', label: $t('expense.view.me') },
+                      ]}
+                      value={view}
+                      label={$t('expense.view.label')}
+                      onchange={setView}
+                      class="shrink-0"
                   />
-              </div>
-              <button
-                  type="button"
-                  onclick={() => showFilters = !showFilters}
-                  aria-expanded={showFilters}
-                  aria-label={$t('filter.toggle')}
-                  class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {showFilters || activeFilterCount > 0 ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
-              >
-                  <SlidersHorizontal class="h-4 w-4" />
-                  {#if activeFilterCount > 0}
-                      <span class="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{activeFilterCount}</span>
-                  {/if}
-              </button>
+              {/if}
           </div>
+      </div>
 
+      {#if showFilters || isFiltering}
+      <div class="-mt-3 space-y-2">
           {#if showFilters}
               <div class="flex flex-wrap gap-2">
                   <Dropdown position="bottom-left" label={$t('filter.person')} triggerClass={chipClass(!!personFilter)}>
@@ -401,6 +544,7 @@
               </div>
           {/if}
       </div>
+      {/if}
   {/if}
 
   {#if isLoading}
@@ -436,13 +580,11 @@
       </EmptyState>
   {:else}
       {#each sections as section (section.key)}
-          <section class="space-y-2 animate-slide-up">
+          <section class="space-y-2 animate-slide-up" data-section={section.key}>
               {#if section.label}
                   <SectionLabel title={section.label}>
                       {#snippet actions()}
-                          {#if section.total}
-                              <span class="text-sm font-semibold tabular-nums text-muted-foreground">{formatAmount(section.total, kimpayC, $locale)}</span>
-                          {/if}
+                          <span class="text-sm font-semibold text-muted-foreground">{@render sectionAmount(section)}</span>
                       {/snippet}
                   </SectionLabel>
               {/if}
@@ -457,6 +599,7 @@
                           onToggleExpand={toggleExpand}
                           onRequestDelete={requestDelete}
                           onOpenGallery={openGallery}
+                          {view}
                       />
                   {/each}
               </ListGroup>

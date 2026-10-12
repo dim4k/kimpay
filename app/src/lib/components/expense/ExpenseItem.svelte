@@ -7,7 +7,7 @@
     import { goto } from '$app/navigation';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-    import { expenseShare } from '#lib/balance.js';
+    import { expenseImpact, expenseShare } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import IconTile from '#lib/components/ui/IconTile.svelte';
@@ -24,6 +24,7 @@
         onToggleExpand,
         onRequestDelete,
         onOpenGallery,
+        view = 'total',
     }: {
         expense: Expense;
         currentUserId: string | null;
@@ -34,6 +35,11 @@
         onToggleExpand: (expenseId: string) => void;
         onRequestDelete: (expenseId: string) => void;
         onOpenGallery: (expense: Expense) => void;
+        /**
+         * `total`: who paid and the amount. `me`: what the expense changes
+         * for me on the right ("you owe €12.50"), the amount in the details.
+         */
+        view?: 'total' | 'me';
     } = $props();
 
     let isExpanded = $derived(expandedId === expense.id);
@@ -57,18 +63,19 @@
 
     let paidByMe = $derived(!!currentUserId && expense.payer === currentUserId);
 
-    // What this expense changes to my balance, in its currency: what I
-    // advanced minus my share (the other way round for money received).
-    // null when there is nothing to say (no identity in the group, or a
-    // reimbursement: its line already says who paid whom), undefined when it
-    // does not concern me.
-    let impact = $derived.by((): number | null | undefined => {
-        if (!currentUserId || expense.is_reimbursement) return null;
-        const involvedMe = (expense.involved ?? []).includes(currentUserId);
-        if (!paidByMe && !involvedMe) return undefined;
-        const paid = paidByMe ? expense.amount : 0;
-        const share = involvedMe ? expenseShare(expense, currentUserId, participantIds) : 0;
-        return (expense.is_income ? -1 : 1) * (paid - share);
+    // What this expense changes to my balance (see expenseImpact). Shown in
+    // the "for me" view, which needs an identity in the group; reimbursements
+    // keep their usual line (it already says who paid whom).
+    let impact = $derived(currentUserId ? expenseImpact(expense, currentUserId, participantIds) : null);
+    let showImpact = $derived(view === 'me' && impact !== null);
+
+    // "Laetitia paid €25.00", "You received €40.00"...
+    let paidAmount = $derived.by(() => {
+        const amount = formatAmount(expense.amount, currency, $locale);
+        if (expense.is_income) {
+            return paidByMe ? $t('expense.list.you_received', { amount }) : $t('expense.list.name_received', { name: nameOf(expense.payer, expense.expand?.payer?.name), amount });
+        }
+        return paidByMe ? $t('expense.list.you_paid', { amount }) : $t('expense.list.name_paid', { name: nameOf(expense.payer, expense.expand?.payer?.name), amount });
     });
 
     // "Paid by Laetitia", or "Paid by you" highlighted: what I paid stands out.
@@ -146,6 +153,8 @@
             <p class="truncate text-sm text-muted-foreground">
                 {#if expense.is_reimbursement}
                     {payerLabel}
+                {:else if showImpact}
+                    <span class={paidByMe ? 'font-semibold text-primary' : ''}>{paidAmount}</span>
                 {:else}
                     <span class={paidByMe ? 'font-semibold text-primary' : ''}>{payerLabel}</span>{` · ${people}`}
                 {/if}
@@ -153,21 +162,21 @@
         </div>
 
         <div class="shrink-0 text-right">
-            <p class="text-base font-semibold tabular-nums">
-                {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
-            </p>
-            {#if impact === undefined}
-                <p class="text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
-            {:else if impact !== null && Math.abs(impact) >= 0.005}
-                {@const amount = formatAmount(Math.abs(impact), currency, $locale)}
-                <!-- "you lent / you borrowed", the words of shared accounts;
-                     money received is held for the others, or owed by them. -->
-                <p class="whitespace-nowrap text-xs font-semibold tabular-nums {impact > 0 ? 'text-success' : 'text-warning'}">
-                    {#if expense.is_income}
-                        {impact > 0 ? $t('expense.list.income_owed', { amount }) : $t('expense.list.income_to_share', { amount })}
-                    {:else}
-                        {impact > 0 ? $t('expense.list.lent', { amount }) : $t('expense.list.borrowed', { amount })}
-                    {/if}
+            {#if showImpact}
+                <!-- Two words over my amount: what the expense means for me. -->
+                {#if impact === undefined}
+                    <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
+                {:else if Math.abs(impact ?? 0) < 0.005}
+                    <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('members.settled')}</p>
+                {:else}
+                    <p class="whitespace-nowrap text-xs text-muted-foreground">{impact! > 0 ? $t('expense.list.owed_to_you') : $t('expense.list.you_owe')}</p>
+                    <p class="whitespace-nowrap text-base font-semibold tabular-nums {impact! > 0 ? 'text-success' : 'text-warning'}">
+                        {formatAmount(Math.abs(impact!), currency, $locale)}
+                    </p>
+                {/if}
+            {:else}
+                <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                    {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
                 </p>
             {/if}
         </div>

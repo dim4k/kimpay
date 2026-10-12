@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBalances, calculateDebts, expenseShare, shareOf, type Transaction } from '../../src/lib/balance';
+import { calculateBalances, calculateDebts, expenseImpact, expenseShare, shareOf, type Transaction } from '../../src/lib/balance';
 import type { Expense, Participant } from '../../src/lib/types';
 
 function createParticipant(id: string, name: string): Participant {
@@ -283,5 +283,36 @@ describe('calculateBalances', () => {
         const participants = ['a', 'b', 'c'].map((id) => createParticipant(id, id));
         const balances = calculateBalances([createExpense('1', 10, 'a', ['a', 'b', 'c'])], participants);
         expect(balances).toEqual({ a: 6.67, b: -3.33, c: -3.34 });
+    });
+});
+
+describe('expenseImpact', () => {
+    const ids = ['a', 'b', 'c'];
+
+    it('is what I advanced for the others when I paid', () => {
+        expect(expenseImpact(createExpense('1', 90, 'a', ids), 'a', ids)).toBe(60);
+    });
+
+    it('is minus my share when someone else paid', () => {
+        expect(expenseImpact(createExpense('1', 90, 'a', ids), 'b', ids)).toBe(-30);
+    });
+
+    it('is the whole amount when I paid for the others only', () => {
+        expect(expenseImpact(createExpense('1', 50, 'a', ['b', 'c']), 'a', ids)).toBe(50);
+    });
+
+    it('works the other way round for money received', () => {
+        const income = { ...createExpense('1', 60, 'a', ids), is_income: true };
+        expect(expenseImpact(income, 'a', ids)).toBe(-40);
+        expect(expenseImpact(income, 'b', ids)).toBe(20);
+    });
+
+    it('does not concern someone neither paying nor involved', () => {
+        expect(expenseImpact(createExpense('1', 50, 'a', ['a', 'b']), 'c', ids)).toBeUndefined();
+    });
+
+    it('says nothing for reimbursements', () => {
+        const reimbursement = { ...createExpense('1', 20, 'a', ['b']), is_reimbursement: true };
+        expect(expenseImpact(reimbursement, 'a', ids)).toBeNull();
     });
 });

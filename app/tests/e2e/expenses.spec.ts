@@ -80,6 +80,27 @@ test.describe('Expense Management', () => {
     await expect(picker.getByText('No emoji for “zzzz”')).toBeVisible();
   });
 
+  test('The bar shrinks to the day in view when the list scrolls', async ({ page }) => {
+    for (let i = 1; i <= 10; i++) {
+      await page.getByRole('link', { name: /add expense/i }).click();
+      await page.getByPlaceholder('What was it for?').fill(`Item ${i}`);
+      await page.getByPlaceholder('0.00').fill(String(i * 10));
+      await page.getByRole('button', { name: /save expense/i }).click();
+      await expect(page.getByText(`Item ${i}`, { exact: true })).toBeVisible();
+    }
+
+    // Scrolled down: the search field gives way to the day and its amount.
+    await page.locator('main').evaluate((main) => main.scrollTo(0, main.scrollHeight));
+    const search = page.getByRole('button', { name: 'Search' });
+    await expect(search).toBeVisible();
+    await expect(page.getByPlaceholder('Search')).toBeHidden();
+    await expect(page.getByRole('radio', { name: 'For me' })).toBeVisible();
+
+    // The search button brings the field back, ready to type.
+    await search.click();
+    await expect(page.getByPlaceholder('Search')).toBeFocused();
+  });
+
   test('The payer is one line, unfolded on demand', async ({ page }) => {
     await page.getByRole('link', { name: /add expense/i }).click();
     await page.getByRole('button', { name: /spender.*change/i }).click();
@@ -116,8 +137,19 @@ test.describe('Expense Management', () => {
     // Verify we are back on dashboard and expense is visible
     await expect(page).toHaveURL(/\/?$/);
     await expect(page.getByText('Shared Dinner')).toBeVisible();
-    // Each line tells what it changes for me: I advanced Alice's half.
-    await expect(page.getByText('you lent €25.00')).toBeVisible();
+    // "For me" (default): each line tells what it changes for me, I advanced Alice's half.
+    const line = page.locator('.expense-item', { hasText: 'Shared Dinner' });
+    await expect(line.getByText('You paid €50.00')).toBeVisible();
+    await expect(line.getByText('owed to you')).toBeVisible();
+    await expect(line.getByText('€25.00', { exact: true })).toBeVisible();
+
+    // "Total": who paid and the amount, remembered on this device.
+    await page.getByRole('radio', { name: 'Total' }).click();
+    await expect(line.getByText('€50.00', { exact: true })).toBeVisible();
+    await expect(line.getByText('owed to you')).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole('radio', { name: 'Total' })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('radio', { name: 'For me' }).click();
 
     // 4. Go to Balance Page using UI link
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();

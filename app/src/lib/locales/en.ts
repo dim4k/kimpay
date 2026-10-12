@@ -423,13 +423,19 @@ export const en = {
     "profile.edit_account": "Edit my account",
     "profile.here_as": "You are {name} in {group}",
     "profile.remove_photo": "Remove the photo",
-    "expense.list.lent": "you lent {amount}",
-    "expense.list.borrowed": "you borrowed {amount}",
-    "expense.list.income_to_share": "you owe {amount}",
-    "expense.list.income_owed": "owed to you {amount}",
     "emoji.picker_title": "Choose an emoji",
     "emoji.search_placeholder": "Search: pizza, train, hotel…",
     "emoji.no_result": "No emoji for “{query}”",
+    "expense.view.label": "Amounts shown",
+    "expense.view.total": "Total",
+    "expense.view.me": "For me",
+    "expense.list.you_paid": "You paid {amount}",
+    "expense.list.name_paid": "{name} paid {amount}",
+    "expense.list.you_received": "You received {amount}",
+    "expense.list.name_received": "{name} received {amount}",
+    "expense.list.owed_to_you": "owed to you",
+    "expense.list.you_owe": "you owe",
+    "expense.list.count": "{count} expense(s)",
 } as const;
 
 export type TranslationKey = keyof typeof en;
