@@ -89,9 +89,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // Second participant, from the members.
             await navTo(page, /members/i);
+            // The empty list has a "New name" field too: wait for the members.
+            await expect(page).toHaveURL(/\/members$/);
             await page.getByPlaceholder('New name').fill('Bob');
             await page.getByRole('button', { name: /add/i }).click();
             await expect(page.locator('[data-is-me="false"]').getByText('Bob')).toBeVisible();
+            // Shown at once, confirmed by a toast once saved: wait for it (the
+            // snapshot then waits for it to go).
+            await expect(page.getByText('Bob added')).toBeVisible();
             await snapshot(page, `members-${colorScheme}`);
 
             // Inviting: a sheet with the link and the QR code (both contain
