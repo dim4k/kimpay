@@ -12,7 +12,14 @@ export type ActivityAction =
     | 'participant_added'
     | 'participant_renamed'
     | 'participant_deleted'
-    | 'participants_merged';
+    | 'participants_merged'
+    | 'participant_payment_changed';
+
+/** A payment link before / after a change ("" = none). */
+export interface HandleChange {
+    from: string;
+    to: string;
+}
 
 /** An expense as the history shows it (names at the time of the change). */
 export interface ExpenseSnapshot {
@@ -43,6 +50,9 @@ export interface Activity {
         from?: string;
         to?: string;
         into?: string;
+        /** Payment links changed (the services changed only) */
+        paypal?: HandleChange;
+        revolut?: HandleChange;
         /** Updates */
         changed?: (keyof ExpenseSnapshot)[];
         before?: ExpenseSnapshot;
@@ -70,6 +80,7 @@ const CHANGES: readonly ActivityAction[] = [
     'participant_renamed',
     'participant_deleted',
     'participants_merged',
+    'participant_payment_changed',
 ];
 
 /** Changes and deletions made by others after `since` (ms). */

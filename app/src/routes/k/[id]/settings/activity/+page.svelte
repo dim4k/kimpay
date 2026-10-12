@@ -58,6 +58,7 @@
       participant_renamed: 'activity.participant_renamed',
       participant_deleted: 'activity.participant_deleted',
       participants_merged: 'activity.participants_merged',
+      participant_payment_changed: 'activity.participant_payment_changed',
   };
 
   function isExpense(a: Activity): boolean {
@@ -119,6 +120,14 @@
       }
   }
 
+  /** "PayPal: alice → bob", one line per service changed. */
+  function handleChanges(a: Activity): string[] {
+      const services = [['PayPal', a.data.paypal], ['Revolut', a.data.revolut]] as const;
+      return services
+          .filter(([, change]) => change)
+          .map(([field, change]) => $t('activity.change', { field, before: change!.from || '—', after: change!.to || '—' }));
+  }
+
   /** "Amount: €84.00 → €92.00", one line per field changed. */
   function changes(a: Activity): string[] {
       const { before, after, changed } = a.data;
@@ -163,7 +172,7 @@
                 <ListGroup>
                     {#each day.items as a (a.id)}
                         {@const deleted = a.action.endsWith('_deleted')}
-                        {@const lines = a.action === 'expense_updated' ? changes(a) : []}
+                        {@const lines = a.action === 'expense_updated' ? changes(a) : a.action === 'participant_payment_changed' ? handleChanges(a) : []}
                         <div class="flex items-start gap-3 px-4 py-3" data-activity={a.action}>
                             <IconTile size="sm" tone={a.action.startsWith('reimbursement_') ? 'success' : 'muted'} class="mt-0.5 text-foreground">
                                 {#if isExpense(a) && !a.action.startsWith('reimbursement_')}

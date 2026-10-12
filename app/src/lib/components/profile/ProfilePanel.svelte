@@ -63,6 +63,13 @@
     }
 
     async function setShown(show: boolean) {
+        // Only an account can show payment links in a group: anyone with the
+        // link could change a guest's (see the participants' updateRule).
+        if (show && !auth.user) {
+            onClose();
+            modals.register({ description: $t('profile.payment.needs_account') });
+            return;
+        }
         if (show && !profileStore.hasHandles) {
             openPayment(true);
             return;

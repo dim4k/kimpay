@@ -74,13 +74,27 @@ onRecordUpdateRequest((e) => {
     const activity = require(`${__hooks}/lib/activity.js`);
     const kimpayId = e.record.getString("kimpay");
     const actor = activity.actorOf(e, kimpayId);
-    const before = e.record.original().getString("name");
+    const original = e.record.original();
+    const before = original.getString("name");
+    const handles = (record) => ({ paypal: record.getString("paypal"), revolut: record.getString("revolut") });
+    const handlesBefore = handles(original);
     e.next();
 
-    // Photos, payment links, accounts: not part of the history.
+    // Photos, accounts: not part of the history.
     const after = e.record.getString("name");
-    if (after === before) return;
-    activity.log(e.app, kimpayId, "participant_renamed", actor, e.record.id, { from: before, to: after });
+    if (after !== before) {
+        activity.log(e.app, kimpayId, "participant_renamed", actor, e.record.id, { from: before, to: after });
+    }
+
+    // Payment links: where the others send money, so any change shows.
+    // { name, paypal: { from, to } } with the services changed only.
+    const handlesAfter = handles(e.record);
+    const changed = activity.changedKeys(handlesBefore, handlesAfter);
+    if (changed.length > 0) {
+        const data = { name: after };
+        changed.forEach((service) => (data[service] = { from: handlesBefore[service], to: handlesAfter[service] }));
+        activity.log(e.app, kimpayId, "participant_payment_changed", actor, e.record.id, data);
+    }
 }, "participants");
 
 onRecordDeleteRequest((e) => {

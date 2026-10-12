@@ -17,6 +17,7 @@
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import { t, locale } from '#lib/i18n.js';
   import { modals } from '#lib/stores/modals.svelte.js';
+  import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
@@ -160,6 +161,11 @@
   let isShowing = $state(false);
 
   async function showMyHandles() {
+      // Only an account can show payment links in a group.
+      if (!auth.user) {
+          modals.register({ description: $t('profile.payment.needs_account') });
+          return;
+      }
       if (!profileStore.hasHandles) {
           isPaymentOpen = true;
           return;

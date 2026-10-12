@@ -76,6 +76,8 @@ class ProfileStore {
 
     /** Groups on this device where my participant shows handles get the new ones. */
     private async updateShownGroups(handles: PaymentHandles) {
+        // Only an account can set them on a participant (a guest's are left as they are).
+        if (!auth.user) return;
         const ids = await storageService.getRecentKimpayIds();
         await Promise.all(
             ids.map(async (id) => {

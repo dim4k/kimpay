@@ -371,6 +371,7 @@ export const pt: Record<TranslationKey, string> = {
     "profile.payment.visibility": "Visíveis apenas nos grupos onde você os mostra.",
     "profile.payment.shown": "Seus links de pagamento estão visíveis neste grupo",
     "profile.payment.hidden": "Seus links de pagamento estão ocultos neste grupo",
+    "profile.payment.needs_account": "Crie uma conta gratuita para mostrar os seus links de pagamento: assim só você os poderá alterar.",
     "menu.theme.system": "Auto",
     "settings.section.data": "Dados",
     "settings.my_profile": "Meu perfil",
@@ -499,4 +500,5 @@ export const pt: Record<TranslationKey, string> = {
     "activity.participant_renamed": "Membro renomeado",
     "activity.participant_deleted": "Membro removido",
     "activity.participants_merged": "Membros juntos",
+    "activity.participant_payment_changed": "Links de pagamento alterados",
 };

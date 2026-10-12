@@ -369,6 +369,7 @@ export const en = {
     "profile.payment.visibility": "Only visible in the groups where you show them.",
     "profile.payment.shown": "Your payment links are visible in this group",
     "profile.payment.hidden": "Your payment links are hidden in this group",
+    "profile.payment.needs_account": "Create a free account to show your payment links: then only you can change them.",
     "menu.theme.system": "Auto",
     "settings.section.data": "Data",
     "settings.my_profile": "My profile",
@@ -497,6 +498,7 @@ export const en = {
     "activity.participant_renamed": "Member renamed",
     "activity.participant_deleted": "Member removed",
     "activity.participants_merged": "Members merged",
+    "activity.participant_payment_changed": "Payment links changed",
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, openProfile, switchIdentity } from './test-utils';
+import { createKimpay, dismissInstallPrompt, loginWithNewAccount, openProfile, switchIdentity } from './test-utils';
 
 /** Group of two: "Payer" (this device) and "Other". */
 async function setupGroup(page: Page, name: string) {
@@ -86,7 +86,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText('No matching expenses.')).toBeVisible();
     });
 
-    test('Payment links stay private until shown in a group', async ({ page }) => {
+    test('Payment links stay private until shown in a group', async ({ page, request }) => {
         const base = await setupGroup(page, 'Private Links');
 
         // Entered in the profile: not shown in the group yet.
@@ -97,25 +97,33 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('dialog', { name: 'My payment links' })).toBeHidden();
         await expect(page.getByRole('switch', { name: 'Show my payment links here' })).not.toBeChecked();
 
-        // Someone owes me: the card offers to show them; "Later" hides it for good.
+        // Someone owes me: the card offers to show them. A guest is asked for
+        // an account first (anyone with the link could change a guest's links).
         await addExpense(page, base, 'Groceries', '40');
         await page.goto(`${base}/balance`);
-        await expect(page.getByRole('button', { name: 'Show to this group' })).toBeVisible();
+        await page.getByRole('button', { name: 'Show to this group' }).click();
+        await expect(page.getByText('Create a free account to show your payment links')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByText('Create a free account to show your payment links')).toBeHidden();
+
+        // "Later" hides the card for good.
         await page.getByRole('button', { name: 'Later' }).click();
         await expect(page.getByText('Help Other pay you')).toBeHidden();
         await page.reload();
         await expect(page.getByText('You are owed')).toBeVisible();
         await expect(page.getByText('Help Other pay you')).toBeHidden();
 
-        // Shown from the profile switch instead.
+        // Shown from the profile switch instead, once logged in.
+        await loginWithNewAccount(page, request, 'Payer');
         await openProfile(page);
         await page.getByRole('switch', { name: 'Show my payment links here' }).click();
         await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
     });
 
-    test('Back from a payment link, asks whether it was paid', async ({ page }) => {
+    test('Back from a payment link, asks whether it was paid', async ({ page, request }) => {
         const base = await setupGroup(page, 'Paid Back');
         await addExpense(page, base, 'Concert', '60');
+        await loginWithNewAccount(page, request, 'Payer');
 
         // Payer shows a PayPal link; Other, who owes 30, pays with it.
         await page.goto(`${base}/balance`);
@@ -145,9 +153,10 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
-    test('Shares a read-only summary with payment links', async ({ page }) => {
+    test('Shares a read-only summary with payment links', async ({ page, request }) => {
         const base = await setupGroup(page, 'Readonly Test');
         await addExpense(page, base, 'Museum', '100');
+        await loginWithNewAccount(page, request, 'Payer');
 
         // Payer is owed money: Balance offers to add a payment link and show it here.
         await page.goto(`${base}/balance`);
