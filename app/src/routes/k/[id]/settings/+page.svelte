@@ -256,7 +256,7 @@
     </section>
 </div>
 
-<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} class="overflow-visible">
+<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')}>
     <ModalHeader title={$t('settings.edit_group')} align="start" />
     <div class="space-y-2">
         <Label for="group-name">{$t('home.create.name_label')}</Label>

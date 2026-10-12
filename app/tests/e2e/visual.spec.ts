@@ -107,6 +107,19 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await expect(page.getByRole('button', { name: /leave group/i })).toBeVisible();
             await snapshot(page, `group-settings-${colorScheme}`);
 
+            // The emoji picker, from the sheet editing the group: a sheet of
+            // its own, on top, with a search field.
+            await page.getByRole('button', { name: 'Edit', exact: true }).click();
+            await page.getByRole('dialog', { name: 'Edit group' }).getByRole('button', { name: 'Choose an emoji' }).click();
+            const picker = page.getByRole('dialog', { name: 'Choose an emoji' });
+            await picker.getByRole('searchbox').fill('beach');
+            await expect(picker.getByRole('button', { name: '🏖️' })).toBeVisible();
+            await snapshot(page, `emoji-picker-${colorScheme}`);
+            await page.keyboard.press('Escape');
+            await expect(picker).toBeHidden();
+            await page.keyboard.press('Escape');
+            await expect(page.getByRole('dialog', { name: 'Edit group' })).toBeHidden();
+
             // The profile: a sheet on phones, a popover on desktop.
             await page.getByRole('button', { name: 'Menu' }).click();
             await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();

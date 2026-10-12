@@ -59,15 +59,11 @@
 
     // What this expense changes to my balance, in its currency: what I
     // advanced minus my share (the other way round for money received).
-    // null when I am not in the group (no identity), undefined when it does
-    // not concern me.
+    // null when there is nothing to say (no identity in the group, or a
+    // reimbursement: its line already says who paid whom), undefined when it
+    // does not concern me.
     let impact = $derived.by((): number | null | undefined => {
-        if (!currentUserId) return null;
-        if (expense.is_reimbursement) {
-            if (expense.payer === currentUserId) return expense.amount;
-            if (expense.involved?.[0] === currentUserId) return -expense.amount;
-            return undefined;
-        }
+        if (!currentUserId || expense.is_reimbursement) return null;
         const involvedMe = (expense.involved ?? []).includes(currentUserId);
         if (!paidByMe && !involvedMe) return undefined;
         const paid = paidByMe ? expense.amount : 0;
@@ -163,8 +159,15 @@
             {#if impact === undefined}
                 <p class="text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
             {:else if impact !== null && Math.abs(impact) >= 0.005}
-                <p class="text-xs font-semibold tabular-nums {impact > 0 ? 'text-success' : 'text-warning'}">
-                    {$t('expense.list.impact', { amount: `${impact > 0 ? '+' : '−'}${formatAmount(Math.abs(impact), currency, $locale)}` })}
+                {@const amount = formatAmount(Math.abs(impact), currency, $locale)}
+                <!-- "you lent / you borrowed", the words of shared accounts;
+                     money received is held for the others, or owed by them. -->
+                <p class="whitespace-nowrap text-xs font-semibold tabular-nums {impact > 0 ? 'text-success' : 'text-warning'}">
+                    {#if expense.is_income}
+                        {impact > 0 ? $t('expense.list.income_owed', { amount }) : $t('expense.list.income_to_share', { amount })}
+                    {:else}
+                        {impact > 0 ? $t('expense.list.lent', { amount }) : $t('expense.list.borrowed', { amount })}
+                    {/if}
                 </p>
             {/if}
         </div>

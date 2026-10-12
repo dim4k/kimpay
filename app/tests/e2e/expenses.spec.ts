@@ -64,6 +64,22 @@ test.describe('Expense Management', () => {
     await expect(page.getByRole('button', { name: 'Scan', exact: true })).toBeVisible();
   });
 
+  test('Finds an emoji by typing its name', async ({ page }) => {
+    await page.getByRole('link', { name: /add expense/i }).click();
+    await page.getByRole('button', { name: 'Choose an emoji' }).click();
+
+    const picker = page.getByRole('dialog', { name: 'Choose an emoji' });
+    await picker.getByRole('searchbox').fill('pizz');
+    await picker.getByRole('button', { name: '🍕' }).click();
+    await expect(picker).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Choose an emoji' })).toHaveText('🍕');
+
+    // Nothing found: said so.
+    await page.getByRole('button', { name: 'Choose an emoji' }).click();
+    await picker.getByRole('searchbox').fill('zzzz');
+    await expect(picker.getByText('No emoji for “zzzz”')).toBeVisible();
+  });
+
   test('The payer is one line, unfolded on demand', async ({ page }) => {
     await page.getByRole('link', { name: /add expense/i }).click();
     await page.getByRole('button', { name: /spender.*change/i }).click();
@@ -101,7 +117,7 @@ test.describe('Expense Management', () => {
     await expect(page).toHaveURL(/\/?$/);
     await expect(page.getByText('Shared Dinner')).toBeVisible();
     // Each line tells what it changes for me: I advanced Alice's half.
-    await expect(page.getByText('you +€25.00')).toBeVisible();
+    await expect(page.getByText('you lent €25.00')).toBeVisible();
 
     // 4. Go to Balance Page using UI link
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();

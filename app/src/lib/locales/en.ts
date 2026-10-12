@@ -409,7 +409,6 @@ export const en = {
     "expense.form.scan_check": "Check the amount before saving.",
     "expense.form.scan_tag": "from the receipt",
     "expense.form.scanning_desc": "It takes a few seconds.",
-    "expense.list.impact": "you {amount}",
     "expense.list.not_involved": "not involved",
     "expense.reimbursement.undo": "Cancel this reimbursement",
     "members.invite": "Invite to the group",
@@ -424,6 +423,13 @@ export const en = {
     "profile.edit_account": "Edit my account",
     "profile.here_as": "You are {name} in {group}",
     "profile.remove_photo": "Remove the photo",
+    "expense.list.lent": "you lent {amount}",
+    "expense.list.borrowed": "you borrowed {amount}",
+    "expense.list.income_to_share": "you owe {amount}",
+    "expense.list.income_owed": "owed to you {amount}",
+    "emoji.picker_title": "Choose an emoji",
+    "emoji.search_placeholder": "Search: pizza, train, hotel…",
+    "emoji.no_result": "No emoji for “{query}”",
 } as const;
 
 export type TranslationKey = keyof typeof en;
