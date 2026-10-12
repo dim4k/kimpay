@@ -18,6 +18,8 @@ export interface PendingAction {
     payload: Record<string, unknown>; // The data needed to perform the action (e.g. FormData as object)
     timestamp: number;
     kimpayId: string;
+    attempts?: number; // Failed replays so far (transient server errors)
+    retryAt?: number; // Not replayed before this time (ms) after such a failure
 }
 
 const { KIMPAY_DATA_PREFIX, OFFLINE_QUEUE, LEGACY_MY_KIMPAYS } = STORAGE_KEYS;
@@ -194,11 +196,19 @@ export const storageService = {
 
     // Queue writes use `update` (read + write in one IndexedDB transaction) so
     // concurrent calls cannot overwrite each other.
+    // Throws when the action cannot be stored: the caller must not report a
+    // write as saved when it is lost.
     savePendingAction: async (action: PendingAction) => {
+        await update<PendingAction[]>(OFFLINE_QUEUE, (queue = []) => [...queue, action]);
+    },
+
+    updatePendingAction: async (actionId: string, changes: Partial<PendingAction>) => {
         try {
-            await update<PendingAction[]>(OFFLINE_QUEUE, (queue = []) => [...queue, action]);
+            await update<PendingAction[]>(OFFLINE_QUEUE, (queue = []) =>
+                queue.map((a) => (a.id === actionId ? { ...a, ...changes } : a)),
+            );
         } catch (e) {
-            console.error("[OfflineQueue] Failed to save pending action:", e);
+            console.error("Failed to update pending action", e);
         }
     },
 

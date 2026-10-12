@@ -4,11 +4,23 @@ import { asRecentKimpay } from "#lib/types.js";
 import { storageService } from "#lib/services/storage.js";
 import { offlineStore } from "#lib/stores/offline.svelte.js";
 import { auth } from "#lib/stores/auth.svelte.js";
+import { activeKimpayGlobal } from "#lib/stores/activeKimpayGlobal.svelte.js";
+import { isNetworkError } from "#lib/utils/errors.js";
 
 class RecentsStore {
     recentKimpays: RecentKimpay[] = $state([]);
     loading = $state(false);
     initialized = $state(false);
+
+    // Loaded without the server (offline, or unreachable): validated and
+    // subscribed to once back online.
+    private needsServer = false;
+
+    constructor() {
+        offlineStore.onSynced(() => {
+            if (this.needsServer && !this.loading) this.init(true);
+        });
+    }
 
     async init(force = false) {
         if ((this.initialized || this.loading) && !force) return;
@@ -26,20 +38,21 @@ class RecentsStore {
 
             // Offline mode: stop here
             if (offlineStore.isOffline) {
+                this.needsServer = true;
                 this.initialized = true;
                 return;
             }
 
-            // 2. For logged-in users: also fetch Kimpays from their account
-            if (auth.user) {
-                await this.enrichWithAccountKimpays();
-            }
+            // 2. For logged-in users: also sync with their account
+            const accountSynced = auth.user ? await this.syncWithAccount() : true;
 
-            // 3. Validate and update local Kimpays with fresh data
-            if (localIds.length > 0) {
-                await this.validateAndUpdateFromServer(localIds);
-            }
+            // 3. Validate and update local Kimpays with fresh data (read again:
+            // the account sync may have added or forgotten some)
+            const keptIds = await storageService.getRecentKimpayIds();
+            const validated =
+                keptIds.length > 0 ? await this.validateAndUpdateFromServer(keptIds) : true;
 
+            this.needsServer = !accountSynced || !validated;
             this.initialized = true;
 
             // 4. Subscribe to realtime updates
@@ -51,16 +64,27 @@ class RecentsStore {
         }
     }
 
-    /** Fetch Kimpays linked to the user's PocketBase account and merge them */
-    private async enrichWithAccountKimpays() {
+    /**
+     * Merge the Kimpays linked to the user's account, and forget those left
+     * from another device. Returns false when the server was unreachable.
+     */
+    private async syncWithAccount(): Promise<boolean> {
+        const userId = auth.user!.id;
+        let linked: Participant[];
         try {
-            const records = await pb.collection('participants').getList<Participant>(1, 100, {
-                filter: `user = "${auth.user!.id}"`,
-                sort: '-created',
-                expand: 'kimpay'
+            linked = await pb.collection("participants").getFullList<Participant>({
+                filter: pb.filter("user = {:userId}", { userId }),
+                sort: "-created",
+                expand: "kimpay",
+                requestKey: null,
             });
+        } catch (e) {
+            console.warn("Could not fetch account kimpays", e);
+            return !isNetworkError(e);
+        }
 
-            for (const participant of records.items) {
+        try {
+            for (const participant of linked) {
                 const kimpay = participant.expand?.kimpay;
                 if (!kimpay) continue;
 
@@ -80,13 +104,31 @@ class RecentsStore {
                     await storageService.setMyParticipantId(kimpay.id, participant.id);
                 }
             }
+
+            // Left from another device: my identity in the group was linked to
+            // this account on my last visit, and the account has no participant
+            // there anymore (only its owner can unlink it). Groups only opened
+            // by link (identity never linked) are kept.
+            const linkedKimpays = new Set(linked.map((p) => p.kimpay));
+            for (const id of await storageService.getRecentKimpayIds()) {
+                if (linkedKimpays.has(id) || activeKimpayGlobal.instance?.id === id) continue;
+                const cached = await storageService.getKimpayData(id);
+                const me = cached?.expand?.participants_via_kimpay?.find(
+                    (p) => p.id === cached.myParticipantId
+                );
+                if (me?.user === userId) await this.forget(id);
+            }
         } catch (e) {
-            console.warn("Could not fetch account kimpays", e);
+            console.warn("Could not sync account kimpays", e);
         }
+        return true;
     }
 
-    /** Validate local Kimpays against server and update with fresh data */
-    private async validateAndUpdateFromServer(ids: string[]) {
+    /**
+     * Validate local Kimpays against server and update with fresh data.
+     * Returns false when the server was unreachable.
+     */
+    private async validateAndUpdateFromServer(ids: string[]): Promise<boolean> {
         const promises = ids.map((id) =>
             pb
                 .collection("kimpays")
@@ -107,13 +149,9 @@ class RecentsStore {
 
         const results = await Promise.all(promises);
 
-        // Server unreachable: keep the cached list as-is. Offline mode is only
-        // entered on a real connectivity loss (see offlineStore), otherwise
-        // writes would be queued while the browser is actually online.
-        if (results.some((r) => r.status === "network_error")) {
-            if (!navigator.onLine) offlineStore.setOffline(true);
-            return;
-        }
+        // Server unreachable: keep the cached list as-is (the request
+        // interceptor has switched to offline mode, see offlineStore).
+        if (results.some((r) => r.status === "network_error")) return false;
 
         const fetchedItems = results
             .filter(
@@ -129,15 +167,22 @@ class RecentsStore {
             this.addRecentKimpay(item);
         }
 
-        // Remove missing items
+        // Remove missing items, except groups created offline that the
+        // server does not know yet (their creation is still queued).
+        const queuedIds = new Set(
+            (await storageService.getPendingActions())
+                .filter((a) => a.type === "CREATE_KIMPAY")
+                .map((a) => a.kimpayId)
+        );
         const missingIds = results
-            .filter((r) => r.status === "missing")
+            .filter((r) => r.status === "missing" && !queuedIds.has(r.id))
             .map((r) => r.id);
 
         missingIds.forEach((id) => {
             storageService.removeRecentKimpay(id);
             this.removeRecentKimpay(id);
         });
+        return true;
     }
 
     private subscribeToKimpays() {

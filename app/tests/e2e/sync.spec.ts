@@ -79,6 +79,36 @@ test.describe('Sync between devices', () => {
         await expect(page.getByText(/\bnew\b/)).toHaveCount(0);
     });
 
+    test('A group whose creation request is lost opens, takes expenses, and is synced', async ({ page }) => {
+        // The browser says online, but the request never reaches the
+        // server (weak signal): the creation is queued, not lost.
+        const createRoute = '**/api/kimpay/create';
+        await page.route(createRoute, (route) => route.abort('internetdisconnected'));
+        await createKimpay(page, 'Offline Group', 'Olivia');
+        await dismissInstallPrompt(page);
+
+        // Queued behind the group it belongs to.
+        await openAddExpense(page);
+        await saveExpense(page, 'Offline Bread', '4');
+        await expect(page.getByText('Offline Bread')).toHaveCount(1);
+
+        // The server is reachable again: the group (with its creator) is
+        // created in one request, then the expense that depends on it.
+        const group = page.waitForResponse((r) =>
+            r.url().includes('/api/kimpay/create') && r.request().method() === 'POST');
+        const expense = page.waitForResponse((r) =>
+            r.url().includes('/api/collections/expenses/records') && r.request().method() === 'POST');
+        await page.unroute(createRoute);
+        expect((await group).ok()).toBe(true);
+        expect((await expense).ok()).toBe(true);
+
+        await page.reload();
+        await expect(page.getByText('Offline Group')).toBeVisible();
+        await expect(page.getByText('Offline Bread')).toHaveCount(1);
+        // The device kept its identity: no "Who are you?".
+        await expect(page.getByRole('dialog', { name: 'Who are you?' })).toBeHidden();
+    });
+
     test.describe('with the service worker', () => {
         // The offline cache is the service worker's job (Chromium only in Playwright).
         test.use({ serviceWorkers: 'allow' });
@@ -104,13 +134,38 @@ test.describe('Sync between devices', () => {
             await context.setOffline(false);
             expect((await created).ok()).toBe(true);
             await page.waitForResponse((r) =>
-                r.url().includes('/api/collections/kimpays/records/') && r.request().method() === 'GET');
+                r.url().includes('/api/kimpay/') && r.url().includes('/data') && r.request().method() === 'GET');
             await expect(page.getByText('Offline Taxi')).toHaveCount(1);
 
             // The server has it (POST above): a fresh load shows exactly one too.
             await page.reload();
             await expect(page.getByText('Offline Taxi')).toBeVisible();
             await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+        });
+
+        test('Writes queued before the app was closed are sent when it reopens', async ({ page, context }) => {
+            await createKimpay(page, 'Reopen Test', 'Olivia');
+            await dismissInstallPrompt(page);
+            await waitForServiceWorker(page);
+            const kimpayUrl = page.url();
+
+            await openAddExpense(page);
+            await context.setOffline(true);
+            await saveExpense(page, 'Queued Ferry', '40');
+
+            // Closed while offline: the connection comes back with no page open
+            // to notice it, so the queue is replayed when the app starts.
+            await page.close();
+            await context.setOffline(false);
+            const reopened = await context.newPage();
+            const created = reopened.waitForResponse((r) =>
+                r.url().includes('/api/collections/expenses/records') && r.request().method() === 'POST');
+            await reopened.goto(kimpayUrl);
+            expect((await created).ok()).toBe(true);
+
+            // On the server: a fresh load still shows it.
+            await reopened.reload();
+            await expect(reopened.getByText('Queued Ferry')).toHaveCount(1);
         });
     });
 });

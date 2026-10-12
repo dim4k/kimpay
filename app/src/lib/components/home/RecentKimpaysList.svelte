@@ -17,7 +17,6 @@
     import { haptic } from '#lib/utils/haptic.js';
     import { relativeDay } from '#lib/utils/date.js';
     import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
-    import { pb } from '#lib/pocketbase.js';
     import type { Expense, Kimpay } from '#lib/types.js';
 
     // Offline, only list the Kimpays whose data is cached (they can be opened).
@@ -52,12 +51,11 @@
     /** The group's expenses on the server, reduced to what tells them apart. */
     async function fetchStamps(id: string): Promise<ExpenseStamp[] | null> {
         try {
-            const record = await pb.collection('kimpays').getOne(id, {
-                expand: 'expenses_via_kimpay',
-                fields: 'id,expand.expenses_via_kimpay.id,expand.expenses_via_kimpay.created,expand.expenses_via_kimpay.created_by',
-                requestKey: null,
-            });
-            return (record.expand?.expenses_via_kimpay as ExpenseStamp[] | undefined) ?? [];
+            const record = await kimpayService.getWithData(
+                id,
+                'id,expand.expenses_via_kimpay.id,expand.expenses_via_kimpay.created,expand.expenses_via_kimpay.created_by',
+            );
+            return record.expand?.expenses_via_kimpay ?? [];
         } catch {
             return null;
         }

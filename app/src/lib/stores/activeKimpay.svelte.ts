@@ -1,14 +1,14 @@
 import { createContext } from "svelte";
 import { pb } from "#lib/pocketbase.js";
 import { storageService } from "#lib/services/storage.js";
-import { offlineStore } from "#lib/stores/offline.svelte.js";
+import { offlineStore, QUEUED } from "#lib/stores/offline.svelte.js";
 import { recentsStore } from "#lib/stores/recents.svelte.js";
 import { participantService } from "#lib/services/participant.js";
+import { kimpayService } from "#lib/services/kimpay.js";
 import {
     type Kimpay,
     type Expense,
     type Participant,
-    asKimpay,
     asExpense,
     asParticipant,
 } from "#lib/types.js";
@@ -24,10 +24,6 @@ import { generatePocketBaseId } from "#lib/utils/id.js";
  */
 export const [getActiveKimpayContext, setActiveKimpayContext] =
     createContext<{ readonly value: ActiveKimpay }>();
-
-// Relations expanded when fetching a Kimpay (full graph for the active view).
-const KIMPAY_EXPAND =
-    "expenses_via_kimpay,participants_via_kimpay,expenses_via_kimpay.payer,expenses_via_kimpay.involved";
 
 export class ActiveKimpay {
     // Raw State
@@ -110,12 +106,21 @@ export class ActiveKimpay {
         // Items created offline (still in the queue) must survive refetches.
         const queue = await storageService.getPendingActions();
         for (const action of queue) {
+            if (action.kimpayId !== this.id) continue;
             if (
-                action.kimpayId === this.id &&
-                (action.type === "CREATE_EXPENSE" ||
-                    action.type === "CREATE_PARTICIPANT")
+                action.type === "CREATE_EXPENSE" ||
+                action.type === "CREATE_PARTICIPANT"
             ) {
                 this.pendingIds.add(action.id);
+            } else if (action.type === "CREATE_KIMPAY") {
+                // The whole group was created offline (see kimpayService).
+                const { creator, participants } = action.payload as {
+                    creator?: { id: string };
+                    participants?: { id: string }[];
+                };
+                for (const p of [creator, ...(participants ?? [])]) {
+                    if (p) this.pendingIds.add(p.id);
+                }
             }
         }
 
@@ -148,8 +153,16 @@ export class ActiveKimpay {
     }
 
     private applyData(data: Kimpay) {
-        const expenses = data.expand?.expenses_via_kimpay ?? [];
         const participants = data.expand?.participants_via_kimpay ?? [];
+        // Payer and involved participants, resolved here rather than
+        // expanded by the server for every expense.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup
+        const byId = new Map(participants.map((p) => [p.id, p]));
+        const expenses = (data.expand?.expenses_via_kimpay ?? []).map((e) => {
+            const payer = byId.get(e.payer);
+            const involved = (e.involved ?? []).flatMap((id) => byId.get(id) ?? []);
+            return { ...e, expand: { ...(payer && { payer }), involved } };
+        });
 
         // Pending items the server now returns are confirmed.
         for (const item of [...expenses, ...participants]) {
@@ -207,8 +220,12 @@ export class ActiveKimpay {
         const onOnline = () => this.scheduleRefetch();
         document.addEventListener("visibilitychange", onVisible);
         window.addEventListener("online", onOnline);
-        // Also after the offline queue has been replayed.
-        const unsubSynced = offlineStore.onSynced(onOnline);
+        // Also after the offline queue has been replayed. Items the server
+        // rejected are no longer pending: the refetch drops them.
+        const unsubSynced = offlineStore.onSynced((rejected) => {
+            for (const action of rejected) this.pendingIds.delete(action.id);
+            this.scheduleRefetch();
+        });
         this.unsubscribeFns.push(
             () => document.removeEventListener("visibilitychange", onVisible),
             () => window.removeEventListener("online", onOnline),
@@ -232,24 +249,18 @@ export class ActiveKimpay {
         }
         const seq = ++this.fetchSeq;
         try {
-            // requestKey: null opts out of the SDK auto-cancellation, which
-            // keys on method + path and would otherwise abort (or be aborted
-            // by) any other getOne on this same Kimpay.
-            const fresh = await pb.collection("kimpays").getOne(this.id, {
-                expand: KIMPAY_EXPAND,
-                requestKey: null,
-            });
+            const fresh = await kimpayService.getWithData(this.id);
             if (this.destroyed || seq !== this.fetchSeq) return;
 
-            this.applyData(asKimpay(fresh));
+            this.applyData(fresh);
             this.error = null;
             this.persist();
 
             recentsStore.addRecentKimpay({
                 id: fresh.id,
                 name: fresh.name,
-                icon: fresh.icon,
                 created_by: fresh.created_by,
+                ...(fresh.icon && { icon: fresh.icon }),
             });
         } catch (e) {
             if (this.destroyed || seq !== this.fetchSeq) return;
@@ -315,30 +326,28 @@ export class ActiveKimpay {
         this.expenses = [optimisticExpense, ...this.expenses];
         this.persist();
 
-        // 3. Offline / Online Handling
-        if (offlineStore.isOffline) {
-            // Note: Photos are not supported offline (UI prevents adding them)
-            // IMPORTANT: Use $state.snapshot to convert Svelte 5 Proxies to plain objects
-            // IndexedDB cannot clone Proxy objects
-            const plainData = $state.snapshot(data);
-            await offlineStore.queueAction(
-                "CREATE_EXPENSE",
-                { ...plainData, kimpay: this.id },
-                this.id,
-                id,
-            );
-            return;
-        }
-
+        // 3. Online, or queued (photos are not stored offline: the UI
+        // prevents adding them, and such a write fails without network).
         try {
-            // Prepare FormData
-            const formData = objectToFormData({ ...data, id, kimpay: this.id });
-            photos.forEach((photo) => formData.append("photos", photo));
-
-            // Create and immediately fetch with expand for complete data
-            const record = await pb.collection("expenses").create(formData, {
-                expand: "payer,involved",
-            });
+            const record = await offlineStore.write(
+                () => {
+                    const formData = objectToFormData({ ...data, id, kimpay: this.id });
+                    photos.forEach((photo) => formData.append("photos", photo));
+                    // Create and immediately fetch with expand for complete data
+                    return pb.collection("expenses").create(formData, {
+                        expand: "payer,involved",
+                    });
+                },
+                photos.length > 0
+                    ? null
+                    : {
+                          type: "CREATE_EXPENSE",
+                          payload: { ...data, kimpay: this.id },
+                          kimpayId: this.id,
+                          id,
+                      },
+            );
+            if (record === QUEUED) return;
 
             this.pendingIds.delete(id);
             this.expenses = this.expenses.map((e) =>
@@ -377,29 +386,28 @@ export class ActiveKimpay {
         );
         this.persist();
 
-        // 2. Offline / Online Handling
-        if (offlineStore.isOffline) {
-            offlineStore.queueAction(
-                "UPDATE_EXPENSE",
-                { id: expenseId, ...data, newPhotos, deletedPhotos },
-                this.id,
-            );
-            return;
-        }
-
+        // 2. Online, or queued (new photos are not stored offline)
         try {
-            const formData = objectToFormData(data);
-            newPhotos.forEach((photo) => formData.append("photos", photo));
-
-            deletedPhotos.forEach((photo) => {
-                formData.append("photos-", photo);
-            });
-
-            const record = await pb
-                .collection("expenses")
-                .update(expenseId, formData, {
-                    expand: "payer,involved",
-                });
+            const record = await offlineStore.write(
+                () => {
+                    const formData = objectToFormData(data);
+                    newPhotos.forEach((photo) => formData.append("photos", photo));
+                    deletedPhotos.forEach((photo) => {
+                        formData.append("photos-", photo);
+                    });
+                    return pb.collection("expenses").update(expenseId, formData, {
+                        expand: "payer,involved",
+                    });
+                },
+                newPhotos.length > 0
+                    ? null
+                    : {
+                          type: "UPDATE_EXPENSE",
+                          payload: { id: expenseId, ...data, deletedPhotos },
+                          kimpayId: this.id,
+                      },
+            );
+            if (record === QUEUED) return;
 
             this.expenses = this.expenses.map((e) =>
                 e.id === expenseId ? asExpense(record) : e,
@@ -421,17 +429,11 @@ export class ActiveKimpay {
         this.expenses = this.expenses.filter((e) => e.id !== expenseId);
         this.persist();
 
-        if (offlineStore.isOffline) {
-            offlineStore.queueAction(
-                "DELETE_EXPENSE",
-                { id: expenseId },
-                this.id,
-            );
-            return;
-        }
-
         try {
-            await pb.collection("expenses").delete(expenseId);
+            await offlineStore.write(
+                () => pb.collection("expenses").delete(expenseId),
+                { type: "DELETE_EXPENSE", payload: { id: expenseId }, kimpayId: this.id },
+            );
         } catch (e) {
             console.error("Failed to delete expense", e);
             this.expenses = previousExpenses;
@@ -459,23 +461,18 @@ export class ActiveKimpay {
         this.participants = [...this.participants, optimisticParticipant];
         this.persist();
 
-        // 2. Offline / Online
-        if (offlineStore.isOffline) {
-            await offlineStore.queueAction(
-                "CREATE_PARTICIPANT",
-                { id, name, kimpay: this.id },
-                this.id,
-                id,
-            );
-            return optimisticParticipant;
-        }
-
+        // 2. Online, or queued
         try {
-            const record = await pb.collection("participants").create({
-                id,
-                name,
-                kimpay: this.id,
-            });
+            const record = await offlineStore.write(
+                () => pb.collection("participants").create({ id, name, kimpay: this.id }),
+                {
+                    type: "CREATE_PARTICIPANT",
+                    payload: { id, name, kimpay: this.id },
+                    kimpayId: this.id,
+                    id,
+                },
+            );
+            if (record === QUEUED) return optimisticParticipant;
 
             this.pendingIds.delete(id);
             this.participants = this.participants.map((p) =>
@@ -501,13 +498,11 @@ export class ActiveKimpay {
         // Update recentsStore for immediate sync to homepage
         recentsStore.updateRecentKimpay({ id: this.id, name, icon });
 
-        if (offlineStore.isOffline) {
-            offlineStore.queueAction("UPDATE_KIMPAY", { name, icon }, this.id);
-            return;
-        }
-
         try {
-            await pb.collection("kimpays").update(this.id, { name, icon });
+            await offlineStore.write(
+                () => pb.collection("kimpays").update(this.id, { name, icon }),
+                { type: "UPDATE_KIMPAY", payload: { name, icon }, kimpayId: this.id },
+            );
         } catch (e) {
             this.kimpay = previous;
             this.persist();
@@ -523,11 +518,10 @@ export class ActiveKimpay {
     }
 
     async deleteKimpay() {
-        if (offlineStore.isOffline) {
-            offlineStore.queueAction("DELETE_KIMPAY", {}, this.id);
-            return;
-        }
-        await pb.collection("kimpays").delete(this.id);
+        await offlineStore.write(
+            () => pb.collection("kimpays").delete(this.id),
+            { type: "DELETE_KIMPAY", payload: {}, kimpayId: this.id },
+        );
     }
 
     async deleteParticipant(participantId: string) {
@@ -537,17 +531,15 @@ export class ActiveKimpay {
         );
         this.persist();
 
-        if (offlineStore.isOffline) {
-            offlineStore.queueAction(
-                "DELETE_PARTICIPANT",
-                { id: participantId },
-                this.id,
-            );
-            return;
-        }
-
         try {
-            await pb.collection("participants").delete(participantId);
+            await offlineStore.write(
+                () => pb.collection("participants").delete(participantId),
+                {
+                    type: "DELETE_PARTICIPANT",
+                    payload: { id: participantId },
+                    kimpayId: this.id,
+                },
+            );
         } catch (e) {
             this.participants = previous;
             this.persist();

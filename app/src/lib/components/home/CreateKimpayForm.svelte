@@ -71,7 +71,6 @@
                 kimpayIcon,
                 creatorName,
                 otherParticipants,
-                auth.user ? auth.user.id : undefined,
                 selectedCurrency
             );
 

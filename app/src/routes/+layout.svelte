@@ -15,6 +15,7 @@
     import { modals } from '#lib/stores/modals.svelte.js';
     import { auth } from '#lib/stores/auth.svelte.js';
     import { storageService } from '#lib/services/storage.js';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { participantService } from '#lib/services/participant.js';
     import { trackNavigation } from '#lib/utils/navigation.js';
 
@@ -82,6 +83,10 @@
     onMount(async () => {
         const migrated = await storageService.migrate();
         theme.init();
+
+        // Writes queued offline in a previous session (app closed before
+        // the connection came back): replay them now, once migrated.
+        offlineStore.processPendingQueue();
         
         // Single entry point for recents init. Force reload if a data migration
         // just happened so the freshly-migrated Kimpays are picked up.
