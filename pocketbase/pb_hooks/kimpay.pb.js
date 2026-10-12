@@ -47,6 +47,12 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
         // Not created yet
     }
 
+    // No account needed: limited per IP, so a script cannot fill the database.
+    const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
+    if (!checkRateLimit(`kimpay_create_${e.realIP()}`, 30, 60 * 1000)) {
+        return e.json(429, { message: "Too many requests. Please wait a minute." });
+    }
+
     const userId = e.auth && e.auth.collection().name === "users" ? e.auth.id : "";
 
     // Field validation (required name, icon length...) runs on save: a
