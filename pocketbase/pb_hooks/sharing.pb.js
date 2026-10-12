@@ -7,6 +7,10 @@
 // happen later, when the recipient actually logs in via the magic link
 // (see the client-side claim flow). An unauthenticated endpoint that minted
 // sessions for arbitrary emails would be an account-takeover vector.
+//
+// It is not an open relay either: the link must be the one of an existing
+// group of the app, the group name is read from it (never taken from the
+// body), and each address gets a few emails at most.
 // =============================================================================
 
 routerAdd("POST", "/api/kimpay/share", (c) => {
@@ -27,7 +31,6 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
 
         const email = (data.email || "").trim();
         const url = (data.url || "").trim();
-        const kimpayName = data.kimpayName;
 
         if (!email || !url) {
             return c.json(400, { message: "Missing email or url" });
@@ -38,24 +41,36 @@ routerAdd("POST", "/api/kimpay/share", (c) => {
             return c.json(400, { message: "Invalid email" });
         }
 
-        // Only links to the app itself can be sent (no open email relay).
-        const { isAllowedOrigin } = require(`${__hooks}/lib/origin.js`);
-        if (!isAllowedOrigin(url)) {
-            return c.json(400, { message: "Invalid url" });
-        }
-
-        // Rate limiting: 5 share emails per minute per IP (prevents using this
-        // endpoint to spam arbitrary addresses).
+        // Rate limiting: 5 share emails per minute per IP, 3 per 10 minutes
+        // per address (prevents using this endpoint to spam anyone).
         const clientIp = c.realIP();
         const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
-        if (!checkRateLimit(`share_${clientIp}`, 5, 60 * 1000)) {
+        if (
+            !checkRateLimit(`share_${clientIp}`, 5, 60 * 1000) ||
+            !checkRateLimit(`share_mail_${email.toLowerCase()}`, 3, 10 * 60 * 1000)
+        ) {
             return c.json(429, {
                 message: "Too many requests. Please wait a minute.",
             });
         }
 
+        // Only the link of an existing group of the app can be sent (no open
+        // email relay): `<app origin>/k/<id>`.
+        const { isAllowedOrigin } = require(`${__hooks}/lib/origin.js`);
+        const link = /^(https?:\/\/[^\/?#\s]+)\/k\/([a-zA-Z0-9]{15})$/.exec(url);
+        if (!link || !isAllowedOrigin(link[1])) {
+            return c.json(400, { message: "Invalid url" });
+        }
+        let kimpay;
+        try {
+            kimpay = $app.findRecordById("kimpays", link[2]);
+        } catch (err) {
+            return c.json(400, { message: "Invalid url" });
+        }
+        const kimpayName = kimpay.getString("name");
+
         const locale = data.locale || "fr";
-        const creatorName = data.creator || "Un ami";
+        const creatorName = String(data.creator || "").trim().slice(0, 50) || "Un ami";
 
         const defaultHtml = `
                 <div style="font-family: sans-serif; padding: 20px;">

@@ -94,20 +94,39 @@ routerAdd("POST", "/api/register", (c) => {
         }
 
         const { checkRateLimit } = require(`${__hooks}/lib/rateLimit.js`);
-        if (!checkRateLimit(`register_ip_${c.realIP()}`, 5, 60 * 1000)) {
+        if (
+            !checkRateLimit(`register_ip_${c.realIP()}`, 5, 60 * 1000) ||
+            !checkRateLimit(`magic_mail_${email.toLowerCase()}`, 3, 10 * 60 * 1000)
+        ) {
             return c.json(429, {
                 message: "Too many requests. Please wait a minute.",
             });
         }
 
-        // 1. Check if user exists
+        // The link origin is taken from an allowlist, never trusted as-is.
+        const { resolveAppOrigin } = require(`${__hooks}/lib/origin.js`);
+        const origin = resolveAppOrigin(data.url);
+        const { createOtpAndSendMagicLink } = require(`${__hooks}/lib/email.js`);
+
+        // 1. An account already exists: send it a login link, and answer like
+        // for a new one (the response must not tell which emails have an
+        // account). Its name and participants are left as they are.
+        let existingUser = null;
         try {
-            const existingUser = $app.findAuthRecordByEmail("users", email);
-            if (existingUser) {
-                return c.json(409, { message: "User already exists" });
-            }
+            existingUser = $app.findAuthRecordByEmail("users", email);
         } catch (e) {
             // User does not exist, proceed
+        }
+        if (existingUser) {
+            createOtpAndSendMagicLink({
+                user: existingUser,
+                email: email,
+                name: existingUser.get("name") || name,
+                locale: locale,
+                origin: origin,
+                fallbackSubject: "Login to Kimpay",
+            });
+            return c.json(200, { success: true });
         }
 
         // 2. Create User
@@ -137,12 +156,7 @@ routerAdd("POST", "/api/register", (c) => {
             }
         }
 
-        // 4. Send the magic link so the new user can log in. The link origin
-        // is taken from an allowlist, never trusted as-is.
-        const { resolveAppOrigin } = require(`${__hooks}/lib/origin.js`);
-        const origin = resolveAppOrigin(data.url);
-
-        const { createOtpAndSendMagicLink } = require(`${__hooks}/lib/email.js`);
+        // 4. Send the magic link so the new user can log in.
         createOtpAndSendMagicLink({
             user: user,
             email: email,

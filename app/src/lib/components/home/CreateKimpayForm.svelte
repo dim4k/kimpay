@@ -82,7 +82,6 @@
                 const emailData = {
                     email: creatorEmail,
                     url: kimpayUrl,
-                    kimpayName: kimpayName,
                     locale: $locale,
                     creator: creatorName
                 };

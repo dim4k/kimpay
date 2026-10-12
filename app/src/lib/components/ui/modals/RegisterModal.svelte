@@ -42,11 +42,8 @@
             name = "";
         } catch (e) {
             console.error(e);
-            if (typeof e === 'object' && e !== null && 'status' in e && (e as { status: number }).status === 409) {
-                 error = $t('register.error_exists');
-            } else {
-                 error = $t('home.recover.error'); // Reuse generic "Unable to send"
-            }
+            // An existing account gets a login link instead (same answer).
+            error = $t('home.recover.error'); // Reuse generic "Unable to send"
         } finally {
             isLoading = false;
         }

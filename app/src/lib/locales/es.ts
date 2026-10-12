@@ -242,9 +242,8 @@ export const es: Record<TranslationKey, string> = {
     "register.name_placeholder": "Tu nombre",
     "register.email_placeholder": "tu@email.com",
     "register.button": "Registrarse",
-    "register.success_title": "¡Cuenta creada!",
+    "register.success_title": "¡Correo enviado!",
     "register.success_desc": "Revisa tu email para iniciar sesión.",
-    "register.error_exists": "La cuenta ya existe. Por favor inicia sesión.",
 
     "email_help.modal.title": "¿Por qué tu email?",
     "email_help.modal.desc":

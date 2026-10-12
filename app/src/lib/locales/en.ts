@@ -240,9 +240,8 @@ export const en = {
     "register.name_placeholder": "Your Name",
     "register.email_placeholder": "your@email.com",
     "register.button": "Sign Up",
-    "register.success_title": "Account Created!",
+    "register.success_title": "Email sent!",
     "register.success_desc": "Check your email to log in.",
-    "register.error_exists": "Account already exists. Please log in.",
 
     "email_help.modal.title": "Why your email?",
     "email_help.modal.desc":
