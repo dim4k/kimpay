@@ -46,7 +46,7 @@
                             {#each category.emojis as emoji (emoji)}
                                 <button
                                     type="button"
-                                    class="flex aspect-square items-center justify-center rounded-md text-lg transition-colors hover:bg-muted {value === emoji ? 'bg-primary-soft' : ''}"
+                                    class="flex aspect-square items-center justify-center rounded-control text-lg transition-colors hover:bg-muted {value === emoji ? 'bg-primary-soft' : ''}"
                                     aria-pressed={value === emoji}
                                     onclick={() => {
                                         value = emoji;

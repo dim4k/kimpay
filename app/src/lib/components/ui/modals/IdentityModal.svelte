@@ -3,7 +3,8 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { Input } from "#lib/components/ui/input/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
-  import { Check, ChevronRight, X } from "@lucide/svelte";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import { Check, ChevronRight } from "@lucide/svelte";
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import type { Participant } from '#lib/types.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
@@ -11,7 +12,10 @@
   import { participantService } from '#lib/services/participant.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import Modal from './Modal.svelte';
+  import ModalHeader from './ModalHeader.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
+  import FieldError from '#lib/components/ui/FieldError.svelte';
+  import { NAME_MAX_LENGTH } from '#lib/constants.js';
   
   let { isOpen }: { isOpen: boolean } = $props();
 
@@ -26,6 +30,7 @@
   let participants = $derived<Participant[]>(activeKimpay?.participants ?? []);
   let selectedParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let newParticipantName = $state("");
+  let createError = $state("");
 
   // Filter out participants already linked to a User (unless it's the current logged-in user)
   let selectableParticipants = $derived(
@@ -59,12 +64,13 @@
 
   async function createAndSelectParticipant() {
       if (!activeKimpay || !newParticipantName.trim()) return;
+      createError = "";
       try {
           const participant = await activeKimpay.addParticipant(newParticipantName.trim());
           await selectParticipant(participant.id);
       } catch (e) {
           console.error("Failed to add participant", e);
-          modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
+          createError = getErrorMessage(e, $t);
       }
   }
 </script>
@@ -77,19 +83,13 @@
     backdropClass="bg-background/95"
     label={$t('identity.title')}
 >
-    <div class="p-6 pb-2 relative">
-            {#if activeKimpayGlobal.myParticipant}
-            <button 
-            onclick={() => modals.closeIdentity()}
-            class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title={$t('common.close')}
-            aria-label={$t('common.close')}
-        >
-            <X class="h-5 w-5" />
-        </button>
-        {/if}
-        <h2 class="mb-1 text-2xl font-bold">{$t('identity.title')}</h2>
-        <p class="text-sm text-muted-foreground">{$t('identity.subtitle')}</p>
+    <div class="p-6 pb-2">
+        <ModalHeader
+            title={$t('identity.title')}
+            description={$t('identity.subtitle')}
+            align="start"
+            onClose={activeKimpayGlobal.myParticipant ? () => modals.closeIdentity() : undefined}
+        />
     </div>
     
     <div class="flex-1 overflow-y-auto p-4 space-y-2">
@@ -110,12 +110,12 @@
     </div>
 
     <div class="space-y-2 border-t bg-muted/40 p-4">
-        <label for="identity-new" class="block text-sm font-semibold text-muted-foreground">{$t('identity.new_label')}</label>
+        <Label for="identity-new">{$t('identity.new_label')}</Label>
         <div class="flex gap-2">
             <Input 
                 placeholder={$t('identity.new_name_placeholder')} 
                 bind:value={newParticipantName}
-                maxlength={15}
+                maxlength={NAME_MAX_LENGTH}
                 id="identity-new"
                 onkeydown={(e) => e.key === 'Enter' && createAndSelectParticipant()}
             />
@@ -123,6 +123,7 @@
                 {$t('identity.create_button')}
             </Button>
         </div>
+        <FieldError message={createError} />
     </div>
 </Modal>
 {/if}

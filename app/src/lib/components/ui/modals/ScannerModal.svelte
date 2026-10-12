@@ -101,8 +101,8 @@
 >
     <!-- Header -->
     <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start bg-linear-to-b from-black/80 to-transparent">
-        <h2 class="text-white font-bold text-lg drop-shadow-md">{$t('join.scan_qr')}</h2>
-        <button onclick={handleClose} aria-label={$t('common.close')} class="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-md transition-colors">
+        <h2 class="text-xl font-bold text-white drop-shadow-md">{$t('join.scan_qr')}</h2>
+        <button onclick={handleClose} aria-label={$t('common.close')} class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-colors hover:bg-white/30">
             <X class="h-5 w-5" />
         </button>
     </div>
@@ -129,11 +129,11 @@
         <!-- Visual Guide Overlay -->
         {#if isScanning}
             <div class="absolute inset-0 pointer-events-none border-30 border-black/50">
-            <div class="absolute inset-0 border-2 border-white/30 rounded-lg">
-                <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
-                <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
-                <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
-                <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+            <div class="absolute inset-0 border-2 border-white/30 rounded-control">
+                <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-control"></div>
+                <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-control"></div>
+                <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-control"></div>
+                <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-control"></div>
             </div>
             </div>
             <p class="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm font-medium drop-shadow-xs px-4">
@@ -149,6 +149,6 @@
       object-fit: cover;
       width: 100% !important;
       height: 100% !important;
-      border-radius: 1.5rem;
+      border-radius: 0;
   }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { ArrowRight, Wallet, Check, ChevronRight } from "@lucide/svelte";
+  import { ArrowRight, Wallet, Check, ChevronRight, Plus } from "@lucide/svelte";
 
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import PaymentLinks from '#lib/components/PaymentLinks.svelte';
@@ -57,9 +57,7 @@
 
   function openSettleModal(tx: Transaction) {
       if (offlineStore.isOffline) {
-          modals.alert({
-              message: $t('balance.reimbursement.offline_unavailable')
-          });
+          toasts.warning($t('balance.reimbursement.offline_unavailable'));
           return;
       }
 
@@ -191,6 +189,12 @@
          >
             {#snippet icon()}
                 <Wallet class="h-12 w-12" />
+            {/snippet}
+            {#snippet action()}
+                <Button href="/k/{activeKimpay?.id ?? ''}/add" size="lg">
+                    <Plus class="size-5!" />
+                    {$t('expense.list.empty.add')}
+                </Button>
             {/snippet}
          </EmptyState>
     {:else}

@@ -5,14 +5,14 @@ test.describe('Onboarding & Validation', () => {
   test('Validation: Cannot create Kimpay with empty fields', async ({ page }) => {
     await page.goto('/');
     const createBtn = page.getByRole('button', { name: /create|créer/i });
-    
+
     // Initially disabled
     await expect(createBtn).toBeDisabled();
-    
+
     // Fill only one field
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Test Kimpay');
     await expect(createBtn).toBeDisabled();
-    
+
     await page.getByPlaceholder('e.g. Trip to Paris').clear();
     await page.getByPlaceholder('e.g. Antoine').fill('Test User');
     await expect(createBtn).toBeDisabled();
@@ -22,16 +22,16 @@ test.describe('Onboarding & Validation', () => {
     await page.goto('/');
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Email Test');
     await page.getByPlaceholder('e.g. Antoine').fill('Tester');
-    
+
     // Email is optional: folded with the other options.
     await page.getByRole('button', { name: /email and other participants/i }).click();
     const emailInput = page.getByPlaceholder('your@email.com');
     if (await emailInput.isVisible()) {
         await emailInput.fill('invalid-email');
         await page.getByRole('button', { name: /create|créer/i }).click();
-        
-        // Expect Modal Alert
-        await expect(page.getByText('Invalid Email')).toBeVisible();
+
+        // Told under the field
+        await expect(page.getByText('Please enter a valid email address')).toBeVisible();
     }
   });
 
@@ -39,9 +39,9 @@ test.describe('Onboarding & Validation', () => {
     await page.goto('/');
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Success Trip');
     await page.getByPlaceholder('e.g. Antoine').fill('Creator');
-    
+
     await page.getByRole('button', { name: /create|créer/i }).click();
-    
+
     await expect(page).toHaveURL(/\/k\//);
     await expect(page.getByText('Success Trip')).toBeVisible();
     // My identity in the group is in the avatar menu
@@ -56,11 +56,11 @@ test.describe('Onboarding & Validation', () => {
     await page.getByPlaceholder('e.g. Antoine').fill('User A');
     await page.getByRole('button', { name: /create|créer/i }).click();
     await expect(page).toHaveURL(/\/k\//);
-    
+
     // 2. Go Home: groups come first, the creation form opens from its tile
     await page.goto('/');
     await page.getByRole('button', { name: /create a group/i }).click();
-    
+
     // 3. Create Second Kimpay
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
     // Name might be pre-filled from local storage if not cleared, but let's overwrite
@@ -71,7 +71,7 @@ test.describe('Onboarding & Validation', () => {
 
     // 4. Go Home and verify list
     await page.goto('/');
-    
+
     // Both should be visible in history
     await expect(page.getByText('Trip A')).toBeVisible();
     await expect(page.getByText('Trip B')).toBeVisible();
@@ -79,7 +79,7 @@ test.describe('Onboarding & Validation', () => {
     // 5. Navigate to Trip A
     await page.getByText('Trip A').click();
     await expect(page.getByText('Trip A')).toBeVisible();
-    await expect(page.getByText('Trip B')).not.toBeVisible(); 
+    await expect(page.getByText('Trip B')).not.toBeVisible();
   });
 
 });

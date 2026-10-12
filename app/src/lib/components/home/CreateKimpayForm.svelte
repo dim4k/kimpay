@@ -2,10 +2,11 @@
     import { Button } from "#lib/components/ui/button/index.js";
     import { Input } from "#lib/components/ui/input/index.js";
     import { Label } from "#lib/components/ui/label/index.js";
-    import { Plus, X, LoaderCircle, ChevronDown } from "@lucide/svelte";
+    import { Plus, X, ChevronDown } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { t, locale } from '#lib/i18n.js';
-    import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
+    import { DEFAULT_KIMPAY_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
+    import FieldError from '#lib/components/ui/FieldError.svelte';
     import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
     import { storageService } from '#lib/services/storage.js';
@@ -14,7 +15,6 @@
     import { pb } from '#lib/pocketbase.js';
     import { goto } from '$app/navigation';
     import { isValidEmail } from '#lib/utils/index.js';
-    import { modals } from '#lib/stores/modals.svelte.js';
     import { auth } from '#lib/stores/auth.svelte.js';
     import EmailHelpModal from '#lib/components/ui/modals/EmailHelpModal.svelte';
     import { Info } from "@lucide/svelte";
@@ -32,6 +32,7 @@
     let otherParticipants = $state<string[]>([]);
     let creatorEmail = $state("");
     let isEmailHelpOpen = $state(false);
+    let emailError = $state("");
     let isLoading = $state(false);
     // Email and other participants are optional: folded by default.
     let isMoreOpen = $state(false);
@@ -59,10 +60,7 @@
         if (!kimpayName.trim() || !creatorName.trim()) return;
         
         if (creatorEmail && creatorEmail.trim() && !isValidEmail(creatorEmail.trim())) {
-            modals.alert({ 
-                message: $t('error.email.invalid.message'), 
-                title: $t('error.email.invalid.title') 
-            });
+            emailError = $t('error.email.invalid.message');
             return;
         }
 
@@ -116,10 +114,7 @@
         } catch (e: unknown) {
             console.error("Kimpay Creation Error:", e);
             haptic('error');
-            modals.alert({
-                message: getErrorMessage(e, $t),
-                title: $t('error.generic.title')
-            });
+            toasts.error(getErrorMessage(e, $t));
         } finally {
             isLoading = false;
         }
@@ -139,7 +134,7 @@
 
     <div class="space-y-2">
         <Label for="myName">{$t('home.create.my_name_label')}</Label>
-        <Input id="myName" bind:value={creatorName} placeholder={$t('home.create.my_name_placeholder')} />
+        <Input id="myName" bind:value={creatorName} maxlength={NAME_MAX_LENGTH} placeholder={$t('home.create.my_name_placeholder')} />
     </div>
 
     <button
@@ -161,8 +156,12 @@
                         id="creatorEmail"
                         type="email"
                         bind:value={creatorEmail}
+                        oninput={() => emailError = ""}
+                        aria-invalid={!!emailError}
+                        class={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
                         placeholder={$t('home.create.email_placeholder')}
                     />
+                    <FieldError message={emailError} />
                     <button
                         type="button"
                         onclick={() => isEmailHelpOpen = true}
@@ -180,6 +179,7 @@
                     <Input
                         id="newParticipant"
                         bind:value={newParticipantName}
+                        maxlength={NAME_MAX_LENGTH}
                         placeholder={$t('home.create.participants_placeholder')}
                         onkeydown={(e) => e.key === 'Enter' && addParticipant()}
                     />
@@ -204,13 +204,8 @@
         </div>
     {/if}
 
-    <Button onclick={create} class="w-full" size="lg" disabled={isLoading || !kimpayName || !creatorName}>
-        {#if isLoading}
-            <LoaderCircle class="animate-spin" />
-            {$t('home.create.loading')}
-        {:else}
-            {$t('home.create.button')}
-        {/if}
+    <Button onclick={create} class="w-full" size="lg" loading={isLoading} disabled={!kimpayName || !creatorName}>
+        {isLoading ? $t('home.create.loading') : $t('home.create.button')}
     </Button>
 </div>
 

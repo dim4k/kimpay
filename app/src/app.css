@@ -227,6 +227,20 @@
     animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* The line sweeping over a receipt while it is read. */
+@keyframes scanLine {
+    from {
+        top: 0;
+    }
+    to {
+        top: 100%;
+    }
+}
+
+.animate-scan-line {
+    animation: scanLine 1.6s ease-in-out infinite alternate;
+}
+
 /* Motion is decoration: drop it for people who asked the OS for less. */
 @media (prefers-reduced-motion: reduce) {
     *,

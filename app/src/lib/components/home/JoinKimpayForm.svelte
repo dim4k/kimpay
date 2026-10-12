@@ -1,14 +1,14 @@
 <script lang="ts">
     import { Button } from "#lib/components/ui/button/index.js";
     import { Input } from "#lib/components/ui/input/index.js";
-    import { LoaderCircle, QrCode } from "@lucide/svelte";
+    import { Label } from "#lib/components/ui/label/index.js";
+    import { QrCode } from "@lucide/svelte";
     import { t } from '#lib/i18n.js';
     import ScannerModal from "#lib/components/ui/modals/ScannerModal.svelte";
     import { pb } from '#lib/pocketbase.js';
     import { isKimpayId } from '#lib/utils/id.js';
-    import { modals } from '#lib/stores/modals.svelte.js';
     import { goto } from '$app/navigation';
-    import { fade } from 'svelte/transition';
+    import FieldError from '#lib/components/ui/FieldError.svelte';
 
     let code = $state("");
     let joinError = $state("");
@@ -55,7 +55,7 @@
             isScannerOpen = false;
             join(); // Auto join
         } else {
-            modals.alert({ message: $t('join.invalid_qr'), variant: 'error' });
+            joinError = $t('join.invalid_qr');
             isScannerOpen = false;
         }
     }
@@ -63,7 +63,7 @@
 </script>
 
 <div class="space-y-2">
-    <label for="join-code" class="block text-sm font-semibold leading-6 text-muted-foreground">{$t('home.join.label')}</label>
+    <Label for="join-code">{$t('home.join.label')}</Label>
     <div class="flex gap-2">
         <Input
             id="join-code"
@@ -85,13 +85,8 @@
             <QrCode />
         </Button>
     </div>
-    {#if joinError}
-        <p class="text-sm font-medium text-destructive" transition:fade>{joinError}</p>
-    {/if}
-    <Button onclick={join} class="w-full" size="lg" disabled={isLoading || !code.trim()}>
-        {#if isLoading}
-            <LoaderCircle class="animate-spin" />
-        {/if}
+    <FieldError message={joinError} />
+    <Button onclick={join} class="w-full" size="lg" loading={isLoading} disabled={!code.trim()}>
         {$t('home.join.button')}
     </Button>
 </div>

@@ -9,6 +9,7 @@
     import { DEFAULT_EXPENSE_EMOJI, DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
     import { parseLocalISODate } from '#lib/utils/date.js';
     import Badge from '#lib/components/ui/Badge.svelte';
+    import IconTile from '#lib/components/ui/IconTile.svelte';
     import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
     import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
     import ListGroup from '#lib/components/ui/ListGroup.svelte';
@@ -63,9 +64,7 @@
         <ListSkeleton count={4} />
     {:else}
         <header class="flex items-center gap-3">
-            <span class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-card text-3xl border" aria-hidden="true">
-                {data.icon || DEFAULT_KIMPAY_EMOJI}
-            </span>
+            <IconTile size="lg" tone="card">{data.icon || DEFAULT_KIMPAY_EMOJI}</IconTile>
             <div class="min-w-0 space-y-1">
                 <h1 class="truncate text-xl font-bold">{data.name}</h1>
                 <Badge tone="neutral"><Eye class="h-3 w-3" />{$t('readonly.badge')}</Badge>
@@ -115,13 +114,13 @@
                 <ListGroup>
                     {#each data.expenses as e (e.id)}
                         <div class="flex items-center gap-3 px-4 py-3">
-                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-xl {e.is_reimbursement ? 'bg-success-soft text-success' : 'bg-muted'}">
+                            <IconTile tone={e.is_reimbursement ? 'success' : 'muted'}>
                                 {#if e.is_reimbursement}
-                                    <HandCoins class="h-5 w-5" />
+                                    <HandCoins />
                                 {:else}
                                     {e.icon || DEFAULT_EXPENSE_EMOJI}
                                 {/if}
-                            </span>
+                            </IconTile>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-base font-medium">
                                     {e.is_reimbursement ? $t('balance.reimbursement') : e.description}

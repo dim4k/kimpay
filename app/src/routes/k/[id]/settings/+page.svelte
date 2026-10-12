@@ -4,29 +4,30 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { ChevronRight, LogOut, Trash2, UserPlus, FileText, Table, LoaderCircle, Pencil } from "@lucide/svelte";
-  import { profileMenu } from '#lib/stores/profileMenu.svelte.js';
+  import { Copy, FileText, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
-  import { t } from '#lib/i18n.js';
+  import { t, locale } from '#lib/i18n.js';
   import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { storageService } from '#lib/services/storage.js';
   import { kimpayService } from '#lib/services/kimpay.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
+  import { generateUUID } from '#lib/utils/id.js';
+  import { haptic } from '#lib/utils/haptic.js';
   import { toCsv, toMarkdown, exportFilename, downloadFile, type ExportFormat } from '#lib/utils/export.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
   import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
-  import Avatar from '#lib/components/ui/Avatar.svelte';
-  import Badge from '#lib/components/ui/Badge.svelte';
+  import IconTile from '#lib/components/ui/IconTile.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListRow from '#lib/components/ui/ListRow.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
-  import { locale } from '#lib/i18n.js';
-  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
+  import ModalActions from '#lib/components/ui/modals/ModalActions.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -34,9 +35,7 @@
 
   let kimpayId = $derived(activeKimpay?.id ?? '');
 
-  // Use stores
   let kimpay = $derived(activeKimpay?.kimpay);
-  let participants = $derived(activeKimpay?.participants || []);
   let currentParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
   let creatorName = $derived(
@@ -57,11 +56,6 @@
       isEditOpen = true;
   }
 
-  function checkUsage(pId: string): boolean {
-      const allExpenses = activeKimpay?.expenses || [];
-      return allExpenses.some((e) => e.payer === pId || (e.involved && e.involved.includes(pId)));
-  }
-
   async function handleSave() {
       if (!editName.trim()) return;
       isSavingGroup = true;
@@ -71,56 +65,56 @@
           toasts.success($t('common.saved'));
       } catch (e) {
           console.error("Error updating", e);
-          modals.alert({ message: getErrorMessage(e, $t) });
+          toasts.error(getErrorMessage(e, $t));
       } finally {
           isSavingGroup = false;
       }
   }
 
-  // Participants State
-  let newParticipantName = $state("");
-  let isAddingParticipant = $state(false);
-  let addFeedback = $state("");
-  let isDeletingParticipant = $state<string | null>(null);
+  // Read-only summary link
+  let readonlyLink = $derived(kimpay?.readonly_token ? `${window.location.origin}/r/${kimpay.readonly_token}` : "");
+  let isUpdatingLink = $state(false);
 
-  async function handleAddParticipant() {
-      if(!newParticipantName.trim()) return;
-      isAddingParticipant = true;
-      addFeedback = "";
+  async function setReadonlyLink(enabled: boolean) {
+      isUpdatingLink = true;
       try {
-          await activeKimpay.addParticipant(newParticipantName);
-          newParticipantName = "";
-          addFeedback = "added";
-          setTimeout(() => addFeedback = "", 2000);
-      } catch(e) {
-          console.error(e);
-          modals.alert({ message: getErrorMessage(e, $t) });
+          await activeKimpay.setReadonlyToken(enabled ? generateUUID() : "");
+      } catch (e) {
+          console.error("Failed to update the read-only link", e);
+          toasts.error(getErrorMessage(e, $t));
       } finally {
-          isAddingParticipant = false;
+          isUpdatingLink = false;
       }
   }
 
-  function handleDeleteParticipant(pId: string) {
-      // Participants involved in an expense cannot be deleted.
-      if (checkUsage(pId)) {
-          modals.alert({ message: $t('error.participant.used') });
-          return;
-      }
-
+  function requestDisableReadonlyLink() {
       modals.confirm({
-          title: $t('modal.delete_participant.title'),
-          description: $t('modal.delete_participant.confirm'),
-          confirmText: $t('common.delete'),
+          title: $t('settings.readonly.disable_title'),
+          description: $t('settings.readonly.disable_desc'),
+          confirmText: $t('settings.readonly.disable'),
           variant: 'destructive',
-          onConfirm: async () => {
-              isDeletingParticipant = pId;
-              try {
-                  await activeKimpay.deleteParticipant(pId);
-              } finally {
-                  isDeletingParticipant = null;
-              }
-          }
+          onConfirm: () => setReadonlyLink(false)
       });
+  }
+
+  async function copyReadonlyLink() {
+      try {
+          await navigator.clipboard.writeText(readonlyLink);
+          haptic('light');
+          toasts.success($t('share.copy_success'));
+      } catch (err) {
+          console.error('Failed to copy', err);
+          toasts.error($t('share.copy_error'));
+      }
+  }
+
+  async function shareReadonlyLink() {
+      if (!navigator.share) return copyReadonlyLink();
+      try {
+          await navigator.share({ title: kimpay?.name ?? 'Kimpay', url: readonlyLink });
+      } catch {
+          // Share sheet dismissed.
+      }
   }
 
   function requestLeave() {
@@ -136,7 +130,7 @@
              if (currentParticipantId) {
                  const result = await kimpayService.leave(kimpayId, currentParticipantId);
                  if (!result.success) {
-                     modals.alert({ message: $t('error.generic'), variant: 'error' });
+                     toasts.error($t('error.generic'));
                      return;
                  }
              }
@@ -184,20 +178,18 @@
           downloadFile(content, exportFilename(kimpay, format), format === 'csv' ? 'text/csv' : 'text/markdown');
       } catch (e) {
           console.error("Export failed", e);
-          modals.alert({ message: getErrorMessage(e, $t), variant: 'error' });
+          toasts.error(getErrorMessage(e, $t));
       }
   }
 
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
-    <h1 class="sr-only">{$t('settings.title')}</h1>
+    <h1 class="sr-only">{$t('nav.group')}</h1>
 
     <!-- The group -->
     <section class="flex items-center gap-3 rounded-card border bg-card p-4 animate-pop-in">
-        <span class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-muted text-3xl" aria-hidden="true">
-            {kimpay?.icon || DEFAULT_KIMPAY_EMOJI}
-        </span>
+        <IconTile size="lg" class="text-foreground">{kimpay?.icon || DEFAULT_KIMPAY_EMOJI}</IconTile>
         <div class="min-w-0 flex-1">
             <p class="truncate text-xl font-bold">{kimpay?.name ?? ''}</p>
             <p class="truncate text-sm text-muted-foreground">
@@ -213,72 +205,36 @@
     </section>
 
     {#if !offlineStore.isOffline}
-        <section class="space-y-2">
-            <SectionLabel title="{$t('settings.participants')} ({participants.length})" />
-            <ListGroup>
-                {#each participants as p (p.id)}
-                    {@const isMe = currentParticipantId === p.id}
-                    <div
-                        class="group flex min-h-14 items-center gap-3 py-2 pl-4 pr-2 first:rounded-t-[inherit]"
-                        data-participant-id={p.id}
-                        data-is-me={isMe}
-                        data-current-participant={currentParticipantId}
-                    >
-                        <Avatar name={p.name} record={p} class="h-9 w-9 shrink-0 text-xs" />
-                        <span class="flex min-w-0 flex-1 items-center gap-2">
-                            <span class="truncate text-base font-medium">{p.name}</span>
-                            {#if isMe}
-                                <Badge>{$t('common.you')}</Badge>
-                            {/if}
-                        </span>
-                        {#if isMe}
-                            <!-- What is mine (payment links, theme...) lives in the profile. -->
-                            <Button variant="soft" size="sm" onclick={() => profileMenu.open()}>
-                                {$t('settings.my_profile')}
-                                <ChevronRight />
-                            </Button>
-                        {/if}
-                        {#if !isMe}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="text-muted-foreground hover:text-destructive"
-                                onclick={() => handleDeleteParticipant(p.id)}
-                                disabled={isDeletingParticipant === p.id}
-                                title={$t('modal.delete_participant.title')}
-                                aria-label={$t('modal.delete_participant.title')}
-                            >
-                                {#if isDeletingParticipant === p.id}
-                                    <LoaderCircle class="animate-spin" />
-                                {:else}
-                                    <Trash2 />
-                                {/if}
-                            </Button>
-                        {/if}
+        <section class="space-y-2 animate-slide-up">
+            <SectionLabel title={$t('settings.readonly.title')} />
+            <div class="space-y-3 rounded-card border bg-card p-4">
+                <p class="text-sm text-muted-foreground">{$t('settings.readonly.desc')}</p>
+                {#if readonlyLink}
+                    <div class="flex items-center gap-2 rounded-control bg-muted px-3 py-2.5">
+                        <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span class="min-w-0 flex-1 truncate font-mono text-sm text-muted-foreground">{readonlyLink}</span>
                     </div>
-                {/each}
-
-                <div class="flex items-center gap-2 px-4 py-3">
-                    <div class="relative flex-1">
-                        <Input
-                            placeholder={$t('settings.participants.placeholder')}
-                            aria-label={$t('settings.participants.placeholder')}
-                            bind:value={newParticipantName}
-                            onkeydown={(e) => e.key === 'Enter' && handleAddParticipant()}
-                        />
-                        {#if addFeedback === 'added'}
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-success">{$t('settings.participants.added')}</span>
-                        {/if}
+                    <div class="grid grid-cols-2 gap-2">
+                        <Button variant="outline" onclick={copyReadonlyLink}>
+                            <Copy />
+                            {$t('share.copy_button')}
+                        </Button>
+                        <Button variant="outline" onclick={shareReadonlyLink}>
+                            <Share2 />
+                            {$t('nav.share')}
+                        </Button>
                     </div>
-                    <Button size="icon" onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
-                        {#if isAddingParticipant}
-                            <LoaderCircle class="animate-spin" />
-                        {:else}
-                            <UserPlus />
-                        {/if}
+                    <Button variant="ghost-destructive" class="w-full" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
+                        <Trash2 />
+                        {$t('settings.readonly.disable')}
                     </Button>
-                </div>
-            </ListGroup>
+                {:else}
+                    <Button variant="outline" class="w-full" onclick={() => setReadonlyLink(true)} loading={isUpdatingLink}>
+                        {#if !isUpdatingLink}<Link />{/if}
+                        {$t('settings.readonly.create')}
+                    </Button>
+                {/if}
+            </div>
         </section>
     {/if}
 
@@ -301,7 +257,7 @@
 </div>
 
 <Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} class="overflow-visible">
-    <h2 class="text-xl font-bold">{$t('settings.edit_group')}</h2>
+    <ModalHeader title={$t('settings.edit_group')} align="start" />
     <div class="space-y-2">
         <Label for="group-name">{$t('home.create.name_label')}</Label>
         <div class="flex gap-2">
@@ -309,11 +265,10 @@
             <Input id="group-name" bind:value={editName} onkeydown={(e) => e.key === 'Enter' && handleSave()} />
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-3">
+    <ModalActions>
         <Button variant="secondary" onclick={() => isEditOpen = false}>{$t('common.cancel')}</Button>
-        <Button onclick={handleSave} disabled={isSavingGroup || !editName.trim()}>
-            {#if isSavingGroup}<LoaderCircle class="animate-spin" />{/if}
+        <Button onclick={handleSave} loading={isSavingGroup} disabled={!editName.trim()}>
             {$t('common.save')}
         </Button>
-    </div>
+    </ModalActions>
 </Modal>

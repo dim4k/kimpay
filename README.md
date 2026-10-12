@@ -36,7 +36,7 @@
 -   **Quick Setup**: Create a group in seconds with an emoji and a name
 -   **Easy Sharing**: Invite friends with a link, a QR code or the group code
 -   **Read-Only Link**: Share a summary (expenses, balances, payments to make) with people who must not edit the group
--   **Expense Management**: Add expenses specifying who paid and for whom, then search and filter them by person, type or category
+-   **Expense Management**: Add expenses specifying who paid and for whom, see what each one changes to your balance, then search and filter them by person, type or category
 -   **Flexible Splits**: Split equally, by shares, by exact amounts or by percentage
 -   **Money Received**: Record refunds or returned deposits, shared back between the group
 -   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom"), with no cent lost to rounding
@@ -48,7 +48,7 @@
 -   **Dark Mode**: Elegant interface in light or dark theme, or following the system
 -   **Delightful UX**: Smooth animations, emojis, and polished design
 -   **PWA Ready**: Install as a Progressive Web App on any device, usable offline
--   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category, and suggest who it was for
+-   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category, and suggest who it was for; the filled fields are highlighted and the scan can be undone (free account required)
 
 ## <a id="tech-stack"></a>🛠️ Tech Stack
 

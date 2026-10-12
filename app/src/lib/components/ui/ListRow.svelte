@@ -3,6 +3,7 @@
     import type { LucideProps } from '@lucide/svelte';
     import { ChevronRight, ArrowUpRight } from '@lucide/svelte';
     import { cn } from '#lib/utils/cn.js';
+    import IconTile from './IconTile.svelte';
 
     interface Props {
         title: string;
@@ -50,9 +51,7 @@
     {#if lead}
         {@render lead()}
     {:else if Icon}
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}">
-            <Icon class="h-4 w-4" />
-        </span>
+        <IconTile size="sm" tone={tone === 'danger' ? 'danger' : 'muted'}><Icon /></IconTile>
     {/if}
     <span class="flex min-w-0 flex-1 flex-col">
         <span class="truncate text-base font-medium {tone === 'danger' ? 'text-destructive' : 'text-foreground'}">{title}</span>

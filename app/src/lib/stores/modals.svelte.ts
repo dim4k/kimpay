@@ -20,6 +20,12 @@ export type GalleryOptions = {
     record: { id: string; collectionId: string; collectionName: string };
 };
 
+export type RegisterOptions = {
+    participantId?: string;
+    /** Why an account is asked for (e.g. to scan receipts) */
+    description?: string;
+};
+
 export type IdentityOptions = {
     kimpayId: string;
 };
@@ -56,8 +62,8 @@ class ModalStore {
         this.identityState = null;
     }
 
-    registerState = $state<{ participantId?: string } | null>(null);
-    register(options: { participantId?: string }) {
+    registerState = $state<RegisterOptions | null>(null);
+    register(options: RegisterOptions) {
         this.registerState = options;
     }
     closeRegister() {

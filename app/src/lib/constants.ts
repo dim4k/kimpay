@@ -1,6 +1,9 @@
 
 import type { TranslationKey } from "#lib/locales/en.js";
 
+/** Longest name of a participant, the same in every form that asks for one. */
+export const NAME_MAX_LENGTH = 24;
+
 // Emoji categories (labels are translated)
 export interface EmojiCategory {
     labelKey: TranslationKey;

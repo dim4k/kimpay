@@ -1,93 +1,54 @@
 <script lang="ts">
-    import { ScanLine, Loader2 } from '@lucide/svelte';
-    import { t, locale } from '#lib/i18n.js';
+    import { Camera, ChevronRight, LoaderCircle, ScanLine } from '@lucide/svelte';
+    import { t } from '#lib/i18n.js';
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { scanReceipt, compressImage, fileToBase64, type OcrResult } from '#lib/services/ocr.js';
     import { modals } from '#lib/stores/modals.svelte.js';
-
-    export interface ScanResult extends OcrResult {
-        photo: File;
-    }
+    import { toasts } from '#lib/stores/toasts.svelte.js';
+    import { Button } from '#lib/components/ui/button/index.js';
+    import IconTile from '#lib/components/ui/IconTile.svelte';
 
     interface Props {
-        onScanComplete: (result: ScanResult) => void;
+        /**
+         * `card`: the invitation at the top of an empty expense form.
+         * `button`: compact, in the form's top bar once the card is gone.
+         * `action`: a full-width button (empty expense list).
+         */
+        variant?: 'card' | 'button' | 'action';
+        /** A photo was picked: it is the caller's to read */
+        onPick: (file: File) => void;
+        /** A scan is running */
+        busy?: boolean;
         disabled?: boolean;
     }
 
-    let { onScanComplete, disabled = false }: Props = $props();
+    let { variant = 'button', onPick, busy = false, disabled = false }: Props = $props();
 
-    let isScanning = $state(false);
     let fileInput: HTMLInputElement | null = $state(null);
-    
-    // Reactive auth state (pb.authStore itself is not reactive)
-    let isAuthenticated = $derived(auth.isValid);
 
-    async function handleFileSelect(event: Event) {
+    function handleFileSelect(event: Event) {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
-        
-        if (!file) return;
-        
-        // Reset input so same file can be selected again
+        // Reset so the same photo can be picked again.
         input.value = '';
-        
+        if (!file) return;
+
         if (!file.type.startsWith('image/')) {
-            modals.alert({
-                title: $t('expense.form.scan_error'),
-                message: $t('expense.form.scan_unreadable')
-            });
+            toasts.error($t('expense.form.scan_unreadable'));
             return;
         }
-
-        isScanning = true;
-
-        try {
-            // Compress image to reduce upload size. Formats the browser cannot
-            // draw (HEIC outside Safari...) are sent as is: the scanner reads them.
-            const compressedBase64 = await compressImage(file).catch(() => fileToBase64(file));
-            
-            // Call OCR API with current language
-            const result = await scanReceipt(compressedBase64, $locale);
-            
-            // Success! Pass result with the original photo file
-            onScanComplete({ ...result, photo: file });
-            
-        } catch (error) {
-            console.error('OCR Error:', error);
-            
-            // PocketBase errors carry the HTTP status (not in the message).
-            const status = (error as { status?: number }).status;
-            let errorMessage = $t('expense.form.scan_error');
-            if (status === 401) {
-                errorMessage = $t('expense.form.scan_login_required');
-            } else if (status === 429) {
-                errorMessage = $t('expense.form.scan_rate_limited');
-            } else if (status === 422) {
-                errorMessage = $t('expense.form.scan_unreadable');
-            }
-            
-            modals.alert({
-                title: $t('expense.form.scan_error'),
-                message: errorMessage
-            });
-        } finally {
-            isScanning = false;
-        }
+        onPick(file);
     }
 
-    function openFilePicker() {
-        if (!isAuthenticated) {
-            modals.alert({
-                title: $t('expense.form.scan_login_required'),
-                message: $t('expense.form.scan_login_required_desc')
-            });
+    function open() {
+        // Scanning uses a paid API: it needs an account (free).
+        if (!auth.isValid) {
+            modals.register({ description: $t('expense.form.scan_account_desc') });
             return;
         }
         fileInput?.click();
     }
 </script>
 
-<!-- Hidden file input -->
 <input
     type="file"
     accept="image/*"
@@ -97,20 +58,40 @@
     onchange={handleFileSelect}
 />
 
-<!-- Scanner Button (top bar of the expense form). Without an account it
-     explains how to get the feature instead of taking up the form. -->
-<button
-    type="button"
-    onclick={openFilePicker}
-    disabled={disabled || isScanning}
-    class="relative flex h-11 shrink-0 items-center gap-2 rounded-control px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
-    aria-label={isScanning ? $t('expense.form.scanning') : $t('expense.form.scan_receipt')}
-    title={isScanning ? $t('expense.form.scanning') : $t('expense.form.scan_receipt')}
->
-    {#if isScanning}
-        <Loader2 class="h-5 w-5 animate-spin" />
-    {:else}
-        <ScanLine class="h-5 w-5" />
-    {/if}
-    <span class="hidden sm:inline">{$t('expense.form.scan_short')}</span>
-</button>
+{#if variant === 'card'}
+    <button
+        type="button"
+        onclick={open}
+        disabled={disabled || busy}
+        class="flex w-full items-center gap-3 rounded-card bg-primary-soft p-3 text-left transition-colors duration-150 hover:bg-primary-soft/70 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+    >
+        <IconTile class="h-11 w-11 bg-primary text-primary-foreground"><Camera /></IconTile>
+        <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base font-semibold text-primary-soft-foreground">{$t('expense.form.scan_receipt')}</span>
+            <span class="text-sm text-muted-foreground">
+                {auth.isValid ? $t('expense.form.scan_card_desc') : $t('expense.form.scan_card_account')}
+            </span>
+        </span>
+        <ChevronRight class="h-5 w-5 shrink-0 text-primary-soft-foreground" />
+    </button>
+{:else if variant === 'action'}
+    <Button variant="soft" size="lg" class="w-full" onclick={open} {disabled}>
+        <Camera class="size-5!" />
+        {$t('expense.form.scan_receipt')}
+    </Button>
+{:else}
+    <button
+        type="button"
+        onclick={open}
+        disabled={disabled || busy}
+        class="flex h-11 shrink-0 items-center gap-2 rounded-control px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
+        title={$t('expense.form.scan_receipt')}
+    >
+        {#if busy}
+            <LoaderCircle class="h-5 w-5 animate-spin" />
+        {:else}
+            <ScanLine class="h-5 w-5" />
+        {/if}
+        {$t('expense.form.scan_short')}
+    </button>
+{/if}

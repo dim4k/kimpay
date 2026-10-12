@@ -6,6 +6,7 @@
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import Avatar from '#lib/components/ui/Avatar.svelte';
+  import IconTile from '#lib/components/ui/IconTile.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListRow from '#lib/components/ui/ListRow.svelte';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
@@ -61,7 +62,7 @@
           aria-current={isCurrent ? 'page' : undefined}
           class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
         >
-          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-muted text-lg" aria-hidden="true">{k.icon || DEFAULT_GROUP_ICON}</span>
+          <IconTile size="sm">{k.icon || DEFAULT_GROUP_ICON}</IconTile>
           <span class="flex-1 truncate text-base font-medium">{k.name}</span>
           {#if isCurrent}<Check class="h-4 w-4 shrink-0 text-primary" />{/if}
         </a>

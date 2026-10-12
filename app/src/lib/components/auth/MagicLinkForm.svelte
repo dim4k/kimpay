@@ -3,7 +3,7 @@
     import { Button } from "#lib/components/ui/button/index.js";
     import { t, locale, type TranslationKey } from '#lib/i18n.js';
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { Mail, LoaderCircle } from "@lucide/svelte";
+    import { Mail } from "@lucide/svelte";
     import Notice from '#lib/components/ui/Notice.svelte';
     import FieldError from '#lib/components/ui/FieldError.svelte';
     import { isValidEmail } from '#lib/utils/index.js';
@@ -63,10 +63,7 @@
             <FieldError message={error} />
         </div>
 
-        <Button type="submit" class="w-full" disabled={isLoading || !email}>
-            {#if isLoading}
-                <LoaderCircle class="animate-spin" />
-            {/if}
+        <Button type="submit" class="w-full" loading={isLoading} disabled={!email}>
             {$t(buttonTextKey)}
         </Button>
     </form>

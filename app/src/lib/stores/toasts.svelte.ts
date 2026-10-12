@@ -31,8 +31,16 @@ function createToastStore() {
         return add(message, 'success', duration);
     }
 
-    function error(message: string, duration?: number) {
+    function error(message: string, duration = 5000) {
         return add(message, 'error', duration);
+    }
+
+    function warning(message: string, duration = 4000) {
+        return add(message, 'warning', duration);
+    }
+
+    function info(message: string, duration?: number) {
+        return add(message, 'info', duration);
     }
 
     return {
@@ -40,7 +48,9 @@ function createToastStore() {
         add,
         remove,
         success,
-        error
+        error,
+        warning,
+        info
     };
 }
 

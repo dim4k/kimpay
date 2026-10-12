@@ -5,16 +5,18 @@
   import { t } from '#lib/i18n.js';
   import { installStore } from '#lib/stores/install.svelte.js';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
+  import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
   import { get, set } from 'idb-keyval';
   import { page } from '$app/state';
   import { Button } from '#lib/components/ui/button/index.js';
+  import IconTile from '#lib/components/ui/IconTile.svelte';
 
   let showPrompt = $state(false);
 
   // Offered once the app is in use: on the tabs of a group, above the tab
   // bar. Never on the home page (it would cover the onboarding forms) nor on
   // the expense forms (their save bar).
-  let onGroupTab = $derived(/^\/k\/[^/]+(\/(balance|share|settings))?\/?$/.test(page.url.pathname));
+  let onGroupTab = $derived(/^\/k\/[^/]+(\/(balance|members|settings))?\/?$/.test(page.url.pathname));
   let visible = $derived(showPrompt && onGroupTab);
 
   $effect(() => {
@@ -68,9 +70,7 @@
     class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-card border bg-card/95 p-4 text-card-foreground shadow-2xl backdrop-blur-md"
   >
     <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground">
-             <Download class="h-5 w-5" />
-        </div>
+        <IconTile tone="primary"><Download /></IconTile>
         <div class="flex min-w-0 flex-col">
             <span class="text-sm font-bold">{$t('install.prompt.title')}</span>
             <span class="text-xs text-muted-foreground">{$t('install.prompt.desc')}</span>
@@ -97,23 +97,16 @@
 <Modal
     isOpen={installStore.showIOSInstructions}
     onClose={() => (installStore.showIOSInstructions = false)}
-    class="relative rounded-2xl space-y-0"
+    label={$t('install.ios.title')}
     backdropClass="bg-black/60 items-end sm:items-center"
 >
-    <button
-        onclick={() => (installStore.showIOSInstructions = false)}
-        class="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        aria-label={$t('common.close')}
-    >
-        <X class="h-5 w-5" />
-    </button>
+    <ModalHeader
+        title={$t('install.ios.title')}
+        icon={Download}
+        onClose={() => (installStore.showIOSInstructions = false)}
+    />
 
-    <div class="flex flex-col items-center text-center gap-4">
-        <div class="mb-2 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-             <Download class="h-7 w-7" />
-        </div>
-
-        <h3 class="text-lg font-bold">{$t('install.ios.title')}</h3>
+    <div class="flex flex-col items-center gap-3 text-center">
         <p class="text-sm text-muted-foreground">
             1. {$t('install.ios.step1')} <strong class="text-primary">{$t('install.ios.share')}</strong> <svg class="inline w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
         </p>

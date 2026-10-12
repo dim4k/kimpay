@@ -10,6 +10,7 @@
     import { expenseShare } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
+    import IconTile from '#lib/components/ui/IconTile.svelte';
     import { Button } from '#lib/components/ui/button/index.js';
     import type { Expense } from '#lib/types.js';
     import { expenseShares, isCustomSplit } from '#lib/split.js';
@@ -55,6 +56,24 @@
     }
 
     let paidByMe = $derived(!!currentUserId && expense.payer === currentUserId);
+
+    // What this expense changes to my balance, in its currency: what I
+    // advanced minus my share (the other way round for money received).
+    // null when I am not in the group (no identity), undefined when it does
+    // not concern me.
+    let impact = $derived.by((): number | null | undefined => {
+        if (!currentUserId) return null;
+        if (expense.is_reimbursement) {
+            if (expense.payer === currentUserId) return expense.amount;
+            if (expense.involved?.[0] === currentUserId) return -expense.amount;
+            return undefined;
+        }
+        const involvedMe = (expense.involved ?? []).includes(currentUserId);
+        if (!paidByMe && !involvedMe) return undefined;
+        const paid = paidByMe ? expense.amount : 0;
+        const share = involvedMe ? expenseShare(expense, currentUserId, participantIds) : 0;
+        return (expense.is_income ? -1 : 1) * (paid - share);
+    });
 
     // "Paid by Laetitia", or "Paid by you" highlighted: what I paid stands out.
     let payerLabel = $derived.by(() => {
@@ -111,18 +130,18 @@
     onkeydown={handleKeydown}
 >
     <div class="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-muted/50 {isExpanded ? 'bg-muted/50' : ''}">
-        <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-xl {expense.is_reimbursement ? 'bg-success-soft text-success' : 'bg-muted'}">
+        <IconTile tone={expense.is_reimbursement ? 'success' : 'muted'} class="relative {expense.is_reimbursement ? '' : 'text-foreground'}">
             {#if expense.is_reimbursement}
-                <HandCoins class="h-5 w-5" />
+                <HandCoins />
             {:else}
                 {expense.icon || DEFAULT_EXPENSE_EMOJI}
             {/if}
             {#if hasPhotos && !isExpanded}
                 <span class="absolute -right-1 -top-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card">
-                    <Camera class="h-2.5 w-2.5" />
+                    <Camera class="size-2.5!" />
                 </span>
             {/if}
-        </div>
+        </IconTile>
 
         <div class="min-w-0 flex-1">
             <p class="truncate text-base font-medium">
@@ -141,6 +160,13 @@
             <p class="text-base font-semibold tabular-nums">
                 {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
             </p>
+            {#if impact === undefined}
+                <p class="text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
+            {:else if impact !== null && Math.abs(impact) >= 0.005}
+                <p class="text-xs font-semibold tabular-nums {impact > 0 ? 'text-success' : 'text-warning'}">
+                    {$t('expense.list.impact', { amount: `${impact > 0 ? '+' : '−'}${formatAmount(Math.abs(impact), currency, $locale)}` })}
+                </p>
+            {/if}
         </div>
     </div>
 
@@ -185,7 +211,7 @@
                     onclick={(e: MouseEvent) => { e.stopPropagation(); onRequestDelete(expense.id); }}
                 >
                     <Undo2 />
-                    {$t('common.cancel')}
+                    {$t('expense.reimbursement.undo')}
                 </Button>
             {:else}
                 <div class="grid gap-2 {hasPhotos ? 'grid-cols-3' : 'grid-cols-2'}">

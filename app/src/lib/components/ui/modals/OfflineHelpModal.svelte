@@ -12,8 +12,7 @@
     title={$t('offline.modal.title')}
     description={$t('offline.modal.desc')}
     icon={WifiOff}
-    iconBgClass="bg-muted"
-    iconColorClass="text-muted-foreground"
+    tone="muted"
     dismissible
 >
     <!-- Can Do -->

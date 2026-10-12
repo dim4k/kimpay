@@ -2,7 +2,7 @@
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { goBack } from '#lib/utils/navigation.js';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
@@ -13,22 +13,26 @@
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
   import SplitEditor from '#lib/components/expense/SplitEditor.svelte';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
+  import Badge from '#lib/components/ui/Badge.svelte';
   import { t, locale } from '#lib/i18n.js';
-  import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
+  import { DEFAULT_EXPENSE_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
 
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { modals } from '#lib/stores/modals.svelte.js';
-  import { LoaderCircle, Trash2, X } from "@lucide/svelte";
+  import { CircleAlert, CircleCheck, Sparkles, Trash2, X } from "@lucide/svelte";
+  import { slide } from 'svelte/transition';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { CURRENCY_CODES, DEFAULT_CURRENCY, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
   import { haptic } from '#lib/utils/haptic.js';
   import { notifyError } from '#lib/utils/notify.js';
   import type { Expense, SplitMode } from '#lib/types.js';
   import { toLocalISODate } from '#lib/utils/date.js';
   import { buildSplit, checkSplit } from '#lib/split.js';
   import { findSimilarExpense } from '#lib/utils/suggest.js';
+  import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
 
   let {
       kimpayId,
@@ -63,7 +67,7 @@
   let isIncome = $state(false);
   let splitMode = $state<SplitMode>('equal');
   let splitValues = $state<Record<string, number>>({});
-  
+
   let participants = $derived(activeKimpay?.participants || []);
   let involvedParticipants = $derived(participants.filter(p => involved.includes(p.id)));
   // Typed as text (decimal keyboard, "," or "." as separator).
@@ -80,6 +84,11 @@
   let newParticipantSource = $state<string | null>(null);
   let isAddingParticipant = $state(false);
 
+  // The payer is me most of the time: one line, unfolded on demand.
+  let isPayerOpen = $state(false);
+  let payerParticipant = $derived(participants.find(p => p.id === payer));
+  let myId = $derived(activeKimpay?.myParticipantId ?? null);
+
   onMount(() => {
       // Seed state from initialData if present
       if (initialData) {
@@ -95,7 +104,7 @@
              splitMode = initialData.split.mode;
              splitValues = { ...initialData.split.values };
          }
-         
+
          if (initialData.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
          }
@@ -103,7 +112,7 @@
          // New expense: use Kimpay currency
          currency = defaultCurrency;
       }
-      
+
       if (!initialData && involved.length === 0) {
           involved = participants.map(p => p.id);
       }
@@ -112,6 +121,9 @@
           payer = activeKimpay.myParticipantId;
       }
 
+      // A receipt picked from the expense list: read it right away.
+      const receipt = initialData ? null : pendingReceipt.take();
+      if (receipt) scan(receipt);
   });
 
   let isValid = $derived(!!description && amountValue > 0 && !!payer && involved.length > 0 && splitCheck.valid);
@@ -124,6 +136,25 @@
       return amountValue > 0 ? `${action} · ${formatAmount(amountValue, currency, $locale)}` : action;
   });
 
+  // Why the save button is disabled, when a field is simply empty (the
+  // participants and the split explain their own errors).
+  let missing = $derived(
+      [
+          amountValue > 0 ? null : $t('expense.form.missing_amount'),
+          description.trim() ? null : $t('expense.form.missing_description'),
+      ].filter(Boolean).join(', ')
+  );
+
+  // "0.00" or "0,00": the decimal separator of the language.
+  let amountPlaceholder = $derived((0).toLocaleString($locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+  // What each one pays, when everybody pays the same.
+  let perPerson = $derived(
+      splitMode === 'equal' && amountValue > 0 && involved.length > 1
+          ? $t('expense.form.per_person', { amount: formatAmount(amountValue / involved.length, currency, $locale) })
+          : ''
+  );
+
   /** Digits and one decimal separator, at most 8 digits and 2 decimals. */
   function sanitizeAmount(e: Event) {
       const el = e.currentTarget as HTMLInputElement;
@@ -134,16 +165,12 @@
           : raw.slice(0, sep).slice(0, 8) + raw[sep] + raw.slice(sep + 1).replace(/[.,]/g, '').slice(0, 2);
       if (clean !== el.value) el.value = clean;
       amount = clean;
-  }
-
-  function handlePhotosChange(photos: File[], existing: string[], toDelete: string[]) {
-      newPhotos = photos;
-      existingPhotos = existing;
-      photosToDelete = toDelete;
+      filled.amount = false;
   }
 
   function handlePayerChange(selected: string[]) {
       payer = selected[0] || "";
+      isPayerOpen = false;
   }
 
   function handleInvolvedChange(selected: string[]) {
@@ -154,17 +181,18 @@
       isAddingParticipant = true;
       try {
           const newP = await activeKimpay.addParticipant(name);
-          
+
           if (newP) {
              if (newParticipantSource === 'payer') {
                  payer = newP.id;
+                 isPayerOpen = false;
              }
-             
+
              if (!involved.includes(newP.id)) {
                  involved = [...involved, newP.id];
              }
           }
-          
+
           newParticipantSource = null;
       } catch (e) {
           notifyError(e, "Failed to create participant");
@@ -174,15 +202,7 @@
   }
 
   async function save() {
-      if (!isValid) return;
-      
-      if (isOfflineEdit) {
-          modals.alert({ 
-              message: $t('common.offline_edit_error'),
-              title: $t('common.offline')
-          });
-          return;
-      }
+      if (!isValid || isOfflineEdit) return;
 
       isLoading = true;
       try {
@@ -209,7 +229,7 @@
                await activeKimpay.addExpense(expenseData, newPhotos);
                toasts.success($t('toast.expense_added'));
           }
-          
+
           haptic('success');
           await goBack(`/k/${kimpayId}`);
       } catch (e) {
@@ -241,30 +261,87 @@
       return Promise.race([getExchangeRateAt(currency, defaultCurrency, date), timeout]);
   }
 
-  function handleScanComplete(result: import('./ReceiptScanner.svelte').ScanResult) {
-      // Set description and amount
+  // ---------------------------------------------------------------------------
+  // Receipt scanner
+  // ---------------------------------------------------------------------------
+
+  /** The form as it was before a scan filled it, to undo the scan. */
+  interface Snapshot {
+      description: string;
+      amount: string;
+      icon: string;
+      date: string;
+      currency: string;
+      involved: string[];
+      splitMode: SplitMode;
+      splitValues: Record<string, number>;
+      newPhotos: File[];
+  }
+
+  /** The photo being read (shown full screen until the result comes back). */
+  let scanning = $state<{ file: File; url: string } | null>(null);
+  let scanError = $state("");
+  /** Set once a scan filled the form: what to tell, and how to undo it. */
+  let scanApplied = $state<{ suggestedFrom: string | null; snapshot: Snapshot } | null>(null);
+  /** Fields filled by the scan, highlighted until edited. */
+  let filled = $state({ amount: false, description: false });
+  // Bumped to ignore the result of a cancelled scan.
+  let scanRun = 0;
+
+  // An empty new expense invites to scan; once typing started, the top bar does.
+  let showScanCard = $derived(!initialData && !isIncome && !scanApplied && !amount && !description);
+  let showScanButton = $derived(!initialData && !isIncome && !showScanCard);
+
+  async function scan(file: File) {
+      const run = ++scanRun;
+      scanError = "";
+      scanning = { file, url: URL.createObjectURL(file) };
+      try {
+          const result = await readReceipt(file, $locale);
+          if (run !== scanRun) return;
+          applyScan(result, file);
+          haptic('success');
+      } catch (error) {
+          if (run !== scanRun) return;
+          console.error('OCR Error:', error);
+          haptic('error');
+          scanError = $t(scanErrorKey(error));
+      } finally {
+          if (run === scanRun) stopScanning();
+      }
+  }
+
+  function cancelScan() {
+      scanRun++;
+      stopScanning();
+  }
+
+  function stopScanning() {
+      if (scanning) URL.revokeObjectURL(scanning.url);
+      scanning = null;
+  }
+
+  onDestroy(() => {
+      if (scanning) URL.revokeObjectURL(scanning.url);
+  });
+
+  function applyScan(result: OcrResult, photo: File) {
+      const snapshot: Snapshot = {
+          description, amount, icon, date, currency,
+          involved: [...involved],
+          splitMode,
+          splitValues: { ...splitValues },
+          newPhotos: [...newPhotos],
+      };
+
       description = result.description;
       amount = String(result.amount);
-      
-      // Update currency if valid
-      if (CURRENCY_CODES.includes(result.currency)) {
-          currency = result.currency;
-      }
-      
-      // Set emoji if provided
-      if (result.emoji) {
-          icon = result.emoji;
-      }
-      
-      // Set date if provided (format: YYYY-MM-DD)
-      if (result.date) {
-          date = result.date;
-      }
-      
-      // Add the scanned photo to the expense
-      if (result.photo) {
-          newPhotos = [...newPhotos, result.photo];
-      }
+      if (CURRENCY_CODES.includes(result.currency)) currency = result.currency;
+      if (result.emoji) icon = result.emoji;
+      // YYYY-MM-DD
+      if (result.date) date = result.date;
+      // The receipt is kept with the expense.
+      newPhotos = [...newPhotos, photo];
 
       // Same shop as a previous expense: suggest the same people (and split).
       const similar = findSimilarExpense(activeKimpay?.expenses ?? [], result.description);
@@ -282,15 +359,25 @@
               splitValues = {};
           }
       }
-      
-      modals.alert({
-          title: $t('expense.form.scan_success'),
-          message: `${result.description} - ${result.amount} ${result.currency}` +
-              (similar && suggested.length > 0 ? `
 
-${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
-          variant: 'success'
-      });
+      filled = { amount: true, description: true };
+      scanApplied = { suggestedFrom: similar && suggested.length > 0 ? similar.description : null, snapshot };
+  }
+
+  function undoScan() {
+      if (!scanApplied) return;
+      const s = scanApplied.snapshot;
+      description = s.description;
+      amount = s.amount;
+      icon = s.icon;
+      date = s.date;
+      currency = s.currency;
+      involved = s.involved;
+      splitMode = s.splitMode;
+      splitValues = s.splitValues;
+      newPhotos = s.newPhotos;
+      filled = { amount: false, description: false };
+      scanApplied = null;
   }
 </script>
 
@@ -308,8 +395,8 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
                 <X class="h-5 w-5" />
             </a>
             <h1 class="min-w-0 flex-1 truncate text-base font-bold">{title}</h1>
-            {#if !initialData && !isIncome}
-                <ReceiptScanner onScanComplete={handleScanComplete} disabled={isLoading} />
+            {#if showScanButton}
+                <ReceiptScanner onPick={scan} busy={!!scanning} disabled={isLoading} />
             {/if}
             {#if onDelete}
                 <Button variant="ghost-destructive" size="icon" onclick={onDelete} aria-label={$t('common.delete')} title={$t('common.delete')}>
@@ -320,6 +407,47 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
     </header>
 
     <div class="mx-auto w-full max-w-lg flex-1 space-y-6 px-4 pt-5 pb-28">
+        {#if scanError}
+            <div class="flex items-start gap-3 rounded-control bg-destructive/10 p-3 text-destructive" role="alert" transition:slide={{ duration: 150 }}>
+                <CircleAlert class="mt-0.5 h-5 w-5 shrink-0" />
+                <div class="min-w-0 flex-1 text-sm">
+                    <p class="font-semibold">{$t('expense.form.scan_error')}</p>
+                    <p class="text-foreground/80">{scanError}</p>
+                </div>
+                <button type="button" onclick={() => scanError = ""} class="-m-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-control hover:bg-destructive/10" aria-label={$t('common.close')}>
+                    <X class="h-4 w-4" />
+                </button>
+            </div>
+        {/if}
+
+        {#if scanApplied}
+            <div class="flex items-center gap-3 rounded-control bg-success-soft p-3 text-success" role="status" transition:slide={{ duration: 150 }}>
+                <CircleCheck class="h-5 w-5 shrink-0" />
+                <div class="min-w-0 flex-1 text-sm">
+                    <p class="font-semibold">{$t('expense.form.scan_filled')}</p>
+                    <p class="text-foreground/80">
+                        {scanApplied.suggestedFrom
+                            ? $t('expense.form.scan_suggested', { name: scanApplied.suggestedFrom })
+                            : $t('expense.form.scan_check')}
+                    </p>
+                </div>
+                <Button variant="ghost" size="sm" class="shrink-0 text-success hover:bg-success/10" onclick={undoScan}>
+                    {$t('common.undo')}
+                </Button>
+            </div>
+        {/if}
+
+        {#if showScanCard}
+            <div class="space-y-4" transition:slide={{ duration: 150 }}>
+                <ReceiptScanner variant="card" onPick={scan} busy={!!scanning} disabled={isLoading} />
+                <div class="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden="true">
+                    <span class="h-px flex-1 bg-border"></span>
+                    {$t('expense.form.or_manual')}
+                    <span class="h-px flex-1 bg-border"></span>
+                </div>
+            </div>
+        {/if}
+
         <!-- Expense or money received -->
         <SegmentedControl
             options={[
@@ -341,11 +469,14 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
                 autocomplete="off"
                 bind:value={amount}
                 oninput={sanitizeAmount}
-                placeholder={$t('expense.form.amount_placeholder')}
-                class="w-full bg-transparent text-center text-5xl font-bold tracking-tight tabular-nums outline-hidden placeholder:text-muted-foreground/40"
+                placeholder={amountPlaceholder}
+                class="w-full rounded-card bg-transparent text-center text-5xl font-bold tracking-tight tabular-nums outline-hidden transition-shadow placeholder:text-muted-foreground/40 {filled.amount ? 'ring-2 ring-primary/40' : ''}"
             />
-            <div class="flex justify-center">
+            <div class="flex items-center justify-center gap-2">
                 <CurrencySelect size="sm" position="bottom-left" bind:value={currency} />
+                {#if filled.amount}
+                    <Badge><Sparkles class="h-3 w-3" />{$t('expense.form.scan_tag')}</Badge>
+                {/if}
             </div>
         </div>
 
@@ -353,24 +484,52 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
             <Label for="description">{$t('expense.form.desc_label')}</Label>
             <div class="flex gap-2">
                 <EmojiInput bind:value={icon} />
-                <Input id="description" bind:value={description} placeholder={isIncome ? $t('expense.form.income_desc_placeholder') : $t('expense.form.desc_placeholder')} />
+                <Input
+                    id="description"
+                    bind:value={description}
+                    oninput={() => filled.description = false}
+                    placeholder={isIncome ? $t('expense.form.income_desc_placeholder') : $t('expense.form.desc_placeholder')}
+                    class={filled.description ? 'border-primary ring-2 ring-primary/40' : ''}
+                />
             </div>
         </div>
 
-        <ParticipantSelector
-            {participants}
-            selected={payer ? [payer] : []}
-            mode="single"
-            label={isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label')}
-            onSelectionChange={handlePayerChange}
-            onAddNew={() => newParticipantSource = 'payer'}
-        />
+        {#if isPayerOpen || !payerParticipant}
+            <ParticipantSelector
+                {participants}
+                selected={payer ? [payer] : []}
+                mode="single"
+                label={isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label')}
+                onSelectionChange={handlePayerChange}
+                onAddNew={() => newParticipantSource = 'payer'}
+            />
+        {:else}
+            <div class="space-y-2">
+                <Label tag="span" id="payer-label">{isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label')}</Label>
+                <button
+                    type="button"
+                    onclick={() => isPayerOpen = true}
+                    aria-describedby="payer-label"
+                    class="flex w-full min-h-14 items-center gap-3 rounded-card border bg-card px-4 py-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <Avatar name={payerParticipant.name} record={payerParticipant} class="h-9 w-9 text-xs" />
+                    <span class="flex min-w-0 flex-1 items-center gap-2">
+                        <span class="truncate text-base font-medium">{payerParticipant.name}</span>
+                        {#if payerParticipant.id === myId}
+                            <Badge>{$t('common.you')}</Badge>
+                        {/if}
+                    </span>
+                    <span class="shrink-0 text-sm font-semibold text-primary">{$t('expense.form.change')}</span>
+                </button>
+            </div>
+        {/if}
 
         <ParticipantSelector
             {participants}
             selected={involved}
             mode="multi"
             label={$t('expense.form.for_whom_label')}
+            hint={perPerson}
             onSelectionChange={handleInvolvedChange}
             onAddNew={() => newParticipantSource = 'involved'}
             showToggleAll={true}
@@ -389,22 +548,25 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
         <ListGroup>
             <DatePicker bind:value={date} label={$t('expense.form.date_label')} />
             <PhotoManager
+                bind:newPhotos
                 bind:existingPhotos
+                bind:photosToDelete
                 record={initialData}
-                onPhotosChange={handlePhotosChange}
             />
         </ListGroup>
     </div>
 
     <!-- The one save button, always in reach (fixed, like the tab bar) -->
     <div class="fixed inset-x-0 bottom-0 z-30 border-t bg-card pb-[env(safe-area-inset-bottom)]">
-        <div class="mx-auto max-w-lg px-4 py-3">
-            <Button size="lg" class="w-full" onclick={save} disabled={!isValid || isLoading || isOfflineEdit}>
-                {#if isLoading}
-                    <LoaderCircle class="animate-spin" />
-                {/if}
+        <div class="mx-auto max-w-lg space-y-1.5 px-4 py-3">
+            <Button size="lg" class="w-full" onclick={save} loading={isLoading} disabled={!isValid || isOfflineEdit}>
                 {saveLabel}
             </Button>
+            {#if missing && !isOfflineEdit}
+                <p class="text-center text-sm text-muted-foreground">
+                    {$t('expense.form.missing', { fields: missing })}
+                </p>
+            {/if}
         </div>
     </div>
 
@@ -415,8 +577,24 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
         placeholder={$t('modal.add_participant.placeholder')}
         confirmText={$t('modal.add_participant.confirm')}
         cancelText={$t('common.cancel')}
+        maxlength={NAME_MAX_LENGTH}
         isProcessing={isAddingParticipant}
         onConfirm={handleNewParticipant}
         onCancel={() => newParticipantSource = null}
     />
 </div>
+
+<!-- Reading a receipt: the photo, full screen, until the result comes back. -->
+{#if scanning}
+    <div class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background/95 p-6 backdrop-blur-sm" role="status" aria-live="polite">
+        <div class="relative max-h-[50dvh] max-w-xs overflow-hidden rounded-card border shadow-xl">
+            <img src={scanning.url} alt="" class="max-h-[50dvh] w-full object-contain" />
+            <span class="animate-scan-line absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_12px_2px] shadow-primary/60" aria-hidden="true"></span>
+        </div>
+        <div class="space-y-1 text-center">
+            <p class="text-lg font-bold">{$t('expense.form.scanning')}</p>
+            <p class="text-sm text-muted-foreground">{$t('expense.form.scanning_desc')}</p>
+        </div>
+        <Button variant="secondary" onclick={cancelScan}>{$t('common.cancel')}</Button>
+    </div>
+{/if}

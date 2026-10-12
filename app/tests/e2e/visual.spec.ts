@@ -41,7 +41,7 @@ async function setup(page: Page) {
 
 /** Waits for transient UI (toasts) to go away, then compares the viewport. */
 async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['locator']>[]) {
-    await expect(page.getByRole('alert')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('[data-toast]')).toHaveCount(0, { timeout: 10000 });
     // Focusing a field may scroll it into view (mobile): always compare the
     // top of the page, without focus.
     await page.evaluate(() => {
@@ -84,17 +84,27 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await createKimpay(page, 'Trip to Lisbon', 'Alice');
             const kimpayUrl = page.url();
 
-            await expect(page.getByText('No expenses yet.')).toBeVisible();
+            await expect(page.getByText('No expenses yet')).toBeVisible();
             await snapshot(page, `expenses-empty-${colorScheme}`);
 
-            // Second participant, from the group settings.
-            await navTo(page, /settings/i);
+            // Second participant, from the members.
+            await navTo(page, /members/i);
             await page.getByPlaceholder('New name').fill('Bob');
             await page.getByRole('button', { name: /add/i }).click();
             await expect(page.locator('[data-is-me="false"]').getByText('Bob')).toBeVisible();
-            // Transient feedback, shown once the server confirmed: wait it out.
-            await expect(page.getByText('Added!')).toBeVisible();
-            await expect(page.getByText('Added!')).toBeHidden();
+            await snapshot(page, `members-${colorScheme}`);
+
+            // Inviting: a sheet with the link and the QR code (both contain
+            // the random group id).
+            await page.getByRole('button', { name: 'Invite to the group' }).click();
+            const invite = page.getByRole('dialog', { name: 'Invite to the group' });
+            await expect(invite.getByAltText(/QR code/i)).toBeVisible();
+            await snapshot(page, `invite-${colorScheme}`, [invite.getByAltText(/QR code/i), invite.locator('.font-mono')]);
+            await page.keyboard.press('Escape');
+            await expect(invite).toBeHidden();
+
+            await navTo(page, /^group$/i);
+            await expect(page.getByRole('button', { name: /leave group/i })).toBeVisible();
             await snapshot(page, `group-settings-${colorScheme}`);
 
             // The profile: a sheet on phones, a popover on desktop.
@@ -131,10 +141,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await expect(page.getByText('Group total €84.00')).toBeVisible();
             await snapshot(page, `balance-${colorScheme}`);
 
-            // The QR code and the link contain the (random) group id.
-            await navTo(page, /share/i);
-            await expect(page.getByAltText(/QR code/i)).toBeVisible();
-            await snapshot(page, `share-${colorScheme}`, [page.getByAltText(/QR code/i), page.locator('.font-mono')]);
 
             // Another device opening the link is asked who they are.
             const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = test.info().project.use;

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { ChartPie, Plus, Settings, Share2, Wallet } from "@lucide/svelte";
+  import { ChartPie, Plus, Settings, Users, Wallet } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
 
   import { ActiveKimpay, setActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
@@ -46,6 +46,9 @@
 
   // Derived values
   let kimpayId = $derived(activeKimpay?.id ?? page.params.id ?? '');
+
+  // A group of one: inviting the others is the next step.
+  let isAlone = $derived(!!activeKimpay && !activeKimpay.loading && activeKimpay.participants.length <= 1);
 
   // Expense forms are full-screen: no tab bar (they have their own save bar).
   let isFormRoute = $derived(/\/(add|edit)(\/|$)/.test(page.url.pathname));
@@ -96,7 +99,7 @@
         <a
             href="/k/{kimpayId}/add"
             onclick={() => haptic('light')}
-            class="-mt-6 flex h-13 w-13 items-center justify-center justify-self-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-150 hover:scale-105 active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+            class="-mt-6 flex h-13 w-13 items-center justify-center justify-self-center rounded-card bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-150 hover:scale-105 active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
             title={$t('expense.add.title')}
             aria-label={$t('expense.add.title')}
         >
@@ -104,16 +107,17 @@
         </a>
 
         <NavItem
-            href="/k/{kimpayId}/share"
-            icon={Share2}
-            label={$t('nav.share')}
-            isActive={page.url.pathname.includes('/share')}
+            href="/k/{kimpayId}/members"
+            icon={Users}
+            label={$t('nav.members')}
+            isActive={page.url.pathname.includes('/members')}
+            badge={isAlone}
         />
 
         <NavItem
             href="/k/{kimpayId}/settings"
             icon={Settings}
-            label={$t('nav.settings')}
+            label={$t('nav.group')}
             isActive={page.url.pathname.includes('/settings')}
         />
     </div>

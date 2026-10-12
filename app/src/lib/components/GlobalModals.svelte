@@ -88,6 +88,7 @@
         isOpen={true}
         onClose={() => modals.closeRegister()}
         participantId={modals.registerState.participantId || ""}
+        description={modals.registerState.description}
     />
     {/await}
 {/if}

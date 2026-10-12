@@ -71,7 +71,7 @@
             <img 
                 src={getUrl(photos[currentIndex] ?? "")} 
                 alt={$t('gallery.photo_alt', { current: String(currentIndex + 1), total: String(photos.length) })} 
-                class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                class="max-w-full max-h-full object-contain rounded-control shadow-2xl"
                 transition:fade={{ duration: 200 }}
             />
         {/key}

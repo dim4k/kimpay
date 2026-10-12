@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Wallet, Check, ChevronRight, Search, SlidersHorizontal, X } from "@lucide/svelte";
+  import { Wallet, Check, ChevronRight, Plus, Search, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
+  import { goto } from '$app/navigation';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import IconTile from '#lib/components/ui/IconTile.svelte';
+  import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
+  import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -100,6 +106,11 @@
       return text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
+  /** Filters are chips: outlined, tinted once set. */
+  function chipClass(active: boolean): string {
+      return `h-9 rounded-full border px-3.5 ${active ? 'border-primary/50 bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70' : 'border-input bg-card hover:bg-muted'}`;
+  }
+
   function clearFilters() {
       search = '';
       personFilter = null;
@@ -187,14 +198,21 @@
   // Sorted by date: one list per day. Other sorts: a single list.
   let sections = $derived.by(() => {
       if (sortOption !== 'date_desc' && sortOption !== 'date_asc') {
-          return [{ key: 'all', label: '', items: expenses }];
+          return [{ key: 'all', label: '', items: expenses, total: undefined as number | undefined }];
       }
-      const days: { key: string; label: string; items: Expense[] }[] = [];
+      const days: { key: string; label: string; items: Expense[]; total?: number }[] = [];
       for (const expense of expenses) {
           const key = expense.date.slice(0, 10);
           const last = days[days.length - 1];
           if (last?.key === key) last.items.push(expense);
           else days.push({ key, label: dayLabel(key), items: [expense] });
+      }
+      // What the group spent that day (reimbursements are not spending).
+      for (const day of days) {
+          day.total = day.items.reduce(
+              (sum, e) => (e.is_reimbursement ? sum : sum + (e.is_income ? -1 : 1) * toKimpayCurrency(e)),
+              0,
+          );
       }
       return days;
   });
@@ -219,6 +237,15 @@
       }
   }
 
+  // Only me in the group (once loaded): nobody to share with yet.
+  let isAlone = $derived(!isLoading && participants.length <= 1 && !offlineStore.isOffline);
+
+  /** A receipt photographed from the empty list: the form reads it. */
+  function scanFromList(file: File) {
+      pendingReceipt.set(file);
+      goto(`/k/${kimpayId}/add`);
+  }
+
   function requestDelete(id: string) {
       if (activeKimpay) confirmDeleteExpense(activeKimpay, id);
   }
@@ -241,6 +268,18 @@
   <h1 class="sr-only">{$t('nav.expenses')}</h1>
 
   <OfflineBanner message={$t('expense.offline_warning')} />
+
+  {#if isAlone}
+      <!-- A group of one is not shared yet: inviting is the next step. -->
+      <section class="flex items-center gap-3 rounded-card border bg-card p-3 animate-pop-in">
+          <IconTile tone="primary"><UserPlus /></IconTile>
+          <div class="min-w-0 flex-1">
+              <p class="text-base font-semibold">{$t('members.alone.title')}</p>
+              <p class="text-sm text-muted-foreground">{$t('members.alone.desc')}</p>
+          </div>
+          <Button href="/k/{kimpayId}/members" variant="soft" size="sm" data-sveltekit-replacestate>{$t('members.invite_short')}</Button>
+      </section>
+  {/if}
 
   {#if !isLoading && rawExpenses.length > 0 && currentUserId}
       <!-- My balance in one line; the details are in the Balance tab. -->
@@ -292,9 +331,9 @@
 
           {#if showFilters}
               <div class="flex flex-wrap gap-2">
-                  <Dropdown position="bottom-left" label={$t('filter.person')}>
+                  <Dropdown position="bottom-left" label={$t('filter.person')} triggerClass={chipClass(!!personFilter)}>
                       {#snippet trigger()}
-                          <span class={personFilter ? 'text-primary' : ''}>
+                          <span>
                               {personFilter ? (activeKimpay?.participantsById.get(personFilter)?.name ?? $t('common.unknown')) : $t('filter.person.all')}
                           </span>
                       {/snippet}
@@ -306,9 +345,9 @@
                       {/snippet}
                   </Dropdown>
 
-                  <Dropdown position="bottom-left" label={$t('filter.type')}>
+                  <Dropdown position="bottom-left" label={$t('filter.type')} triggerClass={chipClass(typeFilter !== 'all')}>
                       {#snippet trigger()}
-                          <span class={typeFilter !== 'all' ? 'text-primary' : ''}>
+                          <span>
                               {$t(typeOptions.find(o => o.value === typeFilter)?.labelKey ?? 'filter.type.all')}
                           </span>
                       {/snippet}
@@ -320,9 +359,9 @@
                   </Dropdown>
 
                   {#if categories.length > 1 || categoryFilter}
-                      <Dropdown position="bottom-left" label={$t('filter.category')}>
+                      <Dropdown position="bottom-left" label={$t('filter.category')} triggerClass={chipClass(!!categoryFilter)}>
                           {#snippet trigger()}
-                              <span class={categoryFilter ? 'text-primary' : ''}>
+                              <span>
                                   {categoryFilter ? $t(EMOJI_CATEGORIES[categoryFilter]!.labelKey) : $t('filter.category.all')}
                               </span>
                           {/snippet}
@@ -335,7 +374,7 @@
                       </Dropdown>
                   {/if}
 
-                  <Dropdown position="bottom-left" label={$t('sort.label')}>
+                  <Dropdown position="bottom-left" label={$t('sort.label')} triggerClass={chipClass(false)}>
                       {#snippet trigger()}
                           <span>{getCurrentSortLabel()}</span>
                       {/snippet}
@@ -385,12 +424,27 @@
           {#snippet icon()}
               <Wallet class="h-12 w-12" />
           {/snippet}
+          {#snippet action()}
+              <div class="flex w-64 max-w-full flex-col gap-2">
+                  <Button href="/k/{kimpayId}/add" size="lg" class="w-full">
+                      <Plus class="size-5!" />
+                      {$t('expense.list.empty.add')}
+                  </Button>
+                  <ReceiptScanner variant="action" onPick={scanFromList} />
+              </div>
+          {/snippet}
       </EmptyState>
   {:else}
       {#each sections as section (section.key)}
           <section class="space-y-2 animate-slide-up">
               {#if section.label}
-                  <SectionLabel title={section.label} />
+                  <SectionLabel title={section.label}>
+                      {#snippet actions()}
+                          {#if section.total}
+                              <span class="text-sm font-semibold tabular-nums text-muted-foreground">{formatAmount(section.total, kimpayC, $locale)}</span>
+                          {/if}
+                      {/snippet}
+                  </SectionLabel>
               {/if}
               <ListGroup>
                   {#each section.items as expense (expense.id)}

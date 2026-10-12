@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Bug, Camera, Check, Coins, Download, Eye, Languages, LogOut, Sun, UserPlus, UserRound, Wallet } from "@lucide/svelte";
+    import { Bug, Camera, Check, Coins, Download, Eye, Languages, LoaderCircle, LogOut, Pencil, Sun, UserPlus, Wallet } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { page } from '$app/state';
     import { t, locale, LOCALE_NAMES } from '#lib/i18n.js';
@@ -13,7 +13,7 @@
     import { profileStore, hasHandles } from '#lib/stores/profile.svelte.js';
     import { userService } from '#lib/services/user.js';
     import { DEFAULT_CURRENCY } from '#lib/services/currency.js';
-    import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
+    import { DEFAULT_GROUP_ICON, NAME_MAX_LENGTH } from '#lib/constants.js';
     import { getErrorMessage } from '#lib/utils/errors.js';
     import { haptic } from '#lib/utils/haptic.js';
     import Avatar from '#lib/components/ui/Avatar.svelte';
@@ -23,6 +23,8 @@
     import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
     import Switch from '#lib/components/ui/Switch.svelte';
     import { Button } from '#lib/components/ui/button/index.js';
+    import { Input } from '#lib/components/ui/input/index.js';
+    import { Label } from '#lib/components/ui/label/index.js';
     import PaymentHandlesSheet from './PaymentHandlesSheet.svelte';
 
     interface Props {
@@ -38,8 +40,11 @@
     let kimpay = $derived(inGroup ? activeKimpayGlobal.kimpay : null);
     let me = $derived(inGroup ? activeKimpayGlobal.myParticipant : null);
 
-    let name = $derived(me?.name ?? (auth.user ? auth.user.name || auth.user.email : $t('profile.guest')));
-    let subtitle = $derived(kimpay ? '' : auth.user ? auth.user.email : $t('profile.guest_desc'));
+    // With an account, the account is who I am (one name, one photo, shared
+    // by the groups I joined); otherwise who I am in this group.
+    let name = $derived(auth.user ? auth.user.name || auth.user.email : me?.name ?? $t('profile.guest'));
+    let photoRecord = $derived(auth.user ? (auth.user.avatar ? auth.user : me) : me);
+    let canChangePhoto = $derived(!offlineStore.isOffline && (!!auth.user || !!me));
 
     let handlesSummary = $derived(
         [profileStore.handles.paypal && 'PayPal', profileStore.handles.revolut && 'Revolut'].filter(Boolean).join(', ')
@@ -85,19 +90,65 @@
         modals.identity({ kimpayId: kimpay.id });
     }
 
+    let isSavingPhoto = $state(false);
+
     async function changeAvatar(e: Event) {
         const input = e.target as HTMLInputElement;
         const file = input.files?.[0];
-        if (!file || !me) return;
+        input.value = '';
+        if (!file) return;
+        isSavingPhoto = true;
         try {
-            await activeKimpayGlobal.instance?.updateMyAvatar(file);
+            // The account photo is copied to the groups' participants by the server.
+            if (auth.user) auth.setUser(await userService.updateAvatar(auth.user.id, file));
+            else await activeKimpayGlobal.instance?.updateMyAvatar(file);
             toasts.success($t('toast.avatar_updated'));
             haptic('light');
         } catch (err) {
             console.error("Failed to update avatar", err);
             toasts.error($t('toast.avatar_update_failed'));
+        } finally {
+            isSavingPhoto = false;
         }
-        input.value = '';
+    }
+
+    function removeAvatar() {
+        modals.confirm({
+            title: $t('user_settings.avatar.remove_confirm_title'),
+            description: $t('user_settings.avatar.remove_confirm_desc'),
+            confirmText: $t('user_settings.avatar.remove'),
+            variant: 'destructive',
+            onConfirm: async () => {
+                if (!auth.user) return;
+                auth.setUser(await userService.removeAvatar(auth.user.id));
+                isEditingAccount = false;
+            },
+        });
+    }
+
+    // Account name, edited in place
+    let isEditingAccount = $state(false);
+    let accountName = $state('');
+    let isSavingName = $state(false);
+
+    function editAccount() {
+        accountName = auth.user?.name ?? '';
+        isEditingAccount = true;
+    }
+
+    async function saveName() {
+        if (!auth.user || !accountName.trim()) return;
+        isSavingName = true;
+        try {
+            auth.setUser(await userService.updatePreferences(auth.user.id, { name: accountName.trim() }));
+            isEditingAccount = false;
+            toasts.success($t('common.saved'));
+        } catch (e) {
+            console.error('Failed to save name', e);
+            toasts.error(getErrorMessage(e, $t));
+        } finally {
+            isSavingName = false;
+        }
     }
 
     async function saveCurrency(code: string) {
@@ -119,36 +170,73 @@
 </script>
 
 <div class="space-y-4">
-    <!-- Who I am (here) -->
-    <div class="flex items-center gap-3 px-1">
-        <div class="group relative shrink-0">
-            <Avatar name={name} record={me ?? auth.user} class="h-12 w-12 text-base" />
-            {#if me && !offlineStore.isOffline}
-                <button
-                    class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                    onclick={() => fileInput?.click()}
-                    aria-label={$t('user_settings.avatar.change')}
-                >
-                    <Camera class="h-5 w-5 text-white" />
-                </button>
-                <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={changeAvatar} />
+    <!-- Who I am: the account (one photo, one name), and who I am in this group -->
+    <div class="space-y-3 px-1">
+        <div class="flex items-center gap-3">
+            <div class="group relative shrink-0">
+                <Avatar name={name} record={photoRecord} class="h-12 w-12 text-base" />
+                {#if canChangePhoto}
+                    <button
+                        class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity {isSavingPhoto ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}"
+                        onclick={() => fileInput?.click()}
+                        disabled={isSavingPhoto}
+                        aria-label={$t('user_settings.avatar.change')}
+                    >
+                        {#if isSavingPhoto}
+                            <LoaderCircle class="h-5 w-5 animate-spin text-white" />
+                        {:else}
+                            <Camera class="h-5 w-5 text-white" />
+                        {/if}
+                    </button>
+                    <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={changeAvatar} />
+                {/if}
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-base font-bold">{name}</p>
+                {#if auth.user}
+                    <p class="truncate text-sm text-muted-foreground">{auth.user.email}</p>
+                {:else if !kimpay}
+                    <p class="truncate text-sm text-muted-foreground">{$t('profile.guest_desc')}</p>
+                {/if}
+            </div>
+            {#if auth.user && !isEditingAccount && !offlineStore.isOffline}
+                <Button variant="ghost" size="icon" class="text-muted-foreground" onclick={editAccount} aria-label={$t('profile.edit_account')} title={$t('profile.edit_account')}>
+                    <Pencil />
+                </Button>
             {/if}
         </div>
-        <div class="min-w-0 flex-1">
-            <p class="truncate text-base font-bold">{name}</p>
-            {#if kimpay}
-                <p class="truncate text-sm text-muted-foreground">
-                    {$t('profile.in_group', { name: `${kimpay.icon || DEFAULT_GROUP_ICON} ${kimpay.name}` })}
-                </p>
+
+        {#if isEditingAccount}
+            <div class="space-y-3 rounded-card border bg-card p-3" transition:slide={{ duration: 150 }}>
+                <div class="space-y-2">
+                    <Label for="account-name">{$t('user_settings.account.name')}</Label>
+                    <Input id="account-name" bind:value={accountName} maxlength={NAME_MAX_LENGTH} placeholder={$t('user_settings.account.name_placeholder')} onkeydown={(e) => e.key === 'Enter' && saveName()} />
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    {#if auth.user?.avatar}
+                        <Button variant="ghost-destructive" size="sm" onclick={removeAvatar}>{$t('profile.remove_photo')}</Button>
+                    {/if}
+                    <span class="flex-1"></span>
+                    <Button variant="secondary" size="sm" onclick={() => isEditingAccount = false}>{$t('common.cancel')}</Button>
+                    <Button size="sm" onclick={saveName} loading={isSavingName} disabled={!accountName.trim()}>{$t('common.save')}</Button>
+                </div>
+            </div>
+        {/if}
+
+        {#if kimpay}
+            <div class="flex flex-wrap items-center gap-x-2 rounded-control bg-muted/60 px-3 py-2 text-sm">
+                <span class="min-w-0 truncate text-muted-foreground">
+                    {me && auth.user
+                        ? $t('profile.here_as', { name: me.name, group: `${kimpay.icon || DEFAULT_GROUP_ICON} ${kimpay.name}` })
+                        : $t('profile.in_group', { name: `${kimpay.icon || DEFAULT_GROUP_ICON} ${kimpay.name}` })}
+                </span>
                 {#if !offlineStore.isOffline}
-                    <button onclick={changeIdentity} class="text-sm font-semibold text-primary hover:underline">
+                    <button onclick={changeIdentity} class="ml-auto font-semibold text-primary hover:underline">
                         {me ? $t('profile.not_me') : $t('identity.title')}
                     </button>
                 {/if}
-            {:else if subtitle}
-                <p class="truncate text-sm text-muted-foreground">{subtitle}</p>
-            {/if}
-        </div>
+            </div>
+        {/if}
     </div>
 
     {#if !auth.user}
@@ -218,7 +306,6 @@
 
     {#if auth.user}
         <ListGroup>
-            <ListRow icon={UserRound} title={$t('user_settings.title')} value={auth.user.email} href="/settings" />
             <ListRow icon={LogOut} tone="danger" title={$t('auth.logout')} onclick={() => { onClose(); auth.confirmLogout(); }} />
         </ListGroup>
     {/if}

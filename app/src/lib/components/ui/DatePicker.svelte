@@ -3,6 +3,7 @@
   import { t, locale } from '#lib/i18n.js';
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import { dismissable } from '#lib/attachments/dismissable.js';
+  import IconTile from './IconTile.svelte';
 
   /** Local calendar date, "YYYY-MM-DD". Rendered as a row of a ListGroup. */
   let { value = $bindable(), label }: { value: string; label: string } = $props();
@@ -115,9 +116,7 @@
         aria-haspopup="dialog"
         aria-expanded={isOpen}
     >
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <CalendarIcon class="h-4 w-4" />
-        </span>
+        <IconTile size="sm"><CalendarIcon /></IconTile>
         <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-sm text-muted-foreground">{label}</span>
             <span class="truncate text-base font-medium capitalize">{displayValue}</span>

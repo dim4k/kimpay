@@ -4,6 +4,7 @@
     import { formatAmount } from '#lib/services/currency.js';
     import { checkSplit, defaultSplitValues, distribute, fromMinor, splitWeights, toMinor } from '#lib/split.js';
     import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
+    import { Label } from '#lib/components/ui/label/index.js';
 
     interface Props {
         /** Participants involved in the expense */
@@ -48,7 +49,7 @@
 </script>
 
 <div class="space-y-2">
-    <span class="block text-sm font-semibold text-muted-foreground">{$t('expense.split.label')}</span>
+    <Label tag="span">{$t('expense.split.label')}</Label>
     <SegmentedControl
         options={modes.map((m) => ({ value: m.value, label: $t(m.key) }))}
         bind:value={mode}

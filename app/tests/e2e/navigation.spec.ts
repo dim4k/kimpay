@@ -11,21 +11,21 @@ test.describe('Navigation & UX', () => {
   test('Navbar switches between all pages', async ({ page }) => {
     // Start on expenses page
     await expect(page).toHaveURL(/\/k\//);
-    
+
     // Go to Balance
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
     await expect(page).toHaveURL(/\/balance/);
-    
-    // Go to Share
-    await page.getByRole('link', { name: /share|partager/i }).click();
-    await expect(page).toHaveURL(/\/share/);
-    
-    // Go to Settings
-    await page.getByRole('link', { name: /settings|paramètres/i }).click();
+
+    // Go to Members
+    await page.getByRole('navigation').getByRole('link', { name: /members|membres/i }).click();
+    await expect(page).toHaveURL(/\/members/);
+
+    // Go to the group settings
+    await page.getByRole('navigation').getByRole('link', { name: /^(group|groupe)$/i }).click();
     await expect(page).toHaveURL(/\/settings/);
-    
+
     // Go back to Expenses
-    await page.getByRole('link', { name: /expenses|dépenses/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /expenses|dépenses/i }).click();
     await expect(page).toHaveURL(/\/k\/[a-z0-9]+\/?$/);
   });
 
@@ -33,7 +33,7 @@ test.describe('Navigation & UX', () => {
     // The central button in the navbar for adding expenses
     const addLink = page.getByRole('link', { name: /add expense/i });
     await expect(addLink).toBeVisible();
-    
+
     await addLink.click();
     await expect(page).toHaveURL(/\/add/);
   });
@@ -57,8 +57,8 @@ test.describe('Navigation & UX', () => {
     const tabs = page.getByRole('navigation');
     await tabs.getByRole('link', { name: /balance/i }).click();
     await expect(page).toHaveURL(/\/balance/);
-    await tabs.getByRole('link', { name: /share/i }).click();
-    await expect(page).toHaveURL(/\/share/);
+    await tabs.getByRole('link', { name: /members/i }).click();
+    await expect(page).toHaveURL(/\/members/);
 
     // Back leaves the group instead of replaying the tabs
     await page.goBack();
@@ -98,26 +98,29 @@ test.describe('Navigation & UX', () => {
     await expect(profile).toBeHidden();
   });
 
-  test('Share page shows invite options', async ({ page }) => {
-    await page.getByRole('link', { name: /share|partager/i }).click();
-    
-    // Should show Copy Link button specifically
-    const copyBtn = page.getByRole('button', { name: /copy link|copier/i });
+  test('Members page lists the group and invites', async ({ page }) => {
+    await page.getByRole('navigation').getByRole('link', { name: /members|membres/i }).click();
+
+    // The creator is the current identity
+    // (scoped: the header also shows the identity name)
+    await expect(page.locator('[data-is-me="true"]').getByText('Navigator')).toBeVisible();
+
+    // Invite: a sheet with the link (copy) and the QR code
+    await page.getByRole('button', { name: 'Invite to the group' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Invite to the group' });
+    const copyBtn = sheet.getByRole('button', { name: /copy link|copier/i });
     await expect(copyBtn).toBeVisible();
     await expect(copyBtn).toBeEnabled();
+    await expect(sheet.getByAltText(/QR code/i)).toBeVisible();
   });
 
-  test('Settings page shows group info', async ({ page }) => {
-    await page.getByRole('link', { name: /settings|paramètres/i }).click();
-    
+  test('Group page shows group info', async ({ page }) => {
+    await page.getByRole('navigation').getByRole('link', { name: /^(group|groupe)$/i }).click();
+
     // Group name should be shown (header and group card), and editable
     await expect(page.getByText('Navigation Test').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
-    
-    // Participant list should show the creator as the current identity
-    // (scoped: the header also shows the identity name)
-    await expect(page.locator('[data-is-me="true"]').getByText('Navigator')).toBeVisible();
-    
+
     // Leave/Delete buttons should exist
     await expect(page.getByRole('button', { name: /leave|quitter/i })).toBeVisible();
   });

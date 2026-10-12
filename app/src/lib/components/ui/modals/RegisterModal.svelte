@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { UserPlus, LoaderCircle } from "@lucide/svelte";
+    import { UserPlus } from "@lucide/svelte";
     import { t, locale } from '#lib/i18n.js';
     import BaseInfoModal from './BaseInfoModal.svelte';
     import { Input } from "#lib/components/ui/input/index.js";
@@ -14,10 +14,12 @@
         isOpen?: boolean;
         onClose: () => void;
         participantId?: string;
+        /** Why an account is asked for (replaces the default description) */
+        description?: string | undefined;
     }
 
     // Mounted only while open (see GlobalModals): state starts fresh each time.
-    let { isOpen = false, onClose, participantId = "" }: Props = $props();
+    let { isOpen = false, onClose, participantId = "", description }: Props = $props();
     
     let name = $state("");
     let email = $state("");
@@ -55,7 +57,7 @@
     {isOpen} 
     {onClose}
     title={$t('register.title')}
-    description={$t('register.desc')}
+    description={description || $t('register.desc')}
     icon={UserPlus}
 
 >
@@ -67,8 +69,8 @@
     {:else}
         <form onsubmit={handleSubmit} class="space-y-4 pt-1">
             <div class="space-y-3">
-                <div class="space-y-1">
-                    <Label for="name" class="text-xs">{$t('home.create.my_name_label')}</Label>
+                <div class="space-y-2">
+                    <Label for="name">{$t('home.create.my_name_label')}</Label>
                     <Input 
                         id="name"
                         placeholder={$t('register.name_placeholder')}
@@ -76,8 +78,8 @@
                         required
                     />
                 </div>
-                <div class="space-y-1">
-                    <Label for="email" class="text-xs">{$t('home.create.email_label')}</Label>
+                <div class="space-y-2">
+                    <Label for="email">{$t('home.create.email_label')}</Label>
                     <Input 
                         id="email"
                         type="email" 
@@ -90,10 +92,7 @@
                 <FieldError message={error} />
             </div>
 
-            <Button type="submit" class="w-full" disabled={isLoading || !email || !name}>
-                {#if isLoading}
-                    <LoaderCircle class="h-4 w-4 animate-spin mr-2" />
-                {/if}
+            <Button type="submit" class="w-full" loading={isLoading} disabled={!email || !name}>
                 {$t('register.button')}
             </Button>
         </form>

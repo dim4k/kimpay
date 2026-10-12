@@ -41,10 +41,10 @@ test.describe('Sync between devices', () => {
         await createKimpay(page, 'News Test', 'Alice');
         await dismissInstallPrompt(page);
         const kimpayUrl = page.url();
-        await page.goto(kimpayUrl.replace(/\/?$/, '/settings'));
+        await page.goto(kimpayUrl.replace(/\/?$/, '/members'));
         await page.getByPlaceholder('New name').fill('Bob');
         await page.getByRole('button', { name: /add/i }).click();
-        await expect(page.getByText('Bob')).toBeVisible();
+        await expect(page.getByText('Bob', { exact: true })).toBeVisible();
 
         // Mine do not count.
         await page.getByRole('navigation').getByRole('link', { name: /expenses/i }).click();

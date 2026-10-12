@@ -3,6 +3,8 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { t } from '#lib/i18n.js';
   import Modal from './Modal.svelte';
+  import ModalHeader from './ModalHeader.svelte';
+  import ModalActions from './ModalActions.svelte';
 
   interface Props {
       isOpen?: boolean;
@@ -11,19 +13,21 @@
       confirmText?: string;
       cancelText?: string;
       isProcessing?: boolean;
+      maxlength?: number;
       onConfirm: (value: string) => void;
       onCancel: () => void;
   }
 
-  let { 
-      isOpen = false, 
-      title, 
-      placeholder = "", 
-      confirmText = $t('common.confirm'), 
-      cancelText = $t('common.cancel'), 
+  let {
+      isOpen = false,
+      title,
+      placeholder = "",
+      confirmText = $t('common.confirm'),
+      cancelText = $t('common.cancel'),
       isProcessing = false,
-      onConfirm, 
-      onCancel 
+      maxlength,
+      onConfirm,
+      onCancel
   }: Props = $props();
 
   let value = $state("");
@@ -36,27 +40,24 @@
   }
 </script>
 
-<Modal {isOpen} onClose={isProcessing ? undefined : onCancel}>
-    <h2 class="text-center text-xl font-bold">{title}</h2>
-    
-    <Input 
-        bind:value={value} 
-        {placeholder} 
+<Modal {isOpen} onClose={isProcessing ? undefined : onCancel} label={title}>
+    <ModalHeader {title} />
+
+    <Input
+        bind:value={value}
+        {placeholder}
+        {maxlength}
+        aria-label={title}
         autofocus
         onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
     />
 
-    <div class="flex gap-3 pt-2">
-        <Button variant="secondary" class="flex-1" onclick={onCancel} disabled={isProcessing}>
+    <ModalActions>
+        <Button variant="secondary" onclick={onCancel} disabled={isProcessing}>
             {cancelText}
         </Button>
-        <Button 
-            variant="default" 
-            class="flex-1" 
-            onclick={handleSubmit} 
-            disabled={isProcessing || !value.trim()}
-        >
-            {isProcessing ? "..." : confirmText}
+        <Button onclick={handleSubmit} loading={isProcessing} disabled={!value.trim()}>
+            {confirmText}
         </Button>
-    </div>
+    </ModalActions>
 </Modal>

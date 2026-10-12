@@ -3,6 +3,7 @@
     import { t } from '#lib/i18n.js';
     import { Plus } from '@lucide/svelte';
     import Avatar from '#lib/components/ui/Avatar.svelte';
+    import { Label } from '#lib/components/ui/label/index.js';
 
     interface Props {
         /** List of available participants */
@@ -13,6 +14,8 @@
         mode: 'single' | 'multi';
         /** Label for the section */
         label: string;
+        /** Shown after the label (e.g. what each one pays) */
+        hint?: string;
         /** Callback when selection changes */
         onSelectionChange: (selected: string[]) => void;
         /** Callback to add a new participant */
@@ -26,6 +29,7 @@
         selected = $bindable([]),
         mode,
         label,
+        hint = '',
         onSelectionChange,
         onAddNew,
         showToggleAll = false
@@ -66,12 +70,15 @@
 
 <div class="space-y-2" role="group" aria-label={label}>
     <div class="flex min-h-6 items-center justify-between">
-        <span class="text-sm font-semibold text-muted-foreground">
+        <Label tag="span">
             {label}
             {#if mode === 'multi'}
                 <span class="font-normal">({selectedCount})</span>
             {/if}
-        </span>
+            {#if hint}
+                <span class="font-normal">·</span> <span class="text-foreground">{hint}</span>
+            {/if}
+        </Label>
 
         {#if showToggleAll && mode === 'multi'}
             <button type="button" onclick={toggleAll} class="text-sm font-semibold text-primary hover:underline">

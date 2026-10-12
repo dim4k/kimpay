@@ -6,6 +6,8 @@
     import { storageService } from '#lib/services/storage.js';
     import { kimpayService } from '#lib/services/kimpay.js';
     import { modals } from '#lib/stores/modals.svelte.js';
+    import { toasts } from '#lib/stores/toasts.svelte.js';
+    import IconTile from '#lib/components/ui/IconTile.svelte';
     import { auth } from '#lib/stores/auth.svelte.js';
     import EmptyState from '#lib/components/ui/EmptyState.svelte';
     import ListGroup from '#lib/components/ui/ListGroup.svelte';
@@ -106,14 +108,14 @@
                     if (participantId) {
                         const result = await kimpayService.leave(id, participantId);
                         if (!result.success) {
-                            modals.alert({ message: $t('error.generic'), variant: 'error' });
+                            toasts.error($t('error.generic'));
                             return;
                         }
                     }
                     await recentsStore.forget(id);
                 } catch (e) {
                     console.error("Error leaving kimpay", e);
-                    modals.alert({ message: $t('error.generic'), variant: 'error' });
+                    toasts.error($t('error.generic'));
                 }
             }
         });
@@ -146,7 +148,7 @@
                             onclick={() => haptic('light')}
                             class="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 transition-colors duration-150 hover:bg-muted/50"
                         >
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-muted text-2xl" aria-hidden="true">{k.icon || DEFAULT_GROUP_ICON}</span>
+                            <IconTile>{k.icon || DEFAULT_GROUP_ICON}</IconTile>
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-base {summary?.news ? 'font-semibold' : 'font-medium'}">{k.name}</span>
                                 {#if summary}

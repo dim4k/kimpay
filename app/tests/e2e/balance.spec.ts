@@ -11,14 +11,14 @@ test.describe('Balance & Debts', () => {
   test('Shows balanced state when no expenses', async ({ page }) => {
     // Add another participant (required to have someone to owe/be owed by)
     const url = page.url();
-    await page.goto(url.replace(/\/?$/, '/settings'));
+    await page.goto(url.replace(/\/?$/, '/members'));
     await page.getByPlaceholder('New name').fill('Other');
     await page.getByRole('button', { name: /add/i }).click();
-    await expect(page.getByText('Other')).toBeVisible();
+    await expect(page.getByText('Other', { exact: true })).toBeVisible();
 
     // Navigate to balance page
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
-    
+
     // With no expenses, should show "No expenses yet" empty state
     await expect(page.getByText(/no expenses/i)).toBeVisible({ timeout: 5000 });
   });
@@ -26,20 +26,19 @@ test.describe('Balance & Debts', () => {
   test('Shows correct debt after shared expense', async ({ page }) => {
     // 1. First add another participant BEFORE creating expense
     const url = page.url();
-    const settingsUrl = url.replace(/\/?$/, '/settings');
-    await page.goto(settingsUrl);
-    
+    await page.goto(url.replace(/\/?$/, '/members'));
+
     await page.getByPlaceholder('New name').fill('Debtor');
     await page.getByRole('button', { name: /add/i }).click();
-    await expect(page.getByText('Debtor')).toBeVisible();
+    await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
 
     // 2. Add expense paid by Payer (me), shared with both
     await page.getByRole('link', { name: /expenses/i }).click();
     await page.getByRole('link', { name: /add expense/i }).click();
-    
+
     await page.getByPlaceholder('What was it for?').fill('Test Expense');
     await page.getByPlaceholder('0.00').fill('100');
-    
+
     // By default all participants should be selected
     await page.getByRole('button', { name: /save|enregistrer/i }).first().click();
     await expect(page.getByText('Test Expense')).toBeVisible();
@@ -57,11 +56,11 @@ test.describe('Balance & Debts', () => {
   test('Shows debt when I owe money', async ({ page }) => {
     // 1. Add another participant
     const url = page.url();
-    await page.goto(url.replace(/\/?$/, '/settings'));
-    
+    await page.goto(url.replace(/\/?$/, '/members'));
+
     await page.getByPlaceholder('New name').fill('Rich Person');
     await page.getByRole('button', { name: /add/i }).click();
-    await expect(page.getByText('Rich Person')).toBeVisible();
+    await expect(page.getByText('Rich Person', { exact: true })).toBeVisible();
 
     // 2. Switch identity to Rich Person so they pay
     await switchIdentity(page, 'Rich Person');
@@ -69,10 +68,10 @@ test.describe('Balance & Debts', () => {
     // 3. Add expense paid by Rich Person (now me), shared with both
     await page.getByRole('link', { name: /expenses/i }).click();
     await page.getByRole('link', { name: /add expense/i }).click();
-    
+
     await page.getByPlaceholder('What was it for?').fill('Luxury Item');
     await page.getByPlaceholder('0.00').fill('200');
-    
+
     await page.getByRole('button', { name: /save|enregistrer/i }).first().click();
 
     // 4. Switch back to Payer to see debt

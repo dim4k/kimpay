@@ -6,10 +6,10 @@ async function setupGroup(page: Page, name: string) {
     await createKimpay(page, name, 'Payer');
     await dismissInstallPrompt(page);
     const base = page.url().replace(/\/$/, '');
-    await page.goto(`${base}/settings`);
+    await page.goto(`${base}/members`);
     await page.getByPlaceholder('New name').fill('Other');
     await page.getByRole('button', { name: /^add$/i }).click();
-    await expect(page.getByText('Other')).toBeVisible();
+    await expect(page.getByText('Other', { exact: true })).toBeVisible();
     return base;
 }
 
@@ -131,8 +131,8 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByLabel('PayPal.me')).toHaveValue('payer.pp');
         await page.getByRole('dialog', { name: 'My payment links' }).getByRole('button', { name: 'Cancel' }).click();
 
-        // The read-only link is one of the ways to share the group.
-        await page.goto(`${base}/share`);
+        // The read-only link is a setting of the group.
+        await page.goto(`${base}/settings`);
         await page.getByRole('button', { name: 'Create the link' }).click();
         const link = page.locator('span.font-mono', { hasText: '/r/' });
         await expect(link).toBeVisible();
@@ -149,7 +149,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveAttribute('href', 'https://paypal.me/payer.pp/50.00EUR');
 
         // Once disabled, the link stops working.
-        await page.goto(`${base}/share`);
+        await page.goto(`${base}/settings`);
         await page.getByRole('button', { name: 'Disable the link' }).click();
         await page.getByRole('dialog').getByRole('button', { name: 'Disable the link' }).click();
         await page.goto(url);

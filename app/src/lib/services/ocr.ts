@@ -99,3 +99,30 @@ export async function compressImage(file: File, maxSizeKB = 1024): Promise<strin
         img.src = base64;
     });
 }
+
+/**
+ * Reads a receipt photo: compressed first when the browser can draw it
+ * (formats it cannot, like HEIC outside Safari, are sent as is: the scanner
+ * reads them).
+ */
+export async function readReceipt(file: File, language: string): Promise<OcrResult> {
+    const image = await compressImage(file).catch(() => fileToBase64(file));
+    return scanReceipt(image, language);
+}
+
+/** Why a receipt could not be read, from the error of `readReceipt`. */
+export function scanErrorKey(
+    error: unknown,
+): 'expense.form.scan_login_required_desc' | 'expense.form.scan_rate_limited' | 'expense.form.scan_unreadable' | 'error.generic' {
+    // PocketBase errors carry the HTTP status (not in the message).
+    switch ((error as { status?: number } | null)?.status) {
+        case 401:
+            return 'expense.form.scan_login_required_desc';
+        case 429:
+            return 'expense.form.scan_rate_limited';
+        case 422:
+            return 'expense.form.scan_unreadable';
+        default:
+            return 'error.generic';
+    }
+}
