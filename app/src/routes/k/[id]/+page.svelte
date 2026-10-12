@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Wallet, Check, ChevronRight, Plus, Search, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
+  import { Wallet, Check, ChevronRight, Plus, Search, Share2, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
+  import InviteSheet from '#lib/components/members/InviteSheet.svelte';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
+  import { NAME_MAX_LENGTH } from '#lib/constants.js';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { getErrorMessage } from '#lib/utils/errors.js';
   import { goto, replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
@@ -326,9 +331,28 @@
       }
   }
 
-  // Only me in the group (once loaded): nobody to share with yet. Said on the
-  // empty list only: the dot on the Members tab keeps saying it after.
-  let isAlone = $derived(!isLoading && participants.length <= 1 && !offlineStore.isOffline && rawExpenses.length === 0);
+  // A group without expenses yet (just created): who is in comes first. Once
+  // it is used, the Members tab takes over (with a dot while I am alone).
+  let isSettingUp = $derived(!isLoading && rawExpenses.length === 0 && !offlineStore.isOffline);
+  let others = $derived(participants.filter(p => p.id !== currentUserId));
+  let newMember = $state("");
+  let isAddingMember = $state(false);
+  let isInviteOpen = $state(false);
+
+  async function addMember() {
+      const name = newMember.trim();
+      if (!name || !activeKimpay) return;
+      isAddingMember = true;
+      try {
+          await activeKimpay.addParticipant(name);
+          newMember = "";
+      } catch (e) {
+          console.error(e);
+          toasts.error(getErrorMessage(e, $t));
+      } finally {
+          isAddingMember = false;
+      }
+  }
 
   let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId);
   let hasNews = $derived(!isLoading && newIds.size > 0);
@@ -378,15 +402,42 @@
 
   <OfflineBanner message={$t('expense.offline_warning')} />
 
-  {#if isAlone}
-      <!-- A group of one is not shared yet: inviting is the next step. -->
-      <section class="flex items-center gap-3 rounded-card border bg-card p-3 animate-pop-in">
-          <IconTile tone="primary"><UserPlus /></IconTile>
-          <div class="min-w-0 flex-1">
-              <p class="text-base font-semibold">{$t('members.alone.title')}</p>
-              <p class="text-sm text-muted-foreground">{$t('members.alone.desc')}</p>
+  {#if isSettingUp}
+      <!-- A new group: the names of the others, then the link to send them. -->
+      <section class="space-y-3 rounded-card border bg-card p-4 animate-pop-in" aria-labelledby="setup-title">
+          <div class="flex items-center gap-3">
+              <IconTile tone="primary"><UserPlus /></IconTile>
+              <div class="min-w-0 flex-1">
+                  <h2 id="setup-title" class="text-base font-semibold">{$t('members.setup.title')}</h2>
+                  <p class="text-sm text-muted-foreground">{others.length === 0 ? $t('members.setup.desc') : $t('members.setup.desc_more')}</p>
+              </div>
           </div>
-          <Button href="/k/{kimpayId}/members" variant="soft" size="sm" data-sveltekit-replacestate>{$t('members.invite_short')}</Button>
+          {#if others.length > 0}
+              <ul class="flex flex-wrap gap-2" aria-label={$t('nav.members')}>
+                  {#each others as p (p.id)}
+                      <li class="flex h-9 items-center gap-2 rounded-full bg-muted pl-1 pr-3 text-sm font-medium">
+                          <Avatar name={p.name} record={p} class="h-7 w-7 text-[0.625rem]" />
+                          {p.name}
+                      </li>
+                  {/each}
+              </ul>
+          {/if}
+          <div class="flex gap-2">
+              <Input
+                  bind:value={newMember}
+                  maxlength={NAME_MAX_LENGTH}
+                  placeholder={$t('settings.participants.placeholder')}
+                  aria-label={$t('settings.participants.placeholder')}
+                  onkeydown={(e) => e.key === 'Enter' && addMember()}
+              />
+              <Button size="icon" class="shrink-0" onclick={addMember} loading={isAddingMember} disabled={!newMember.trim()} aria-label={$t('settings.participants.add')}>
+                  {#if !isAddingMember}<Plus />{/if}
+              </Button>
+          </div>
+          <Button variant="soft" class="w-full" onclick={() => isInviteOpen = true}>
+              <Share2 />
+              {$t('members.setup.send_link')}
+          </Button>
       </section>
   {/if}
 
@@ -641,3 +692,10 @@
       {/each}
   {/if}
 </div>
+
+<InviteSheet
+    isOpen={isInviteOpen}
+    onClose={() => isInviteOpen = false}
+    link={kimpayId ? `${window.location.origin}/k/${kimpayId}` : ''}
+    groupName={activeKimpay?.kimpay?.name ?? 'Kimpay'}
+/>

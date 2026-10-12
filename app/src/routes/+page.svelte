@@ -7,7 +7,8 @@
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { auth } from '#lib/stores/auth.svelte.js';
-  import { Plus, Link, CloudOff } from '@lucide/svelte';
+  import { Plus, QrCode, CloudOff } from '@lucide/svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
   import { t } from '#lib/i18n.js';
 
   type Flow = 'create' | 'join';
@@ -26,7 +27,8 @@
 
   // Newcomers: one card, create or join.
   let tab = $state<Flow>('create');
-  // Returning users: a tile opens the flow below it.
+  // Returning users: a new group is the main action; joining is rare (a
+  // link or a QR code opens the group by itself).
   let openFlow = $state<Flow | null>(null);
 
   function toggleFlow(flow: Flow) {
@@ -51,26 +53,19 @@
         {#if offlineStore.isOffline}
             {@render offlineNotice()}
         {:else}
-            <div class="grid grid-cols-2 gap-3">
-                <button
-                    type="button"
-                    onclick={() => toggleFlow('create')}
-                    aria-expanded={openFlow === 'create'}
-                    class="flex flex-col items-start gap-2 rounded-card border border-primary bg-primary p-4 text-left text-primary-foreground transition-transform duration-150 active:scale-[0.98] {openFlow === 'create' ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}"
-                >
-                    <Plus class="h-6 w-6" />
-                    <span class="text-base font-bold">{$t('home.tile.create')}</span>
-                    <span class="text-sm opacity-85">{$t('home.tile.create_desc')}</span>
-                </button>
+            <div class="space-y-1">
+                <Button size="lg" class="w-full" onclick={() => toggleFlow('create')} aria-expanded={openFlow === 'create'}>
+                    <Plus class="size-5!" />
+                    {$t('home.tile.create')}
+                </Button>
                 <button
                     type="button"
                     onclick={() => toggleFlow('join')}
                     aria-expanded={openFlow === 'join'}
-                    class="flex flex-col items-start gap-2 rounded-card border bg-card p-4 text-left transition-transform duration-150 active:scale-[0.98] {openFlow === 'join' ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}"
+                    class="flex min-h-11 w-full items-center justify-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft"
                 >
-                    <Link class="h-6 w-6 text-primary" />
-                    <span class="text-base font-bold">{$t('home.tile.join')}</span>
-                    <span class="text-sm text-muted-foreground">{$t('home.tile.join_desc')}</span>
+                    <QrCode class="h-4 w-4" />
+                    {$t('home.join.have_link')}
                 </button>
             </div>
 

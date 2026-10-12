@@ -17,6 +17,11 @@ export const userService = {
     },
 
     /** Save the profile's payment handles ("" clears one). */
+    /** The groups archived by the user (see archiveStore). */
+    async updateArchived(userId: string, ids: string[]): Promise<User> {
+        return await pb.collection('users').update<User>(userId, { archived_kimpays: ids });
+    },
+
     async updatePaymentHandles(userId: string, handles: { paypal: string; revolut: string }): Promise<User> {
         return await pb.collection('users').update<User>(userId, handles);
     },

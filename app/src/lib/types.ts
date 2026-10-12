@@ -8,6 +8,8 @@ export interface User {
     /** Payment handles of the profile (private, see profileStore) */
     paypal?: string;
     revolut?: string;
+    /** Groups archived by the user (null until a first one) */
+    archived_kimpays?: string[] | null;
     created: string;
     updated: string;
 }

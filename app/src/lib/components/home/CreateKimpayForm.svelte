@@ -2,7 +2,7 @@
     import { Button } from "#lib/components/ui/button/index.js";
     import { Input } from "#lib/components/ui/input/index.js";
     import { Label } from "#lib/components/ui/label/index.js";
-    import { Plus, X, ChevronDown } from "@lucide/svelte";
+    import { ChevronDown } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { t, locale } from '#lib/i18n.js';
     import { DEFAULT_KIMPAY_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
@@ -28,13 +28,12 @@
     let kimpayIcon = $state(DEFAULT_KIMPAY_EMOJI); 
     let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
     let creatorName = $state("");
-    let newParticipantName = $state("");
-    let otherParticipants = $state<string[]>([]);
     let creatorEmail = $state("");
     let isEmailHelpOpen = $state(false);
     let emailError = $state("");
     let isLoading = $state(false);
-    // Email and other participants are optional: folded by default.
+    // Receiving the link by email is optional: folded by default. The other
+    // members are added from the new group itself.
     let isMoreOpen = $state(false);
 
 
@@ -44,17 +43,6 @@
             creatorEmail = auth.user.email;
         }
     });
-
-    function addParticipant() {
-        if (newParticipantName.trim()) {
-            otherParticipants = [...otherParticipants, newParticipantName.trim()];
-            newParticipantName = "";
-        }
-    }
-
-    function removeParticipant(index: number) {
-        otherParticipants = otherParticipants.filter((_, i) => i !== index);
-    }
 
     async function create() {
         if (!kimpayName.trim() || !creatorName.trim()) return;
@@ -70,7 +58,7 @@
                 kimpayName,
                 kimpayIcon,
                 creatorName,
-                otherParticipants,
+                [],
                 selectedCurrency
             );
 
@@ -136,6 +124,7 @@
         <Input id="myName" bind:value={creatorName} maxlength={NAME_MAX_LENGTH} placeholder={$t('home.create.my_name_placeholder')} />
     </div>
 
+    {#if !auth.user}
     <button
         type="button"
         onclick={() => isMoreOpen = !isMoreOpen}
@@ -143,12 +132,11 @@
         class="flex min-h-9 items-center gap-1.5 text-sm font-semibold text-primary"
     >
         <ChevronDown class="h-4 w-4 transition-transform {isMoreOpen ? 'rotate-180' : ''}" />
-        {auth.user ? $t('home.create.more_participants') : $t('home.create.more_options')}
+        {$t('home.create.more_options')}
     </button>
 
     {#if isMoreOpen}
         <div class="space-y-4" transition:slide={{ duration: 150 }}>
-            {#if !auth.user}
                 <div class="space-y-2">
                     <Label for="creatorEmail">{$t('home.create.email_label')}</Label>
                     <Input
@@ -170,37 +158,8 @@
                         <span class="underline underline-offset-2">{$t('email_help.modal.title')}</span>
                     </button>
                 </div>
-            {/if}
-
-            <div class="space-y-2">
-                <Label for="newParticipant">{$t('home.create.participants_label')}</Label>
-                <div class="flex gap-2">
-                    <Input
-                        id="newParticipant"
-                        bind:value={newParticipantName}
-                        maxlength={NAME_MAX_LENGTH}
-                        placeholder={$t('home.create.participants_placeholder')}
-                        onkeydown={(e) => e.key === 'Enter' && addParticipant()}
-                    />
-                    <Button variant="outline" size="icon" onclick={addParticipant} disabled={!newParticipantName.trim()} aria-label={$t('home.create.participants_placeholder')}>
-                        <Plus />
-                    </Button>
-                </div>
-
-                {#if otherParticipants.length > 0}
-                    <div class="flex flex-wrap gap-2">
-                        {#each otherParticipants as p, i (p)}
-                            <span class="flex h-8 items-center gap-1 rounded-full bg-muted pl-3 pr-1 text-sm">
-                                {p}
-                                <button type="button" onclick={() => removeParticipant(i)} class="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive" aria-label={$t('home.create.remove_participant')}>
-                                    <X class="h-3.5 w-3.5" />
-                                </button>
-                            </span>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
         </div>
+    {/if}
     {/if}
 
     <Button onclick={create} class="w-full" size="lg" loading={isLoading} disabled={!kimpayName || !creatorName}>

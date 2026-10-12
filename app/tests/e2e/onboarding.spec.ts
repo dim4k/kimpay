@@ -23,8 +23,8 @@ test.describe('Onboarding & Validation', () => {
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Email Test');
     await page.getByPlaceholder('e.g. Antoine').fill('Tester');
 
-    // Email is optional: folded with the other options.
-    await page.getByRole('button', { name: /email and other participants/i }).click();
+    // Email is optional: folded.
+    await page.getByRole('button', { name: /receive the link by email/i }).click();
     const emailInput = page.getByPlaceholder('your@email.com');
     if (await emailInput.isVisible()) {
         await emailInput.fill('invalid-email');

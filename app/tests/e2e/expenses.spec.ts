@@ -45,7 +45,7 @@ test.describe('Expense Management', () => {
 
   test('Empty group offers to add, scan and invite', async ({ page }) => {
     await expect(page.getByText('No expenses yet')).toBeVisible();
-    await expect(page.getByText('Nobody else here yet')).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Who's in?" })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Add an expense' })).toBeVisible();
 
     // Scanning needs an account: a guest is told how to get one.
