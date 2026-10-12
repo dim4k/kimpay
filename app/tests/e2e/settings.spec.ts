@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, switchIdentity } from './test-utils';
+import { createKimpay, dismissInstallPrompt, openProfile, switchIdentity } from './test-utils';
 
 test.describe('Members & group settings', () => {
 
@@ -16,10 +16,69 @@ test.describe('Members & group settings', () => {
      await page.getByRole('button', { name: /add/i }).click(); // The '+' button typically has 'Add' or icon, check label
 
      await expect(page.getByText('Alice').first()).toBeVisible();
-     // Nobody has paid yet: both are settled up, and Alice can be removed.
-     const alice = page.locator('[data-is-me="false"]', { hasText: 'Alice' });
-     await expect(alice.getByText('settled')).toBeVisible();
-     await expect(alice.getByRole('button', { name: /delete participant/i })).toBeVisible();
+     // Nobody has paid yet: Alice can be removed, from her sheet.
+     await page.locator('[data-is-me="false"]', { hasText: 'Alice' }).click();
+     await expect(page.getByRole('dialog').getByRole('button', { name: /delete participant/i })).toBeVisible();
+  });
+
+  test('Renames a member', async ({ page }) => {
+     await page.getByPlaceholder('New name').fill('Alcie');
+     await page.getByRole('button', { name: /add/i }).click();
+     await page.locator('[data-participant-id]', { hasText: 'Alcie' }).click();
+
+     const sheet = page.getByRole('dialog');
+     await sheet.getByLabel('Name').fill('Alice');
+     await sheet.getByRole('button', { name: 'Save' }).click();
+     await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toBeVisible();
+     await expect(page.getByText('Alcie')).toHaveCount(0);
+  });
+
+  test('Merges a member added twice, balances unchanged', async ({ page }) => {
+     const base = page.url().replace(/\/members$/, '');
+     for (const name of ['Bob', 'Bob M.']) {
+         await page.getByPlaceholder('New name').fill(name);
+         await page.getByRole('button', { name: /add/i }).click();
+         await expect(page.locator('[data-participant-id]', { hasText: name })).toBeVisible();
+     }
+
+     // 30 for the three of us: Bob, counted twice, owes 20 in all.
+     await page.goto(base);
+     await page.getByRole('link', { name: /add expense/i }).click();
+     await page.getByPlaceholder('What was it for?').fill('Dinner');
+     await page.getByPlaceholder('0.00').fill('30');
+     await page.getByRole('button', { name: /save expense/i }).first().click();
+     await expect(page.getByText('Dinner')).toBeVisible();
+
+     await page.goto(`${base}/members`);
+     await page.locator('[data-participant-id]', { hasText: 'Bob M.' }).click();
+     await page.getByRole('dialog').getByRole('button', { name: 'Bob', exact: true }).click();
+     await page.getByRole('dialog').getByRole('button', { name: 'Merge' }).click();
+     await expect(page.getByText('Merged into Bob')).toBeVisible();
+     await expect(page.locator('[data-participant-id]', { hasText: 'Bob M.' })).toHaveCount(0);
+
+     await page.goto(`${base}/balance`);
+     await expect(page.getByText('You are owed')).toBeVisible();
+     await expect(page.getByText('€20.00').first()).toBeVisible();
+  });
+
+  test('Offers an existing member with the same first name', async ({ page }) => {
+     await page.getByPlaceholder('New name').fill('Alice');
+     await page.getByRole('button', { name: /add/i }).click();
+     await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toBeVisible();
+
+     await openProfile(page);
+     await page.getByRole('button', { name: "That's not me" }).click();
+     const dialog = page.getByRole('dialog', { name: 'Who are you?' });
+     await dialog.getByPlaceholder('Your name').fill('alice');
+     await expect(dialog.getByText('Is that you, Alice?')).toBeVisible();
+     await dialog.getByRole('button', { name: "Yes, that's me" }).click();
+     await expect(dialog).toBeHidden();
+     await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toHaveAttribute('data-is-me', 'true');
+  });
+
+  test('Tells a creator without an account how to delete the group', async ({ page }) => {
+     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await expect(page.getByRole('button', { name: /delete group/i })).toContainText('Create a free account');
   });
 
   test('Verify Offline Buttons (Online Mode)', async ({ page }) => {
@@ -35,8 +94,9 @@ test.describe('Members & group settings', () => {
   });
 
   test('Opens the profile from its shortcut', async ({ page }) => {
-     // On my own row of the participants list
-     await page.locator('[data-is-me="true"]').getByRole('button', { name: 'My profile' }).click();
+     // From my own row of the participants list
+     await page.locator('[data-is-me="true"]').click();
+     await page.getByRole('dialog').getByRole('button', { name: 'My profile' }).click();
      await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();
   });
 
@@ -54,13 +114,13 @@ test.describe('Members & group settings', () => {
      // Evaluate "You" badge position
      // Use .group class which identifies the row container
      // Remove exact:true because adding "You" badge changes the text content of the container to "Alice You"
-     const newAliceRow = page.locator('.group', { has: page.getByText('Alice') });
+     const newAliceRow = page.locator('[data-participant-id]', { has: page.getByText('Alice') });
 
      // Wait for the attribute to update (reactivity)
      await expect(newAliceRow).toHaveAttribute('data-is-me', 'true', { timeout: 15000 });
      await expect(newAliceRow.getByText(/you|vous/i)).toBeVisible();
 
-     const adminRow = page.locator('.group', { has: page.getByText('Admin') });
+     const adminRow = page.locator('[data-participant-id]', { has: page.getByText('Admin') });
      await expect(adminRow).toHaveAttribute('data-is-me', 'false');
      await expect(adminRow.getByText(/you|vous/i)).not.toBeVisible();
   });

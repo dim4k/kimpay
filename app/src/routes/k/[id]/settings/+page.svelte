@@ -38,6 +38,9 @@
   let kimpay = $derived(activeKimpay?.kimpay);
   let currentParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
+  // Created from this device without an account: deleting needs one (the
+  // server checks the creator's account).
+  let isGuestCreator = $derived(!!currentParticipantId && kimpay?.created_by === currentParticipantId && !auth.user);
   let creatorName = $derived(
       kimpay?.created_by === currentParticipantId
           ? $t('common.you_in_sentence')
@@ -251,6 +254,14 @@
             <ListRow icon={LogOut} tone="danger" title={$t('settings.leave_group')} subtitle={$t('settings.actions.remove_desc')} onclick={requestLeave} disabled={offlineStore.isOffline} />
             {#if isCreator}
                 <ListRow icon={Trash2} tone="danger" title={$t('settings.delete_group')} subtitle={$t('settings.actions.delete_desc')} onclick={requestDelete} disabled={offlineStore.isOffline} />
+            {:else if isGuestCreator}
+                <ListRow
+                    icon={Trash2}
+                    title={$t('settings.delete_group')}
+                    subtitle={$t('settings.delete_needs_account')}
+                    onclick={() => modals.register({ description: $t('settings.delete_needs_account') })}
+                    disabled={offlineStore.isOffline}
+                />
             {/if}
         </ListGroup>
     </section>

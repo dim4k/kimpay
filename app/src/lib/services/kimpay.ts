@@ -105,6 +105,14 @@ export const kimpayService = {
     },
 
     /**
+     * Merge two participants (the same person, added twice): everything of
+     * `from` passes to `into`, then `from` is deleted. Online only.
+     */
+    async mergeParticipants(kimpayId: string, from: string, into: string): Promise<void> {
+        await pb.send(`/api/kimpay/${kimpayId}/merge`, { method: 'POST', body: { from, into } });
+    },
+
+    /**
      * Leave a Kimpay - handles participant deletion/unclaim logic.
      * Checks if participant is creator or involved in expenses before deciding action.
      * @returns Object with action taken and success status

@@ -353,6 +353,9 @@ class OfflineStore {
             await pb.collection("expenses").update(targetId, formData, options);
         } else if (action.type === "DELETE_PARTICIPANT") {
             await pb.collection("participants").delete(targetId, options);
+        } else if (action.type === "UPDATE_PARTICIPANT") {
+            const { id: _id, ...updateData } = payload;
+            await pb.collection("participants").update(targetId, updateData, options);
         } else if (action.type === "CREATE_KIMPAY") {
             if (payload.creator) {
                 await pb.send("/api/kimpay/create", { method: "POST", body: payload, ...options });

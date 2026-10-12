@@ -423,7 +423,6 @@ export const en = {
     "members.added": "{name} added",
     "members.removed": "{name} removed",
     "members.settled": "settled",
-    "members.balance_hint": "Next to each name: owed to them (+) or still to pay (−).",
     "members.alone.title": "Nobody else here yet",
     "members.alone.desc": "Send the link to the other members.",
     "profile.edit_account": "Edit my account",
@@ -468,6 +467,17 @@ export const en = {
     "balance.paid_back.desc": "{amount} with {service}. Mark it as settled to update the balances.",
     "balance.paid_back.confirm": "Yes, mark as settled",
     "balance.paid_back.not_yet": "Not yet",
+    "members.name": "Name",
+    "members.name_from_account": "Linked to an account: this member changes their name there.",
+    "members.merge.label": "The same person as another member?",
+    "members.merge.desc": "Merge them: the expenses of {name} go to the other member, then {name} leaves the group. Balances stay the same.",
+    "members.merge.confirm_title": "Merge {from} into {into}?",
+    "members.merge.confirm_desc": "Everything {from} paid or shared goes to {into}, then {from} is removed. This cannot be undone.",
+    "members.merge.confirm": "Merge",
+    "members.merge.done": "Merged into {name}",
+    "identity.similar": "Is that you, {name}?",
+    "identity.similar_yes": "Yes, that's me",
+    "settings.delete_needs_account": "Create a free account to delete this group: it proves you created it.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

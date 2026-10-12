@@ -16,6 +16,7 @@
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import FieldError from '#lib/components/ui/FieldError.svelte';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
+  import { findSimilarName } from '#lib/utils/names.js';
   
   let { isOpen }: { isOpen: boolean } = $props();
 
@@ -43,6 +44,10 @@
       return false;
     })
   );
+
+  // Typing a name already in the list ("pierre" for "Pierre M."): most
+  // likely that person, added by someone else.
+  let similar = $derived(newParticipantName.trim() ? findSimilarName(newParticipantName, selectableParticipants) : null);
 
   async function selectParticipant(participantId: string) {
       if (!activeKimpay || !kimpayId) return;
@@ -123,6 +128,12 @@
                 {$t('identity.create_button')}
             </Button>
         </div>
+        {#if similar}
+            <div class="flex items-center gap-2 rounded-control bg-primary-soft py-1 pl-3 pr-1 text-sm" role="status">
+                <span class="min-w-0 flex-1">{$t('identity.similar', { name: similar.name })}</span>
+                <Button size="sm" onclick={() => selectParticipant(similar!.id)}>{$t('identity.similar_yes')}</Button>
+            </div>
+        {/if}
         <FieldError message={createError} />
     </div>
 </Modal>

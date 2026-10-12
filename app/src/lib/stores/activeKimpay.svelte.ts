@@ -504,6 +504,52 @@ export class ActiveKimpay {
         }
     }
 
+    /** Fix a participant's name (and in the expenses showing it). */
+    async renameParticipant(participantId: string, name: string) {
+        const previous = { participants: this.participants, expenses: this.expenses };
+        const rename = (p: Participant | undefined) => (p?.id === participantId ? { ...p, name } : p);
+        this.participants = this.participants.map((p) => rename(p)!);
+        this.expenses = this.expenses.map((e) =>
+            e.expand
+                ? {
+                      ...e,
+                      expand: {
+                          ...e.expand,
+                          ...(e.expand.payer && { payer: rename(e.expand.payer)! }),
+                          ...(e.expand.involved && { involved: e.expand.involved.map((p) => rename(p)!) }),
+                      },
+                  }
+                : e,
+        );
+        this.persist();
+
+        try {
+            await offlineStore.write(
+                () => pb.collection("participants").update(participantId, { name }),
+                {
+                    type: "UPDATE_PARTICIPANT",
+                    payload: { id: participantId, name },
+                    kimpayId: this.id,
+                },
+            );
+        } catch (e) {
+            this.participants = previous.participants;
+            this.expenses = previous.expenses;
+            this.persist();
+            throw e;
+        }
+    }
+
+    /**
+     * The same person added twice: `from` merges into `into` (see the merge
+     * route). Online only; this device follows if it was `from`.
+     */
+    async mergeParticipant(from: string, into: string) {
+        await kimpayService.mergeParticipants(this.id, from, into);
+        if (this.myParticipantId === from) await this.setMyParticipant(into);
+        await this.refetch();
+    }
+
     async updateKimpay(name: string, icon: string) {
         if (!this.kimpay) return;
         const previous = { ...this.kimpay };
