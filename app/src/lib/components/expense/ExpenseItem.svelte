@@ -7,12 +7,12 @@
     import { goto } from '$app/navigation';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-    import { expenseImpact, expenseShare } from '#lib/balance.js';
+    import { expenseImpact, expenseShare, toKimpayAmount } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import IconTile from '#lib/components/ui/IconTile.svelte';
     import { Button } from '#lib/components/ui/button/index.js';
-    import type { Expense } from '#lib/types.js';
+    import type { Expense, Participant } from '#lib/types.js';
     import { expenseShares, isCustomSplit } from '#lib/split.js';
 
     let {
@@ -25,11 +25,22 @@
         onRequestDelete,
         onOpenGallery,
         view = 'total',
+        participantsById,
+        kimpayCurrency,
+        exchangeRates,
+        isNew = false,
     }: {
         expense: Expense;
         currentUserId: string | null;
         /** All participants of the group (to compute each share) */
         participantIds: string[];
+        /** To name who is left out ("everyone but Tony"). */
+        participantsById: ReadonlyMap<string, Participant>;
+        /** Amounts in another currency also show their value in this one. */
+        kimpayCurrency: string;
+        exchangeRates: Record<string, number>;
+        /** Added by someone else since my last visit. */
+        isNew?: boolean;
         expandedId: string | null;
         kimpayId: string;
         onToggleExpand: (expenseId: string) => void;
@@ -51,6 +62,28 @@
     );
     let currency = $derived(expense.currency || DEFAULT_CURRENCY);
 
+    // In another currency: "≈ €44.10" under an amount of the expense.
+    let rate = $derived(
+        currency !== kimpayCurrency && expense.amount > 0 ? toKimpayAmount(expense, kimpayCurrency, exchangeRates) / expense.amount : null
+    );
+    function approx(value: number): string | null {
+        return rate ? `≈ ${formatAmount(value * rate, kimpayCurrency, $locale)}` : null;
+    }
+
+    // Who it is for, in the details: "Everyone (8)", "Everyone but Tony" when
+    // one or two are left out, otherwise one chip per person.
+    let left = $derived(participantIds.filter((id) => !(expense.involved ?? []).includes(id)));
+    let forSummary = $derived.by(() => {
+        const count = expense.involved?.length ?? 0;
+        if (shares || count < 3) return null;
+        if (left.length === 0) return $t('expense.list.everyone', { count: String(count) });
+        if (left.length <= 2) {
+            const names = left.map((id) => inSentence(id, participantsById.get(id)?.name)).join(', ');
+            return $t('expense.list.everyone_but', { names });
+        }
+        return null;
+    });
+
     function nameOf(id: string | undefined, name: string | undefined): string {
         if (currentUserId && id === currentUserId) return $t('common.you');
         return name || $t('common.unknown');
@@ -68,6 +101,15 @@
     // keep their usual line (it already says who paid whom).
     let impact = $derived(currentUserId ? expenseImpact(expense, currentUserId, participantIds) : null);
     let showImpact = $derived(view === 'me' && impact !== null);
+
+    // A reimbursement, in the "for me" view: what I got back or paid back,
+    // in a neutral color (getting money back means I am owed less, not more).
+    let myReimbursement = $derived.by((): 'got_back' | 'paid_back' | 'none' | null => {
+        if (view !== 'me' || !expense.is_reimbursement || !currentUserId) return null;
+        if (expense.payer === currentUserId) return 'paid_back';
+        if (expense.involved?.[0] === currentUserId) return 'got_back';
+        return 'none';
+    });
 
     // "Laetitia paid €25.00", "You received €40.00"...
     let paidAmount = $derived.by(() => {
@@ -91,6 +133,9 @@
         return `${paidBy} ${inSentence(expense.payer, expense.expand?.payer?.name)}`;
     });
     let people = $derived($t('expense.list.people', { count: String(expense.involved?.length || 0) }));
+    // In a pill when I am one of them: "for you" when I am the only one.
+    let involvesMe = $derived(!!currentUserId && (expense.involved ?? []).includes(currentUserId));
+    let peopleLabel = $derived(involvesMe && expense.involved?.length === 1 ? $t('expense.list.only_you') : people);
 
     // My part of an equal split, in the details (a custom split already shows
     // everyone's part next to their name).
@@ -119,6 +164,13 @@
     </Badge>
 {/snippet}
 
+{#snippet approxLine(value: number)}
+    {@const text = approx(value)}
+    {#if text}
+        <p class="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{text}</p>
+    {/if}
+{/snippet}
+
 <SwipeableItem
     disabled={swipeDisabled}
     onEdit={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
@@ -126,6 +178,7 @@
 >
 <div
     class="expense-item cursor-pointer outline-hidden focus-visible:bg-muted/60"
+    data-expense={expense.id}
     role="button"
     tabindex="0"
     aria-expanded={isExpanded}
@@ -150,19 +203,36 @@
             <p class="truncate text-base font-medium">
                 {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
             </p>
-            <p class="truncate text-sm text-muted-foreground">
+            <p class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
                 {#if expense.is_reimbursement}
-                    {payerLabel}
+                    <span class="truncate">{payerLabel}</span>
                 {:else if showImpact}
-                    <span class={paidByMe ? 'font-semibold text-primary' : ''}>{paidAmount}</span>
+                    <span class="truncate {paidByMe ? 'font-semibold text-primary' : ''}">{paidAmount}</span>
                 {:else}
-                    <span class={paidByMe ? 'font-semibold text-primary' : ''}>{payerLabel}</span>{` · ${people}`}
+                    <span class="truncate {paidByMe ? 'font-semibold text-primary' : ''}">{payerLabel}</span>
+                    <span aria-hidden="true">·</span>
+                    {#if involvesMe}
+                        <Badge tone="primary">{peopleLabel}</Badge>
+                    {:else}
+                        <span class="shrink-0">{people}</span>
+                    {/if}
                 {/if}
             </p>
         </div>
 
+        {#if isNew}
+            <span class="h-2 w-2 shrink-0 rounded-full bg-primary" role="img" aria-label={$t('expense.list.new')}></span>
+        {/if}
         <div class="shrink-0 text-right">
-            {#if showImpact}
+            {#if myReimbursement === 'none'}
+                <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
+            {:else if myReimbursement}
+                <p class="whitespace-nowrap text-xs text-muted-foreground">
+                    {myReimbursement === 'got_back' ? $t('expense.list.you_got_back') : $t('expense.list.you_paid_back')}
+                </p>
+                <p class="whitespace-nowrap text-base font-semibold tabular-nums">{formatAmount(expense.amount, currency, $locale)}</p>
+                {@render approxLine(expense.amount)}
+            {:else if showImpact}
                 <!-- Two words over my amount: what the expense means for me. -->
                 {#if impact === undefined}
                     <p class="whitespace-nowrap text-xs text-muted-foreground">{$t('expense.list.not_involved')}</p>
@@ -173,11 +243,13 @@
                     <p class="whitespace-nowrap text-base font-semibold tabular-nums {impact! > 0 ? 'text-success' : 'text-warning'}">
                         {formatAmount(Math.abs(impact!), currency, $locale)}
                     </p>
+                    {@render approxLine(Math.abs(impact!))}
                 {/if}
             {:else}
                 <p class="whitespace-nowrap text-base font-semibold tabular-nums">
                     {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
                 </p>
+                {@render approxLine(expense.amount)}
             {/if}
         </div>
     </div>
@@ -197,7 +269,9 @@
                     <div class="flex items-start justify-between gap-3">
                         <dt class="text-muted-foreground">{$t('expense.list.for')}:</dt>
                         <dd class="flex flex-wrap justify-end gap-1">
-                            {#if expense.expand?.involved}
+                            {#if forSummary}
+                                <Badge tone={involvesMe ? 'primary' : 'neutral'}>{forSummary}</Badge>
+                            {:else if expense.expand?.involved}
                                 {#each expense.expand.involved as p (p.id)}
                                     {@render personChip(p.id, p.name)}
                                 {/each}
@@ -209,7 +283,10 @@
                     {#if myShare !== null}
                         <div class="flex items-center justify-between gap-3">
                             <dt class="text-muted-foreground">{$t('expense.list.your_share')}:</dt>
-                            <dd class="font-semibold tabular-nums">{formatAmount(myShare, currency, $locale)}</dd>
+                            <dd class="font-semibold tabular-nums">
+                                {formatAmount(myShare, currency, $locale)}
+                                {#if approx(myShare)}<span class="font-normal text-muted-foreground">({approx(myShare)})</span>{/if}
+                            </dd>
                         </div>
                     {/if}
                 {/if}

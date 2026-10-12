@@ -1,4 +1,5 @@
 import { createContext } from "svelte";
+import { SvelteSet } from "svelte/reactivity";
 import { pb } from "#lib/pocketbase.js";
 import { storageService } from "#lib/services/storage.js";
 import { offlineStore, QUEUED } from "#lib/stores/offline.svelte.js";
@@ -85,6 +86,18 @@ export class ActiveKimpay {
 
     myParticipantId = $state<string | null>(null);
 
+    /**
+     * Expenses already seen on this device: those of the cached copy when the
+     * group was opened (what I saw on my last visit), plus the ones added here.
+     * null on a first visit, where nothing counts as new.
+     */
+    seenIds = $state<SvelteSet<string> | null>(null);
+
+    /** Everything listed now counts as seen. */
+    markAllSeen() {
+        this.seenIds = new SvelteSet(this.expenses.map((e) => e.id));
+    }
+
     /** Participants by id, for lookups in lists (balance, exports...). */
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt, never mutated
     participantsById = $derived(new Map(this.participants.map((p) => [p.id, p])));
@@ -130,6 +143,7 @@ export class ActiveKimpay {
         this.myParticipantId = cached?.myParticipantId || null;
         // A cache entry may only hold the identity (no data fetched yet).
         if (cached?.expand) {
+            this.seenIds = new SvelteSet((cached.expand.expenses_via_kimpay ?? []).map((e) => e.id));
             this.applyData(cached);
             this.loading = false; // Show cached data immediately
         }
@@ -307,6 +321,7 @@ export class ActiveKimpay {
         // and sent to the server, so the optimistic item never needs remapping.
         const id = generatePocketBaseId();
         this.pendingIds.add(id);
+        this.seenIds?.add(id);
         const optimisticExpense = {
             ...data,
             id,

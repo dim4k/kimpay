@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Wallet, Check, ChevronRight, Plus, Search, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
-  import { goto } from '$app/navigation';
+  import { goto, replaceState } from '$app/navigation';
+  import { page } from '$app/state';
+  import { onMount } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import IconTile from '#lib/components/ui/IconTile.svelte';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
@@ -91,7 +93,17 @@
   let showFilters = $state(false);
   let personFilter = $state<string | null>(null);
   let typeFilter = $state<TypeFilter>('all');
-  let categoryFilter = $state<EmojiCategoryKey | null>(null);
+  // A category opened from the balance page ("?category=FOOD"), applied once.
+  const linkedCategory = page.url.searchParams.get('category');
+  let categoryFilter = $state<EmojiCategoryKey | null>(
+      EMOJI_CATEGORY_ORDER.find((key) => key === linkedCategory) ?? null
+  );
+  onMount(() => {
+      if (!linkedCategory) return;
+      const url = new URL(page.url.href);
+      url.searchParams.delete('category');
+      replaceState(url, page.state);
+  });
 
   let activeFilterCount = $derived((personFilter ? 1 : 0) + (typeFilter !== 'all' ? 1 : 0) + (categoryFilter ? 1 : 0));
   let isFiltering = $derived(activeFilterCount > 0 || search.trim() !== '');
@@ -200,16 +212,18 @@
    * What the group spent (reimbursements are not spending), and what it
    * changed to my balance, in the Kimpay currency.
    */
-  function amounts(items: Expense[]): { total: number; mine: number } {
+  function amounts(items: Expense[]): { total: number; mine: number; reimbursements: number } {
       let total = 0;
       let mine = 0;
+      // Only reimbursements: their count says more than a 0 total.
+      const reimbursements = items.every(e => e.is_reimbursement) ? items.length : 0;
       for (const e of items) {
           const value = toKimpayCurrency(e);
           if (!e.is_reimbursement) total += (e.is_income ? -1 : 1) * value;
           const impact = currentUserId ? expenseImpact(e, currentUserId, participantIds) : null;
           if (typeof impact === 'number' && e.amount > 0) mine += impact * (value / e.amount);
       }
-      return { total, mine };
+      return { total, mine, reimbursements };
   }
 
   // Sorted by date: one list per day. Other sorts: a single list.
@@ -308,6 +322,20 @@
       }
   });
 
+  // Added by others since my last visit on this device (see seenIds).
+  let newIds = $derived.by(() => {
+      const seen = activeKimpay?.seenIds;
+      return new Set(seen ? rawExpenses.filter(e => !seen.has(e.id)).map(e => e.id) : []);
+  });
+
+  /** To the first new line in the list. */
+  function showNews() {
+      const first = expenses.find(e => newIds.has(e.id));
+      if (!first) return;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.querySelector(`[data-expense="${first.id}"]`)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+  }
+
   // Accordion State
   let expandedId = $state<string | null>(null);
 
@@ -343,11 +371,16 @@
 </script>
 
 <!-- A day's (or the list's) amount: what the group spent, or what it changed for me. -->
-{#snippet sectionAmount(section: { total: number; mine: number })}
-    {#if view === 'me'}
+{#snippet sectionAmount(section: { total: number; mine: number; reimbursements: number })}
+    {#if view === 'me' && Math.abs(section.mine) < 0.005}
+        <!-- Nothing changed for me that day (reimbursements between others...). -->
+        <span>—</span>
+    {:else if view === 'me'}
         <span class="whitespace-nowrap tabular-nums {section.mine > 0.005 ? 'text-success' : section.mine < -0.005 ? 'text-warning' : ''}">
             {section.mine > 0.005 ? '+' : section.mine < -0.005 ? '−' : ''}{formatAmount(Math.abs(section.mine), kimpayC, $locale)}
         </span>
+    {:else if section.reimbursements > 0}
+        <span class="whitespace-nowrap">{$t('expense.list.reimbursements_count', { count: String(section.reimbursements) })}</span>
     {:else}
         <span class="whitespace-nowrap tabular-nums">{formatAmount(section.total, kimpayC, $locale)}</span>
     {/if}
@@ -402,6 +435,24 @@
               <ChevronRight class="h-4 w-4" />
           </span>
       </a>
+  {/if}
+
+  {#if !isLoading && newIds.size > 0}
+      <!-- What the others added since my last visit: a dot marks each line. -->
+      <div class="flex min-h-11 items-center gap-1 rounded-control border bg-card pl-4 pr-1 animate-pop-in">
+          <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+          <button type="button" onclick={showNews} class="min-w-0 flex-1 truncate py-2 pl-2 text-left text-sm font-medium">
+              {$t('expense.list.new_since', { count: String(newIds.size) })}
+          </button>
+          <button
+              type="button"
+              onclick={() => activeKimpay?.markAllSeen()}
+              aria-label={$t('common.close')}
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted"
+          >
+              <X class="h-4 w-4" />
+          </button>
+      </div>
   {/if}
 
   {#if rawExpenses.length > 0}
@@ -600,6 +651,10 @@
                           onRequestDelete={requestDelete}
                           onOpenGallery={openGallery}
                           {view}
+                          participantsById={activeKimpay?.participantsById ?? new Map()}
+                          kimpayCurrency={kimpayC}
+                          {exchangeRates}
+                          isNew={newIds.has(expense.id)}
                       />
                   {/each}
               </ListGroup>

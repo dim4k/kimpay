@@ -147,6 +147,8 @@ test.describe('Expense Management', () => {
     await page.getByRole('radio', { name: 'Total' }).click();
     await expect(line.getByText('€50.00', { exact: true })).toBeVisible();
     await expect(line.getByText('owed to you')).toBeHidden();
+    // I am one of the 2 people: the count is a pill.
+    await expect(line.locator('.rounded-full', { hasText: '2 people' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('radio', { name: 'Total' })).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('radio', { name: 'For me' }).click();

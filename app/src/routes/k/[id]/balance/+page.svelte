@@ -22,7 +22,9 @@
   import { profileStore, hasHandles } from '#lib/stores/profile.svelte.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
-  import { STORAGE_KEYS } from '#lib/constants.js';
+  import { EMOJI_CATEGORIES, DEFAULT_EXPENSE_EMOJI, STORAGE_KEYS } from '#lib/constants.js';
+  import { groupStats, spendingByCategory } from '#lib/stats.js';
+  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import PaymentHandlesSheet from '#lib/components/profile/PaymentHandlesSheet.svelte';
 
   // Get ActiveKimpay from context
@@ -159,7 +161,49 @@
           }))
           .sort((a, b) => b.amount - a.amount)
   );
+
+  // Where the money went: the group's spending or my part, the same choice
+  // as on the expense list (remembered on this device).
+  type View = 'total' | 'me';
+  function loadView(): View {
+      try {
+          return localStorage.getItem(STORAGE_KEYS.EXPENSE_VIEW) === 'total' ? 'total' : 'me';
+      } catch {
+          return 'me';
+      }
+  }
+  let viewChoice = $state<View>(loadView());
+  let view = $derived<View>(myId ? viewChoice : 'total');
+  function setView(value: View) {
+      viewChoice = value;
+      try {
+          localStorage.setItem(STORAGE_KEYS.EXPENSE_VIEW, value);
+      } catch {
+          // Not remembered, still applied.
+      }
+  }
+
+  let participantIds = $derived(participants.map((p) => p.id));
+  let categories = $derived.by(() => {
+      const list = spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds, view === 'me' ? myId ?? undefined : undefined);
+      const sum = list.reduce((total, c) => total + c.amount, 0);
+      return list.map((c) => ({ ...c, share: sum > 0 ? c.amount / sum : 0 }));
+  });
+  // Worth a breakdown once the group has more than one category.
+  let showCategories = $derived(
+      spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds).length > 1
+  );
+
+  let stats = $derived(groupStats(expenses, kimpayDefaultCurrency, exchangeRates));
 </script>
+
+{#snippet stat(title: string, value: string, detail: string)}
+    <div class="min-w-0 rounded-card border bg-card px-4 py-3">
+        <p class="text-xs text-muted-foreground">{title}</p>
+        <p class="truncate text-lg font-semibold tabular-nums">{value}</p>
+        <p class="truncate text-xs text-muted-foreground">{detail}</p>
+    </div>
+{/snippet}
 
 {#snippet pair(tx: Transaction)}
     <span class="flex shrink-0" aria-hidden="true">
@@ -291,6 +335,85 @@
             </SectionLabel>
             <BalanceBars rows={balanceRows} currency={displayCurrency} />
         </section>
+
+        {#if showCategories}
+            <section class="space-y-2 animate-slide-up">
+                <SectionLabel title={$t('balance.categories.title')}>
+                    {#snippet actions()}
+                        {#if myId}
+                            <SegmentedControl
+                                options={[
+                                    { value: 'total', label: $t('expense.view.total') },
+                                    { value: 'me', label: $t('expense.view.me') },
+                                ]}
+                                value={view}
+                                label={$t('expense.view.label')}
+                                onchange={setView}
+                            />
+                        {/if}
+                    {/snippet}
+                </SectionLabel>
+                {#if categories.length === 0}
+                    <p class="rounded-card border bg-card px-4 py-3 text-sm text-muted-foreground">{$t('balance.categories.none')}</p>
+                {:else}
+                    <ListGroup>
+                        {#each categories as category (category.key)}
+                            <!-- To the list, filtered on that category. -->
+                            <a
+                                href="/k/{activeKimpay?.id ?? ''}?category={category.key}"
+                                data-sveltekit-replacestate
+                                class="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60"
+                            >
+                                <span class="w-6 shrink-0 text-center text-lg" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
+                                <span class="min-w-0 flex-1 space-y-1.5">
+                                    <span class="flex items-baseline gap-2 text-sm">
+                                        <span class="truncate font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
+                                        <span class="shrink-0 text-muted-foreground tabular-nums">{Math.round(category.share * 100)} %</span>
+                                    </span>
+                                    <span class="block h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                                        <span class="block h-full rounded-full bg-primary" style="width: {Math.max(category.share * 100, 2)}%"></span>
+                                    </span>
+                                </span>
+                                <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(category.amount, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
+                                <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
+                            </a>
+                        {/each}
+                    </ListGroup>
+                {/if}
+            </section>
+        {/if}
+
+        {#if stats.expenseCount >= 3}
+            <section class="space-y-2 animate-slide-up">
+                <SectionLabel title={$t('balance.stats.title')} />
+                <div class="grid grid-cols-2 gap-2">
+                    {@render stat(
+                        $t('balance.stats.per_day'),
+                        formatAmount(toDisplayCurrency(stats.perDay, kimpayDefaultCurrency), displayCurrency, $locale),
+                        $t('balance.stats.days', { count: String(stats.days) }),
+                    )}
+                    {#if stats.biggest}
+                        {@render stat(
+                            $t('balance.stats.biggest'),
+                            formatAmount(toDisplayCurrency(stats.biggestAmount, kimpayDefaultCurrency), displayCurrency, $locale),
+                            `${stats.biggest.icon || DEFAULT_EXPENSE_EMOJI} ${stats.biggest.description}`,
+                        )}
+                    {/if}
+                    {#if stats.topPayer}
+                        {@render stat(
+                            $t('balance.stats.top_payer'),
+                            label(stats.topPayer.id),
+                            formatAmount(toDisplayCurrency(stats.topPayer.amount, kimpayDefaultCurrency), displayCurrency, $locale),
+                        )}
+                    {/if}
+                    {@render stat(
+                        $t('balance.stats.count'),
+                        String(stats.expenseCount),
+                        stats.reimbursementCount > 0 ? $t('balance.stats.reimbursements', { count: String(stats.reimbursementCount) }) : '',
+                    )}
+                </div>
+            </section>
+        {/if}
     {/if}
 </div>
 
