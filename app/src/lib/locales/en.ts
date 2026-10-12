@@ -456,6 +456,14 @@ export const en = {
     "expense.list.new": "New",
     "expense.list.new_since": "{count} new since your last visit",
     "expense.list.reimbursements_count": "{count} reimbursement(s)",
+    "expense.form.discard_title": "Discard this expense?",
+    "expense.form.discard_desc": "What you entered will be lost.",
+    "expense.form.discard": "Discard",
+    "expense.form.keep_editing": "Keep editing",
+    "expense.form.save_and_new": "Save and add another",
+    "expense.form.income_hint": "A deposit returned, a refund, a sale…",
+    "expense.split.equal_summary": "Split equally",
+    "expense.split.give_rest": "Give the rest to {name}",
 } as const;
 
 export type TranslationKey = keyof typeof en;

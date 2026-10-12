@@ -461,4 +461,12 @@ export const fr: Record<TranslationKey, string> = {
     "expense.list.new": "Nouveau",
     "expense.list.new_since": "{count} nouveauté(s) depuis votre dernière visite",
     "expense.list.reimbursements_count": "{count} remboursement(s)",
+    "expense.form.discard_title": "Abandonner cette dépense ?",
+    "expense.form.discard_desc": "Ce que vous avez saisi sera perdu.",
+    "expense.form.discard": "Abandonner",
+    "expense.form.keep_editing": "Continuer la saisie",
+    "expense.form.save_and_new": "Enregistrer et en ajouter une autre",
+    "expense.form.income_hint": "Caution rendue, remboursement, vente…",
+    "expense.split.equal_summary": "Réparti également",
+    "expense.split.give_rest": "Attribuer le reste à {name}",
 };

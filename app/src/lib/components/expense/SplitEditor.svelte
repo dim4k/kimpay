@@ -3,8 +3,8 @@
     import { t, locale } from '#lib/i18n.js';
     import { formatAmount } from '#lib/services/currency.js';
     import { checkSplit, defaultSplitValues, distribute, fromMinor, splitWeights, toMinor } from '#lib/split.js';
+    import { formatDecimal, parseDecimal, sanitizeDecimal } from '#lib/utils/amount.js';
     import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
-    import { Label } from '#lib/components/ui/label/index.js';
 
     interface Props {
         /** Participants involved in the expense */
@@ -27,8 +27,21 @@
         { value: 'percent', key: 'expense.split.percent' },
     ];
 
+    // What is typed in each field ("12," while typing), until the values
+    // are set from outside (another mode, a remainder given).
+    let texts = $state<Record<string, string>>({});
+
     function changeMode(next: SplitMode) {
         values = defaultSplitValues(next, ids, amount, currency);
+        texts = {};
+    }
+
+    function type(id: string, e: Event) {
+        const el = e.currentTarget as HTMLInputElement;
+        const clean = sanitizeDecimal(el.value, mode === 'percent' ? 3 : 8);
+        if (clean !== el.value) el.value = clean;
+        texts[id] = clean;
+        values = { ...values, [id]: parseDecimal(clean) };
     }
 
     // Someone added to the expense gets one share by default.
@@ -46,10 +59,26 @@
         const minor = distribute(toMinor(amount, currency), splitWeights({ involved: ids, split: { mode, values } }, ids));
         return Object.fromEntries(Object.entries(minor).map(([id, v]) => [id, fromMinor(v, currency)]));
     });
+
+    // Amounts or percents left (or over): one tap gives them to someone.
+    let rest = $derived((mode === 'amounts' || mode === 'percent') && check.remaining !== 0 ? check.remaining : null);
+
+    function restLabel(value: number): string {
+        const sign = value > 0 ? '+' : '−';
+        return mode === 'percent'
+            ? `${sign}${formatDecimal(Math.abs(value), $locale)} %`
+            : `${sign}${formatAmount(Math.abs(value), currency, $locale)}`;
+    }
+
+    function giveRest(id: string) {
+        if (rest === null) return;
+        const next = Math.round(((values[id] ?? 0) + rest) * 100) / 100;
+        values = { ...values, [id]: next };
+        texts = { ...texts, [id]: formatDecimal(next, $locale) };
+    }
 </script>
 
 <div class="space-y-2">
-    <Label tag="span">{$t('expense.split.label')}</Label>
     <SegmentedControl
         options={modes.map((m) => ({ value: m.value, label: $t(m.key) }))}
         bind:value={mode}
@@ -62,18 +91,28 @@
             {#each involved as p (p.id)}
                 <div class="flex items-center gap-3">
                     <span class="flex-1 min-w-0 truncate text-sm font-medium">{p.name}</span>
-                    {#if mode !== 'amounts'}
+                    {#if rest !== null && (values[p.id] ?? 0) + rest >= 0}
+                        <button
+                            type="button"
+                            onclick={() => giveRest(p.id)}
+                            class="h-9 shrink-0 rounded-full border border-dashed border-primary/50 px-2.5 text-xs font-semibold tabular-nums text-primary transition-colors hover:bg-primary-soft"
+                            aria-label={$t('expense.split.give_rest', { name: p.name })}
+                            title={$t('expense.split.give_rest', { name: p.name })}
+                        >
+                            {restLabel(rest)}
+                        </button>
+                    {:else if mode !== 'amounts'}
                         <span class="text-sm text-muted-foreground tabular-nums">
                             {preview[p.id] !== undefined ? formatAmount(preview[p.id]!, currency, $locale) : '–'}
                         </span>
                     {/if}
                     <div class="relative w-28 shrink-0">
                         <input
-                            type="number"
+                            type="text"
                             inputmode="decimal"
-                            min="0"
-                            step={mode === 'shares' ? '1' : '0.01'}
-                            bind:value={values[p.id]}
+                            autocomplete="off"
+                            value={texts[p.id] ?? formatDecimal(values[p.id], $locale)}
+                            oninput={(e) => type(p.id, e)}
                             aria-label={$t('expense.split.value_for', { name: p.name })}
                             class="h-11 w-full rounded-control border border-input bg-card pl-3 pr-8 text-right text-base tabular-nums focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                         />

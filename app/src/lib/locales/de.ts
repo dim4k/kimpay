@@ -458,4 +458,12 @@ export const de: Record<TranslationKey, string> = {
     "expense.list.new": "Neu",
     "expense.list.new_since": "{count} neu seit deinem letzten Besuch",
     "expense.list.reimbursements_count": "{count} Rückzahlung(en)",
+    "expense.form.discard_title": "Diese Ausgabe verwerfen?",
+    "expense.form.discard_desc": "Ihre Eingaben gehen verloren.",
+    "expense.form.discard": "Verwerfen",
+    "expense.form.keep_editing": "Weiter bearbeiten",
+    "expense.form.save_and_new": "Speichern und weitere hinzufügen",
+    "expense.form.income_hint": "Zurückerhaltene Kaution, Erstattung, Verkauf…",
+    "expense.split.equal_summary": "Gleichmäßig aufgeteilt",
+    "expense.split.give_rest": "Den Rest {name} zuweisen",
 };

@@ -23,11 +23,12 @@
   let leaving = $state(false);
   let notFound = $derived(!initialData && !isLoading && !leaving);
 
-  function handleDelete() {
+  function handleDelete(allowLeave: () => void) {
       if (!activeKimpay || !expenseId) return;
       // Leave the page first: it would show the expense as missing otherwise.
       confirmDeleteExpense(activeKimpay, expenseId, () => {
           leaving = true;
+          allowLeave();
           return goBack(`/k/${kimpayId}`);
       });
   }

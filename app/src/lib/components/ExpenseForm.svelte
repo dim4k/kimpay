@@ -2,9 +2,12 @@
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { goBack } from '#lib/utils/navigation.js';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
+  import ListRow from '#lib/components/ui/ListRow.svelte';
+  import Switch from '#lib/components/ui/Switch.svelte';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
   import InputModal from '#lib/components/ui/modals/InputModal.svelte';
   import DatePicker from '#lib/components/ui/DatePicker.svelte';
@@ -12,14 +15,13 @@
   import ParticipantSelector from '#lib/components/ParticipantSelector.svelte';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
   import SplitEditor from '#lib/components/expense/SplitEditor.svelte';
-  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import Badge from '#lib/components/ui/Badge.svelte';
   import { t, locale } from '#lib/i18n.js';
   import { DEFAULT_EXPENSE_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
 
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { CircleAlert, CircleCheck, Sparkles, Trash2, X } from "@lucide/svelte";
+  import { CircleAlert, CircleCheck, HandCoins, Sparkles, Trash2, X } from "@lucide/svelte";
   import { slide } from 'svelte/transition';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { CURRENCY_CODES, DEFAULT_CURRENCY, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
@@ -33,6 +35,10 @@
   import { buildSplit, checkSplit } from '#lib/split.js';
   import { findSimilarExpense } from '#lib/utils/suggest.js';
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
+  import { sanitizeDecimal } from '#lib/utils/amount.js';
+  import { loadKeywords } from '#lib/emoji/search.js';
+  import { suggestEmoji } from '#lib/emoji/suggest.js';
+  import { modals } from '#lib/stores/modals.svelte.js';
 
   let {
       kimpayId,
@@ -44,8 +50,11 @@
       initialData?: Expense | null;
       /** Title of the top bar */
       title: string;
-      /** Shows a delete button in the top bar (editing) */
-      onDelete?: () => void;
+      /**
+       * Shows a delete button in the top bar (editing). `allowLeave` lets the
+       * page leave once deleted, without asking to discard the changes.
+       */
+      onDelete?: (allowLeave: () => void) => void;
   } = $props();
 
   // Get ActiveKimpay
@@ -89,6 +98,35 @@
   let payerParticipant = $derived(participants.find(p => p.id === payer));
   let myId = $derived(activeKimpay?.myParticipantId ?? null);
 
+  // Most expenses are split equally: one line, unfolded on demand (and
+  // always for another split).
+  let isSplitOpen = $state(false);
+  let showSplitEditor = $derived(isSplitOpen || splitMode !== 'equal');
+
+  // The icon follows the description ("Resto" gives 🍽️) until picked by hand
+  // or by a scan. `autoIcon` is the icon set that way, null once picked.
+  let autoIcon = $state<string | null>(null);
+  let iconKeywords = $state<Record<string, string>[]>([]);
+
+  $effect(() => {
+      const current = autoIcon;
+      if (current === null) return;
+      const next = suggestEmoji(description, iconKeywords) ?? DEFAULT_EXPENSE_EMOJI;
+      untrack(() => {
+          if (icon !== current) autoIcon = null;
+          else if (next !== icon) icon = autoIcon = next;
+      });
+  });
+
+  // What the form held when opened (or last saved): leaving with changes asks first.
+  function formState(): string {
+      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length]);
+  }
+  let baseline = $state('');
+  let isDirty = $derived(baseline !== '' && formState() !== baseline);
+  // Saved or discarded: leave without asking.
+  let leaving = false;
+
   onMount(() => {
       // Seed state from initialData if present
       if (initialData) {
@@ -121,9 +159,55 @@
           payer = activeKimpay.myParticipantId;
       }
 
+      if (icon === DEFAULT_EXPENSE_EMOJI) {
+          autoIcon = icon;
+          const lang = $locale;
+          Promise.all([loadKeywords(lang), lang === 'en' ? Promise.resolve({}) : loadKeywords('en')])
+              .then((k) => (iconKeywords = k));
+      }
+
+      baseline = formState();
+
       // A receipt picked from the expense list: read it right away.
       const receipt = initialData ? null : pendingReceipt.take();
       if (receipt) scan(receipt);
+  });
+
+  /** Leave the form, asking first when something was typed. */
+  function confirmDiscard(leave: () => void) {
+      modals.confirm({
+          title: $t('expense.form.discard_title'),
+          description: $t('expense.form.discard_desc'),
+          confirmText: $t('expense.form.discard'),
+          cancelText: $t('expense.form.keep_editing'),
+          variant: 'destructive',
+          onConfirm: () => {
+              leaving = true;
+              leave();
+          },
+      });
+  }
+
+  function close() {
+      if (isDirty && !isLoading) {
+          confirmDiscard(() => goBack(`/k/${kimpayId}`));
+      } else {
+          leaving = true;
+          goBack(`/k/${kimpayId}`);
+      }
+  }
+
+  // The back gesture, a link, a reload: same question.
+  beforeNavigate((nav) => {
+      if (leaving || !isDirty || isLoading) return;
+      nav.cancel();
+      // Closing or reloading the tab: the browser asks by itself.
+      if (nav.willUnload) return;
+      const to = nav.to?.url;
+      confirmDiscard(() => {
+          if (nav.type === 'popstate') history.go(nav.delta ?? -1);
+          else if (to) goto(to);
+      });
   });
 
   let isValid = $derived(!!description && amountValue > 0 && !!payer && involved.length > 0 && splitCheck.valid);
@@ -158,11 +242,7 @@
   /** Digits and one decimal separator, at most 8 digits and 2 decimals. */
   function sanitizeAmount(e: Event) {
       const el = e.currentTarget as HTMLInputElement;
-      const raw = el.value.replace(/[^\d.,]/g, '');
-      const sep = raw.search(/[.,]/);
-      const clean = sep === -1
-          ? raw.slice(0, 8)
-          : raw.slice(0, sep).slice(0, 8) + raw[sep] + raw.slice(sep + 1).replace(/[.,]/g, '').slice(0, 2);
+      const clean = sanitizeDecimal(el.value);
       if (clean !== el.value) el.value = clean;
       amount = clean;
       filled.amount = false;
@@ -201,7 +281,8 @@
       }
   }
 
-  async function save() {
+  /** `andNew`: stay on an empty form, for the next one (same people, same day). */
+  async function save(andNew = false) {
       if (!isValid || isOfflineEdit) return;
 
       isLoading = true;
@@ -231,7 +312,12 @@
           }
 
           haptic('success');
-          await goBack(`/k/${kimpayId}`);
+          if (andNew) {
+              resetForNext();
+          } else {
+              leaving = true;
+              await goBack(`/k/${kimpayId}`);
+          }
       } catch (e) {
           console.error(e);
           haptic('error');
@@ -239,6 +325,27 @@
       } finally {
           isLoading = false;
       }
+  }
+
+  let amountInput = $state<HTMLInputElement | null>(null);
+
+  /** What changes from one expense to the next is cleared; who and when stay. */
+  function resetForNext() {
+      description = "";
+      amount = "";
+      icon = autoIcon = DEFAULT_EXPENSE_EMOJI;
+      newPhotos = [];
+      filled = { amount: false, description: false };
+      scanApplied = null;
+      scanError = "";
+      // Exact amounts belonged to that expense; shares and percents still apply.
+      if (splitMode === 'amounts') {
+          splitMode = 'equal';
+          splitValues = {};
+      }
+      baseline = formState();
+      amountInput?.closest('main')?.scrollTo({ top: 0 });
+      amountInput?.focus();
   }
 
   /**
@@ -276,6 +383,7 @@
       splitMode: SplitMode;
       splitValues: Record<string, number>;
       newPhotos: File[];
+      autoIcon: string | null;
   }
 
   /** The photo being read (shown full screen until the result comes back). */
@@ -332,12 +440,16 @@
           splitMode,
           splitValues: { ...splitValues },
           newPhotos: [...newPhotos],
+          autoIcon,
       };
 
       description = result.description;
       amount = String(result.amount);
       if (CURRENCY_CODES.includes(result.currency)) currency = result.currency;
-      if (result.emoji) icon = result.emoji;
+      if (result.emoji) {
+          icon = result.emoji;
+          autoIcon = null;
+      }
       // YYYY-MM-DD
       if (result.date) date = result.date;
       // The receipt is kept with the expense.
@@ -376,6 +488,7 @@
       splitMode = s.splitMode;
       splitValues = s.splitValues;
       newPhotos = s.newPhotos;
+      autoIcon = s.autoIcon;
       filled = { amount: false, description: false };
       scanApplied = null;
   }
@@ -387,7 +500,7 @@
         <div class="mx-auto flex h-14 max-w-lg items-center gap-2 px-4">
             <a
                 href="/k/{kimpayId}"
-                onclick={(e) => { e.preventDefault(); goBack(`/k/${kimpayId}`); }}
+                onclick={(e) => { e.preventDefault(); close(); }}
                 class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label={$t('common.close')}
                 title={$t('common.close')}
@@ -399,14 +512,14 @@
                 <ReceiptScanner onPick={scan} busy={!!scanning} disabled={isLoading} />
             {/if}
             {#if onDelete}
-                <Button variant="ghost-destructive" size="icon" onclick={onDelete} aria-label={$t('common.delete')} title={$t('common.delete')}>
+                <Button variant="ghost-destructive" size="icon" onclick={() => onDelete(() => (leaving = true))} aria-label={$t('common.delete')} title={$t('common.delete')}>
                     <Trash2 class="size-5!" />
                 </Button>
             {/if}
         </div>
     </header>
 
-    <div class="mx-auto w-full max-w-lg flex-1 space-y-6 px-4 pt-5 pb-28">
+    <div class="mx-auto w-full max-w-lg flex-1 space-y-6 px-4 pt-5 pb-36">
         {#if scanError}
             <div class="flex items-start gap-3 rounded-control bg-destructive/10 p-3 text-destructive" role="alert" transition:slide={{ duration: 150 }}>
                 <CircleAlert class="mt-0.5 h-5 w-5 shrink-0" />
@@ -448,22 +561,12 @@
             </div>
         {/if}
 
-        <!-- Expense or money received -->
-        <SegmentedControl
-            options={[
-                { value: 'expense', label: $t('expense.type.expense') },
-                { value: 'income', label: $t('expense.type.income') },
-            ]}
-            value={isIncome ? 'income' : 'expense'}
-            label={$t('expense.type.label')}
-            onchange={(v) => isIncome = v === 'income'}
-        />
-
         <!-- Amount first, big -->
         <div class="space-y-2 text-center">
             <label for="amount" class="sr-only">{$t('expense.form.amount_label')}</label>
             <input
                 id="amount"
+                bind:this={amountInput}
                 type="text"
                 inputmode="decimal"
                 autocomplete="off"
@@ -474,6 +577,9 @@
             />
             <div class="flex items-center justify-center gap-2">
                 <CurrencySelect size="sm" position="bottom-left" bind:value={currency} />
+                {#if isIncome}
+                    <Badge tone="success"><HandCoins class="h-3 w-3" />{$t('expense.type.income')}</Badge>
+                {/if}
                 {#if filled.amount}
                     <Badge><Sparkles class="h-3 w-3" />{$t('expense.form.scan_tag')}</Badge>
                 {/if}
@@ -529,20 +635,39 @@
             selected={involved}
             mode="multi"
             label={$t('expense.form.for_whom_label')}
-            hint={perPerson}
             onSelectionChange={handleInvolvedChange}
             onAddNew={() => newParticipantSource = 'involved'}
             showToggleAll={true}
         />
 
         {#if involved.length > 0}
-            <SplitEditor
-                involved={involvedParticipants}
-                bind:mode={splitMode}
-                bind:values={splitValues}
-                amount={amountValue}
-                {currency}
-            />
+            <div class="space-y-2">
+                <Label tag="span" id="split-label">{$t('expense.split.label')}</Label>
+                {#if showSplitEditor}
+                    <SplitEditor
+                        involved={involvedParticipants}
+                        bind:mode={splitMode}
+                        bind:values={splitValues}
+                        amount={amountValue}
+                        {currency}
+                    />
+                {:else}
+                    <button
+                        type="button"
+                        onclick={() => isSplitOpen = true}
+                        aria-describedby="split-label"
+                        class="flex w-full min-h-14 items-center gap-3 rounded-card border bg-card px-4 py-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-base font-medium">{$t('expense.split.equal_summary')}</span>
+                            <span class="block truncate text-sm text-muted-foreground">
+                                {perPerson || $t('expense.list.people', { count: String(involved.length) })}
+                            </span>
+                        </span>
+                        <span class="shrink-0 text-sm font-semibold text-primary">{$t('common.edit')}</span>
+                    </button>
+                {/if}
+            </div>
         {/if}
 
         <ListGroup>
@@ -553,19 +678,35 @@
                 bind:photosToDelete
                 record={initialData}
             />
+            <!-- Money received (a deposit back, a sale...): rare, so last. -->
+            <ListRow icon={HandCoins} title={$t('expense.type.income')} subtitle={$t('expense.form.income_hint')}>
+                {#snippet trailing()}
+                    <Switch checked={isIncome} label={$t('expense.type.income')} onchange={(v) => isIncome = v} />
+                {/snippet}
+            </ListRow>
         </ListGroup>
     </div>
 
     <!-- The one save button, always in reach (fixed, like the tab bar) -->
     <div class="fixed inset-x-0 bottom-0 z-30 border-t bg-card pb-[env(safe-area-inset-bottom)]">
         <div class="mx-auto max-w-lg space-y-1.5 px-4 py-3">
-            <Button size="lg" class="w-full" onclick={save} loading={isLoading} disabled={!isValid || isOfflineEdit}>
+            <Button size="lg" class="w-full" onclick={() => save()} loading={isLoading} disabled={!isValid || isOfflineEdit}>
                 {saveLabel}
             </Button>
             {#if missing && !isOfflineEdit}
-                <p class="text-center text-sm text-muted-foreground">
+                <p class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
                     {$t('expense.form.missing', { fields: missing })}
                 </p>
+            {:else if !initialData}
+                <!-- Several in a row (after a trip): stays on the form. -->
+                <button
+                    type="button"
+                    onclick={() => save(true)}
+                    disabled={isLoading}
+                    class="flex min-h-9 w-full items-center justify-center rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
+                >
+                    {$t('expense.form.save_and_new')}
+                </button>
             {/if}
         </div>
     </div>

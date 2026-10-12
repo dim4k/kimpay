@@ -458,4 +458,12 @@ export const es: Record<TranslationKey, string> = {
     "expense.list.new": "Nuevo",
     "expense.list.new_since": "{count} novedad(es) desde tu última visita",
     "expense.list.reimbursements_count": "{count} reembolso(s)",
+    "expense.form.discard_title": "¿Descartar este gasto?",
+    "expense.form.discard_desc": "Se perderá lo que has introducido.",
+    "expense.form.discard": "Descartar",
+    "expense.form.keep_editing": "Seguir editando",
+    "expense.form.save_and_new": "Guardar y añadir otro",
+    "expense.form.income_hint": "Fianza devuelta, reembolso, venta…",
+    "expense.split.equal_summary": "Repartido a partes iguales",
+    "expense.split.give_rest": "Asignar el resto a {name}",
 };
