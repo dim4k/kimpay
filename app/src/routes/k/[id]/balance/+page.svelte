@@ -77,18 +77,55 @@
           }),
           confirmText: $t('balance.settle.confirm'),
           cancelText: $t('common.cancel'),
-          onConfirm: async () => {
-             // Reimbursement is created in the Kimpay's currency (original transaction currency)
-             await activeKimpay.addExpense({
-                payer: tx.from,
-                involved: [tx.to],
-                amount: tx.amount,
-                currency: tx.currency,
-                description: $t('balance.reimbursement'),
-                is_reimbursement: true,
-                date: new Date().toISOString()
-             });
+          onConfirm: () => settle(tx),
+      });
+  }
+
+  /** Record the payment: a reimbursement, in the Kimpay's currency. */
+  async function settle(tx: Transaction) {
+      await activeKimpay.addExpense({
+          payer: tx.from,
+          involved: [tx.to],
+          amount: tx.amount,
+          currency: tx.currency,
+          description: $t('balance.reimbursement'),
+          is_reimbursement: true,
+          date: new Date().toISOString()
+      });
+  }
+
+  // Paid in PayPal or Revolut: back in the app, ask whether it went through
+  // (the payment is not recorded until marked as settled).
+  let opened = $state<{ to: string; service: string; left: boolean } | null>(null);
+
+  $effect(() => {
+      const onVisibility = () => {
+          if (!opened) return;
+          if (document.visibilityState === 'hidden') {
+              opened.left = true;
+              return;
           }
+          if (!opened.left) return;
+          const { to, service } = opened;
+          opened = null;
+          // Still owed (nobody settled it meanwhile)?
+          const tx = transactions.find((t) => t.from === myId && t.to === to);
+          if (tx && !offlineStore.isOffline) askPaid(tx, service);
+      };
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => document.removeEventListener('visibilitychange', onVisibility);
+  });
+
+  function askPaid(tx: Transaction, service: string) {
+      modals.confirm({
+          title: $t('balance.paid_back.title', { name: getName(tx.to) }),
+          description: $t('balance.paid_back.desc', {
+              amount: formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale),
+              service,
+          }),
+          confirmText: $t('balance.paid_back.confirm'),
+          cancelText: $t('balance.paid_back.not_yet'),
+          onConfirm: () => settle(tx),
       });
   }
 
@@ -238,6 +275,12 @@
             </BalanceHero>
         {/if}
 
+        <!-- The amounts below, in another currency if needed. -->
+        <div class="-mt-2 flex items-center justify-end gap-2 text-sm text-muted-foreground">
+            <span>{$t('balance.display_in')}</span>
+            <CurrencySelect size="sm" bind:value={displayCurrency} />
+        </div>
+
         {#if showNudge}
             <section class="space-y-3 rounded-card bg-primary-soft p-4 animate-pop-in">
                 <div class="space-y-1">
@@ -259,11 +302,7 @@
 
         {#if transactions.length > 0}
             <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.suggested.title')}>
-                    {#snippet actions()}
-                        <CurrencySelect size="sm" bind:value={displayCurrency} />
-                    {/snippet}
-                </SectionLabel>
+                <SectionLabel title={$t('balance.suggested.title')} />
                 <ListGroup>
                     {#each transactions as tx, i (i)}
                         {#if myId && (tx.from === myId || tx.to === myId)}
@@ -274,7 +313,12 @@
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     {#if tx.from === myId}
-                                        <PaymentLinks to={activeKimpay?.participantsById.get(tx.to)} amount={tx.amount} currency={tx.currency} />
+                                        <PaymentLinks
+                                            to={activeKimpay?.participantsById.get(tx.to)}
+                                            amount={tx.amount}
+                                            currency={tx.currency}
+                                            onpay={(service) => (opened = { to: tx.to, service, left: false })}
+                                        />
                                     {/if}
                                     <Button size="sm" variant="outline" onclick={() => openSettleModal(tx)}>
                                         <Check />
@@ -302,13 +346,7 @@
         {/if}
 
         <section class="space-y-2 animate-slide-up">
-            <SectionLabel title={$t('readonly.balances')}>
-                {#snippet actions()}
-                    {#if transactions.length === 0}
-                        <CurrencySelect size="sm" bind:value={displayCurrency} />
-                    {/if}
-                {/snippet}
-            </SectionLabel>
+            <SectionLabel title={$t('readonly.balances')} />
             <BalanceBars rows={balanceRows} currency={displayCurrency} />
         </section>
 

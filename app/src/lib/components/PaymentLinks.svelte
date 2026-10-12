@@ -11,9 +11,11 @@
         amount: number;
         currency: string;
         class?: string;
+        /** A link was opened (to ask, back in the app, whether it was paid) */
+        onpay?: (service: string) => void;
     }
 
-    let { to, amount, currency, class: className = '' }: Props = $props();
+    let { to, amount, currency, class: className = '', onpay }: Props = $props();
 
     let links = $derived(paymentLinks(to, amount, currency));
 </script>
@@ -25,6 +27,7 @@
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onclick={() => onpay?.(link.label)}
                 aria-label={$t('payment.pay_with', { service: link.label, name: to?.name ?? '' })}
                 class={buttonVariants({ variant: 'soft', size: 'sm' })}
             >

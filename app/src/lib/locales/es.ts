@@ -465,4 +465,9 @@ export const es: Record<TranslationKey, string> = {
     "sort.amount": "Importe",
     "expense.list.duplicate": "Duplicar",
     "expense.list.open_photo": "Abrir la foto {index}",
+    "balance.display_in": "Importes en",
+    "balance.paid_back.title": "¿Has pagado a {name}?",
+    "balance.paid_back.desc": "{amount} con {service}. Márcalo como saldado para actualizar los saldos.",
+    "balance.paid_back.confirm": "Sí, marcar como saldado",
+    "balance.paid_back.not_yet": "Todavía no",
 };

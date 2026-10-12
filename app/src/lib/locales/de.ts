@@ -465,4 +465,9 @@ export const de: Record<TranslationKey, string> = {
     "sort.amount": "Betrag",
     "expense.list.duplicate": "Duplizieren",
     "expense.list.open_photo": "Foto {index} öffnen",
+    "balance.display_in": "Beträge in",
+    "balance.paid_back.title": "Haben Sie {name} bezahlt?",
+    "balance.paid_back.desc": "{amount} mit {service}. Als beglichen markieren, um die Salden zu aktualisieren.",
+    "balance.paid_back.confirm": "Ja, als beglichen markieren",
+    "balance.paid_back.not_yet": "Noch nicht",
 };

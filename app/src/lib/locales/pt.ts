@@ -465,4 +465,9 @@ export const pt: Record<TranslationKey, string> = {
     "sort.amount": "Valor",
     "expense.list.duplicate": "Duplicar",
     "expense.list.open_photo": "Abrir a foto {index}",
+    "balance.display_in": "Valores em",
+    "balance.paid_back.title": "Pagou a {name}?",
+    "balance.paid_back.desc": "{amount} com {service}. Marque como acertado para atualizar os saldos.",
+    "balance.paid_back.confirm": "Sim, marcar como acertado",
+    "balance.paid_back.not_yet": "Ainda não",
 };

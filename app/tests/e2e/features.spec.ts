@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, openProfile } from './test-utils';
+import { createKimpay, dismissInstallPrompt, openProfile, switchIdentity } from './test-utils';
 
 /** Group of two: "Payer" (this device) and "Other". */
 async function setupGroup(page: Page, name: string) {
@@ -111,6 +111,38 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await openProfile(page);
         await page.getByRole('switch', { name: 'Show my payment links here' }).click();
         await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+    });
+
+    test('Back from a payment link, asks whether it was paid', async ({ page }) => {
+        const base = await setupGroup(page, 'Paid Back');
+        await addExpense(page, base, 'Concert', '60');
+
+        // Payer shows a PayPal link; Other, who owes 30, pays with it.
+        await page.goto(`${base}/balance`);
+        await page.getByRole('button', { name: 'Add a payment link' }).click();
+        await page.getByLabel('PayPal.me').fill('payer.pp');
+        await page.getByRole('button', { name: /^save$/i }).click();
+        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+        await switchIdentity(page, 'Other');
+        await expect(page.getByText('Show amounts in')).toBeVisible();
+
+        const popup = page.waitForEvent('popup');
+        await page.getByRole('link', { name: /paypal/i }).click();
+        await (await popup).close();
+        // Away in PayPal, then back in the app.
+        await page.evaluate(() => {
+            const set = (state: string) => {
+                Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+                document.dispatchEvent(new Event('visibilitychange'));
+            };
+            set('hidden');
+            set('visible');
+        });
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog.getByText('Did you pay Payer?')).toBeVisible();
+        await dialog.getByRole('button', { name: 'Yes, mark as settled' }).click();
+        await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
     test('Shares a read-only summary with payment links', async ({ page }) => {

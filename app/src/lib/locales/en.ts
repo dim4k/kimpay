@@ -463,6 +463,11 @@ export const en = {
     "sort.amount": "Amount",
     "expense.list.duplicate": "Duplicate",
     "expense.list.open_photo": "Open photo {index}",
+    "balance.display_in": "Show amounts in",
+    "balance.paid_back.title": "Did you pay {name}?",
+    "balance.paid_back.desc": "{amount} with {service}. Mark it as settled to update the balances.",
+    "balance.paid_back.confirm": "Yes, mark as settled",
+    "balance.paid_back.not_yet": "Not yet",
 } as const;
 
 export type TranslationKey = keyof typeof en;
