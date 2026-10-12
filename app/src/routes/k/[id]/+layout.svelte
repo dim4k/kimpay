@@ -11,6 +11,7 @@
   import { haptic } from '#lib/utils/haptic.js';
   import { installStore } from '#lib/stores/install.svelte.js';
   import { profileStore } from '#lib/stores/profile.svelte.js';
+  import { setRequestActor } from '#lib/pocketbase.js';
   
   import { onDestroy, type Snippet } from 'svelte';
   
@@ -35,7 +36,13 @@
   });
   
   // Cleanup only when truly leaving the Kimpay context (component unmount)
+  // The group's history says who made each change.
+  $effect(() => {
+      setRequestActor(activeKimpay?.myParticipantId ?? null);
+  });
+
   onDestroy(() => {
+      setRequestActor(null);
       activeKimpay?.destroy();
       activeKimpayGlobal.reset();
       modals.closeIdentity();

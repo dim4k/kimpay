@@ -4,7 +4,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { Copy, FileText, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
+  import { Copy, FileText, History, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import { auth } from '#lib/stores/auth.svelte.js';
@@ -244,6 +244,7 @@
     <section class="space-y-2">
         <SectionLabel title={$t('settings.section.data')} />
         <ListGroup>
+            <ListRow icon={History} title={$t('activity.title')} subtitle={$t('activity.desc')} href="/k/{kimpayId}/settings/activity" />
             <ListRow icon={Table} title={$t('settings.export.as', { format: $t('settings.export.csv') })} onclick={() => handleExport('csv')} />
             <ListRow icon={FileText} title={$t('settings.export.as', { format: $t('settings.export.md') })} onclick={() => handleExport('md')} />
         </ListGroup>

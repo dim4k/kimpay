@@ -67,6 +67,9 @@ routerAdd("POST", "/api/kimpay/{id}/merge", (e) => {
     }
 
     const swap = (value) => (value === body.from ? body.into : value);
+    const activity = require(`${__hooks}/lib/activity.js`);
+    const actor = activity.actorOf(e, id);
+    const names = { from: from.getString("name"), into: into.getString("name") };
 
     e.app.runInTransaction((txApp) => {
         for (let i = 0; i < expenses.length; i++) {
@@ -124,5 +127,6 @@ routerAdd("POST", "/api/kimpay/{id}/merge", (e) => {
         txApp.delete(txApp.findRecordById("participants", body.from));
     });
 
+    activity.log(e.app, id, "participants_merged", actor, body.into, names);
     return e.json(200, { id: body.into });
 });

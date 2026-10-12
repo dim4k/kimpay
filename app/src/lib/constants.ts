@@ -102,6 +102,8 @@ export const STORAGE_KEYS = {
     SWIPE_HINT_SHOWN: 'kimpay_swipe_hint_shown',
     /** Prefix: "archive this settled group?" dismissed (localStorage) */
     ARCHIVE_SUGGESTION_DISMISSED_PREFIX: 'kimpay_archive_suggestion_dismissed_',
+    /** Prefix: when the history of a group was last looked at (ms, localStorage) */
+    ACTIVITY_SEEN_PREFIX: 'kimpay_activity_seen_',
     /** Language of the app (localStorage) */
     LOCALE: 'locale',
     /** Theme picked: "light" or "dark", none for the system's (localStorage) */

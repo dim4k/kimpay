@@ -32,6 +32,7 @@
   import { balanceSign, balanceTone, expenseImpact, isSettled, toKimpayAmount } from '#lib/balance.js';
   import { expenseView } from '#lib/stores/expenseView.svelte.js';
   import { prefs } from '#lib/utils/prefs.js';
+  import { activitySeenAt, changesSince, listActivity, markActivitySeen, type Activity } from '#lib/services/activity.js';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, STORAGE_KEYS, emojiCategory, type EmojiCategoryKey } from '#lib/constants.js';
 
@@ -326,26 +327,42 @@
   let isSettingUp = $derived(!isLoading && rawExpenses.length === 0 && !offlineStore.isOffline);
   let others = $derived(participants.filter(p => p.id !== currentUserId));
   let newMember = $state("");
-  let isAddingMember = $state(false);
   let isInviteOpen = $state(false);
 
+  // Optimistic: the field is free for the next name at once.
   async function addMember() {
       const name = newMember.trim();
       if (!name || !activeKimpay) return;
-      isAddingMember = true;
+      newMember = "";
       try {
           await activeKimpay.addParticipant(name);
-          newMember = "";
       } catch (e) {
           console.error(e);
+          if (!newMember) newMember = name;
           toasts.error(getErrorMessage(e, $t));
-      } finally {
-          isAddingMember = false;
       }
   }
 
   let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId);
-  let hasNews = $derived(!isLoading && newIds.size > 0);
+  // Changed or deleted by others since my last look at the history (the
+  // additions are the dots above). Loaded again with every change to the group.
+  let activities = $state<Activity[]>([]);
+  let seenAt = $state(0);
+  $effect(() => {
+      const id = kimpayId;
+      void activeKimpay?.kimpay?.updated;
+      if (!id || offlineStore.isOffline) return;
+      seenAt = activitySeenAt(id);
+      listActivity(id).then((list) => (activities = list)).catch(() => {});
+  });
+  let changes = $derived(seenAt ? changesSince(activities, seenAt, currentUserId) : 0);
+
+  let hasNews = $derived(!isLoading && (newIds.size > 0 || changes > 0));
+
+  function dismissNews() {
+      activeKimpay?.markAllSeen();
+      seenAt = markActivitySeen(kimpayId);
+  }
 
   /** A receipt photographed from the empty list: the form reads it. */
   function scanFromList(file: File) {
@@ -420,8 +437,8 @@
                   aria-label={$t('settings.participants.placeholder')}
                   onkeydown={(e) => e.key === 'Enter' && addMember()}
               />
-              <Button size="icon" class="shrink-0" onclick={addMember} loading={isAddingMember} disabled={!newMember.trim()} aria-label={$t('settings.participants.add')}>
-                  {#if !isAddingMember}<Plus />{/if}
+              <Button size="icon" class="shrink-0" onclick={addMember} disabled={!newMember.trim()} aria-label={$t('settings.participants.add')}>
+                  <Plus />
               </Button>
           </div>
           <Button variant="soft" class="w-full" onclick={() => isInviteOpen = true}>
@@ -459,12 +476,22 @@
       <!-- A dot marks each of these lines in the list. -->
       <div class="flex min-h-11 items-center gap-1 pl-4 pr-1">
           <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-          <button type="button" onclick={showNews} class="min-w-0 flex-1 truncate py-2 pl-2 text-left text-sm font-medium">
-              {$t('expense.list.new_since', { count: String(newIds.size) })}
-          </button>
+          <div class="min-w-0 flex-1 py-1">
+              {#if newIds.size > 0}
+                  <button type="button" onclick={showNews} class="block w-full truncate py-1 pl-2 text-left text-sm font-medium">
+                      {$t('expense.list.new_since', { count: String(newIds.size) })}
+                  </button>
+              {/if}
+              {#if changes > 0}
+                  <a href="/k/{kimpayId}/settings/activity" class="flex items-center gap-0.5 py-1 pl-2 text-sm font-medium text-primary">
+                      <span class="truncate">{$t('activity.changes_since', { count: String(changes) })}</span>
+                      <ChevronRight class="h-4 w-4 shrink-0" />
+                  </a>
+              {/if}
+          </div>
           <button
               type="button"
-              onclick={() => activeKimpay?.markAllSeen()}
+              onclick={dismissNews}
               aria-label={$t('common.close')}
               class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted"
           >
