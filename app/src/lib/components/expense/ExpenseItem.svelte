@@ -30,6 +30,7 @@
         kimpayCurrency,
         exchangeRates,
         isNew = false,
+        readonly = false,
     }: {
         expense: Expense;
         currentUserId: string | null;
@@ -42,6 +43,8 @@
         exchangeRates: Record<string, number>;
         /** Added by someone else since my last visit. */
         isNew?: boolean;
+        /** Read-only link: the details, without any action */
+        readonly?: boolean;
         expandedId: string | null;
         kimpayId: string;
         onToggleExpand: (expenseId: string) => void;
@@ -152,7 +155,7 @@
     }
 
     // Disable swipe for reimbursements or when offline (can't edit)
-    let swipeDisabled = $derived(expense.is_reimbursement || offlineStore.isOffline);
+    let swipeDisabled = $derived(readonly || expense.is_reimbursement || offlineStore.isOffline);
 </script>
 
 {#snippet personChip(id: string, name: string | undefined)}
@@ -306,7 +309,9 @@
                 </ul>
             {/if}
 
-            {#if expense.is_reimbursement}
+            {#if readonly}
+                <!-- Read-only link: nothing to change. -->
+            {:else if expense.is_reimbursement}
                 <Button
                     variant="outline"
                     size="sm"

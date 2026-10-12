@@ -1,13 +1,14 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { onMount } from 'svelte';
-    import { ArrowRight, CircleCheck, Eye, HandCoins, Link } from '@lucide/svelte';
+    import { ArrowRight, CircleCheck, Eye, Link } from '@lucide/svelte';
     import { t, locale } from '#lib/i18n.js';
     import { fetchReadonlyKimpay, type ReadonlyKimpay } from '#lib/services/readonly.js';
     import { getExchangeRates, formatAmount } from '#lib/services/currency.js';
     import { calculateBalances, calculateDebts, totalSpent } from '#lib/balance.js';
-    import { DEFAULT_EXPENSE_EMOJI, DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
-    import { parseLocalISODate } from '#lib/utils/date.js';
+    import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
+    import { dayLabel, groupByDay } from '#lib/utils/date.js';
+    import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import IconTile from '#lib/components/ui/IconTile.svelte';
     import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
@@ -42,6 +43,13 @@
     let ranked = $derived([...(data?.participants ?? [])].sort((a, b) => (balances[b.id] ?? 0) - (balances[a.id] ?? 0)));
 
     const nameOf = (id: string) => byId.get(id)?.name ?? $t('common.unknown');
+
+    // The latest day first, as in the app; one line opened at a time.
+    let days = $derived(
+        groupByDay([...(data?.expenses ?? [])].sort((a, b) => b.date.slice(0, 10).localeCompare(a.date.slice(0, 10))))
+    );
+    let participantIds = $derived((data?.participants ?? []).map((p) => p.id));
+    let expandedId = $state<string | null>(null);
 </script>
 
 <svelte:head>
@@ -111,35 +119,31 @@
             {#if data.expenses.length === 0}
                 <p class="px-1 text-sm text-muted-foreground">{$t('expense.list.empty.title')}</p>
             {:else}
-                <ListGroup>
-                    {#each data.expenses as e (e.id)}
-                        <div class="flex items-center gap-3 px-4 py-3">
-                            <IconTile tone={e.is_reimbursement ? 'success' : 'muted'}>
-                                {#if e.is_reimbursement}
-                                    <HandCoins />
-                                {:else}
-                                    {e.icon || DEFAULT_EXPENSE_EMOJI}
-                                {/if}
-                            </IconTile>
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-base font-medium">
-                                    {e.is_reimbursement ? $t('balance.reimbursement') : e.description}
-                                </p>
-                                <p class="truncate text-sm text-muted-foreground">
-                                    {parseLocalISODate(e.date).toLocaleDateString($locale)} ·
-                                    {#if e.is_reimbursement}
-                                        {$t('expense.list.reimbursement', { from: nameOf(e.payer), to: nameOf(e.involved[0] ?? '') })}
-                                    {:else}
-                                        {e.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')} {nameOf(e.payer)}
-                                    {/if}
-                                </p>
-                            </div>
-                            <span class="shrink-0 text-base font-semibold tabular-nums">
-                                {e.is_income ? '+' : ''}{formatAmount(e.amount, e.currency, $locale)}
-                            </span>
-                        </div>
-                    {/each}
-                </ListGroup>
+                {#each days as day (day.key)}
+                    <div class="space-y-2">
+                        <h3 class="px-1 text-sm font-semibold text-muted-foreground">
+                            {dayLabel(day.key, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') })}
+                        </h3>
+                        <ListGroup>
+                            {#each day.items as e (e.id)}
+                                <ExpenseItem
+                                    expense={e}
+                                    readonly
+                                    currentUserId={null}
+                                    {participantIds}
+                                    {expandedId}
+                                    kimpayId=""
+                                    onToggleExpand={(id) => (expandedId = expandedId === id ? null : id)}
+                                    onRequestDelete={() => {}}
+                                    onOpenGallery={() => {}}
+                                    participantsById={byId}
+                                    kimpayCurrency={currency}
+                                    exchangeRates={rates}
+                                />
+                            {/each}
+                        </ListGroup>
+                    </div>
+                {/each}
             {/if}
         </section>
 

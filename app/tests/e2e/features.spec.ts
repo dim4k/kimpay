@@ -180,6 +180,10 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('heading', { name: 'Readonly Test' })).toBeVisible();
         await expect(page.getByText('Read only')).toBeVisible();
         await expect(page.getByText('Museum')).toBeVisible();
+        // The lines open like in the app, without any action.
+        await page.getByRole('button', { name: /Museum/ }).click();
+        await expect(page.getByText('Date:')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
         await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveAttribute('href', 'https://paypal.me/payer.pp/50.00EUR');
 
         // Once disabled, the link stops working.

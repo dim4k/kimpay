@@ -37,3 +37,37 @@ export function relativeDay(timestamp: string, locale: string, now: Date = new D
     if (days < 365) return format.format(-Math.floor(days / 30), 'month');
     return format.format(-Math.floor(days / 365), 'year');
 }
+
+/**
+ * A day of the expense lists ("YYYY-MM-DD"): "Today", "Yesterday", then the
+ * date ("Saturday 19 September", "Sat 19 Sep" when `short`), with the year
+ * when it is not this one.
+ */
+export function dayLabel(
+    key: string,
+    locale: string,
+    words: { today: string; yesterday: string },
+    short = false,
+    now: Date = new Date(),
+): string {
+    if (key === toLocalISODate(now)) return words.today;
+    if (key === toLocalISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return words.yesterday;
+    return parseLocalISODate(key).toLocaleDateString(locale, {
+        weekday: short ? 'short' : 'long',
+        day: 'numeric',
+        month: short ? 'short' : 'long',
+        ...(key.slice(0, 4) !== String(now.getFullYear()) && { year: 'numeric' }),
+    });
+}
+
+/** Items grouped by day ("YYYY-MM-DD" of their `date`), consecutive ones only: sort them first. */
+export function groupByDay<T extends { date: string }>(items: readonly T[]): { key: string; items: T[] }[] {
+    const days: { key: string; items: T[] }[] = [];
+    for (const item of items) {
+        const key = item.date.slice(0, 10);
+        const last = days[days.length - 1];
+        if (last?.key === key) last.items.push(item);
+        else days.push({ key, items: [item] });
+    }
+    return days;
+}

@@ -23,7 +23,7 @@
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
+  import { dayLabel, groupByDay } from '#lib/utils/date.js';
   import type { Expense } from '#lib/types.js';
   import type { TranslationKey } from '#lib/locales/en.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
@@ -194,16 +194,8 @@
   let isOwed = $derived(balanceTone(myBalance) === 'success');
 
   /** "Today", "Yesterday", then the date ("Sat 19 Sep" when `short`). */
-  function dayLabel(key: string, short = false): string {
-      const today = new Date();
-      if (key === toLocalISODate(today)) return $t('datepicker.today');
-      if (key === toLocalISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))) return $t('date.yesterday');
-      return parseLocalISODate(key).toLocaleDateString($locale, {
-          weekday: short ? 'short' : 'long',
-          day: 'numeric',
-          month: short ? 'short' : 'long',
-          ...(key.slice(0, 4) !== String(today.getFullYear()) && { year: 'numeric' }),
-      });
+  function dayTitle(key: string, short = false): string {
+      return dayLabel(key, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }, short);
   }
 
   /**
@@ -230,14 +222,12 @@
           const shortLabel = $t('expense.list.count', { count: String(expenses.length) });
           return [{ key: 'all', label: '', shortLabel, items: expenses, ...amounts(expenses) }];
       }
-      const days: { key: string; label: string; shortLabel: string; items: Expense[] }[] = [];
-      for (const expense of expenses) {
-          const key = expense.date.slice(0, 10);
-          const last = days[days.length - 1];
-          if (last?.key === key) last.items.push(expense);
-          else days.push({ key, label: dayLabel(key), shortLabel: dayLabel(key, true), items: [expense] });
-      }
-      return days.map((day) => ({ ...day, ...amounts(day.items) }));
+      return groupByDay(expenses).map((day) => ({
+          ...day,
+          label: dayTitle(day.key),
+          shortLabel: dayTitle(day.key, true),
+          ...amounts(day.items),
+      }));
   });
 
   // Total or "for me": what the amounts of the list say (shared with the
