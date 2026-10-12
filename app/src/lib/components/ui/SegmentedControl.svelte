@@ -19,14 +19,14 @@
     }
 </script>
 
-<div role="radiogroup" aria-label={label} class={cn("grid gap-1 p-1 rounded-xl bg-muted dark:bg-slate-800", className)} style="grid-template-columns: repeat({options.length}, minmax(0, 1fr));">
+<div role="radiogroup" aria-label={label} class={cn("grid gap-1 rounded-full bg-muted p-1", className)} style="grid-template-columns: repeat({options.length}, minmax(0, 1fr));">
     {#each options as option (option.value)}
         <button
             type="button"
             role="radio"
             aria-checked={value === option.value}
             onclick={() => select(option.value)}
-            class="px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors truncate {value === option.value ? 'bg-background text-primary shadow-xs dark:bg-slate-950 dark:text-indigo-300' : 'text-muted-foreground hover:text-foreground'}"
+            class="h-9 truncate rounded-full px-3 text-sm font-semibold transition-colors duration-150 {value === option.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
         >
             {option.label}
         </button>

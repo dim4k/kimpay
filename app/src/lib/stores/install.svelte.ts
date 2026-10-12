@@ -22,6 +22,8 @@ class InstallStore {
     isIOS = $state(false);
     isStandalone = $state(false);
     showIOSInstructions = $state(false);
+    /** The install banner is on screen (layouts reserve room for it). */
+    bannerVisible = $state(false);
 
     constructor() {
         if (typeof window !== "undefined") {

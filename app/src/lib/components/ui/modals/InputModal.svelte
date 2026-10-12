@@ -37,18 +37,17 @@
 </script>
 
 <Modal {isOpen} onClose={isProcessing ? undefined : onCancel}>
-    <h2 class="text-xl font-bold text-center text-slate-900 dark:text-slate-100">{title}</h2>
+    <h2 class="text-center text-xl font-bold">{title}</h2>
     
     <Input 
         bind:value={value} 
         {placeholder} 
-        class="dark:bg-slate-800 dark:border-slate-700"
         autofocus
         onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
     />
 
     <div class="flex gap-3 pt-2">
-        <Button variant="outline" class="flex-1" onclick={onCancel} disabled={isProcessing}>
+        <Button variant="secondary" class="flex-1" onclick={onCancel} disabled={isProcessing}>
             {cancelText}
         </Button>
         <Button 

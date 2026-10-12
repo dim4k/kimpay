@@ -42,6 +42,15 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
+  /* Semantic money colors, always from the viewer's point of view:
+     success = owed to me / I lent, warning = I owe. */
+  --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-primary-soft: hsl(var(--primary-soft));
+  --color-primary-soft-foreground: hsl(var(--primary-soft-foreground));
+
   /* Fixed (rem) line heights as in Tailwind v3: v4 ratios (e.g. calc(2 / 1.5))
      round differently and shift layouts by 1-2px on high-DPI screens. */
   --text-xs--line-height: 1rem;
@@ -52,10 +61,18 @@
   --text-2xl--line-height: 2rem;
   --text-3xl--line-height: 2.25rem;
   --text-4xl--line-height: 2.5rem;
+  /* Hero amounts (balance). The rest of the scale: xl titles, base body,
+     sm labels, xs captions (the minimum). */
+  --text-display: 2rem;
+  --text-display--line-height: 2.25rem;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  /* The three radii of the design system: fields and buttons, surfaces
+     (cards, lists, sheets), and `rounded-full` for pills and avatars. */
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
 
   --font-sans:
     Outfit, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
@@ -63,13 +80,13 @@
 }
 
 @utility text-gradient-brand {
-  /* Single source of truth for the brand gradient (titles, logo) */
+  /* Single source of truth for the brand gradient (logo wordmark, home hero only) */
   @apply bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-blue-500 dark:from-indigo-400 dark:to-blue-400;
 }
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
+        --background: 228 42% 97.5%;
         --foreground: 224 71.4% 4.1%;
         --card: 0 0% 100%;
         --card-foreground: 224 71.4% 4.1%;
@@ -90,14 +107,21 @@
         --accent: 226 100% 96.7%;
         --accent-foreground: 243.4 75.4% 58.6%;
 
-        --destructive: 0 84.2% 60.2%;
+        --destructive: 0 72% 51%;
         --destructive-foreground: 210 20% 98%;
 
+        --success: 159 82% 30%;
+        --success-soft: 153 50% 93%;
+        --warning: 24 88% 40%;
+        --warning-soft: 29 86% 94%;
+        --primary-soft: 226 100% 96.7%;
+        --primary-soft-foreground: 243.4 75.4% 58.6%;
+
         --border: 220 13% 91%;
-        --input: 220 13% 91%;
+        --input: 220 13% 86%;
         --ring: 243.4 75.4% 58.6%;
 
-        --radius: 1rem; /* More rounded */
+        --radius: 1rem;
     }
     .dark {
         --background: 222.2 84% 4.9%; /* Slate 950 */
@@ -112,8 +136,8 @@
         --primary: 238.7 83.5% 66.7%; /* Indigo 500 */
         --primary-foreground: 210 40% 98%;
 
-        --secondary: 217.2 32.6% 17.5%;
-        --secondary-foreground: 210 40% 98%;
+        --secondary: 237 44% 25%;
+        --secondary-foreground: 230 94% 82%;
 
         --muted: 217.2 32.6% 17.5%;
         --muted-foreground: 215 20.2% 75.1%; /* Lighter for readability */
@@ -121,11 +145,18 @@
         --accent: 217.2 32.6% 17.5%;
         --accent-foreground: 210 40% 98%;
 
-        --destructive: 0 62.8% 30.6%;
+        --destructive: 0 84% 60%;
         --destructive-foreground: 210 40% 98%;
 
+        --success: 158 63% 53%;
+        --success-soft: 163 51% 12%;
+        --warning: 27 100% 68%;
+        --warning-soft: 28 55% 13%;
+        --primary-soft: 237 44% 25%;
+        --primary-soft-foreground: 230 94% 82%;
+
         --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
+        --input: 215 25% 27%;
         --ring: 238.7 83.5% 66.7%;
     }
 }
@@ -137,7 +168,7 @@
     /* Tailwind v4 placeholders default to the text color at 50%: keep v3 gray. */
     input::placeholder,
     textarea::placeholder {
-        color: var(--color-gray-400);
+        color: hsl(var(--muted-foreground) / 0.8);
     }
     /* Tailwind v4 dropped the pointer cursor on buttons: keep v3 behaviour. */
     button:not(:disabled),
@@ -168,7 +199,7 @@
 @keyframes slideUpFade {
     from {
         opacity: 0;
-        transform: translateY(50px);
+        transform: translateY(16px);
     }
     to {
         opacity: 1;
@@ -176,14 +207,15 @@
     }
 }
 
+/* Two durations only: 300ms for entrances, 150ms for small state changes. */
 .animate-slide-up {
-    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes popIn {
     0% {
         opacity: 0;
-        transform: scale(0.9) translateY(20px);
+        transform: scale(0.98) translateY(8px);
     }
     100% {
         opacity: 1;
@@ -192,7 +224,20 @@
 }
 
 .animate-pop-in {
-    animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Motion is decoration: drop it for people who asked the OS for less. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        animation-delay: 0ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* Apply styled scrollbar to all scrollable elements by default */

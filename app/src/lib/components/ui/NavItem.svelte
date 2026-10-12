@@ -13,13 +13,12 @@
     let { href, icon: Icon, label, isActive }: Props = $props();
 </script>
 
-<a 
+<a
     {href}
     onclick={() => haptic('light')}
-    class="flex flex-col items-center justify-center pb-2 gap-1 transition-colors {isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
+    aria-current={isActive ? 'page' : undefined}
+    class="flex h-full flex-col items-center justify-center gap-0.5 transition-colors duration-150 {isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
 >
-    <div class="relative flex items-center justify-center h-9 w-12 rounded-full transition-all duration-300 {isActive ? 'bg-secondary' : ''}">
-        <Icon class="h-6 w-6 transition-transform duration-300 {isActive ? 'scale-110' : ''}" strokeWidth={isActive ? 2.5 : 2} />
-    </div>
-    <span class="text-[10px] font-medium tracking-wide">{label}</span>
+    <Icon class="h-6 w-6" strokeWidth={isActive ? 2.4 : 2} />
+    <span class="text-xs font-medium">{label}</span>
 </a>

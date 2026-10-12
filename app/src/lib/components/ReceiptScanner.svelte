@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Camera, Loader2 } from '@lucide/svelte';
+    import { ScanLine, Loader2 } from '@lucide/svelte';
     import { t, locale } from '#lib/i18n.js';
     import { auth } from '#lib/stores/auth.svelte.js';
     import { scanReceipt, compressImage, fileToBase64, type OcrResult } from '#lib/services/ocr.js';
@@ -97,35 +97,20 @@
     onchange={handleFileSelect}
 />
 
-<!-- Scanner Button -->
+<!-- Scanner Button (top bar of the expense form). Without an account it
+     explains how to get the feature instead of taking up the form. -->
 <button
     type="button"
     onclick={openFilePicker}
     disabled={disabled || isScanning}
-    class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl 
-           bg-linear-to-r from-indigo-500/10 to-blue-500/10 
-           dark:from-indigo-500/20 dark:to-blue-500/20
-           border border-indigo-200 dark:border-indigo-800
-           hover:from-indigo-500/20 hover:to-blue-500/20
-           dark:hover:from-indigo-500/30 dark:hover:to-blue-500/30
-           transition-all duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed
-           group"
+    class="relative flex h-11 shrink-0 items-center gap-2 rounded-control px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
+    aria-label={isScanning ? $t('expense.form.scanning') : $t('expense.form.scan_receipt')}
+    title={isScanning ? $t('expense.form.scanning') : $t('expense.form.scan_receipt')}
 >
     {#if isScanning}
-        <Loader2 class="h-5 w-5 text-indigo-500 animate-spin" />
-        <span class="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-            {$t('expense.form.scanning')}
-        </span>
+        <Loader2 class="h-5 w-5 animate-spin" />
     {:else}
-        <Camera class="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
-        <span class="text-sm font-medium text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300">
-            {$t('expense.form.scan_receipt')}
-        </span>
-        {#if !isAuthenticated}
-            <span class="text-xs text-slate-400 dark:text-slate-500 ml-1">
-                ({$t('expense.form.scan_login_required')})
-            </span>
-        {/if}
+        <ScanLine class="h-5 w-5" />
     {/if}
+    <span class="hidden sm:inline">{$t('expense.form.scan_short')}</span>
 </button>

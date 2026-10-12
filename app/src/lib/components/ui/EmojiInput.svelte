@@ -24,7 +24,7 @@
 <div class="relative" {@attach isOpen && dismissable(() => (isOpen = false))}>
     <button
         type="button"
-        class={cn("h-10 w-14 rounded-md border border-input bg-background px-3 py-2 text-xl ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors", className)}
+        class={cn("h-11 w-14 shrink-0 rounded-control border border-input bg-card text-xl ring-offset-background transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50", className)}
         onclick={() => isOpen = !isOpen}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -34,19 +34,19 @@
     </button>
 
     {#if isOpen}
-        <div class="absolute top-full mt-2 left-0 z-50 w-80 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl border dark:border-slate-800 p-2">
+        <div class="absolute left-0 top-full z-50 mt-2 max-h-72 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-2 text-popover-foreground shadow-xl">
             {#each categoryOrder as categoryKey (categoryKey)}
                 {@const category = EMOJI_CATEGORIES[categoryKey]}
                 {#if category}
                     <div class="mb-3 last:mb-0">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-1">
+                        <div class="mb-1 px-1 text-xs font-semibold text-muted-foreground">
                             {$t(category.labelKey)}
                         </div>
                         <div class="grid grid-cols-8 gap-0.5">
                             {#each category.emojis as emoji (emoji)}
                                 <button
                                     type="button"
-                                    class="aspect-square hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-lg flex items-center justify-center transition-colors {value === emoji ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}"
+                                    class="flex aspect-square items-center justify-center rounded-md text-lg transition-colors hover:bg-muted {value === emoji ? 'bg-primary-soft' : ''}"
                                     aria-pressed={value === emoji}
                                     onclick={() => {
                                         value = emoji;

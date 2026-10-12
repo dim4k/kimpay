@@ -10,7 +10,7 @@ test.describe('Settings & Participants', () => {
     const url = page.url();
     const settingsUrl = url.endsWith('/') ? `${url}settings` : `${url}/settings`;
     await page.goto(settingsUrl);
-    await expect(page.getByText('Settings').first()).toBeVisible();
+    await expect(page.getByPlaceholder('New name')).toBeVisible();
   });
 
   test('Add Participant', async ({ page }) => {

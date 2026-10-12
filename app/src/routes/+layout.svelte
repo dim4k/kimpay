@@ -9,7 +9,7 @@
     import { theme } from '#lib/theme.js';
     import { onMount } from 'svelte';
     import { afterNavigate, beforeNavigate } from '$app/navigation';
-    import { updated } from '$app/state';
+    import { page, updated } from '$app/state';
     import type { LayoutProps } from './$types';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
     import { modals } from '#lib/stores/modals.svelte.js';
@@ -18,6 +18,9 @@
     import { participantService } from '#lib/services/participant.js';
 
     let { children, data }: LayoutProps = $props();
+
+    // Expense forms are full-screen, with their own top bar.
+    let isFormRoute = $derived(/^\/k\/[^/]+\/(add|edit)(\/|$)/.test(page.url.pathname));
 
     // The inner scroll container. Since scrolling now happens inside <main>
     // (not the document), reset it to the top on each navigation.
@@ -169,9 +172,11 @@
     <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>
 
-<div class="flex flex-col h-dvh overflow-hidden bg-background font-sans text-foreground selection:bg-primary/20 dark:bg-slate-950 dark:text-slate-100">
+<div class="flex flex-col h-dvh overflow-hidden bg-background font-sans text-foreground selection:bg-primary/20">
 	<main bind:this={mainEl} class="flex-1 flex flex-col overflow-y-auto" style="scrollbar-gutter: stable;">
-		<SiteHeader />
+		{#if !isFormRoute}
+			<SiteHeader />
+		{/if}
 		{@render children()}
 	</main>
 

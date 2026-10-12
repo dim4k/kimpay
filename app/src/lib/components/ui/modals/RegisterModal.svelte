@@ -57,8 +57,7 @@
     title={$t('register.title')}
     description={$t('register.desc')}
     icon={UserPlus}
-    iconBgClass="bg-indigo-100 dark:bg-indigo-900/30"
-    iconColorClass="text-indigo-500 dark:text-indigo-400"
+
 >
     {#if success}
         <Notice title={$t('register.success_title')} description={$t('register.success_desc')} />

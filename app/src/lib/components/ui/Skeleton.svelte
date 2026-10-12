@@ -3,7 +3,7 @@
 
     let {
         class: className = "",
-        rounded = "rounded-lg"
+        rounded = "rounded-md"
     }: {
         class?: string;
         rounded?: string;

@@ -1,13 +1,9 @@
 <script lang="ts">
-    import Logo from "#lib/components/ui/Logo.svelte";
     import { t } from '#lib/i18n.js';
 </script>
 
-<div class="text-center space-y-2 md:space-y-4 mb-6 md:mb-10 animate-slide-up">
-    <!-- Hero Logo (Larger) -->
-    <div class="inline-flex items-center justify-center p-4 md:p-6 bg-white dark:bg-slate-900 rounded-4xl shadow-xl shadow-indigo-100 dark:shadow-none mb-4 md:mb-8 transition-all duration-500 hover:scale-105">
-        <Logo class="w-12 h-12 md:w-20 md:h-20 text-indigo-700 dark:text-indigo-400" />
-    </div>
-    <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight bg-linear-to-r from-indigo-600 via-blue-500 to-cyan-500 dark:from-indigo-400 dark:via-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">{$t('app.name')}</h1>
-    <p class="text-sm md:text-lg text-muted-foreground max-w-[280px] mx-auto leading-relaxed">{$t('app.slogan')}</p>
+<!-- The header already carries the logo: the hero says what the app does. -->
+<div class="space-y-2 pt-2 text-center animate-slide-up">
+    <h1 class="text-3xl font-bold tracking-tight text-balance">{$t('app.slogan')}</h1>
+    <p class="mx-auto max-w-sm text-base text-muted-foreground">{$t('home.hero.desc')}</p>
 </div>

@@ -3,9 +3,8 @@
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
-  import PageHeader from '#lib/components/ui/PageHeader.svelte';
   import { goto } from '$app/navigation';
-  import { LogOut, Trash2, Save, UserPlus, Users, ArrowRightLeft, Bug, Download, FileText, Table, LoaderCircle, Wallet, Eye, Copy, Share2, Link } from "@lucide/svelte";
+  import { LogOut, Trash2, UserPlus, UserRoundCheck, Bug, Download, FileText, Table, LoaderCircle, Wallet, Pencil } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t } from '#lib/i18n.js';
   import { installStore } from '#lib/stores/install.svelte.js';
@@ -17,43 +16,47 @@
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { toCsv, toMarkdown, exportFilename, downloadFile, type ExportFormat } from '#lib/utils/export.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  
+
   import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
-  import SettingsSection from '#lib/components/ui/SettingsSection.svelte';
+  import Badge from '#lib/components/ui/Badge.svelte';
+  import ListGroup from '#lib/components/ui/ListGroup.svelte';
+  import ListRow from '#lib/components/ui/ListRow.svelte';
+  import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
+  import Modal from '#lib/components/ui/modals/Modal.svelte';
   import { locale } from '#lib/i18n.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { normalizeHandle } from '#lib/utils/payment.js';
-  import { generateUUID } from '#lib/utils/id.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
-  
+
   let kimpayId = $derived(activeKimpay?.id ?? '');
-  
+
   // Use stores
   let kimpay = $derived(activeKimpay?.kimpay);
   let participants = $derived(activeKimpay?.participants || []);
   let currentParticipantId = $derived(activeKimpay?.myParticipantId ?? null);
   let isCreator = $derived(kimpay?.created_by === currentParticipantId && !!auth.user);
+  let creatorName = $derived(
+      kimpay?.created_by === currentParticipantId
+          ? $t('common.you_in_sentence')
+          : activeKimpay?.participantsById.get(kimpay?.created_by ?? '')?.name
+  );
 
-  // Edit State
+  // Group name and icon, edited in a sheet
+  let isEditOpen = $state(false);
   let editName = $state("");
   let editIcon = $state("");
-  
-  // Feedback State
-  let saveFeedback = $state("");
+  let isSavingGroup = $state(false);
 
-  // Sync local state with store when loaded
-  $effect(() => {
-      if (kimpay) {
-          // Only set if empty to avoid overwriting user input while typing if realtime update comes in
-          if (!editName) editName = kimpay.name;
-          if (!editIcon) editIcon = kimpay.icon || DEFAULT_KIMPAY_EMOJI;
-      }
-  });
+  function openEdit() {
+      editName = kimpay?.name ?? "";
+      editIcon = kimpay?.icon || DEFAULT_KIMPAY_EMOJI;
+      isEditOpen = true;
+  }
 
   function checkUsage(pId: string): boolean {
       const allExpenses = activeKimpay?.expenses || [];
@@ -61,16 +64,17 @@
   }
 
   async function handleSave() {
-      saveFeedback = "";
+      if (!editName.trim()) return;
+      isSavingGroup = true;
       try {
-          await activeKimpay.updateKimpay(editName, editIcon);
-          
-          // Recents updated inside store
-          saveFeedback = "updated";
-          setTimeout(() => saveFeedback = "", 2000);
+          await activeKimpay.updateKimpay(editName.trim(), editIcon);
+          isEditOpen = false;
+          toasts.success($t('common.saved'));
       } catch (e) {
           console.error("Error updating", e);
           modals.alert({ message: getErrorMessage(e, $t) });
+      } finally {
+          isSavingGroup = false;
       }
   }
 
@@ -96,7 +100,7 @@
           isAddingParticipant = false;
       }
   }
-  
+
   function handleDeleteParticipant(pId: string) {
       // Participants involved in an expense cannot be deleted.
       if (checkUsage(pId)) {
@@ -112,10 +116,7 @@
           onConfirm: async () => {
               isDeletingParticipant = pId;
               try {
-                  const isSelf = pId === currentParticipantId;
                   await activeKimpay.deleteParticipant(pId);
-                  // Without an identity, the layout asks "who are you?" again.
-                  if (isSelf) await activeKimpay.setMyParticipant(null);
               } finally {
                   isDeletingParticipant = null;
               }
@@ -173,7 +174,7 @@
       modals.confirm({
           title: $t('settings.switch_identity'),
           description: $t('settings.switch_modal.desc'),
-          confirmText: $t('common.save'), // or 'Switch'
+          confirmText: $t('common.save'),
           onConfirm: async () => {
               await activeKimpay.setMyParticipant(pId);
           }
@@ -199,21 +200,19 @@
       }
   }
 
-  // Payment handles of the current identity
+  // Payment handles of the current identity, edited in a sheet
   let me = $derived(currentParticipantId ? activeKimpay?.participantsById.get(currentParticipantId) : undefined);
+  let isPaymentOpen = $state(false);
   let paypalInput = $state("");
   let revolutInput = $state("");
-  let loadedHandlesFor = $state<string | null>(null);
   let isSavingHandles = $state(false);
+  let handlesSummary = $derived([me?.paypal && 'PayPal', me?.revolut && 'Revolut'].filter(Boolean).join(', '));
 
-  // Fill the inputs once per identity (not on every realtime refresh).
-  $effect(() => {
-      if (me && loadedHandlesFor !== me.id) {
-          loadedHandlesFor = me.id;
-          paypalInput = me.paypal ?? "";
-          revolutInput = me.revolut ?? "";
-      }
-  });
+  function openPayment() {
+      paypalInput = me?.paypal ?? "";
+      revolutInput = me?.revolut ?? "";
+      isPaymentOpen = true;
+  }
 
   async function savePaymentHandles() {
       const paypal = normalizeHandle(paypalInput);
@@ -225,8 +224,7 @@
       isSavingHandles = true;
       try {
           await activeKimpay.updateMyPaymentHandles({ paypal, revolut });
-          paypalInput = paypal;
-          revolutInput = revolut;
+          isPaymentOpen = false;
           toasts.success($t('common.saved'));
       } catch (e) {
           console.error("Failed to save payment handles", e);
@@ -235,316 +233,178 @@
           isSavingHandles = false;
       }
   }
-
-  // Read-only summary link
-  let readonlyLink = $derived(kimpay?.readonly_token ? `${window.location.origin}/r/${kimpay.readonly_token}` : "");
-  let isUpdatingLink = $state(false);
-
-  async function setReadonlyLink(enabled: boolean) {
-      isUpdatingLink = true;
-      try {
-          await activeKimpay.setReadonlyToken(enabled ? generateUUID() : "");
-      } catch (e) {
-          console.error("Failed to update the read-only link", e);
-          modals.alert({ message: getErrorMessage(e, $t) });
-      } finally {
-          isUpdatingLink = false;
-      }
-  }
-
-  function requestDisableReadonlyLink() {
-      modals.confirm({
-          title: $t('settings.readonly.disable_title'),
-          description: $t('settings.readonly.disable_desc'),
-          confirmText: $t('settings.readonly.disable'),
-          variant: 'destructive',
-          onConfirm: () => setReadonlyLink(false)
-      });
-  }
-
-  async function copyReadonlyLink() {
-      try {
-          await navigator.clipboard.writeText(readonlyLink);
-          toasts.success($t('share.copy_success'));
-      } catch {
-          toasts.error($t('share.copy_error'));
-      }
-  }
-
-  async function shareReadonlyLink() {
-      if (!navigator.share) return copyReadonlyLink();
-      try {
-          await navigator.share({ title: kimpay?.name ?? 'Kimpay', url: readonlyLink });
-      } catch {
-          // Share sheet dismissed.
-      }
-  }
 </script>
 
 {#snippet handleInput(id: 'paypal' | 'revolut', label: string, prefix: string)}
     <div class="space-y-2">
         <Label for={id}>{label}</Label>
-        <div class="flex items-center rounded-md border border-input bg-background dark:bg-slate-800 dark:border-slate-700 focus-within:ring-2 focus-within:ring-ring">
-            <span class="pl-3 text-sm text-muted-foreground select-none">{prefix}</span>
+        <div class="flex h-11 items-center rounded-control border border-input bg-card focus-within:ring-2 focus-within:ring-ring">
+            <span class="select-none pl-3 text-base text-muted-foreground">{prefix}</span>
             {#if id === 'paypal'}
-                <input {id} bind:value={paypalInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-10 flex-1 min-w-0 bg-transparent pr-3 text-sm outline-hidden" />
+                <input {id} bind:value={paypalInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-full min-w-0 flex-1 bg-transparent pr-3 text-base outline-hidden" />
             {:else}
-                <input {id} bind:value={revolutInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-10 flex-1 min-w-0 bg-transparent pr-3 text-sm outline-hidden" />
+                <input {id} bind:value={revolutInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-full min-w-0 flex-1 bg-transparent pr-3 text-base outline-hidden" />
             {/if}
         </div>
     </div>
 {/snippet}
 
-<div class="container p-4 space-y-6">
-        <PageHeader title={$t('settings.title')} subtitle={$t('settings.subtitle')} />
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
+    <h1 class="sr-only">{$t('settings.title')}</h1>
 
+    <!-- The group -->
+    <section class="flex items-center gap-3 rounded-card border bg-card p-4 animate-pop-in">
+        <span class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-muted text-3xl" aria-hidden="true">
+            {kimpay?.icon || DEFAULT_KIMPAY_EMOJI}
+        </span>
+        <div class="min-w-0 flex-1">
+            <p class="truncate text-xl font-bold">{kimpay?.name ?? ''}</p>
+            <p class="truncate text-sm text-muted-foreground">
+                {kimpay?.currency}{creatorName ? ` · ${$t('settings.created_by', { name: creatorName })}` : ''}
+            </p>
+        </div>
         {#if !offlineStore.isOffline}
-        <!-- Edit Section -->
-        <SettingsSection title={$t('settings.edit_group')} class="relative z-20">
-            <div class="space-y-4">
-                <div class="space-y-2">
-                    <Label for="name">{$t('home.create.name_label')}</Label>
-                    <div class="flex gap-2">
-                        <EmojiInput variant="kimpay" bind:value={editIcon} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
-                        <Input id="name" bind:value={editName} class="dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" />
-                        <Button onclick={handleSave} size="icon" class="shrink-0 relative">
-                            {#if saveFeedback === 'updated'}
-                                <span class="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded shadow-sm">
-                                    {$t('common.saved')}
-                                </span>
-                            {/if}
-                            <Save class="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </SettingsSection>
+            <Button variant="outline" size="sm" onclick={openEdit}>
+                <Pencil />
+                {$t('common.edit')}
+            </Button>
         {/if}
+    </section>
 
-        {#if !offlineStore.isOffline}
-        <!-- Participants Section -->
-        <SettingsSection title={$t('settings.participants')} icon={Users}>
-             <div class="space-y-4">
-                <div class="space-y-2">
-                        {#each participants as p (p.id)}
-                            <div 
-                                class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 group"
-                                data-participant-id={p.id}
-                                data-is-me={currentParticipantId === p.id}
-                                data-current-participant={currentParticipantId}
+    {#if !offlineStore.isOffline}
+        <section class="space-y-2">
+            <SectionLabel title="{$t('settings.participants')} ({participants.length})" />
+            <ListGroup>
+                {#each participants as p (p.id)}
+                    {@const isMe = currentParticipantId === p.id}
+                    <div
+                        class="group flex min-h-14 items-center gap-3 py-2 pl-4 pr-2 first:rounded-t-[inherit]"
+                        data-participant-id={p.id}
+                        data-is-me={isMe}
+                        data-current-participant={currentParticipantId}
+                    >
+                        <Avatar name={p.name} record={p} class="h-9 w-9 shrink-0 text-xs" />
+                        <span class="flex min-w-0 flex-1 items-center gap-2">
+                            <span class="truncate text-base font-medium">{p.name}</span>
+                            {#if isMe}
+                                <Badge>{$t('common.you')}</Badge>
+                            {/if}
+                        </span>
+                        {#if !isMe}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-muted-foreground hover:text-primary"
+                                onclick={() => handleSwitchIdentity(p.id)}
+                                title={$t('settings.switch_identity')}
+                                aria-label={$t('settings.switch_identity')}
                             >
-                                <div class="flex items-center gap-3">
-                                <Avatar name={p.name} record={p} class="w-8 h-8 shrink-0 text-xs" />
-                                <span class="text-sm font-medium dark:text-slate-200">
-                                    {p.name}
-                                    {#if currentParticipantId === p.id}
-                                        <span class="ml-2 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-full">{$t('common.you')}</span>
-                                    {/if}
-                                </span>
-                                </div>
-                                
-                                <div class="flex gap-1">
-                                    {#if currentParticipantId !== p.id}
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            class="h-8 w-8 text-muted-foreground hover:text-indigo-600 transition-colors"
-                                            onclick={() => handleSwitchIdentity(p.id)}
-                                            title={$t('settings.switch_identity')}
-                                            aria-label={$t('settings.switch_identity')}
-                                        >
-                                            <ArrowRightLeft class="h-4 w-4" />
-                                        </Button>
-                                    {/if}
+                                <UserRoundCheck />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-muted-foreground hover:text-destructive"
+                                onclick={() => handleDeleteParticipant(p.id)}
+                                disabled={isDeletingParticipant === p.id}
+                                title={$t('modal.delete_participant.title')}
+                                aria-label={$t('modal.delete_participant.title')}
+                            >
+                                {#if isDeletingParticipant === p.id}
+                                    <LoaderCircle class="animate-spin" />
+                                {:else}
+                                    <Trash2 />
+                                {/if}
+                            </Button>
+                        {/if}
+                    </div>
+                {/each}
 
-                                    <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    class="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-                                    onclick={() => handleDeleteParticipant(p.id)}
-                                    disabled={isDeletingParticipant === p.id}
-                                    >
-                                    {#if isDeletingParticipant === p.id}
-                                        <LoaderCircle class="h-4 w-4 animate-spin" />
-                                    {:else}
-                                        <Trash2 class="h-4 w-4" />
-                                    {/if}
-                                    </Button>
-                                </div>
-                            </div>
-                        {/each}
-                </div>
-
-                <div class="flex gap-2 pt-2 items-center">
-                    <div class="flex-1 relative">
-                        <Input 
-                            placeholder={$t('settings.participants.placeholder')} 
+                <div class="flex items-center gap-2 px-4 py-3">
+                    <div class="relative flex-1">
+                        <Input
+                            placeholder={$t('settings.participants.placeholder')}
+                            aria-label={$t('settings.participants.placeholder')}
                             bind:value={newParticipantName}
-                            class="dark:bg-slate-800 dark:border-slate-700"
                             onkeydown={(e) => e.key === 'Enter' && handleAddParticipant()}
                         />
                         {#if addFeedback === 'added'}
-                            <span class="absolute right-3 top-2.5 text-xs text-green-600 font-medium">{$t('settings.participants.added')}</span>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-success">{$t('settings.participants.added')}</span>
                         {/if}
                     </div>
-                    <Button onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
+                    <Button size="icon" onclick={handleAddParticipant} disabled={isAddingParticipant || !newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
                         {#if isAddingParticipant}
-                             ...
+                            <LoaderCircle class="animate-spin" />
                         {:else}
-                             <UserPlus class="h-4 w-4" />
+                            <UserPlus />
                         {/if}
                     </Button>
                 </div>
-            </div>
-        </SettingsSection>
-        {/if}
+            </ListGroup>
+        </section>
+    {/if}
 
-        {#if !offlineStore.isOffline && me}
-        <!-- My payment details -->
-        <SettingsSection title={$t('settings.payment.title')} icon={Wallet}>
-            <div class="space-y-4">
-                <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.payment.desc')}</p>
-                {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}
-                {@render handleInput('revolut', 'Revolut.me', 'revolut.me/')}
-                <Button onclick={savePaymentHandles} disabled={isSavingHandles} class="w-full gap-2">
-                    {#if isSavingHandles}
-                        <LoaderCircle class="h-4 w-4 animate-spin" />
-                    {:else}
-                        <Save class="h-4 w-4" />
-                    {/if}
-                    {$t('common.save')}
-                </Button>
-            </div>
-        </SettingsSection>
-        {/if}
+    <section class="space-y-2">
+        <SectionLabel title={$t('settings.section.more')} />
+        <ListGroup>
+            {#if !offlineStore.isOffline && me}
+                <ListRow icon={Wallet} title={$t('settings.payment.title')} value={handlesSummary || $t('settings.payment.none')} onclick={openPayment} />
+            {/if}
+            {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
+                <ListRow icon={Download} title={$t('settings.install.button')} onclick={() => installStore.install()} />
+            {/if}
+            <ListRow icon={Table} title={$t('settings.export.as', { format: $t('settings.export.csv') })} onclick={() => handleExport('csv')} />
+            <ListRow icon={FileText} title={$t('settings.export.as', { format: $t('settings.export.md') })} onclick={() => handleExport('md')} />
+            {#if !offlineStore.isOffline}
+                <ListRow icon={Bug} title={$t('settings.bug_report.title')} href="https://github.com/dim4k/kimpay/issues" external />
+            {/if}
+        </ListGroup>
+    </section>
 
-        {#if !offlineStore.isOffline}
-        <!-- Read-only link -->
-        <SettingsSection title={$t('settings.readonly.title')} icon={Eye}>
-            <div class="space-y-4">
-                <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.readonly.desc')}</p>
-                {#if readonlyLink}
-                    <div class="flex items-center gap-2 rounded-lg border bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
-                        <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span class="flex-1 truncate font-mono text-xs dark:text-slate-300">{readonlyLink}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={copyReadonlyLink}>
-                            <Copy class="h-4 w-4" />
-                            {$t('share.copy_button')}
-                        </Button>
-                        <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={shareReadonlyLink}>
-                            <Share2 class="h-4 w-4" />
-                            {$t('nav.share')}
-                        </Button>
-                    </div>
-                    <Button variant="ghost" class="w-full justify-start gap-2 text-red-600 hover:text-red-700 dark:text-red-400" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
-                        <Trash2 class="h-4 w-4" />
-                        {$t('settings.readonly.disable')}
-                    </Button>
-                {:else}
-                    <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={() => setReadonlyLink(true)} disabled={isUpdatingLink}>
-                        {#if isUpdatingLink}
-                            <LoaderCircle class="h-4 w-4 animate-spin" />
-                        {:else}
-                            <Link class="h-4 w-4" />
-                        {/if}
-                        {$t('settings.readonly.create')}
-                    </Button>
-                {/if}
-            </div>
-        </SettingsSection>
-        {/if}
+    <section class="space-y-2">
+        <ListGroup>
+            <ListRow icon={LogOut} tone="danger" title={$t('settings.leave_group')} subtitle={$t('settings.actions.remove_desc')} onclick={requestLeave} disabled={offlineStore.isOffline} />
+            {#if isCreator}
+                <ListRow icon={Trash2} tone="danger" title={$t('settings.delete_group')} subtitle={$t('settings.actions.delete_desc')} onclick={requestDelete} disabled={offlineStore.isOffline} />
+            {/if}
+        </ListGroup>
+    </section>
 
-        {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
-            <SettingsSection title={$t('settings.install.title')} icon={Download} class="bg-card/50 backdrop-blur-xs">
-                <div class="space-y-4">
-                    <div class="flex flex-col gap-2">
-                        <p class="text-sm text-muted-foreground dark:text-slate-400">
-                             {$t('settings.install.desc_mobile')}
-                        </p>
-                        <Button 
-                            class="w-full justify-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" 
-                            onclick={() => installStore.install()}
-                        >
-                            <Download class="h-4 w-4" />
-                            {$t('settings.install.button')}
-                        </Button>
-                    </div>
-                </div>
-            </SettingsSection>
-        {/if}
-
-        <!-- Export Section -->
-        <SettingsSection title={$t('settings.export.title')} icon={FileText}>
-            <div class="space-y-4">
-                <p class="text-sm text-muted-foreground dark:text-slate-400">
-                    {$t('settings.export.desc')}
-                </p>
-                <div class="grid grid-cols-2 gap-3">
-                    <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={() => handleExport('csv')}>
-                        <Table class="h-4 w-4 text-green-600" />
-                        {$t('settings.export.csv')}
-                    </Button>
-                    <Button variant="outline" class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" onclick={() => handleExport('md')}>
-                        <FileText class="h-4 w-4 text-indigo-600" />
-                        {$t('settings.export.md')}
-                    </Button>
-                </div>
-            </div>
-        </SettingsSection>
-
-        {#if !offlineStore.isOffline}
-        <!-- Bug Report Section -->
-        <SettingsSection title={$t('settings.bug_report.title')} icon={Bug}>
-            <div class="space-y-4">
-                <p class="text-sm text-muted-foreground dark:text-slate-400">
-                    {$t('settings.bug_report.desc')}
-                </p>
-                <Button
-                    href="https://github.com/dim4k/kimpay/issues"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="outline"
-                    class="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                    <Bug class="h-4 w-4" />
-                    {$t('settings.bug_report.button')}
-                </Button>
-            </div>
-        </SettingsSection>
-        {/if}
-
-        <SettingsSection title={$t('settings.actions.title')}>
-            
-            <div class="space-y-4">
-                <div class="flex flex-col gap-2">
-                    <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.remove_desc')}</p>
-                    <Button variant="outline" class="w-full justify-start gap-2 text-slate-700 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800" onclick={requestLeave} disabled={offlineStore.isOffline}>
-                        <LogOut class="h-4 w-4" />
-                        {$t('settings.leave_group')}
-                    </Button>
-                </div>
-
-                {#if isCreator}
-                    <div class="pt-4 border-t">
-                        <div class="flex flex-col gap-2">
-                            <h3 class="font-semibold text-red-600 flex items-center gap-2">
-                                <Trash2 class="h-4 w-4" /> 
-                                {$t('settings.danger_zone')}
-                            </h3>
-                            <p class="text-sm text-muted-foreground dark:text-slate-400">{$t('settings.actions.delete_desc')}</p>
-                            <Button variant="destructive" class="w-full justify-start gap-2" onclick={requestDelete} disabled={offlineStore.isOffline}>
-                                <Trash2 class="h-4 w-4" />
-                                {$t('settings.delete_group')}
-                            </Button>
-                        </div>
-                    </div>
-                {/if}
-            </div>
-        </SettingsSection>
-        
-        <div class="text-center text-xs text-muted-foreground pt-2">
-            Kimpay v{__APP_VERSION__}
-        </div>
+    <p class="pt-2 text-center text-xs text-muted-foreground">Kimpay v{__APP_VERSION__}</p>
 </div>
+
+<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} class="overflow-visible">
+    <h2 class="text-xl font-bold">{$t('settings.edit_group')}</h2>
+    <div class="space-y-2">
+        <Label for="group-name">{$t('home.create.name_label')}</Label>
+        <div class="flex gap-2">
+            <EmojiInput variant="kimpay" bind:value={editIcon} />
+            <Input id="group-name" bind:value={editName} onkeydown={(e) => e.key === 'Enter' && handleSave()} />
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+        <Button variant="secondary" onclick={() => isEditOpen = false}>{$t('common.cancel')}</Button>
+        <Button onclick={handleSave} disabled={isSavingGroup || !editName.trim()}>
+            {#if isSavingGroup}<LoaderCircle class="animate-spin" />{/if}
+            {$t('common.save')}
+        </Button>
+    </div>
+</Modal>
+
+<Modal isOpen={isPaymentOpen} onClose={() => isPaymentOpen = false} variant="sheet" label={$t('settings.payment.title')}>
+    <div class="space-y-1">
+        <h2 class="text-xl font-bold">{$t('settings.payment.title')}</h2>
+        <p class="text-sm text-muted-foreground">{$t('settings.payment.desc')}</p>
+    </div>
+    <div class="space-y-4">
+        {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}
+        {@render handleInput('revolut', 'Revolut.me', 'revolut.me/')}
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+        <Button variant="secondary" onclick={() => isPaymentOpen = false}>{$t('common.cancel')}</Button>
+        <Button onclick={savePaymentHandles} disabled={isSavingHandles}>
+            {#if isSavingHandles}<LoaderCircle class="animate-spin" />{/if}
+            {$t('common.save')}
+        </Button>
+    </div>
+</Modal>

@@ -1,17 +1,15 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { ChartPie, Settings, Share2, Wallet } from "@lucide/svelte";
+  import { ChartPie, Plus, Settings, Share2, Wallet } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
 
   import { ActiveKimpay, setActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   
   import { modals } from '#lib/stores/modals.svelte.js';
-  import { fabState } from '#lib/stores/fab.svelte.js';
-  import { scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
   import NavItem from '#lib/components/ui/NavItem.svelte';
   import { haptic } from '#lib/utils/haptic.js';
+  import { installStore } from '#lib/stores/install.svelte.js';
   
   import { onDestroy, type Snippet } from 'svelte';
   
@@ -48,12 +46,8 @@
   // Derived values
   let kimpayId = $derived(activeKimpay?.id ?? page.params.id ?? '');
 
-  $effect(() => {
-      // Ensure defaults when kimpayId changes or route changes not handled by child
-      if (kimpayId && !page.url.pathname.includes('/add') && !page.url.pathname.includes('/edit')) {
-            fabState.reset(kimpayId);
-      }
-  });
+  // Expense forms are full-screen: no tab bar (they have their own save bar).
+  let isFormRoute = $derived(/\/(add|edit)(\/|$)/.test(page.url.pathname));
   
   // Ask "who are you?" once the Kimpay is loaded and this device has no
   // identity in it (never chosen, or the participant was deleted).
@@ -67,91 +61,51 @@
   });
 </script>
 
-<div 
-    class="flex-1 bg-slate-50 dark:bg-background pb-20 transition-colors"
-> <!-- pb-20 for bottom nav -->
+<div class="flex flex-1 flex-col {isFormRoute ? '' : installStore.bannerVisible ? 'pb-48' : 'pb-24'}">
   {@render children()}
 </div>
 
+{#if !isFormRoute}
+<nav class="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl" aria-label={$t('nav.menu')}>
+    <div class="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
+        <NavItem
+            href="/k/{kimpayId}"
+            icon={Wallet}
+            label={$t('nav.expenses')}
+            isActive={page.url.pathname.endsWith(kimpayId)}
+        />
 
-<div class="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-    <!-- Navigation Bar -->
-    <nav class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-800 shadow-2xl safe-area-pb pointer-events-auto relative z-40 transition-colors">
-        <div class="grid grid-cols-5 h-18 items-end pb-2">
-            <NavItem 
-                href="/k/{kimpayId}" 
-                icon={Wallet} 
-                label={$t('nav.expenses')} 
-                isActive={page.url.pathname.endsWith(kimpayId)} 
-            />
+        <NavItem
+            href="/k/{kimpayId}/balance"
+            icon={ChartPie}
+            label={$t('nav.balance')}
+            isActive={page.url.pathname.includes('/balance')}
+        />
 
-            <NavItem 
-                href="/k/{kimpayId}/balance" 
-                icon={ChartPie} 
-                label={$t('nav.balance')} 
-                isActive={page.url.pathname.includes('/balance')} 
-            />
+        <!-- The one primary action of a group: add an expense. -->
+        <a
+            href="/k/{kimpayId}/add"
+            onclick={() => haptic('light')}
+            class="-mt-6 flex h-13 w-13 items-center justify-center justify-self-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-150 hover:scale-105 active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+            title={$t('expense.add.title')}
+            aria-label={$t('expense.add.title')}
+        >
+            <Plus class="h-6 w-6" strokeWidth={2.5} />
+        </a>
 
-            <!-- Spacer for FAB (Center) -->
-            <div class="pointer-events-none"></div>
+        <NavItem
+            href="/k/{kimpayId}/share"
+            icon={Share2}
+            label={$t('nav.share')}
+            isActive={page.url.pathname.includes('/share')}
+        />
 
-            <NavItem 
-                href="/k/{kimpayId}/share" 
-                icon={Share2} 
-                label={$t('nav.share')} 
-                isActive={page.url.pathname.includes('/share')} 
-            />
-
-            <NavItem 
-                href="/k/{kimpayId}/settings" 
-                icon={Settings} 
-                label={$t('nav.settings')} 
-                isActive={page.url.pathname.includes('/settings')} 
-            />
-        </div>
-    </nav>
-    
-
-    <!-- Floating Action Button Container (Centered - Mounted LAST to stay on top visually if same z-index, but we use z-50) -->
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-50">
-        {#if fabState.visible}
-            <!-- Use a keyed block only for swapping between A and BUTTON tags if strictly necessary, 
-                 but actually we want to preserve the container's presence for coordinate transitions if possible. 
-                 Since they are different tags, simple conditional is fine, Svelte handles the DOM swap. 
-                 The important part is NOT to key the whole thing on every prop change. -->
-            
-            {#if fabState.href}
-                <a 
-                    href={fabState.href} 
-                    onclick={() => haptic('light')}
-                    class="relative flex items-center justify-center {fabState.colorClass} text-white rounded-full h-16 w-16 shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950"
-                    title={fabState.label}
-                >
-                    <span class="absolute inset-0 rounded-full {fabState.colorClass} blur-lg opacity-50 -z-10"></span>
-                    {#key fabState.icon}
-                        <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
-                            <fabState.icon class="h-8 w-8" strokeWidth={2.5} />
-                        </div>
-                    {/key}
-                </a>
-            {:else}
-                    <button
-                    onclick={fabState.onClick}
-                    disabled={fabState.disabled}
-                    class="relative flex items-center justify-center {fabState.disabled ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : fabState.colorClass + ' shadow-primary/40'} text-white rounded-full h-16 w-16 shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-slate-50 dark:ring-slate-950 disabled:hover:scale-100 disabled:cursor-not-allowed disabled:shadow-none"
-                    title={fabState.label}
-                    aria-label={fabState.label}
-                    >
-                    {#if !fabState.disabled}
-                        <span class="absolute inset-0 rounded-full {fabState.colorClass} blur-lg opacity-50 -z-10"></span>
-                    {/if}
-                    {#key fabState.icon}
-                        <div class="absolute inset-0 flex items-center justify-center" in:scale={{ start: 0.5, duration: 300, easing: cubicOut }} out:scale={{ start: 0, opacity: 0, duration: 200 }}>
-                            <fabState.icon class="h-8 w-8" strokeWidth={2.5} />
-                        </div>
-                    {/key}
-                    </button>
-            {/if}
-        {/if}
+        <NavItem
+            href="/k/{kimpayId}/settings"
+            icon={Settings}
+            label={$t('nav.settings')}
+            isActive={page.url.pathname.includes('/settings')}
+        />
     </div>
-</div>
+</nav>
+{/if}

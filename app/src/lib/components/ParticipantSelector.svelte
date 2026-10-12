@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { Participant } from '#lib/types.js';
     import { t } from '#lib/i18n.js';
+    import { Plus } from '@lucide/svelte';
+    import Avatar from '#lib/components/ui/Avatar.svelte';
 
     interface Props {
         /** List of available participants */
@@ -62,44 +64,49 @@
     const allSelected = $derived(selected.length === participants.length);
 </script>
 
-<div class="space-y-3">
-    <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">
+<div class="space-y-2" role="group" aria-label={label}>
+    <div class="flex min-h-6 items-center justify-between">
+        <span class="text-sm font-semibold text-muted-foreground">
             {label}
             {#if mode === 'multi'}
-                <span class="text-muted-foreground font-normal ml-1">({selectedCount})</span>
+                <span class="font-normal">({selectedCount})</span>
             {/if}
         </span>
-        
+
         {#if showToggleAll && mode === 'multi'}
-            <button onclick={toggleAll} class="text-sm text-primary font-medium hover:underline">
+            <button type="button" onclick={toggleAll} class="text-sm font-semibold text-primary hover:underline">
                 {allSelected ? $t('expense.form.select_none') : $t('expense.form.select_all')}
             </button>
         {/if}
     </div>
-    
+
     <div class="flex flex-wrap gap-2">
         {#each participants as p (p.id)}
-            <button 
+            <button
+                type="button"
                 onclick={() => handleSelect(p.id)}
-                class="relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border {isSelected(p.id) ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'}"
+                aria-pressed={isSelected(p.id)}
+                class="flex h-10 items-center gap-2 rounded-full border pl-1 pr-3.5 text-sm font-medium transition-colors duration-150 {isSelected(p.id) ? 'border-primary bg-primary-soft text-primary-soft-foreground' : 'border-input bg-card text-foreground hover:bg-muted'}"
             >
+                <Avatar name={p.name} record={p} class="h-8 w-8 text-[0.6875rem]" />
                 {p.name}
             </button>
         {/each}
-        
+
         {#if onAddNew}
-            <button 
+            <button
+                type="button"
                 onclick={onAddNew}
-                class="px-4 py-2 rounded-full text-sm font-bold border border-dashed border-input text-muted-foreground hover:text-primary hover:border-primary hover:bg-accent transition-colors flex items-center gap-1"
+                class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                 aria-label={$t('expense.form.paid_by_new')}
+                title={$t('expense.form.paid_by_new')}
             >
-                +
+                <Plus class="h-4 w-4" />
             </button>
         {/if}
     </div>
-    
+
     {#if mode === 'multi' && selectedCount === 0}
-        <p class="text-xs text-destructive font-medium">{$t('expense.form.error_select_one')}</p>
+        <p class="text-sm font-medium text-destructive">{$t('expense.form.error_select_one')}</p>
     {/if}
 </div>

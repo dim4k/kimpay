@@ -5,32 +5,38 @@
     import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
     import { slide } from 'svelte/transition';
     import { goto } from '$app/navigation';
-    import { cubicOut } from 'svelte/easing';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+    import { expenseImpact } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
+    import Badge from '#lib/components/ui/Badge.svelte';
+    import { Button } from '#lib/components/ui/button/index.js';
     import type { Expense } from '#lib/types.js';
     import { expenseShares, isCustomSplit } from '#lib/split.js';
 
-    let { 
-        expense, 
-        currentUserId, 
-        expandedId, 
+    let {
+        expense,
+        currentUserId,
+        participantIds,
+        expandedId,
         kimpayId,
         onToggleExpand,
         onRequestDelete,
         onOpenGallery,
-        style = ""
     }: {
         expense: Expense;
         currentUserId: string | null;
+        /** All participants of the group (to compute each share) */
+        participantIds: string[];
         expandedId: string | null;
         kimpayId: string;
         onToggleExpand: (expenseId: string) => void;
         onRequestDelete: (expenseId: string) => void;
         onOpenGallery: (expense: Expense) => void;
-        style?: string;
     } = $props();
+
+    let isExpanded = $derived(expandedId === expense.id);
+    let hasPhotos = $derived(!!expense.photos && expense.photos.length > 0);
 
     // Each person's share, shown when the expense is not split equally.
     let shares = $derived(
@@ -38,230 +44,180 @@
     );
     let currency = $derived(expense.currency || DEFAULT_CURRENCY);
 
-    function slideFade(node: Element, { delay = 0, duration = 400, easing = cubicOut, y = 20 }) {
-      const style = getComputedStyle(node);
-      const opacity = +style.opacity;
-      const height = parseFloat(style.height);
-      const padding_top = parseFloat(style.paddingTop);
-      const padding_bottom = parseFloat(style.paddingBottom);
-      const margin_top = parseFloat(style.marginTop);
-      const margin_bottom = parseFloat(style.marginBottom);
-      const border_top_width = parseFloat(style.borderTopWidth);
-      const border_bottom_width = parseFloat(style.borderBottomWidth);
-
-      return {
-          delay,
-          duration,
-          easing,
-          css: (t: number) => `
-              overflow: hidden;
-              opacity: ${t * opacity};
-              height: ${t * height}px;
-              padding-top: ${t * padding_top}px;
-              padding-bottom: ${t * padding_bottom}px;
-              margin-top: ${t * margin_top}px;
-              margin-bottom: ${t * margin_bottom}px;
-              border-top-width: ${t * border_top_width}px;
-              border-bottom-width: ${t * border_bottom_width}px;
-              transform: translateY(${(1 - t) * y}px);
-          `
-      };
+    function nameOf(id: string | undefined, name: string | undefined): string {
+        if (currentUserId && id === currentUserId) return $t('common.you');
+        return name || $t('common.unknown');
     }
 
+    /** Same, inside a sentence ("Paid by you"). */
+    function inSentence(id: string | undefined, name: string | undefined): string {
+        return currentUserId && id === currentUserId ? $t('common.you_in_sentence') : nameOf(id, name);
+    }
+
+    let subtitle = $derived.by(() => {
+        if (expense.is_reimbursement) {
+            const to = expense.expand?.involved?.[0];
+            return $t('expense.list.reimbursement', {
+                from: inSentence(expense.payer, expense.expand?.payer?.name),
+                to: inSentence(to?.id, to?.name),
+            });
+        }
+        const paidBy = expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by');
+        const people = $t('expense.list.people', { count: String(expense.involved?.length || 0) });
+        return `${paidBy} ${inSentence(expense.payer, expense.expand?.payer?.name)} · ${people}`;
+    });
+
+    // What this expense means for me, under its amount.
+    let impact = $derived.by(() => {
+        if (!currentUserId || expense.is_reimbursement) return null;
+        const involved = expense.payer === currentUserId || (expense.involved ?? []).includes(currentUserId);
+        if (!involved) return { label: $t('expense.impact.none'), tone: 'text-muted-foreground' };
+
+        const value = expenseImpact(expense, currentUserId, participantIds);
+        if (Math.abs(value) < 0.005) return null;
+        const amount = formatAmount(Math.abs(value), currency, $locale);
+        if (value < 0) return { label: $t('expense.impact.owe', { amount }), tone: 'text-warning' };
+        return {
+            label: $t(expense.is_income ? 'expense.impact.owed' : 'expense.impact.lent', { amount }),
+            tone: 'text-success',
+        };
+    });
+
     function handleKeydown(e: KeyboardEvent) {
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onToggleExpand(expense.id);
         }
     }
 
-    function handleSwipeEdit() {
-        goto(`/k/${kimpayId}/edit/${expense.id}`);
-    }
-
-    function handleSwipeDelete() {
-        onRequestDelete(expense.id);
-    }
-
     // Disable swipe for reimbursements or when offline (can't edit)
     let swipeDisabled = $derived(expense.is_reimbursement || offlineStore.isOffline);
 </script>
 
-{#snippet personChip(name: string | undefined, isMe: boolean, share?: number)}
-    {#if isMe}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-primary border border-primary/20">
-            {$t('common.you')}{share !== undefined ? ` · ${formatAmount(share, currency, $locale)}` : ''}
-        </span>
-    {:else}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-            {name || $t('common.unknown')}
-        </span>
-    {/if}
+{#snippet personChip(id: string, name: string | undefined)}
+    {@const share = shares?.[id]}
+    <Badge tone={currentUserId && id === currentUserId ? 'primary' : 'neutral'}>
+        {nameOf(id, name)}{share !== undefined ? ` · ${formatAmount(share, currency, $locale)}` : ''}
+    </Badge>
 {/snippet}
 
-<SwipeableItem 
-    disabled={swipeDisabled} 
-    onEdit={handleSwipeEdit} 
-    onDelete={handleSwipeDelete}
-    {style}
+<SwipeableItem
+    disabled={swipeDisabled}
+    onEdit={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
+    onDelete={() => onRequestDelete(expense.id)}
 >
-<div 
-    class="expense-item rounded-2xl border shadow-xs overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 {expense.is_reimbursement ? 'bg-emerald-50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-card hover:border-primary/40'}"
-    
-    class:ring-2={expandedId === expense.id}
-    class:ring-primary={expandedId === expense.id && !expense.is_reimbursement}
-    class:ring-emerald-500={expandedId === expense.id && expense.is_reimbursement}
-    class:dark:ring-emerald-400={expandedId === expense.id && expense.is_reimbursement}
+<div
+    class="expense-item cursor-pointer outline-hidden focus-visible:bg-muted/60"
     role="button"
     tabindex="0"
+    aria-expanded={isExpanded}
     onclick={() => onToggleExpand(expense.id)}
     onkeydown={handleKeydown}
 >
-    <!-- Main Row (Always Visible) -->
-    <div 
-        class="flex justify-between items-center p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
-    >
-        <div class="flex items-center gap-4 flex-1 min-w-0 mr-2">
-            <div 
-                class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-xl border transition-colors relative {expense.is_reimbursement ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}"
-            >
-                    {#if expense.is_reimbursement}
-                        <HandCoins class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    {:else}
-                        {expense.icon || DEFAULT_EXPENSE_EMOJI}
-                    {/if}
-                    <!-- Camera indicator if collapsed -->
-                    {#if (!expandedId || expandedId !== expense.id) && expense.photos && expense.photos.length > 0}
-                    <div class="absolute -top-1.5 -right-1.5 h-5 w-5 bg-primary rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
-                        <Camera class="h-2.5 w-2.5 text-white" />
-                    </div>
-                    {/if}
-            </div>
-            <div class="flex flex-col min-w-0">
-                <span class="font-medium text-slate-900 dark:text-slate-100 transition-colors truncate text-base">
-                    {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
+    <div class="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-muted/50 {isExpanded ? 'bg-muted/50' : ''}">
+        <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-xl {expense.is_reimbursement ? 'bg-success-soft text-success' : 'bg-muted'}">
+            {#if expense.is_reimbursement}
+                <HandCoins class="h-5 w-5" />
+            {:else}
+                {expense.icon || DEFAULT_EXPENSE_EMOJI}
+            {/if}
+            {#if hasPhotos && !isExpanded}
+                <span class="absolute -right-1 -top-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card">
+                    <Camera class="h-2.5 w-2.5" />
                 </span>
-                {#if expense.is_reimbursement}
-                     <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors mt-0.5">
-                        <span class="font-medium text-emerald-600 dark:text-emerald-400">
-                            {$t('expense.list.reimbursement', {
-                                from: currentUserId && expense.payer === currentUserId ? $t('common.you') : (expense.expand?.payer?.name || $t('common.unknown')),
-                                to: currentUserId && expense.expand?.involved?.[0]?.id === currentUserId ? $t('common.you') : (expense.expand?.involved?.[0]?.name || $t('common.unknown'))
-                            })}
-                        </span>
-                    </div>
-                {:else if expandedId !== expense.id}
-                    <div transition:slideFade={{ y: 20, duration: 300 }}>
-                        <div class="flex flex-wrap gap-x-2 text-xs text-muted-foreground dark:text-slate-400 transition-colors">
-                                <span class="truncate">
-                                    {expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')} 
-                                    {#if currentUserId && expense.payer === currentUserId}
-                                        <span class="font-bold text-primary">{$t('common.you')}</span>
-                                    {:else}
-                                        <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.expand?.payer?.name || $t('common.unknown')}</span>
-                                    {/if}
-                                </span>
-                                <span>•</span>
-                                <span class="whitespace-nowrap">{$t('expense.list.for')} <span class="font-semibold text-slate-700 dark:text-slate-300">{expense.involved?.length || 0} p.</span></span>
-                        </div>
-                    </div>
-                {/if}
-            </div>
+            {/if}
         </div>
-        <div class="shrink-0 font-bold text-sm leading-none text-right tabular-nums px-2.5 py-1.5 rounded-lg transition-colors {expense.is_reimbursement ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/30' : expense.is_income ? 'text-teal-700 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-900/30' : currentUserId && expense.payer === currentUserId ? 'text-primary dark:text-primary-foreground bg-primary/10 dark:bg-primary/25' : 'text-slate-900 dark:text-slate-100 bg-muted dark:bg-slate-800'}">
-            {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
+
+        <div class="min-w-0 flex-1">
+            <p class="truncate text-base font-medium">
+                {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
+            </p>
+            <p class="truncate text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+
+        <div class="shrink-0 text-right">
+            <p class="text-base font-semibold tabular-nums">
+                {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
+            </p>
+            {#if impact}
+                <p class="text-xs font-medium tabular-nums {impact.tone}">{impact.label}</p>
+            {/if}
         </div>
     </div>
 
-    <!-- Expanded Details & Actions -->
-    {#if expandedId === expense.id}
-        <div class="bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800" transition:slide={{ duration: 200 }}>
-            <div class="p-4 space-y-4">
-                {#if expense.is_reimbursement}
-                    <!-- Simplified Layout for Reimbursements -->
-                     <div class="text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center">
-                        <span>{$t('expense.form.date_label')}</span>
-                        <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
+    {#if isExpanded}
+        <div class="space-y-3 border-t bg-muted/30 px-4 py-3" transition:slide={{ duration: 150 }}>
+            <dl class="space-y-1.5 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted-foreground">{$t('expense.form.date_label')}:</dt>
+                    <dd class="font-medium">{parseLocalISODate(expense.date).toLocaleDateString($locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</dd>
+                </div>
+                {#if !expense.is_reimbursement}
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-muted-foreground">{expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')}:</dt>
+                        <dd>{@render personChip(expense.payer, expense.expand?.payer?.name)}</dd>
                     </div>
-
-                    <button 
-                        class="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95 shadow-xs"
-                        onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
-                    >
-                        <Undo2 class="h-4 w-4" />
-                        {$t('common.cancel')}
-                    </button>
-                    
-                {:else}
-                    <!-- Standard Layout -->
-                    <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                        <div class="flex justify-between">
-                            <span>{$t('expense.form.date_label')}:</span>
-                            <span class="font-medium text-slate-700 dark:text-slate-300">{parseLocalISODate(expense.date).toLocaleDateString($locale)}</span>
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <span>{expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')}:</span>
-                            <div>
-                                {@render personChip(expense.expand?.payer?.name, !!currentUserId && expense.payer === currentUserId)}
-                            </div>
-                        </div>
-
-                        <div class="flex justify-between items-center">
-                            <span>{$t('expense.list.for')}:</span>
-                            <div class="flex flex-wrap gap-1 justify-end">
-                                {#if expense.expand?.involved}
-                                    {#each expense.expand.involved as p (p.id)}
-                                        {@render personChip(
-                                            shares && shares[p.id] !== undefined
-                                                ? `${p.name} · ${formatAmount(shares[p.id]!, currency, $locale)}`
-                                                : p.name,
-                                            !!currentUserId && p.id === currentUserId,
-                                            shares?.[p.id],
-                                        )}
-                                    {/each}
-                                {:else}
-                                    <span class="text-slate-400 italic">{$t('expense.no_participants')}</span>
-                                {/if}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Bar -->
-                    <div class="grid {expense.photos && expense.photos.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-2">
-                        <button 
-                            disabled={offlineStore.isOffline}
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}"
-                            onclick={async (e) => { e.stopPropagation();   await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
-                            >
-                            <Pencil class="h-4 w-4" />
-                            {$t('common.edit')}
-                        </button>
-
-                        {#if expense.photos && expense.photos.length > 0}
-                        <button 
-                            disabled={offlineStore.isOffline}
-                            class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-primary font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-secondary dark:hover:bg-indigo-900/20'}"
-                            onclick={(e) => { e.stopPropagation(); onOpenGallery(expense); }}
-                        >
-                            <ImageIcon class="h-4 w-4" />
-                            {$t('expense.form.photos_label')}
-                        </button>
-                        {/if}
-
-                        <button 
-                        disabled={offlineStore.isOffline}
-                        class="flex items-center justify-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed {offlineStore.isOffline ? '' : 'hover:bg-red-50 dark:hover:bg-red-900/20'}"
-                        onclick={(e) => { e.stopPropagation(); onRequestDelete(expense.id); }}
-                        >
-                        <Trash2 class="h-4 w-4" />
-                        {$t('common.delete')}
-                        </button>
+                    <div class="flex items-start justify-between gap-3">
+                        <dt class="text-muted-foreground">{$t('expense.list.for')}:</dt>
+                        <dd class="flex flex-wrap justify-end gap-1">
+                            {#if expense.expand?.involved}
+                                {#each expense.expand.involved as p (p.id)}
+                                    {@render personChip(p.id, p.name)}
+                                {/each}
+                            {:else}
+                                <span class="text-muted-foreground">{$t('expense.no_participants')}</span>
+                            {/if}
+                        </dd>
                     </div>
                 {/if}
-            </div>
+            </dl>
+
+            {#if expense.is_reimbursement}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="w-full text-destructive"
+                    onclick={(e: MouseEvent) => { e.stopPropagation(); onRequestDelete(expense.id); }}
+                >
+                    <Undo2 />
+                    {$t('common.cancel')}
+                </Button>
+            {:else}
+                <div class="grid gap-2 {hasPhotos ? 'grid-cols-3' : 'grid-cols-2'}">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={offlineStore.isOffline}
+                        onclick={async (e: MouseEvent) => { e.stopPropagation(); await goto(`/k/${kimpayId}/edit/${expense.id}`); }}
+                    >
+                        <Pencil />
+                        {$t('common.edit')}
+                    </Button>
+                    {#if hasPhotos}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={offlineStore.isOffline}
+                            onclick={(e: MouseEvent) => { e.stopPropagation(); onOpenGallery(expense); }}
+                        >
+                            <ImageIcon />
+                            {$t('expense.form.photos_label')}
+                        </Button>
+                    {/if}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="text-destructive"
+                        disabled={offlineStore.isOffline}
+                        onclick={(e: MouseEvent) => { e.stopPropagation(); onRequestDelete(expense.id); }}
+                    >
+                        <Trash2 />
+                        {$t('common.delete')}
+                    </Button>
+                </div>
+            {/if}
         </div>
     {/if}
 </div>
 </SwipeableItem>
-

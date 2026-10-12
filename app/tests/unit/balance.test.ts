@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDebts, type Transaction } from '../../src/lib/balance';
+import { calculateDebts, expenseImpact, shareOf, type Transaction } from '../../src/lib/balance';
 import type { Expense, Participant } from '../../src/lib/types';
 
 function createParticipant(id: string, name: string): Participant {
@@ -205,5 +205,52 @@ describe('calculateDebts', () => {
             amount: 50,
             currency: 'EUR'
         });
+    });
+});
+
+describe('expenseImpact', () => {
+    const ids = ['a', 'b', 'c', 'd'];
+
+    it('is what the payer advanced for the others', () => {
+        expect(expenseImpact(createExpense('1', 120, 'a', ids), 'a', ids)).toBe(90);
+    });
+
+    it('is minus the share of someone who did not pay', () => {
+        expect(expenseImpact(createExpense('1', 360, 'b', ids), 'a', ids)).toBe(-90);
+    });
+
+    it('is 0 when not involved and not the payer', () => {
+        expect(expenseImpact(createExpense('1', 50, 'b', ['b', 'c']), 'a', ids)).toBe(0);
+    });
+
+    it('counts the full amount when the payer is not involved', () => {
+        expect(expenseImpact(createExpense('1', 50, 'a', ['b', 'c']), 'a', ids)).toBe(50);
+    });
+
+    it('works the other way round for money received', () => {
+        const income = { ...createExpense('1', 40, 'a', ['a', 'b']), is_income: true };
+        expect(expenseImpact(income, 'a', ids)).toBe(-20);
+        expect(expenseImpact(income, 'b', ids)).toBe(20);
+    });
+
+    it('ignores reimbursements', () => {
+        const refund = { ...createExpense('1', 20, 'd', ['a']), is_reimbursement: true };
+        expect(expenseImpact(refund, 'a', ids)).toBe(0);
+        expect(expenseImpact(refund, 'd', ids)).toBe(0);
+    });
+});
+
+describe('shareOf', () => {
+    const participants = ['a', 'b', 'c', 'd'].map((id) => createParticipant(id, id));
+    const ids = participants.map((p) => p.id);
+
+    it('adds up the shares, minus money received, without reimbursements', () => {
+        const expenses = [
+            createExpense('1', 24, 'a', ids),
+            createExpense('2', 360, 'b', ids),
+            { ...createExpense('3', 40, 'c', ['a', 'c']), is_income: true },
+            { ...createExpense('4', 20, 'd', ['a']), is_reimbursement: true },
+        ];
+        expect(shareOf(expenses, participants, 'a', 'EUR', {})).toBe(6 + 90 - 20);
     });
 });

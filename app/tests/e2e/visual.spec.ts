@@ -20,11 +20,22 @@ async function setup(page: Page) {
     // Exchange rates come from an external API: keep the screens offline-stable.
     await page.route(/currency-api/, (route) => route.abort());
     await page.goto('/');
-    // On iOS the install banner shows up asynchronously: wait for it and
-    // dismiss it once (remembered for the context), so no screen depends on
-    // that timing.
+    // On mobile the install banner shows up asynchronously in groups: mark it
+    // dismissed (as the app does, remembered for the context) so no screen
+    // depends on that timing.
     if (test.info().project.use.isMobile) {
-        await page.getByRole('button', { name: /dismiss install prompt/i }).click();
+        await page.evaluate(() => new Promise<void>((resolve, reject) => {
+            const request = indexedDB.open('keyval-store');
+            request.onupgradeneeded = () => request.result.createObjectStore('keyval');
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const tx = request.result.transaction('keyval', 'readwrite');
+                tx.objectStore('keyval').put('true', 'kimpay_install_dismissed');
+                tx.oncomplete = () => { request.result.close(); resolve(); };
+                tx.onerror = () => reject(tx.error);
+            };
+        }));
+        await page.reload();
     }
 }
 
@@ -58,7 +69,9 @@ async function addExpense(page: Page, description: string, amount: string) {
 
 for (const colorScheme of ['light', 'dark'] as const) {
     test.describe(`Visual (${colorScheme})`, () => {
-        test.use({ colorScheme });
+        // Reduced motion: the app then skips entrance animations and the
+        // balance count-up, so every screenshot shows the final state.
+        test.use({ colorScheme, reducedMotion: 'reduce' });
 
         test('Home', async ({ page }) => {
             await setup(page);
@@ -71,7 +84,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await createKimpay(page, 'Trip to Lisbon', 'Alice');
             const kimpayUrl = page.url();
 
-            await expect(page.getByText(/0 items/i)).toBeVisible();
+            await expect(page.getByText('No expenses yet.')).toBeVisible();
             await snapshot(page, `expenses-empty-${colorScheme}`);
 
             // Second participant, from the group settings.
@@ -94,12 +107,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
             // "Today" in the date picker changes every day.
             const datePicker = page.getByRole('button').filter({ has: page.locator('.lucide-calendar') });
             await snapshot(page, `add-expense-${colorScheme}`, [datePicker]);
+            // Full-screen form: no tab bar until it is closed.
+            await page.getByRole('link', { name: 'Close' }).click();
 
             await navTo(page, /balance/i);
             await expect(page.getByText('Bob').first()).toBeVisible();
-            // Wait for the count-up animations to reach their final values.
-            await expect(page.getByText('42.00', { exact: true })).toBeVisible();
-            await expect(page.getByText('84.00', { exact: true })).toBeVisible();
+            // The balance card shows its final amount.
+            await expect(page.locator('section', { hasText: 'You are owed' }).getByText('€42.00', { exact: true })).toBeVisible();
+            await expect(page.getByText('Group total €84.00')).toBeVisible();
             await snapshot(page, `balance-${colorScheme}`);
 
             // The QR code and the link contain the (random) group id.
@@ -113,7 +128,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 Object.entries({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch })
                     .filter(([, value]) => value !== undefined),
             ) as BrowserContextOptions;
-            const otherContext = await browser.newContext({ ...device, colorScheme });
+            const otherContext = await browser.newContext({ ...device, colorScheme, reducedMotion: 'reduce' });
             const other = await otherContext.newPage();
             await setup(other);
             await other.goto(kimpayUrl);

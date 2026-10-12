@@ -4,6 +4,7 @@
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { storageService } from '#lib/services/storage.js';
   import { House, WifiOff } from "@lucide/svelte";
+  import { Button } from '#lib/components/ui/button/index.js';
 
   const isOffline = $derived(offlineStore.isOffline);
   let hasRecentKimpays = $state(false);
@@ -17,72 +18,30 @@
   const errorStatus = $derived(page.status);
 </script>
 
-<div class="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors relative overflow-hidden">
-    
-    <!-- Animated background elements -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-[20%] left-[10%] text-6xl opacity-20 animate-bounce duration-3000">🪐</div>
-        <div class="absolute bottom-[20%] right-[10%] text-4xl opacity-20 animate-pulse">✨</div>
-        <div class="absolute top-[10%] right-[20%] text-2xl opacity-10 animate-ping">⭐</div>
-        <div class="absolute bottom-[30%] left-[20%] text-8xl opacity-5 dark:opacity-10 rotate-12">🚀</div>
-    </div>
-
-    <div class="relative z-10 space-y-6 max-w-md mx-auto">
+<div class="flex min-h-dvh flex-col items-center justify-center bg-background p-4 text-center">
+    <div class="mx-auto max-w-md space-y-6 animate-pop-in">
         {#if isOffline}
-            <!-- Offline-specific error UI -->
-            <div class="h-24 w-24 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <WifiOff class="h-12 w-12 text-slate-400" />
+            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+                <WifiOff class="h-10 w-10 text-muted-foreground" />
             </div>
-            
             <div class="space-y-2">
-                <h2 class="text-3xl font-bold">{$t('error.offline.title')}</h2>
-                <p class="text-lg text-slate-500 dark:text-slate-400">
-                    {$t('error.offline.desc')}
-                </p>
+                <h1 class="text-2xl font-bold">{$t('error.offline.title')}</h1>
+                <p class="text-muted-foreground">{$t('error.offline.desc')}</p>
             </div>
-
-            <div class="pt-8 space-y-3">
-                {#if hasRecentKimpays}
-                    <a 
-                        href="/" 
-                        class="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-full font-bold shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300"
-                    >
-                        <House class="w-5 h-5" />
-                        {$t('error.offline.view_cached')}
-                    </a>
-                {:else}
-                    <a 
-                        href="/" 
-                        class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300"
-                    >
-                        <House class="w-5 h-5" />
-                        {$t('error.404.button')}
-                    </a>
-                {/if}
-            </div>
+            <Button href="/" size="lg">
+                <House />
+                {hasRecentKimpays ? $t('error.offline.view_cached') : $t('error.404.button')}
+            </Button>
         {:else}
-            <!-- Standard 404 error -->
-            <h1 class="text-8xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-500 via-blue-500 to-cyan-500 animate-pulse">
-                {errorStatus}
-            </h1>
-            
+            <p class="text-7xl font-extrabold tracking-tight text-gradient-brand">{errorStatus}</p>
             <div class="space-y-2">
-                <h2 class="text-3xl font-bold">{$t('error.404.title')}</h2>
-                <p class="text-lg text-slate-500 dark:text-slate-400">
-                    {$t('error.404.desc')}
-                </p>
+                <h1 class="text-2xl font-bold">{$t('error.404.title')}</h1>
+                <p class="text-muted-foreground">{$t('error.404.desc')}</p>
             </div>
-
-            <div class="pt-8">
-                <a 
-                    href="/" 
-                    class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300"
-                >
-                    <House class="w-5 h-5" />
-                    {$t('error.404.button')}
-                </a>
-            </div>
+            <Button href="/" size="lg">
+                <House />
+                {$t('error.404.button')}
+            </Button>
         {/if}
     </div>
 </div>
-

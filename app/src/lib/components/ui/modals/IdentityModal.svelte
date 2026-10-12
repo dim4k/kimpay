@@ -3,7 +3,7 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { Input } from "#lib/components/ui/input/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
-  import { Check } from "@lucide/svelte";
+  import { Check, ChevronRight, X } from "@lucide/svelte";
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import type { Participant } from '#lib/types.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
@@ -73,48 +73,51 @@
 <Modal 
     {isOpen} 
     onClose={activeKimpayGlobal.myParticipant ? () => modals.closeIdentity() : undefined}
-    class="max-w-md max-h-[90vh] flex flex-col overflow-hidden p-0 space-y-0 rounded-2xl"
-    backdropClass="bg-slate-50/95 dark:bg-slate-950/95"
+    class="flex max-h-[90vh] max-w-md flex-col space-y-0 overflow-hidden p-0"
+    backdropClass="bg-background/95"
+    label={$t('identity.title')}
 >
     <div class="p-6 pb-2 relative">
             {#if activeKimpayGlobal.myParticipant}
             <button 
             onclick={() => modals.closeIdentity()}
-            class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 z-10"
+            class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title={$t('common.close')}
             aria-label={$t('common.close')}
         >
-            ✕
+            <X class="h-5 w-5" />
         </button>
         {/if}
-        <h2 class="text-2xl font-bold text-gradient-brand mb-2">{$t('identity.title')}</h2>
-        <p class="text-slate-500 dark:text-slate-400 text-sm">{$t('identity.subtitle')}</p>
+        <h2 class="mb-1 text-2xl font-bold">{$t('identity.title')}</h2>
+        <p class="text-sm text-muted-foreground">{$t('identity.subtitle')}</p>
     </div>
     
     <div class="flex-1 overflow-y-auto p-4 space-y-2">
         {#each selectableParticipants as p (p.id)}
             <button 
-                class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted dark:hover:bg-slate-800 border-2 border-transparent hover:border-primary/20 dark:hover:border-slate-700 transition-all text-left group {selectedParticipantId === p.id ? 'bg-secondary border-primary/30' : ''}"
+                class="flex w-full min-h-14 items-center gap-3 rounded-control border px-3 py-2 text-left transition-colors hover:bg-muted {selectedParticipantId === p.id ? 'border-primary bg-primary-soft' : ''}"
                 onclick={() => selectParticipant(p.id)}
             >
                 <Avatar name={p.name} record={p} class="w-10 h-10 text-sm" />
-                <span class="font-medium text-foreground">{p.name}</span>
+                <span class="flex-1 truncate text-base font-medium">{p.name}</span>
                 {#if selectedParticipantId === p.id}
-                    <div class="ml-auto text-primary">
-                        <Check class="h-5 w-5" />
-                    </div>
+                    <Check class="h-5 w-5 text-primary" />
+                {:else}
+                    <ChevronRight class="h-4 w-4 text-muted-foreground" />
                 {/if}
             </button>
         {/each}
     </div>
 
-    <div class="p-4 border-t dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
+    <div class="space-y-2 border-t bg-muted/40 p-4">
+        <label for="identity-new" class="block text-sm font-semibold text-muted-foreground">{$t('identity.new_label')}</label>
         <div class="flex gap-2">
             <Input 
                 placeholder={$t('identity.new_name_placeholder')} 
                 bind:value={newParticipantName}
                 maxlength={15}
-                class="dark:bg-slate-800 dark:border-slate-700"
+                id="identity-new"
+                onkeydown={(e) => e.key === 'Enter' && createAndSelectParticipant()}
             />
             <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
                 {$t('identity.create_button')}

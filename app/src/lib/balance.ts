@@ -47,6 +47,48 @@ export function totalSpent(expenses: Expense[], kimpayCurrency: string, rates: R
     return fromMinor(minor, kimpayCurrency);
 }
 
+/**
+ * What an expense means for one participant, in the expense currency:
+ * positive = they advanced money for others (they are owed that much),
+ * negative = their share paid by someone else (they owe that much),
+ * 0 = not concerned, or they paid exactly their own share.
+ * Reimbursements are left out (always 0): they settle debts, they do not
+ * create any.
+ */
+export function expenseImpact(expense: Expense, participantId: string, participantIds: string[]): number {
+    if (expense.is_reimbursement) return 0;
+    const currency = expense.currency || DEFAULT_CURRENCY;
+    const amount = toMinor(expense.amount, currency);
+    const shares = distribute(amount, splitWeights(expense, participantIds));
+    if (Object.keys(shares).length === 0) return 0;
+
+    const paid = expense.payer === participantId ? amount : 0;
+    const sign = expense.is_income ? -1 : 1;
+    return fromMinor(sign * (paid - (shares[participantId] ?? 0)), currency);
+}
+
+/**
+ * One participant's share of the group's spending (expenses minus money
+ * received, reimbursements excluded), in the Kimpay's currency.
+ */
+export function shareOf(
+    expenses: Expense[],
+    participants: Participant[],
+    participantId: string,
+    kimpayCurrency: string,
+    rates: Record<string, number>,
+): number {
+    const ids = participants.map((p) => p.id);
+    let minor = 0;
+    for (const expense of expenses) {
+        if (expense.is_reimbursement) continue;
+        const amount = toMinor(toKimpayAmount(expense, kimpayCurrency, rates), kimpayCurrency);
+        const share = distribute(amount, splitWeights(expense, ids))[participantId] ?? 0;
+        minor += expense.is_income ? -share : share;
+    }
+    return fromMinor(minor, kimpayCurrency);
+}
+
 /** Net balances in minor units of the Kimpay currency (see calculateBalances). */
 function balancesInMinor(
     expenses: Expense[],

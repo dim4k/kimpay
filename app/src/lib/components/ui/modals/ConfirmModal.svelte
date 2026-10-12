@@ -31,7 +31,7 @@
 
 <Modal {isOpen} onClose={isProcessing ? undefined : onCancel}>
     <div class="text-center space-y-2">
-            <div class={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${variant === 'destructive' ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-primary'}`}>
+            <div class={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${variant === 'destructive' ? 'bg-destructive/10 text-destructive' : 'bg-primary-soft text-primary-soft-foreground'}`}>
             {#if variant === 'destructive'}
                 <TriangleAlert class="h-8 w-8" />
             {:else}
@@ -47,7 +47,6 @@
     <div class="grid grid-cols-2 gap-3">
         <Button
             variant="secondary"
-            class="rounded-xl font-bold"
             onclick={onCancel}
             disabled={isProcessing}
         >
@@ -55,7 +54,6 @@
         </Button>
         <Button
             variant={variant === 'destructive' ? 'destructive' : 'default'}
-            class="rounded-xl font-bold"
             onclick={onConfirm}
             disabled={isProcessing}
         >

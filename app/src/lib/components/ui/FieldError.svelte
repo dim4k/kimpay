@@ -7,7 +7,7 @@
 </script>
 
 {#if message}
-    <div class="flex items-center gap-2 text-xs text-red-500" role="alert" transition:slide>
+    <div class="flex items-center gap-2 text-sm text-destructive" role="alert" transition:slide>
         <CircleAlert class="h-3 w-3" />
         <span>{message}</span>
     </div>

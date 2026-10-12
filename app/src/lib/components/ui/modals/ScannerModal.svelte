@@ -96,7 +96,7 @@
 <Modal 
     {isOpen} 
     onClose={handleClose}
-    class="max-w-sm bg-black rounded-3xl overflow-hidden relative shadow-2xl border border-white/10 p-0 space-y-0"
+    class="relative max-w-sm space-y-0 overflow-hidden rounded-card border border-white/10 bg-black p-0 shadow-2xl"
     backdropClass="bg-black/90 backdrop-blur-xs"
 >
     <!-- Header -->
@@ -118,9 +118,9 @@
         {/if}
 
         {#if errorMsg}
-            <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-red-400 bg-black/80">
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-destructive bg-black/80">
                 <p class="font-medium">{errorMsg}</p>
-                <button onclick={handleClose} class="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm">
+                <button onclick={handleClose} class="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-control text-white text-sm">
                     {$t('common.cancel')}
                 </button>
             </div>
@@ -130,10 +130,10 @@
         {#if isScanning}
             <div class="absolute inset-0 pointer-events-none border-30 border-black/50">
             <div class="absolute inset-0 border-2 border-white/30 rounded-lg">
-                <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl"></div>
-                <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl"></div>
-                <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl"></div>
-                <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl"></div>
+                <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
+                <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
+                <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
+                <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
             </div>
             </div>
             <p class="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm font-medium drop-shadow-xs px-4">

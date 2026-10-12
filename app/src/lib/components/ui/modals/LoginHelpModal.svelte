@@ -24,8 +24,7 @@
     title={$t('login_help.modal.title')}
     description={$t('login_help.modal.desc')}
     icon={Mail}
-    iconBgClass="bg-indigo-100 dark:bg-indigo-900/30"
-    iconColorClass="text-indigo-500 dark:text-indigo-400"
+
 >
     <div class="space-y-4">
         <InfoPoint icon={KeyRound} title={$t('email_help.modal.point1.title')} description={$t('email_help.modal.point1.desc')} />

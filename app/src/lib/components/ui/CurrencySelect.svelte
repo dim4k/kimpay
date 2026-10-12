@@ -32,11 +32,11 @@
 <Dropdown {size} {position} {triggerClass} label={$t('currency.select_label')}>
     {#snippet trigger()}
         {#if size === 'sm'}
-            <span class="text-xs">{getSymbol(value)}</span>
-            <span class="text-xs">{value}</span>
+            <span>{getSymbol(value)}</span>
+            <span>{value}</span>
         {:else}
             <span class="text-base font-medium">{getSymbol(value)}</span>
-            <span class="font-medium text-sm text-slate-700 dark:text-slate-200">{value}</span>
+            <span class="text-sm font-medium">{value}</span>
         {/if}
     {/snippet}
     {#snippet items(close)}
@@ -44,14 +44,14 @@
             <button
                 type="button"
                 onclick={() => select(code, close)}
-                class="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm {value === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
+                class="flex w-full items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-muted {value === code ? 'bg-primary-soft' : ''}"
             >
                 <div class="flex items-center gap-2">
                     <span class="text-base w-5 text-center">{getSymbol(code)}</span>
-                    <span class="font-medium text-slate-900 dark:text-slate-100">{code}</span>
+                    <span class="font-medium">{code}</span>
                 </div>
                 {#if value === code}
-                    <Check class="h-3.5 w-3.5 text-indigo-500" />
+                    <Check class="h-4 w-4 text-primary" />
                 {/if}
             </button>
         {/each}

@@ -23,6 +23,8 @@ test.describe('Onboarding & Validation', () => {
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Email Test');
     await page.getByPlaceholder('e.g. Antoine').fill('Tester');
     
+    // Email is optional: folded with the other options.
+    await page.getByRole('button', { name: /email and other participants/i }).click();
     const emailInput = page.getByPlaceholder('your@email.com');
     if (await emailInput.isVisible()) {
         await emailInput.fill('invalid-email');
@@ -53,14 +55,15 @@ test.describe('Onboarding & Validation', () => {
     await page.getByRole('button', { name: /create|créer/i }).click();
     await expect(page).toHaveURL(/\/k\//);
     
-    // 2. Go Home
+    // 2. Go Home: groups come first, the creation form opens from its tile
     await page.goto('/');
+    await page.getByRole('button', { name: /create a group/i }).click();
     
     // 3. Create Second Kimpay
     await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
     // Name might be pre-filled from local storage if not cleared, but let's overwrite
-    await page.getByPlaceholder('e.g. Antoine').fill('User B'); 
-    await page.getByRole('button', { name: /create|créer/i }).click();
+    await page.getByPlaceholder('e.g. Antoine').fill('User B');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page).toHaveURL(/\/k\//);
     await expect(page.getByText('Trip B')).toBeVisible();
 

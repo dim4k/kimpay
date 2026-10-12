@@ -7,8 +7,8 @@
 </script>
 
 {#if offlineStore.isOffline}
-    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3" role="status">
-        <AlertTriangle class="h-5 w-5 text-amber-500 shrink-0" />
-        <p class="text-sm text-amber-700 dark:text-amber-300">{message}</p>
+    <div class="flex items-center gap-3 rounded-card bg-warning-soft p-4 text-warning" role="status">
+        <AlertTriangle class="h-5 w-5 shrink-0" />
+        <p class="text-sm font-medium">{message}</p>
     </div>
 {/if}

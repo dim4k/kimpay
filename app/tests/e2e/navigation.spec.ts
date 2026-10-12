@@ -61,8 +61,9 @@ test.describe('Navigation & UX', () => {
   test('Settings page shows group info', async ({ page }) => {
     await page.getByRole('link', { name: /settings|paramètres/i }).click();
     
-    // Group name should be editable
-    await expect(page.getByText('Navigation Test')).toBeVisible();
+    // Group name should be shown (header and group card), and editable
+    await expect(page.getByText('Navigation Test').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
     
     // Participant list should show the creator as the current identity
     // (scoped: the header also shows the identity name)

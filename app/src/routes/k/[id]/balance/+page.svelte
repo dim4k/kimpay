@@ -1,21 +1,24 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { ArrowRight, Wallet, CircleCheck } from "@lucide/svelte";
-  import { fade } from 'svelte/transition';
+  import { ArrowRight, Wallet, Check, ChevronRight } from "@lucide/svelte";
 
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import PaymentLinks from '#lib/components/PaymentLinks.svelte';
-  import PageHeader from '#lib/components/ui/PageHeader.svelte';
+  import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
+  import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
+  import ListGroup from '#lib/components/ui/ListGroup.svelte';
+  import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { shareOf } from '#lib/balance.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import { t, locale } from '#lib/i18n.js';
-  import CountUp from '#lib/components/ui/CountUp.svelte';
   import { modals } from '#lib/stores/modals.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { formatAmount, convert, DEFAULT_CURRENCY, getSymbol } from '#lib/services/currency.js';
+  import { formatAmount, convert, DEFAULT_CURRENCY } from '#lib/services/currency.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -85,11 +88,46 @@
   function getName(id: string) {
       return activeKimpay?.participantsById.get(id)?.name || $t('common.unknown');
   }
+
+  /** "You" for me, the name otherwise. */
+  function label(id: string) {
+      return id === myId ? $t('common.you') : getName(id);
+  }
+
+  let participants = $derived(activeKimpay?.participants || []);
+  let myNet = $derived(toDisplayCurrency(activeKimpay?.myBalance ?? 0, kimpayDefaultCurrency));
+  let totalExpenses = $derived(toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency));
+  let myShare = $derived(
+      myId ? toDisplayCurrency(shareOf(expenses, participants, myId, kimpayDefaultCurrency, exchangeRates), kimpayDefaultCurrency) : 0
+  );
+
+  // Everyone's net balance, the biggest creditor first.
+  let balanceRows = $derived(
+      participants
+          .map((p) => ({
+              id: p.id,
+              name: label(p.id),
+              amount: toDisplayCurrency(activeKimpay?.balances[p.id] ?? 0, kimpayDefaultCurrency),
+          }))
+          .sort((a, b) => b.amount - a.amount)
+  );
 </script>
 
-<div class="container p-4 space-y-6">
-    <PageHeader title={$t('balance.title')} subtitle={$t('balance.subtitle')} />
+{#snippet pair(tx: Transaction)}
+    <span class="flex shrink-0" aria-hidden="true">
+        <Avatar name={getName(tx.from)} record={activeKimpay?.participantsById.get(tx.from)} class="h-8 w-8 text-xs ring-2 ring-card" />
+        <Avatar name={getName(tx.to)} record={activeKimpay?.participantsById.get(tx.to)} class="-ml-2 h-8 w-8 text-xs ring-2 ring-card" />
+    </span>
+    <span class="flex min-w-0 flex-1 items-center gap-1.5 text-base font-medium">
+        <span class="truncate">{label(tx.from)}</span>
+        <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={$t('balance.pays')} />
+        <span class="truncate">{label(tx.to)}</span>
+    </span>
+    <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale)}</span>
+{/snippet}
 
+<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4">
+    <h1 class="sr-only">{$t('balance.title')}</h1>
 
     <OfflineBanner message={$t('balance.offline_warning')} />
 
@@ -106,143 +144,79 @@
             {/snippet}
          </EmptyState>
     {:else}
-        
-        <!-- Transactions List or "Settled" Message -->
-        {#if transactions.length === 0}
-            <div class="animate-pop-in bg-linear-to-br from-green-400 to-emerald-500 text-white p-8 rounded-3xl text-center shadow-lg shadow-green-200/60 dark:shadow-emerald-900/40">
-                <CircleCheck class="h-16 w-16 mx-auto mb-4 text-white/90" />
-                <p class="text-2xl font-bold">{$t('balance.settled.title')}</p>
-                <p class="text-white/80 mt-2">{$t('balance.settled.desc')}</p>
-            </div>
+        <!-- Me first: where I stand, then what I should do, then the group. -->
+        {#if !myId}
+            <BalanceHero label={$t('balance.total_group')} amount={totalExpenses} currency={displayCurrency} />
+        {:else if transactions.length === 0}
+            <BalanceHero label={$t('expense.hero.label')} text={$t('balance.settled.title')} tone="success">
+                <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
+            </BalanceHero>
         {:else}
-             <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">{$t('balance.suggested.title')}</h2>
-                    <CurrencySelect size="sm" bind:value={displayCurrency} />
-                </div>
-                
-                <div class="space-y-3">
+            <BalanceHero
+                label={myNet < -0.005 ? $t('balance.you_owe') : myNet > 0.005 ? $t('balance.owed_to_you') : $t('expense.hero.label')}
+                amount={Math.abs(myNet) > 0.005 ? myNet : undefined}
+                text={$t('balance.settled.title')}
+                currency={displayCurrency}
+                tone={myNet < -0.005 ? 'warning' : myNet > 0.005 ? 'success' : 'neutral'}
+            >
+                <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
+                <span>{$t('balance.hero.share', { amount: formatAmount(myShare, displayCurrency, $locale) })}</span>
+            </BalanceHero>
+        {/if}
+
+        {#if transactions.length > 0}
+            <section class="space-y-2 animate-slide-up">
+                <SectionLabel title={$t('balance.suggested.title')}>
+                    {#snippet actions()}
+                        <CurrencySelect size="sm" bind:value={displayCurrency} />
+                    {/snippet}
+                </SectionLabel>
+                <ListGroup>
                     {#each transactions as tx, i (i)}
-                        <div class="balance-item space-y-2" style="animation-delay: {i * 50}ms;">
-                        <button 
-                            class="bg-card/90 backdrop-blur-md p-3 rounded-2xl shadow-xs border flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-all duration-300 w-full text-left"  
-                            onclick={() => openSettleModal(tx)}
-                            disabled={!myId} 
-                        >
-                            <!-- Highlight bar if involved -->
-                            {#if tx.from === myId || tx.to === myId}
-                                <div class="absolute left-0 top-0 bottom-0 w-1 {tx.from === myId ? 'bg-orange-500' : 'bg-green-500'}"></div>
-                            {/if}
-
-                            <div class="flex items-center gap-3 pl-2">
-                                <Avatar name={getName(tx.from)} record={activeKimpay?.participantsById.get(tx.from)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight transition-colors">
-                                        {tx.from === myId ? $t('common.you') : getName(tx.from)}
-                                    </span>
-                                    <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{$t('balance.payer')}</span>
+                        {#if myId && (tx.from === myId || tx.to === myId)}
+                            <!-- My own payments: explicit actions. -->
+                            <div class="space-y-3 px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    {@render pair(tx)}
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    {#if tx.from === myId}
+                                        <PaymentLinks to={activeKimpay?.participantsById.get(tx.to)} amount={tx.amount} currency={tx.currency} />
+                                    {/if}
+                                    <Button size="sm" variant="outline" onclick={() => openSettleModal(tx)}>
+                                        <Check />
+                                        {$t('balance.mark_settled')}
+                                    </Button>
                                 </div>
                             </div>
-
-                            <div class="flex flex-col items-center px-2 z-10">
-                                 <span class="text-[10px] font-bold text-slate-400 mb-1">{$t('balance.pays')}</span>
-                                 <div class="bg-slate-100 dark:bg-slate-800 rounded-full p-1 px-3 flex items-center gap-1 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                    <span class="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale)}</span>
-                                    <ArrowRight class="h-3 w-3 text-slate-400 group-hover:text-indigo-500" />
-                                 </div>
-                            </div>
-
-                            <div class="flex items-center gap-3 justify-end pr-1">
-                                <div class="flex flex-col items-end">
-                                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight transition-colors">
-                                        {tx.to === myId ? $t('common.you') : getName(tx.to)}
-                                    </span>
-                                    <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{$t('balance.receiver')}</span>
-                                </div>
-                                 <Avatar name={getName(tx.to)} record={activeKimpay?.participantsById.get(tx.to)} class="h-10 w-10 text-base shadow-md ring-2 ring-white dark:ring-slate-700" />
-                            </div>
-                        </button>
-                        <!-- What I owe: pay directly with the receiver's payment links -->
-                        {#if tx.from === myId}
-                            <PaymentLinks to={activeKimpay?.participantsById.get(tx.to)} amount={tx.amount} currency={tx.currency} class="pl-3" />
+                        {:else}
+                            <button
+                                type="button"
+                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 disabled:pointer-events-none"
+                                onclick={() => openSettleModal(tx)}
+                                disabled={!myId}
+                                aria-label={$t('balance.settle.modal.title')}
+                            >
+                                {@render pair(tx)}
+                                {#if myId}
+                                    <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
+                                {/if}
+                            </button>
                         {/if}
-                        </div>
                     {/each}
-                </div>
-            </div>
+                </ListGroup>
+            </section>
         {/if}
 
-        <!-- My Status (Always Visible) -->
-        {#if myId}
-            {@const myDebts = transactions.filter(tx => tx.from === myId)}
-            {@const myCredit = transactions.filter(tx => tx.to === myId)}
-            {@const totalDebit = myDebts.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
-            {@const totalCredit = myCredit.reduce((sum, tx) => sum + toDisplayCurrency(tx.amount, tx.currency), 0)}
-            {@const netBalance = totalCredit - totalDebit}
-            {@const totalExpenses = toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency)}
-            
-            <div class="space-y-3" transition:fade>
-                 <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 pl-1">{$t('balance.your_summary')}</h2>
-                 <div class="grid grid-cols-2 gap-3">
-                    <!-- Block 1: Net Position -->
-                    
-                    {#if Math.abs(netBalance) < 0.01}
-                        <!-- All Good State -->
-                        <div class="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-3xl border border-green-100 dark:border-green-900/50 relative overflow-hidden transition-colors">
-                            <div class="absolute -right-4 -top-4 bg-green-200/50 dark:bg-green-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                            <span class="text-[10px] text-green-600 dark:text-green-400 font-bold tracking-wider relative z-10">{$t('balance.status')}</span>
-                            <div class="text-xl font-black text-green-600/90 dark:text-green-400 mt-2 relative z-10 tracking-tight leading-tight">
-                                {$t('balance.all_good')}
-                            </div>
-                        </div>
-                    {:else if netBalance < 0}
-                        <!-- You Owe State -->
-                        <div class="bg-linear-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/50 relative overflow-hidden transition-colors">
-                            <div class="absolute -right-4 -top-4 bg-orange-200/50 dark:bg-orange-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                            <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold tracking-wider relative z-10">{$t('balance.you_owe')}</span>
-                            <div class="text-2xl font-black text-orange-600/90 dark:text-orange-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={Math.abs(netBalance)} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
-                            </div>
-                        </div>
-                    {:else}
-                         <!-- Owed To You State -->
-                         <div class="bg-linear-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
-                            <div class="absolute -right-4 -top-4 bg-emerald-200/50 dark:bg-emerald-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider relative z-10">{$t('balance.owed_to_you')}</span>
-                            <div class="text-2xl font-black text-emerald-600/90 dark:text-emerald-400 mt-1 relative z-10 tracking-tight">
-                                <CountUp value={netBalance} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
-                            </div>
-                        </div>
+        <section class="space-y-2 animate-slide-up">
+            <SectionLabel title={$t('readonly.balances')}>
+                {#snippet actions()}
+                    {#if transactions.length === 0}
+                        <CurrencySelect size="sm" bind:value={displayCurrency} />
                     {/if}
-
-                     <!-- Block 2: Total Expenses -->
-                     <div class="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50 relative overflow-hidden transition-colors">
-                        <div class="absolute -right-4 -top-4 bg-blue-200/50 dark:bg-blue-800/20 w-24 h-24 rounded-full blur-2xl"></div>
-                        <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold tracking-wider relative z-10">{$t('balance.total_group')}</span>
-                        <div class="text-2xl font-black text-blue-600/90 dark:text-blue-400 mt-1 relative z-10 tracking-tight">
-                            <CountUp value={totalExpenses} /><span class="text-sm align-top opacity-60">{getSymbol(displayCurrency)}</span>
-                        </div>
-                    </div>
-                 </div>
-            </div>
-        {/if}
-
+                {/snippet}
+            </SectionLabel>
+            <BalanceBars rows={balanceRows} currency={displayCurrency} />
+        </section>
     {/if}
 </div>
-
-<style>
-  @keyframes slideUpFade {
-    from {
-      opacity: 0;
-      transform: translateY(50px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .balance-item {
-    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-</style>

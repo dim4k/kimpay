@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Pencil, Trash2 } from "@lucide/svelte";
+    import { Pencil, Trash2, type LucideProps } from "@lucide/svelte";
+    import type { Component } from 'svelte';
     import { haptic } from '#lib/utils/haptic.js';
     import { t } from '#lib/i18n.js';
 
@@ -10,6 +11,9 @@
         onDelete?: () => void;
         /** Called when edit action is triggered */
         onEdit?: () => void;
+        /** Label and icon of the swipe-left action (default: delete) */
+        deleteLabel?: string;
+        deleteIcon?: Component<LucideProps>;
         /** Optional style string for the container */
         style?: string;
         /** Child content to make swipeable */
@@ -20,6 +24,8 @@
         disabled = false,
         onDelete,
         onEdit,
+        deleteLabel,
+        deleteIcon: DeleteIcon = Trash2,
         style = '',
         children
     }: Props = $props();
@@ -129,26 +135,21 @@
     let rightActionOpacity = $derived(showRightAction ? Math.min(offsetX / REVEAL_THRESHOLD, 1) : 0);
 </script>
 
-<div class="swipeable-container relative" {style}>
-    <!-- Delete Action (revealed on swipe left) -->
+
+<!-- A row of a ListGroup: rounds its own corners so the revealed actions
+     follow the group's shape. -->
+<div class="relative touch-pan-y overflow-clip first:rounded-t-[inherit] last:rounded-b-[inherit]" {style}>
     {#if showLeftAction}
-        <div 
-            class="absolute inset-0 flex items-center justify-end pr-5 bg-red-500 text-white rounded-xl"
-            style="opacity: {leftActionOpacity};"
-        >
+        <div class="absolute inset-0 flex items-center justify-end bg-destructive pr-5 text-destructive-foreground" style="opacity: {leftActionOpacity};">
             <div class="flex flex-col items-center gap-1">
-                <Trash2 class="h-6 w-6" />
-                <span class="text-xs font-medium">{$t('common.delete')}</span>
+                <DeleteIcon class="h-6 w-6" />
+                <span class="text-xs font-medium">{deleteLabel ?? $t('common.delete')}</span>
             </div>
         </div>
     {/if}
 
-    <!-- Edit Action (revealed on swipe right) -->
     {#if showRightAction}
-        <div 
-            class="absolute inset-0 flex items-center justify-start pl-5 bg-indigo-500 text-white rounded-xl"
-            style="opacity: {rightActionOpacity};"
-        >
+        <div class="absolute inset-0 flex items-center justify-start bg-primary pl-5 text-primary-foreground" style="opacity: {rightActionOpacity};">
             <div class="flex flex-col items-center gap-1">
                 <Pencil class="h-6 w-6" />
                 <span class="text-xs font-medium">{$t('common.edit')}</span>
@@ -156,9 +157,8 @@
         </div>
     {/if}
 
-    <!-- Swipeable Content -->
     <div
-        class="swipeable-content relative z-10"
+        class="relative z-10 bg-card will-change-transform"
         role="group"
         style={contentStyle}
         ontouchstart={handleTouchStart}
@@ -169,28 +169,3 @@
         {@render children()}
     </div>
 </div>
-
-<style>
-    @keyframes slideUpFade {
-        from {
-            opacity: 0;
-            transform: translateY(50px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .swipeable-container {
-        touch-action: pan-y;
-        overflow: clip;
-        padding: 3px;
-        margin: -3px;
-        animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    
-    .swipeable-content {
-        will-change: transform;
-    }
-</style>

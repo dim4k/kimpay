@@ -75,10 +75,9 @@ test.describe('Expense Management', () => {
     // 4. Go to Balance Page using UI link
     await page.getByRole('link', { name: /balance/i }).click();
 
-    // 5. Verify "Owed to you"
-    // Text in i18n is "YOU ARE OWED"
-    await expect(page.getByText('YOU ARE OWED', { exact: false })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('25.00')).toBeVisible();
+    // 5. Verify "You are owed" (balance card, then the payment and balances)
+    await expect(page.getByText('You are owed')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('25.00').first()).toBeVisible();
   });
 
 });

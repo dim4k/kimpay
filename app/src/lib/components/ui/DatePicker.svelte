@@ -4,8 +4,8 @@
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import { dismissable } from '#lib/attachments/dismissable.js';
 
-  /** Local calendar date, "YYYY-MM-DD" */
-  let { value = $bindable() }: { value: string } = $props();
+  /** Local calendar date, "YYYY-MM-DD". Rendered as a row of a ListGroup. */
+  let { value = $bindable(), label }: { value: string; label: string } = $props();
 
   let isOpen = $state(false);
   let openUp = $state(false);
@@ -106,52 +106,60 @@
   );
 </script>
 
-<div class="relative w-full" {@attach isOpen && dismissable(() => (isOpen = false))}>
-    <!-- Trigger -->
-    <button 
+<div class="relative w-full first:rounded-t-[inherit] last:rounded-b-[inherit]" {@attach isOpen && dismissable(() => (isOpen = false))}>
+    <button
         bind:this={triggerRef}
         type="button"
-        class="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-hidden"
         onclick={toggleOpen}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
     >
-        <span class="capitalize">{displayValue}</span>
-        <CalendarIcon class="ml-2 h-4 w-4 opacity-50" />
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <CalendarIcon class="h-4 w-4" />
+        </span>
+        <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-sm text-muted-foreground">{label}</span>
+            <span class="truncate text-base font-medium capitalize">{displayValue}</span>
+        </span>
+        <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {isOpen ? 'rotate-90' : ''}" />
     </button>
 
     {#if isOpen}
-        <!-- Dropdown -->
-        <div 
-            class="absolute left-0 z-50 w-[300px] rounded-xl border bg-card text-card-foreground shadow-xl p-4 space-y-4 {openUp ? 'bottom-full mb-2' : 'top-full mt-2'}"
+        <div
+            class="absolute left-2 z-50 w-[300px] max-w-[calc(100vw-2rem)] space-y-4 rounded-card border bg-popover p-4 text-popover-foreground shadow-xl {openUp ? 'bottom-full mb-2' : 'top-full mt-2'}"
             role="dialog"
+            aria-label={label}
         >
-            <!-- Header -->
             <div class="flex items-center justify-between">
-                <button onclick={() => changeMonth(-1)} class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <button type="button" onclick={() => changeMonth(-1)} class="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted" aria-label={$t('datepicker.previous')}>
                     <ChevronLeft class="h-5 w-5" />
                 </button>
-                <span class="font-bold capitalize text-base">{monthLabel}</span>
-                <button onclick={() => changeMonth(1)} class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <span class="text-base font-bold capitalize">{monthLabel}</span>
+                <button type="button" onclick={() => changeMonth(1)} class="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted" aria-label={$t('datepicker.next')}>
                     <ChevronRight class="h-5 w-5" />
                 </button>
             </div>
 
-            <!-- Grid -->
             <div>
-                <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                <div class="mb-2 grid grid-cols-7 gap-1 text-center text-xs">
                     {#each WEEKDAYS as day (day)}
-                        <div class="text-muted-foreground font-medium py-1">{day}</div>
+                        <div class="py-1 font-medium text-muted-foreground">{day}</div>
                     {/each}
                 </div>
-                
+
                 <div class="grid grid-cols-7 gap-1 text-center">
                     {#each days as item (item.date.getTime())}
-                        <button 
+                        {@const iso = formatDate(item.date)}
+                        <button
                             type="button"
-                            class="h-9 w-9 mx-auto flex items-center justify-center rounded-full text-sm transition-all
-                                {item.currentMonth ? 'text-foreground hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-muted-foreground opacity-30'}
-                                {formatDate(item.date) === value ? 'bg-indigo-600 text-white hover:bg-indigo-700 opacity-100! font-bold shadow-md scale-105' : ''}
-                                {formatDate(new Date()) === formatDate(item.date) && formatDate(item.date) !== value ? 'border-2 border-indigo-600 text-indigo-600 font-semibold' : ''}
-                            "
+                            class="mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors
+                                {iso === value
+                                    ? 'bg-primary font-bold text-primary-foreground'
+                                    : iso === formatDate(new Date())
+                                        ? 'border-2 border-primary font-semibold text-primary'
+                                        : item.currentMonth ? 'hover:bg-muted' : 'text-muted-foreground/50 hover:bg-muted'}"
+                            aria-pressed={iso === value}
                             onclick={() => handleSelect(item.date)}
                         >
                             {item.day}
@@ -159,10 +167,11 @@
                     {/each}
                 </div>
             </div>
-            
-            <div class="pt-2 border-t dark:border-slate-800 flex justify-center">
-                 <button 
-                    class="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+
+            <div class="flex justify-center border-t pt-2">
+                 <button
+                    type="button"
+                    class="min-h-9 px-3 text-sm font-bold text-primary hover:underline"
                     onclick={() => handleSelect(new Date())}
                 >
                     {$t('datepicker.today')}

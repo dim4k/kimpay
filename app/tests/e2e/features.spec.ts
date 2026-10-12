@@ -88,12 +88,18 @@ test.describe('Splits, money received, filters, read-only link', () => {
         const base = await setupGroup(page, 'Readonly Test');
         await addExpense(page, base, 'Museum', '100');
 
-        // Payer is owed money: give them a PayPal.me handle.
+        // Payer is owed money: give them a PayPal.me handle (settings sheet).
         await page.goto(`${base}/settings`);
+        await page.getByRole('button', { name: /my payment links/i }).click();
         await page.getByLabel('PayPal.me').fill('https://paypal.me/payer.pp');
         await page.getByRole('button', { name: /^save$/i }).click();
+        await expect(page.getByRole('dialog')).toBeHidden();
+        await page.getByRole('button', { name: /my payment links/i }).click();
         await expect(page.getByLabel('PayPal.me')).toHaveValue('payer.pp');
+        await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
 
+        // The read-only link is one of the ways to share the group.
+        await page.goto(`${base}/share`);
         await page.getByRole('button', { name: 'Create the link' }).click();
         const link = page.locator('span.font-mono', { hasText: '/r/' });
         await expect(link).toBeVisible();
@@ -110,7 +116,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveAttribute('href', 'https://paypal.me/payer.pp/50.00EUR');
 
         // Once disabled, the link stops working.
-        await page.goto(`${base}/settings`);
+        await page.goto(`${base}/share`);
         await page.getByRole('button', { name: 'Disable the link' }).click();
         await page.getByRole('dialog').getByRole('button', { name: 'Disable the link' }).click();
         await page.goto(url);

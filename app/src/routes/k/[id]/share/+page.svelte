@@ -1,52 +1,63 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  import { Copy, Check, Share2, LoaderCircle } from "@lucide/svelte";
+  import { Copy, Check, Share2, LoaderCircle, Link, Trash2 } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import QRCode from 'qrcode';
-  import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import { modals } from '#lib/stores/modals.svelte.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { haptic } from '#lib/utils/haptic.js';
+  import { getErrorMessage } from '#lib/utils/errors.js';
+  import { generateUUID } from '#lib/utils/id.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import Avatar from '#lib/components/ui/Avatar.svelte';
+  import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
 
-  let kimpayId = $derived(activeKimpay?.id ?? '');
   let kimpay = $derived(activeKimpay?.kimpay);
+  let participants = $derived(activeKimpay?.participants || []);
   let inviteLink = $state("");
   let copied = $state(false);
   let qrDataUrl = $state<string | null>(null);
 
   onMount(async () => {
       inviteLink = window.location.href.replace('/share', ''); // Clean URL
-      
-      // Generate QR immediately with the link
+
+      // Dark modules on white: drawn on a white tile in both themes, which
+      // is what phone cameras read best.
       try {
            qrDataUrl = await QRCode.toDataURL(inviteLink, {
                width: 300,
-               margin: 2,
-               color: {
-                   dark: '#1e293b', // slate-800
-                   light: '#ffffff00' // transparent background
-               }
+               margin: 1,
+               color: { dark: '#1e293b', light: '#ffffff' }
            });
       } catch (err) {
           console.error("QR Generation failed", err);
       }
   });
 
-  async function copyLink() {
+  async function copyText(text: string): Promise<boolean> {
       try {
-          await navigator.clipboard.writeText(inviteLink);
-          copied = true;
+          await navigator.clipboard.writeText(text);
           haptic('light');
           toasts.success($t('share.copy_success'));
-          setTimeout(() => copied = false, 2000);
+          return true;
       } catch (err) {
           console.error('Failed to copy', err);
           toasts.error($t('share.copy_error'));
+          return false;
+      }
+  }
+
+  async function copyLink() {
+      if (await copyText(inviteLink)) {
+          copied = true;
+          setTimeout(() => copied = false, 2000);
       }
   }
 
@@ -65,59 +76,131 @@
           copyLink();
       }
   }
+
+  // Read-only summary link
+  let readonlyLink = $derived(kimpay?.readonly_token ? `${window.location.origin}/r/${kimpay.readonly_token}` : "");
+  let isUpdatingLink = $state(false);
+
+  async function setReadonlyLink(enabled: boolean) {
+      isUpdatingLink = true;
+      try {
+          await activeKimpay.setReadonlyToken(enabled ? generateUUID() : "");
+      } catch (e) {
+          console.error("Failed to update the read-only link", e);
+          modals.alert({ message: getErrorMessage(e, $t) });
+      } finally {
+          isUpdatingLink = false;
+      }
+  }
+
+  function requestDisableReadonlyLink() {
+      modals.confirm({
+          title: $t('settings.readonly.disable_title'),
+          description: $t('settings.readonly.disable_desc'),
+          confirmText: $t('settings.readonly.disable'),
+          variant: 'destructive',
+          onConfirm: () => setReadonlyLink(false)
+      });
+  }
+
+  async function shareReadonlyLink() {
+      if (!navigator.share) return copyText(readonlyLink);
+      try {
+          await navigator.share({ title: kimpay?.name ?? 'Kimpay', url: readonlyLink });
+      } catch {
+          // Share sheet dismissed.
+      }
+  }
 </script>
 
-<div class="container p-4 flex flex-col items-center justify-center min-h-[80vh] space-y-8 text-center">
-    
-    <div class="space-y-2 animate-pop-in" style="animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards;">
-        <div class="w-20 h-20 mx-auto bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner border border-slate-100 dark:border-slate-700 transition-colors">
-            {kimpay?.icon || DEFAULT_KIMPAY_EMOJI}
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
+    <h1 class="sr-only">{$t('nav.share')}</h1>
+
+    <!-- Most used first: send the link -->
+    <section class="space-y-4 rounded-card border bg-card p-4 animate-pop-in">
+        <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+                <h2 class="text-xl font-bold">{$t('share.invite_title')}</h2>
+                <p class="text-sm text-muted-foreground">{$t('share.invite_friends')}</p>
+            </div>
+            <span class="flex shrink-0 pt-1" aria-hidden="true">
+                {#each participants.slice(0, 4) as p, i (p.id)}
+                    <Avatar name={p.name} record={p} class="h-8 w-8 text-xs ring-2 ring-card {i > 0 ? '-ml-2' : ''}" />
+                {/each}
+            </span>
         </div>
-        <h1 class="text-3xl font-bold text-gradient-brand">
-            {kimpay?.name || $t('common.loading')}
-        </h1>
-        <p class="text-slate-500 dark:text-slate-400">{$t('share.invite_friends')}</p>
-    </div>
 
-    <!-- QR Code Block -->
-    <!-- QR Code Block -->
-    <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 relative group overflow-hidden animate-slide-up" style="animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards;">
-        <div class="absolute inset-0 bg-linear-to-tr from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        
-        {#if qrDataUrl}
-            <img src={qrDataUrl} alt={$t('share.qr_alt')} class="h-48 w-48 mx-auto" />
-        {:else}
-            <!-- Fallback / Loading -->
-             <div class="h-48 w-48 flex items-center justify-center text-slate-300">
-                <LoaderCircle class="h-8 w-8 animate-spin" />
-             </div>
-        {/if}
-
-        <div class="mt-4 text-xs font-mono text-slate-500 break-all max-w-[200px] mx-auto">
-            {kimpayId}
-        </div>
-    </div>
-
-    <div class="flex flex-col gap-3 w-full max-w-xs animate-slide-up" style="animation-delay: 300ms; opacity: 0; animation-fill-mode: forwards;">
-        <button 
-            class="w-full py-4 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
-            onclick={shareNative}
-        >
-            <Share2 class="h-5 w-5" />
+        <Button size="lg" class="w-full" onclick={shareNative}>
+            <Share2 class="size-5!" />
             {$t('share.invite_button')}
-        </button>
-        
-        <button 
-            class="w-full py-4 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center gap-3 active:scale-95"
-            onclick={copyLink}
-        >
-            {#if copied}
-                <Check class="h-5 w-5 text-green-600" />
-                <span class="text-green-600">{$t('share.copy_success')}</span>
-            {:else}
-                <Copy class="h-5 w-5" />
-                <span>{$t('share.copy_button')}</span>
-            {/if}
-        </button>
-    </div>
+        </Button>
+
+        <div class="flex items-center gap-2 rounded-control bg-muted py-1 pl-3 pr-1">
+            <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span class="min-w-0 flex-1 truncate font-mono text-sm text-muted-foreground">{inviteLink}</span>
+            <Button size="sm" variant="soft" onclick={copyLink}>
+                {#if copied}
+                    <Check />
+                    {$t('share.copy_success')}
+                {:else}
+                    <Copy />
+                    {$t('share.copy_button')}
+                {/if}
+            </Button>
+        </div>
+    </section>
+
+    <section class="space-y-2 animate-slide-up">
+        <SectionLabel title={$t('share.qr_title')} />
+        <div class="flex flex-col items-center gap-3 rounded-card border bg-card p-5">
+            <div class="rounded-control bg-white p-2">
+                {#if qrDataUrl}
+                    <img src={qrDataUrl} alt={$t('share.qr_alt')} class="h-44 w-44" />
+                {:else}
+                    <div class="flex h-44 w-44 items-center justify-center text-muted-foreground">
+                        <LoaderCircle class="h-8 w-8 animate-spin" />
+                    </div>
+                {/if}
+            </div>
+            <p class="text-center text-sm text-muted-foreground">{$t('share.qr_desc')}</p>
+        </div>
+    </section>
+
+    {#if !offlineStore.isOffline}
+        <section class="space-y-2 animate-slide-up">
+            <SectionLabel title={$t('settings.readonly.title')} />
+            <div class="space-y-3 rounded-card border bg-card p-4">
+                <p class="text-sm text-muted-foreground">{$t('settings.readonly.desc')}</p>
+                {#if readonlyLink}
+                    <div class="flex items-center gap-2 rounded-control bg-muted px-3 py-2.5">
+                        <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span class="min-w-0 flex-1 truncate font-mono text-sm text-muted-foreground">{readonlyLink}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Button variant="outline" onclick={() => copyText(readonlyLink)}>
+                            <Copy />
+                            {$t('share.copy_button')}
+                        </Button>
+                        <Button variant="outline" onclick={shareReadonlyLink}>
+                            <Share2 />
+                            {$t('nav.share')}
+                        </Button>
+                    </div>
+                    <Button variant="ghost-destructive" class="w-full" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
+                        <Trash2 />
+                        {$t('settings.readonly.disable')}
+                    </Button>
+                {:else}
+                    <Button variant="outline" class="w-full" onclick={() => setReadonlyLink(true)} disabled={isUpdatingLink}>
+                        {#if isUpdatingLink}
+                            <LoaderCircle class="animate-spin" />
+                        {:else}
+                            <Link />
+                        {/if}
+                        {$t('settings.readonly.create')}
+                    </Button>
+                {/if}
+            </div>
+        </section>
+    {/if}
 </div>

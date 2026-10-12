@@ -47,7 +47,8 @@
     });
 </script>
 
-<div class="space-y-3">
+<div class="space-y-2">
+    <span class="block text-sm font-semibold text-muted-foreground">{$t('expense.split.label')}</span>
     <SegmentedControl
         options={modes.map((m) => ({ value: m.value, label: $t(m.key) }))}
         bind:value={mode}
@@ -56,12 +57,12 @@
     />
 
     {#if mode !== 'equal'}
-        <div class="space-y-2">
+        <div class="space-y-2 pt-1">
             {#each involved as p (p.id)}
                 <div class="flex items-center gap-3">
                     <span class="flex-1 min-w-0 truncate text-sm font-medium">{p.name}</span>
                     {#if mode !== 'amounts'}
-                        <span class="text-xs text-muted-foreground tabular-nums">
+                        <span class="text-sm text-muted-foreground tabular-nums">
                             {preview[p.id] !== undefined ? formatAmount(preview[p.id]!, currency, $locale) : '–'}
                         </span>
                     {/if}
@@ -73,9 +74,9 @@
                             step={mode === 'shares' ? '1' : '0.01'}
                             bind:value={values[p.id]}
                             aria-label={$t('expense.split.value_for', { name: p.name })}
-                            class="h-9 w-full rounded-md border border-input bg-background pl-3 pr-8 text-right text-sm tabular-nums focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700"
+                            class="h-11 w-full rounded-control border border-input bg-card pl-3 pr-8 text-right text-base tabular-nums focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                         />
-                        <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                             {mode === 'percent' ? '%' : mode === 'shares' ? '×' : ''}
                         </span>
                     </div>
@@ -84,19 +85,19 @@
         </div>
 
         {#if mode === 'amounts' && check.remaining !== 0}
-            <p class="text-xs font-medium text-destructive">
+            <p class="text-sm font-medium text-destructive">
                 {check.remaining > 0
                     ? $t('expense.split.amount_left', { amount: formatAmount(check.remaining, currency, $locale) })
                     : $t('expense.split.amount_over', { amount: formatAmount(-check.remaining, currency, $locale) })}
             </p>
         {:else if mode === 'percent' && check.remaining !== 0}
-            <p class="text-xs font-medium text-destructive">
+            <p class="text-sm font-medium text-destructive">
                 {check.remaining > 0
                     ? $t('expense.split.percent_left', { percent: String(check.remaining) })
                     : $t('expense.split.percent_over', { percent: String(-check.remaining) })}
             </p>
         {:else if mode === 'shares' && !check.valid}
-            <p class="text-xs font-medium text-destructive">{$t('expense.split.shares_invalid')}</p>
+            <p class="text-sm font-medium text-destructive">{$t('expense.split.shares_invalid')}</p>
         {/if}
     {/if}
 </div>

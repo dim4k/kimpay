@@ -50,7 +50,8 @@ test.describe('Balance & Debts', () => {
     // 4. Verify I am owed money (100/2 = 50) - look for transaction showing debt
     // Wait for balance to load and show debt summary
     await page.waitForTimeout(500);
-    await expect(page.getByText('50')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('You are owed')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/50[.,]00/).first()).toBeVisible();
   });
 
   test('Shows debt when I owe money', async ({ page }) => {
@@ -82,8 +83,8 @@ test.describe('Balance & Debts', () => {
     await page.getByRole('link', { name: /balance/i }).click();
     await expect(page).toHaveURL(/\/balance/);
 
-    // 6. Verify I owe money (200/2 = 100) - look for the specific "YOU OWE" text
-    await expect(page.getByText('YOU OWE')).toBeVisible({ timeout: 10000 });
+    // 6. Verify I owe money (200/2 = 100) - look for the specific "You owe" text
+    await expect(page.getByText('You owe')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/100[.,]00/).first()).toBeVisible();
   });
 

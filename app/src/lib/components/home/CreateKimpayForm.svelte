@@ -2,7 +2,8 @@
     import { Button } from "#lib/components/ui/button/index.js";
     import { Input } from "#lib/components/ui/input/index.js";
     import { Label } from "#lib/components/ui/label/index.js";
-    import { Plus, X, LoaderCircle } from "@lucide/svelte";
+    import { Plus, X, LoaderCircle, ChevronDown } from "@lucide/svelte";
+    import { slide } from 'svelte/transition';
     import { t, locale } from '#lib/i18n.js';
     import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
     import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
@@ -32,6 +33,8 @@
     let creatorEmail = $state("");
     let isEmailHelpOpen = $state(false);
     let isLoading = $state(false);
+    // Email and other participants are optional: folded by default.
+    let isMoreOpen = $state(false);
 
 
     $effect(() => {
@@ -122,27 +125,15 @@
         }
     }
 
-     
-    let { hideTitle = false }: {hideTitle?: boolean} = $props();
-</script>
+     </script>
 
-<div class="space-y-3 md:space-y-4">
-    {#if !hideTitle}
-    <h2 class="font-semibold text-lg flex items-center gap-2">
-        <div class="w-1 h-6 bg-primary rounded-full"></div>
-        {$t('home.create.title')}
-    </h2>
-    {/if}
-    
-    <div class="space-y-4">
-        <div class="space-y-2">
-            <Label for="groupName">{$t('home.create.name_label')}</Label>
-            <div class="flex gap-2">
-                <EmojiInput variant="kimpay" bind:value={kimpayIcon} />
-                <Input id="groupName" bind:value={kimpayName} placeholder={$t('home.create.name_placeholder')} />
-                
-                <CurrencySelect bind:value={selectedCurrency} triggerClass="h-10 gap-1 px-2 py-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700" />
-            </div>
+<div class="space-y-4">
+    <div class="space-y-2">
+        <Label for="groupName">{$t('home.create.name_label')}</Label>
+        <div class="flex gap-2">
+            <EmojiInput variant="kimpay" bind:value={kimpayIcon} />
+            <Input id="groupName" bind:value={kimpayName} placeholder={$t('home.create.name_placeholder')} />
+            <CurrencySelect bind:value={selectedCurrency} triggerClass="h-11 shrink-0 gap-1 px-3" />
         </div>
     </div>
 
@@ -151,64 +142,76 @@
         <Input id="myName" bind:value={creatorName} placeholder={$t('home.create.my_name_placeholder')} />
     </div>
 
-    {#if !auth.user}
-    <div class="space-y-2">
-        <Label for="creatorEmail">{$t('home.create.email_label')}</Label>
-        <Input 
-            id="creatorEmail" 
-            type="email" 
-            bind:value={creatorEmail} 
-            placeholder={$t('home.create.email_placeholder')} 
-        />
-        <div class="flex items-center gap-2">
-            <button 
-                onclick={() => isEmailHelpOpen = true}
-                class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-            >
-                <Info class="h-3 w-3" />
-                <span class="underline underline-offset-2">{$t('email_help.modal.title')}</span>
-            </button>
-        </div>
-    </div>
-    {/if}
+    <button
+        type="button"
+        onclick={() => isMoreOpen = !isMoreOpen}
+        aria-expanded={isMoreOpen}
+        class="flex min-h-9 items-center gap-1.5 text-sm font-semibold text-primary"
+    >
+        <ChevronDown class="h-4 w-4 transition-transform {isMoreOpen ? 'rotate-180' : ''}" />
+        {auth.user ? $t('home.create.more_participants') : $t('home.create.more_options')}
+    </button>
 
-    <div class="space-y-2">
-        <Label>{$t('home.create.participants_label')}</Label>
-        <div class="flex gap-2">
-            <Input 
-                bind:value={newParticipantName} 
-                placeholder={$t('home.create.participants_placeholder')} 
-                onkeydown={(e) => e.key === 'Enter' && addParticipant()}
-            />
-            <Button variant="outline" size="icon" onclick={addParticipant} disabled={!newParticipantName.trim()} aria-label={$t('home.create.participants_placeholder')}>
-                <Plus class="h-4 w-4" />
-            </Button>
-        </div>
-        
-        {#if otherParticipants.length > 0}
-            <div class="flex flex-wrap gap-2">
-                {#each otherParticipants as p, i (p)}
-                    <div class="bg-slate-100 dark:bg-slate-800 text-sm px-3 py-1 rounded-full flex items-center gap-1 group transition-colors">
-                        {p}
-                        <button onclick={() => removeParticipant(i)} class="text-muted-foreground hover:text-red-500" aria-label={$t('home.create.remove_participant')}>
-                            <X class="h-3 w-3" />
-                        </button>
+    {#if isMoreOpen}
+        <div class="space-y-4" transition:slide={{ duration: 150 }}>
+            {#if !auth.user}
+                <div class="space-y-2">
+                    <Label for="creatorEmail">{$t('home.create.email_label')}</Label>
+                    <Input
+                        id="creatorEmail"
+                        type="email"
+                        bind:value={creatorEmail}
+                        placeholder={$t('home.create.email_placeholder')}
+                    />
+                    <button
+                        type="button"
+                        onclick={() => isEmailHelpOpen = true}
+                        class="flex min-h-8 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                        <Info class="h-3.5 w-3.5" />
+                        <span class="underline underline-offset-2">{$t('email_help.modal.title')}</span>
+                    </button>
+                </div>
+            {/if}
+
+            <div class="space-y-2">
+                <Label for="newParticipant">{$t('home.create.participants_label')}</Label>
+                <div class="flex gap-2">
+                    <Input
+                        id="newParticipant"
+                        bind:value={newParticipantName}
+                        placeholder={$t('home.create.participants_placeholder')}
+                        onkeydown={(e) => e.key === 'Enter' && addParticipant()}
+                    />
+                    <Button variant="outline" size="icon" onclick={addParticipant} disabled={!newParticipantName.trim()} aria-label={$t('home.create.participants_placeholder')}>
+                        <Plus />
+                    </Button>
+                </div>
+
+                {#if otherParticipants.length > 0}
+                    <div class="flex flex-wrap gap-2">
+                        {#each otherParticipants as p, i (p)}
+                            <span class="flex h-8 items-center gap-1 rounded-full bg-muted pl-3 pr-1 text-sm">
+                                {p}
+                                <button type="button" onclick={() => removeParticipant(i)} class="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive" aria-label={$t('home.create.remove_participant')}>
+                                    <X class="h-3.5 w-3.5" />
+                                </button>
+                            </span>
+                        {/each}
                     </div>
-                {/each}
+                {/if}
             </div>
-        {/if}
-    </div>
+        </div>
+    {/if}
 
     <Button onclick={create} class="w-full" size="lg" disabled={isLoading || !kimpayName || !creatorName}>
         {#if isLoading}
-            <LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle class="animate-spin" />
             {$t('home.create.loading')}
         {:else}
             {$t('home.create.button')}
         {/if}
     </Button>
-
-
 </div>
 
 <EmailHelpModal isOpen={isEmailHelpOpen} onClose={() => isEmailHelpOpen = false} />

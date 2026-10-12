@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Camera, X } from "@lucide/svelte";
+    import { Camera, ChevronRight, X } from "@lucide/svelte";
     import { pb } from '#lib/pocketbase.js';
     import { t } from '#lib/i18n.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
@@ -68,68 +68,62 @@
     const isDisabled = $derived(disabled || offlineStore.isOffline);
 </script>
 
-<div class="space-y-2">
-    <span class="block text-sm font-medium">{$t('expense.form.photos_label')}</span>
-    
-    <!-- Existing Photos (Edit Mode) -->
-    {#if existingPhotos.length > 0}
-        <div class="flex gap-2 overflow-x-auto pb-2">
-            {#each existingPhotos as filename (filename)}
-                <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 group">
-                    <img 
-                        src={getExistingPhotoUrl(filename)} 
-                        alt={$t('photos.attachment_alt')} 
-                        class="w-full h-full object-cover" 
-                    />
-                    <button 
-                        type="button"
-                        onclick={() => removeExistingPhoto(filename)}
-                        class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label={$t('photos.remove')}
-                    >
-                        <X class="h-3 w-3" />
-                    </button>
-                </div>
-            {/each}
-        </div>
-    {/if}
-
-    <!-- New Photos -->
-    {#if photoPreviews.length > 0}
-        <div class="flex gap-2 overflow-x-auto pb-2">
-            {#each photoPreviews as preview, i (i)}
-                <div class="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                    <img src={preview} alt={$t('photos.new_alt')} class="w-full h-full object-cover" />
-                    <button 
-                        type="button"
-                        onclick={() => removeNewPhoto(i)}
-                        class="absolute top-1 right-1 bg-slate-900/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors"
-                        aria-label={$t('photos.remove')}
-                    >
-                        <X class="h-3 w-3" />
-                    </button>
-                </div>
-            {/each}
-        </div>
-    {/if}
-
-    <!-- Add Photo Button -->
-    <button 
+<!-- A row of a ListGroup: add button, then the thumbnails. -->
+<div class="first:rounded-t-[inherit] last:rounded-b-[inherit]">
+    <button
+        type="button"
         onclick={() => fileInput.click()}
         disabled={isDisabled}
-        class="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-300 disabled:hover:bg-transparent"
+        class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
     >
-        <Camera class="h-5 w-5" />
-        <span class="font-medium">
-            {isDisabled ? ($t('expense.form.photos_disabled_offline') || "Photos disabled offline") : $t('expense.form.add_photos')}
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Camera class="h-4 w-4" />
         </span>
+        <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-sm text-muted-foreground">{$t('expense.form.photos_label')}</span>
+            <span class="truncate text-base font-medium">
+                {isDisabled ? $t('expense.form.photos_disabled_offline') : $t('expense.form.add_photos')}
+            </span>
+        </span>
+        <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
-    
-    <input 
-        type="file" 
-        accept="image/*" 
-        multiple 
-        class="hidden" 
+
+    {#if existingPhotos.length > 0 || photoPreviews.length > 0}
+        <div class="flex gap-2 overflow-x-auto px-4 pb-3">
+            {#each existingPhotos as filename (filename)}
+                <div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-control border">
+                    <img src={getExistingPhotoUrl(filename)} alt={$t('photos.attachment_alt')} class="h-full w-full object-cover" />
+                    <button
+                        type="button"
+                        onclick={() => removeExistingPhoto(filename)}
+                        class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-destructive"
+                        aria-label={$t('photos.remove')}
+                    >
+                        <X class="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            {/each}
+            {#each photoPreviews as preview, i (i)}
+                <div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-control border">
+                    <img src={preview} alt={$t('photos.new_alt')} class="h-full w-full object-cover" />
+                    <button
+                        type="button"
+                        onclick={() => removeNewPhoto(i)}
+                        class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-destructive"
+                        aria-label={$t('photos.remove')}
+                    >
+                        <X class="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            {/each}
+        </div>
+    {/if}
+
+    <input
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden"
         bind:this={fileInput}
         onchange={handleFileSelect}
     />

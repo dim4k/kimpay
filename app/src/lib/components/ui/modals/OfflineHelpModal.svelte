@@ -12,22 +12,22 @@
     title={$t('offline.modal.title')}
     description={$t('offline.modal.desc')}
     icon={WifiOff}
-    iconBgClass="bg-slate-100 dark:bg-slate-800"
-    iconColorClass="text-slate-500 dark:text-slate-400"
+    iconBgClass="bg-muted"
+    iconColorClass="text-muted-foreground"
     dismissible
 >
     <!-- Can Do -->
     <div class="space-y-2">
-        <h4 class="text-xs uppercase font-bold text-green-600 dark:text-green-500 tracking-wider flex items-center gap-2">
+        <h4 class="flex items-center gap-2 text-sm font-semibold text-success">
             {$t('offline.modal.can_do')}
         </h4>
-        <ul class="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+        <ul class="space-y-1.5 text-sm text-muted-foreground">
             <li class="flex items-start gap-2">
-                <Check class="h-4 w-4 text-green-500 mt-0.5" />
+                <Check class="mt-0.5 h-4 w-4 text-success" />
                 <span>{$t('offline.modal.can_view')}</span>
             </li>
             <li class="flex items-start gap-2">
-                <Check class="h-4 w-4 text-green-500 mt-0.5" />
+                <Check class="mt-0.5 h-4 w-4 text-success" />
                 <span>{$t('offline.modal.can_create')}</span>
             </li>
         </ul>
@@ -35,23 +35,23 @@
 
     <!-- Cannot Do -->
     <div class="space-y-2">
-        <h4 class="text-xs uppercase font-bold text-red-500 dark:text-red-400 tracking-wider flex items-center gap-2">
+        <h4 class="flex items-center gap-2 text-sm font-semibold text-destructive">
             {$t('offline.modal.cannot_do')}
         </h4>
-        <ul class="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+        <ul class="space-y-1.5 text-sm text-muted-foreground">
             <li class="flex items-start gap-2">
-                <X class="h-4 w-4 text-red-500 mt-0.5" />
+                <X class="mt-0.5 h-4 w-4 text-destructive" />
                 <span>{$t('offline.modal.no_reimburse')}</span>
             </li>
             <li class="flex items-start gap-2">
-                <X class="h-4 w-4 text-red-500 mt-0.5" />
+                <X class="mt-0.5 h-4 w-4 text-destructive" />
                 <span>{$t('offline.modal.no_sync')}</span>
             </li>
         </ul>
     </div>
 
-    <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
-        <p class="text-xs text-center text-slate-400">
+    <div class="border-t pt-2">
+        <p class="text-center text-xs text-muted-foreground">
             {$t('offline.modal.sync_info')}
         </p>
     </div>

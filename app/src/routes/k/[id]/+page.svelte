@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Wallet, Check, ArrowUpDown, Search, SlidersHorizontal, X } from "@lucide/svelte";
+  import { Wallet, Check, ArrowRight, Search, SlidersHorizontal, X } from "@lucide/svelte";
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -7,6 +7,12 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
+  import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
+  import ListGroup from '#lib/components/ui/ListGroup.svelte';
+  import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import type { Expense } from '#lib/types.js';
   import type { TranslationKey } from '#lib/locales/en.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
@@ -30,11 +36,11 @@
   // Sort types and options
   type SortOption = 'created_desc' | 'created_asc' | 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
 
-  const sortOptions: { value: SortOption; labelKey: TranslationKey; icon?: string }[] = [
-      { value: 'created_desc', labelKey: 'sort.created_desc' },
-      { value: 'created_asc', labelKey: 'sort.created_asc' },
+  const sortOptions: { value: SortOption; labelKey: TranslationKey }[] = [
       { value: 'date_desc', labelKey: 'sort.date_desc' },
       { value: 'date_asc', labelKey: 'sort.date_asc' },
+      { value: 'created_desc', labelKey: 'sort.created_desc' },
+      { value: 'created_asc', labelKey: 'sort.created_asc' },
       { value: 'amount_desc', labelKey: 'sort.amount_desc' },
       { value: 'amount_asc', labelKey: 'sort.amount_asc' },
   ];
@@ -48,7 +54,7 @@
       } catch {
           // Storage unavailable (private mode...): default order.
       }
-      return 'created_desc';
+      return 'date_desc';
   }
 
   let sortOption = $state<SortOption>(loadSort());
@@ -144,11 +150,12 @@
           case 'created_asc':
               sorted.sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime());
               break;
+          // Same day: the last one added first.
           case 'date_desc':
-              sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              sorted.sort((a, b) => b.date.slice(0, 10).localeCompare(a.date.slice(0, 10)) || b.created.localeCompare(a.created));
               break;
           case 'date_asc':
-              sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+              sorted.sort((a, b) => a.date.slice(0, 10).localeCompare(b.date.slice(0, 10)) || a.created.localeCompare(b.created));
               break;
           case 'amount_desc':
               sorted.sort((a, b) => toKimpayCurrency(b) - toKimpayCurrency(a));
@@ -161,12 +168,38 @@
       return sorted;
   });
 
-  // Calculate my contribution (total I paid)
-  let myContribution = $derived.by(() => {
-      if (!currentUserId) return 0;
-      return rawExpenses
-          .filter(e => e.payer === currentUserId && !e.is_reimbursement && !e.is_income)
-          .reduce((sum, e) => sum + toKimpayCurrency(e), 0);
+  let participantIds = $derived(participants.map(p => p.id));
+  let myBalance = $derived(activeKimpay?.myBalance ?? 0);
+  let totalAmount = $derived(activeKimpay?.totalAmount ?? 0);
+  let owesMoney = $derived(myBalance < -0.005);
+  let isOwed = $derived(myBalance > 0.005);
+
+  /** "Today", "Yesterday", then the full date. */
+  function dayLabel(key: string): string {
+      const today = new Date();
+      if (key === toLocalISODate(today)) return $t('datepicker.today');
+      if (key === toLocalISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))) return $t('date.yesterday');
+      return parseLocalISODate(key).toLocaleDateString($locale, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          ...(key.slice(0, 4) !== String(today.getFullYear()) && { year: 'numeric' }),
+      });
+  }
+
+  // Sorted by date: one list per day. Other sorts: a single list.
+  let sections = $derived.by(() => {
+      if (sortOption !== 'date_desc' && sortOption !== 'date_asc') {
+          return [{ key: 'all', label: '', items: expenses }];
+      }
+      const days: { key: string; label: string; items: Expense[] }[] = [];
+      for (const expense of expenses) {
+          const key = expense.date.slice(0, 10);
+          const last = days[days.length - 1];
+          if (last?.key === key) last.items.push(expense);
+          else days.push({ key, label: dayLabel(key), items: [expense] });
+      }
+      return days;
   });
 
   // Accordion State
@@ -198,194 +231,180 @@
     <button
         type="button"
         {onclick}
-        class="w-full flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted transition-colors text-left {selected ? 'bg-secondary' : ''}"
+        class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted {selected ? 'bg-primary-soft' : ''}"
     >
-        <span class="font-medium text-xs whitespace-nowrap">{label}</span>
+        <span class="whitespace-nowrap text-sm font-medium">{label}</span>
         {#if selected}
-            <Check class="h-3.5 w-3.5 text-primary" />
+            <Check class="h-4 w-4 text-primary" />
         {/if}
     </button>
 {/snippet}
 
-<div class="container p-4 space-y-6">
-  <!-- Kimpay Title Section -->
-  <header class="space-y-1">
-      <h1 class="text-2xl font-extrabold text-gradient-brand w-fit">
-          {$t('nav.expenses')}
-      </h1>
-      <p class="text-muted-foreground font-medium text-sm">
-          <span class="font-semibold text-foreground/80">{rawExpenses.length}</span> {$t('expense.list.items')}
-          <span class="mx-1">•</span>
-          <span class="font-semibold text-foreground/80">{participants.length || 0}</span> {$t('settings.participants').toLowerCase()}
-      </p>
-  </header>
+<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4">
+  <h1 class="sr-only">{$t('nav.expenses')}</h1>
 
   <OfflineBanner message={$t('expense.offline_warning')} />
 
-  <div class="flex flex-col gap-4">
-    <!-- Search & filters -->
-    {#if rawExpenses.length > 0}
-        <div class="space-y-2">
-            <div class="flex gap-2">
-                <div class="relative flex-1">
-                    <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="search"
-                        bind:value={search}
-                        placeholder={$t('filter.search_placeholder')}
-                        aria-label={$t('filter.search_placeholder')}
-                        class="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700"
-                    />
-                </div>
-                <button
-                    type="button"
-                    onclick={() => showFilters = !showFilters}
-                    aria-expanded={showFilters}
-                    aria-label={$t('filter.toggle')}
-                    class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-card transition-colors hover:bg-muted dark:border-slate-700 {showFilters ? 'text-primary border-primary/40' : 'text-muted-foreground'}"
-                >
-                    <SlidersHorizontal class="h-4 w-4" />
-                    {#if activeFilterCount > 0}
-                        <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{activeFilterCount}</span>
-                    {/if}
-                </button>
-            </div>
+  {#if !isLoading && rawExpenses.length > 0 && currentUserId}
+      <BalanceHero
+          label={owesMoney ? $t('balance.you_owe') : isOwed ? $t('balance.owed_to_you') : $t('expense.hero.label')}
+          amount={owesMoney || isOwed ? myBalance : undefined}
+          text={$t('balance.settled.title')}
+          currency={kimpayC}
+          tone={owesMoney ? 'warning' : isOwed ? 'success' : 'neutral'}
+      >
+          <span>{$t('expense.hero.total', { amount: formatAmount(totalAmount, kimpayC, $locale) })}</span>
+          <Button href="/k/{kimpayId}/balance" size="sm" variant={owesMoney ? 'default' : 'soft'}>
+              {owesMoney ? $t('expense.hero.settle') : $t('expense.hero.details')}
+              <ArrowRight />
+          </Button>
+      </BalanceHero>
+  {/if}
 
-            {#if showFilters}
-                <div class="flex flex-wrap gap-2">
-                    <Dropdown size="sm" position="bottom-left" label={$t('filter.person')}>
-                        {#snippet trigger()}
-                            <span class="text-xs {personFilter ? 'text-primary' : ''}">
-                                {personFilter ? (activeKimpay?.participantsById.get(personFilter)?.name ?? $t('common.unknown')) : $t('filter.person.all')}
-                            </span>
-                        {/snippet}
-                        {#snippet items(close)}
-                            {@render filterOption($t('filter.person.all'), personFilter === null, () => { personFilter = null; close(); })}
-                            {#each participants as p (p.id)}
-                                {@render filterOption(p.name, personFilter === p.id, () => { personFilter = p.id; close(); })}
-                            {/each}
-                        {/snippet}
-                    </Dropdown>
+  {#if rawExpenses.length > 0}
+      <div class="space-y-2">
+          <div class="flex gap-2">
+              <div class="relative flex-1">
+                  <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                      type="search"
+                      bind:value={search}
+                      placeholder={$t('filter.search_placeholder')}
+                      aria-label={$t('filter.search_placeholder')}
+                      class="pl-9"
+                  />
+              </div>
+              <button
+                  type="button"
+                  onclick={() => showFilters = !showFilters}
+                  aria-expanded={showFilters}
+                  aria-label={$t('filter.toggle')}
+                  class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {showFilters || activeFilterCount > 0 ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
+              >
+                  <SlidersHorizontal class="h-4 w-4" />
+                  {#if activeFilterCount > 0}
+                      <span class="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{activeFilterCount}</span>
+                  {/if}
+              </button>
+          </div>
 
-                    <Dropdown size="sm" position="bottom-left" label={$t('filter.type')}>
-                        {#snippet trigger()}
-                            <span class="text-xs {typeFilter !== 'all' ? 'text-primary' : ''}">
-                                {$t(typeOptions.find(o => o.value === typeFilter)?.labelKey ?? 'filter.type.all')}
-                            </span>
-                        {/snippet}
-                        {#snippet items(close)}
-                            {#each typeOptions as opt (opt.value)}
-                                {@render filterOption($t(opt.labelKey), typeFilter === opt.value, () => { typeFilter = opt.value; close(); })}
-                            {/each}
-                        {/snippet}
-                    </Dropdown>
+          {#if showFilters}
+              <div class="flex flex-wrap gap-2">
+                  <Dropdown position="bottom-left" label={$t('filter.person')}>
+                      {#snippet trigger()}
+                          <span class={personFilter ? 'text-primary' : ''}>
+                              {personFilter ? (activeKimpay?.participantsById.get(personFilter)?.name ?? $t('common.unknown')) : $t('filter.person.all')}
+                          </span>
+                      {/snippet}
+                      {#snippet items(close)}
+                          {@render filterOption($t('filter.person.all'), personFilter === null, () => { personFilter = null; close(); })}
+                          {#each participants as p (p.id)}
+                              {@render filterOption(p.name, personFilter === p.id, () => { personFilter = p.id; close(); })}
+                          {/each}
+                      {/snippet}
+                  </Dropdown>
 
-                    {#if categories.length > 1 || categoryFilter}
-                        <Dropdown size="sm" position="bottom-left" label={$t('filter.category')}>
-                            {#snippet trigger()}
-                                <span class="text-xs {categoryFilter ? 'text-primary' : ''}">
-                                    {categoryFilter ? $t(EMOJI_CATEGORIES[categoryFilter]!.labelKey) : $t('filter.category.all')}
-                                </span>
-                            {/snippet}
-                            {#snippet items(close)}
-                                {@render filterOption($t('filter.category.all'), categoryFilter === null, () => { categoryFilter = null; close(); })}
-                                {#each categories as key (key)}
-                                    {@render filterOption(`${EMOJI_CATEGORIES[key]!.emojis[0]} ${$t(EMOJI_CATEGORIES[key]!.labelKey)}`, categoryFilter === key, () => { categoryFilter = key; close(); })}
-                                {/each}
-                            {/snippet}
-                        </Dropdown>
-                    {/if}
-                </div>
-            {/if}
+                  <Dropdown position="bottom-left" label={$t('filter.type')}>
+                      {#snippet trigger()}
+                          <span class={typeFilter !== 'all' ? 'text-primary' : ''}>
+                              {$t(typeOptions.find(o => o.value === typeFilter)?.labelKey ?? 'filter.type.all')}
+                          </span>
+                      {/snippet}
+                      {#snippet items(close)}
+                          {#each typeOptions as opt (opt.value)}
+                              {@render filterOption($t(opt.labelKey), typeFilter === opt.value, () => { typeFilter = opt.value; close(); })}
+                          {/each}
+                      {/snippet}
+                  </Dropdown>
 
-            {#if isFiltering}
-                <div class="flex items-center justify-between pl-1 text-xs text-muted-foreground">
-                    <span>
-                        {$t('filter.results', { count: String(filteredExpenses.length) })}
-                        <span class="mx-1">•</span>
-                        <span class="font-semibold text-foreground/80">{formatAmount(filteredTotal, kimpayC, $locale)}</span>
-                    </span>
-                    <button type="button" onclick={clearFilters} class="flex items-center gap-1 font-medium text-primary hover:underline">
-                        <X class="h-3 w-3" />
-                        {$t('filter.clear')}
-                    </button>
-                </div>
-            {/if}
-        </div>
-    {/if}
+                  {#if categories.length > 1 || categoryFilter}
+                      <Dropdown position="bottom-left" label={$t('filter.category')}>
+                          {#snippet trigger()}
+                              <span class={categoryFilter ? 'text-primary' : ''}>
+                                  {categoryFilter ? $t(EMOJI_CATEGORIES[categoryFilter]!.labelKey) : $t('filter.category.all')}
+                              </span>
+                          {/snippet}
+                          {#snippet items(close)}
+                              {@render filterOption($t('filter.category.all'), categoryFilter === null, () => { categoryFilter = null; close(); })}
+                              {#each categories as key (key)}
+                                  {@render filterOption(`${EMOJI_CATEGORIES[key]!.emojis[0]} ${$t(EMOJI_CATEGORIES[key]!.labelKey)}`, categoryFilter === key, () => { categoryFilter = key; close(); })}
+                              {/each}
+                          {/snippet}
+                      </Dropdown>
+                  {/if}
 
-    <!-- Sort Selector - above expense list -->
-    {#if expenses.length > 0}
-        <div class="flex items-center justify-between">
-            <!-- My Contribution -->
-            {#if currentUserId}
-                <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">
-                    {$t('expense.my_contribution')}: {formatAmount(myContribution, kimpayC, $locale)}
-                </span>
-            {:else}
-                <div></div>
-            {/if}
-            <Dropdown size="sm">
-                {#snippet trigger()}
-                    <ArrowUpDown class="h-3 w-3 text-muted-foreground" />
-                    <span class="text-xs">{getCurrentSortLabel()}</span>
-                {/snippet}
-                {#snippet items(close)}
-                    {#each sortOptions as opt (opt.value)}
-                        <button
-                            type="button"
-                            onclick={() => { setSort(opt.value); close(); }}
-                            class="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors text-sm {sortOption === opt.value ? 'bg-secondary' : ''}"
-                        >
-                            <span class="font-medium text-xs">{$t(opt.labelKey as import('#lib/locales/en.js').TranslationKey)}</span>
-                            {#if sortOption === opt.value}
-                                <Check class="h-3.5 w-3.5 text-primary" />
-                            {/if}
-                        </button>
-                    {/each}
-                {/snippet}
-            </Dropdown>
-        </div>
-    {/if}
+                  <Dropdown position="bottom-left" label={$t('sort.label')}>
+                      {#snippet trigger()}
+                          <span>{getCurrentSortLabel()}</span>
+                      {/snippet}
+                      {#snippet items(close)}
+                          {#each sortOptions as opt (opt.value)}
+                              {@render filterOption($t(opt.labelKey), sortOption === opt.value, () => { setSort(opt.value); close(); })}
+                          {/each}
+                      {/snippet}
+                  </Dropdown>
+              </div>
+          {/if}
 
-    <!-- Expenses List -->
-    {#if isLoading}
-        <ListSkeleton />
-    {:else if rawExpenses.length > 0 && expenses.length === 0}
-        <EmptyState
-            title={$t('filter.empty.title')}
-            description={$t('filter.empty.desc')}
-            class="animate-pop-in"
-        >
-            {#snippet icon()}
-                <Search class="h-12 w-12" />
-            {/snippet}
-        </EmptyState>
-    {:else if expenses.length === 0}
-        <EmptyState
-            title={$t('expense.list.empty.title')}
-            description={$t('expense.list.empty.desc')}
-            class="animate-pop-in"
-        >
-            {#snippet icon()}
-                <Wallet class="h-12 w-12" />
-            {/snippet}
-        </EmptyState>
-    {:else}
-        <div class="flex flex-col gap-4">
-            {#each expenses as expense, i (expense.id)}
-                <ExpenseItem
-                    {expense}
-                    {currentUserId}
-                    {expandedId}
-                    {kimpayId}
-                    onToggleExpand={toggleExpand}
-                    onRequestDelete={requestDelete}
-                    onOpenGallery={openGallery}
-                    style="animation-delay: {i * 50}ms;"
-                />
-            {/each}
-        </div>
-    {/if}
-  </div>
+          {#if isFiltering}
+              <div class="flex items-center justify-between px-1 text-sm text-muted-foreground">
+                  <span>
+                      {$t('filter.results', { count: String(filteredExpenses.length) })}
+                      <span aria-hidden="true">·</span>
+                      <span class="font-semibold text-foreground">{formatAmount(filteredTotal, kimpayC, $locale)}</span>
+                  </span>
+                  <button type="button" onclick={clearFilters} class="flex min-h-9 items-center gap-1 font-semibold text-primary hover:underline">
+                      <X class="h-3.5 w-3.5" />
+                      {$t('filter.clear')}
+                  </button>
+              </div>
+          {/if}
+      </div>
+  {/if}
+
+  {#if isLoading}
+      <ListSkeleton />
+  {:else if rawExpenses.length > 0 && expenses.length === 0}
+      <EmptyState
+          title={$t('filter.empty.title')}
+          description={$t('filter.empty.desc')}
+          class="animate-pop-in"
+      >
+          {#snippet icon()}
+              <Search class="h-12 w-12" />
+          {/snippet}
+      </EmptyState>
+  {:else if expenses.length === 0}
+      <EmptyState
+          title={$t('expense.list.empty.title')}
+          description={$t('expense.list.empty.desc')}
+          class="animate-pop-in"
+      >
+          {#snippet icon()}
+              <Wallet class="h-12 w-12" />
+          {/snippet}
+      </EmptyState>
+  {:else}
+      {#each sections as section (section.key)}
+          <section class="space-y-2 animate-slide-up">
+              {#if section.label}
+                  <SectionLabel title={section.label} />
+              {/if}
+              <ListGroup>
+                  {#each section.items as expense (expense.id)}
+                      <ExpenseItem
+                          {expense}
+                          {currentUserId}
+                          {participantIds}
+                          {expandedId}
+                          {kimpayId}
+                          onToggleExpand={toggleExpand}
+                          onRequestDelete={requestDelete}
+                          onOpenGallery={openGallery}
+                      />
+                  {/each}
+              </ListGroup>
+          </section>
+      {/each}
+  {/if}
 </div>

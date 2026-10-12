@@ -2,8 +2,9 @@
   import { page } from '$app/state';
   import ExpenseForm from '#lib/components/ExpenseForm.svelte';
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
-  import PageHeader from '#lib/components/ui/PageHeader.svelte';
-  import { LoaderCircle, Trash2 } from "@lucide/svelte";
+  import EmptyState from '#lib/components/ui/EmptyState.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { LoaderCircle, SearchX } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
@@ -26,28 +27,23 @@
   }
 </script>
 
-<div class="container p-4 space-y-6 pb-24">
-    <PageHeader title={$t('expense.edit.title')} subtitle={$t('expense.form.subtitle')} />
-
-    <div class="bg-card rounded-2xl shadow-xs border p-6 space-y-6 transition-colors animate-pop-in">
+{#if initialData}
+    <ExpenseForm {kimpayId} {initialData} title={$t('expense.edit.title')} onDelete={handleDelete} />
+{:else}
+    <div class="mx-auto w-full max-w-lg px-4 py-12">
         {#if isLoading}
-            <div class="flex justify-center py-8">
+            <div class="flex justify-center">
                 <LoaderCircle class="h-8 w-8 animate-spin text-primary" />
             </div>
         {:else if notFound}
-            <div class="text-red-500 text-center">{$t('expense.not_found')}</div>
-        {:else}
-            <ExpenseForm {kimpayId} {initialData} />
-
-            <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
-                <button
-                    class="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 transition-all flex items-center justify-center gap-2 active:scale-95"
-                    onclick={handleDelete}
-                >
-                    <Trash2 class="h-4 w-4" />
-                    {$t('modal.delete_expense.title')}
-                </button>
-            </div>
+            <EmptyState title={$t('expense.not_found')} description={$t('expense.not_found_desc')}>
+                {#snippet icon()}
+                    <SearchX class="h-12 w-12" />
+                {/snippet}
+                {#snippet action()}
+                    <Button href="/k/{kimpayId}" variant="soft">{$t('nav.expenses')}</Button>
+                {/snippet}
+            </EmptyState>
         {/if}
     </div>
-</div>
+{/if}

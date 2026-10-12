@@ -21,6 +21,26 @@ export async function createKimpay(page: Page, kimpayName: string = 'Test Kimpay
 }
 
 /**
+ * Waits for the service worker to be activated (tests allowing it). A page
+ * load started while it installs or activates can hang on Chromium, and the
+ * offline cache only works once it is active. Chromium only: Playwright's
+ * WebKit has no service workers.
+ */
+export async function waitForServiceWorker(page: Page) {
+    if (page.context().browser()?.browserType().name() !== 'chromium') return;
+    await page.evaluate(() => {
+        const activated = navigator.serviceWorker.ready.then((registration) => new Promise<void>((resolve) => {
+            const worker = registration.active!;
+            if (worker.state === 'activated') return resolve();
+            worker.addEventListener('statechange', () => {
+                if (worker.state === 'activated') resolve();
+            });
+        }));
+        return Promise.race([activated, new Promise<void>((resolve) => setTimeout(resolve, 10_000))]);
+    });
+}
+
+/**
  * Dismisses the PWA install prompt if it appears.
  * Useful for mobile viewports.
  */

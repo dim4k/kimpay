@@ -6,8 +6,20 @@
   import { installStore } from '#lib/stores/install.svelte.js';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
   import { get, set } from 'idb-keyval';
+  import { page } from '$app/state';
+  import { Button } from '#lib/components/ui/button/index.js';
 
   let showPrompt = $state(false);
+
+  // Offered once the app is in use: on the tabs of a group, above the tab
+  // bar. Never on the home page (it would cover the onboarding forms) nor on
+  // the expense forms (their save bar).
+  let onGroupTab = $derived(/^\/k\/[^/]+(\/(balance|share|settings))?\/?$/.test(page.url.pathname));
+  let visible = $derived(showPrompt && onGroupTab);
+
+  $effect(() => {
+    installStore.bannerVisible = visible;
+  });
 
   onMount(async () => {
     // Listen for the beforeinstallprompt event
@@ -50,35 +62,34 @@
   }
 </script>
 
-{#if showPrompt}
+{#if visible}
   <div 
     transition:fly={{ y: 50, duration: 500 }}
-    class="fixed bottom-4 left-4 right-4 z-100 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-900 dark:text-white p-4 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-between gap-4 transition-colors"
+    class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-card border bg-card/95 p-4 text-card-foreground shadow-2xl backdrop-blur-md"
   >
     <div class="flex items-center gap-3">
-        <div class="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none">
-             <Download class="h-5 w-5 text-white" />
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground">
+             <Download class="h-5 w-5" />
         </div>
-        <div class="flex flex-col">
-            <span class="font-bold text-sm">{$t('install.prompt.title')}</span>
-            <span class="text-xs text-slate-500 dark:text-slate-300">{$t('install.prompt.desc')}</span>
+        <div class="flex min-w-0 flex-col">
+            <span class="text-sm font-bold">{$t('install.prompt.title')}</span>
+            <span class="text-xs text-muted-foreground">{$t('install.prompt.desc')}</span>
         </div>
     </div>
     
     <div class="flex items-center gap-2">
-        <button 
-            onclick={handleInstall}
-            class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-md"
-        >
+        <Button size="sm" onclick={handleInstall}>
             {$t('install.prompt.button')}
-        </button>
-        <button 
+        </Button>
+        <Button
+            variant="ghost"
+            size="icon-sm"
+            class="text-muted-foreground"
             onclick={dismiss}
-            class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
             aria-label={$t('install.prompt.dismiss')}
         >
-            <X class="h-5 w-5" />
-        </button>
+            <X class="size-5!" />
+        </Button>
     </div>
   </div>
 {/if}
@@ -91,25 +102,25 @@
 >
     <button
         onclick={() => (installStore.showIOSInstructions = false)}
-        class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+        class="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label={$t('common.close')}
     >
         <X class="h-5 w-5" />
     </button>
 
     <div class="flex flex-col items-center text-center gap-4">
-        <div class="h-14 w-14 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none mb-2">
-             <Download class="h-7 w-7 text-white" />
+        <div class="mb-2 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+             <Download class="h-7 w-7" />
         </div>
 
         <h3 class="text-lg font-bold">{$t('install.ios.title')}</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400">
-            1. {$t('install.ios.step1')} <strong class="text-indigo-600 dark:text-indigo-400">{$t('install.ios.share')}</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+        <p class="text-sm text-muted-foreground">
+            1. {$t('install.ios.step1')} <strong class="text-primary">{$t('install.ios.share')}</strong> <svg class="inline w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
         </p>
-        <p class="text-sm text-slate-500 dark:text-slate-400">
-            2. {$t('install.ios.step2')} <strong class="text-indigo-600 dark:text-indigo-400">{$t('install.ios.add_to_home')}</strong> <svg class="inline w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+        <p class="text-sm text-muted-foreground">
+            2. {$t('install.ios.step2')} <strong class="text-primary">{$t('install.ios.add_to_home')}</strong> <svg class="inline w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
         </p>
     </div>
     <!-- Arrow pointing at the Safari toolbar (bottom of the screen) -->
-    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-t-10 border-t-white dark:border-t-slate-900 sm:hidden"></div>
+    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-t-10 border-t-card sm:hidden"></div>
 </Modal>

@@ -5,6 +5,9 @@
     import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY, getCurrencyName } from '#lib/services/currency.js';
     import { userService } from '#lib/services/user.js';
     import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
+    import { Button } from '#lib/components/ui/button/index.js';
+    import { Input } from '#lib/components/ui/input/index.js';
+    import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
     import { slide } from 'svelte/transition';
     import Avatar from '#lib/components/ui/Avatar.svelte';
     import { modals } from '#lib/stores/modals.svelte.js';
@@ -120,191 +123,117 @@
     <title>{$t('user_settings.title')} - Kimpay</title>
 </svelte:head>
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-950">
-    <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div class="container flex items-center gap-4 h-14 px-4">
-            <button 
-                onclick={goBack}
-                class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-                <ArrowLeft class="h-5 w-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <h1 class="font-bold text-lg text-slate-900 dark:text-slate-100">{$t('user_settings.title')}</h1>
-        </div>
-    </header>
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
+    <div class="flex items-center gap-2">
+        <Button variant="ghost" size="icon" class="-ml-2 text-muted-foreground" onclick={goBack} aria-label={$t('common.back')}>
+            <ArrowLeft class="size-5!" />
+        </Button>
+        <h1 class="text-xl font-bold">{$t('user_settings.title')}</h1>
+    </div>
 
-    <main class="container p-4 space-y-6">
-        <!-- Currency Preference -->
-        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                <h2 class="font-semibold text-slate-900 dark:text-slate-100">{$t('user_settings.currency.title')}</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{$t('user_settings.currency.desc')}</p>
-            </div>
+    {#if auth.user}
+        <!-- Profile -->
+        <section class="space-y-2">
+            <SectionLabel title={$t('user_settings.account.title')} />
+            <div class="divide-y rounded-card border bg-card">
+                <div class="flex items-center gap-4 p-4">
+                    <div class="group relative shrink-0">
+                        <Avatar name={auth.user.name || auth.user.email} record={auth.user} class="h-16 w-16 text-xl" />
+                        {#if isSavingAvatar}
+                            <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                                <Loader2 class="h-6 w-6 animate-spin text-white" />
+                            </div>
+                        {/if}
+                        <input type="file" accept="image/*" class="hidden" bind:this={fileInputRef} onchange={handleAvatarChange} />
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" onclick={() => fileInputRef?.click()} disabled={isSavingAvatar}>
+                            <Camera />
+                            {$t('user_settings.avatar.change')}
+                        </Button>
+                        {#if auth.user.avatar}
+                            <Button variant="ghost-destructive" size="sm" onclick={confirmRemoveAvatar} disabled={isSavingAvatar}>
+                                <Trash2 />
+                                {$t('user_settings.avatar.remove')}
+                            </Button>
+                        {/if}
+                    </div>
+                </div>
 
-            <div class="p-4">
-                <button
-                    onclick={() => isCurrencyOpen = !isCurrencyOpen}
-                    class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">{CURRENCIES[selectedCurrency]?.symbol}</span>
-                        <div class="text-left">
-                            <div class="font-medium text-slate-900 dark:text-slate-100">{selectedCurrency}</div>
-                            <div class="text-xs text-slate-500 dark:text-slate-400">{getCurrencyName(selectedCurrency, $locale)}</div>
+                <div class="flex min-h-14 items-center justify-between gap-3 px-4 py-3">
+                    <span class="text-sm text-muted-foreground">{$t('user_settings.account.email')}</span>
+                    <span class="truncate font-medium">{auth.user.email}</span>
+                </div>
+
+                {#if isEditingName}
+                    <div class="space-y-3 px-4 py-3" transition:slide={{ duration: 150 }}>
+                        <label for="account-name" class="block text-sm text-muted-foreground">{$t('user_settings.account.name')}</label>
+                        <Input id="account-name" bind:value={userName} placeholder={$t('user_settings.account.name_placeholder')} />
+                        <div class="flex justify-end gap-2">
+                            <Button variant="secondary" size="sm" onclick={() => isEditingName = false}>{$t('common.cancel')}</Button>
+                            <Button size="sm" onclick={saveName} disabled={isSavingName || !userName.trim()}>
+                                {#if isSavingName}<Loader2 class="animate-spin" />{:else}<Check />{/if}
+                                {$t('common.save')}
+                            </Button>
                         </div>
                     </div>
-                    <ChevronDown class="h-5 w-5 text-slate-400 transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
-                </button>
-
-                {#if isCurrencyOpen}
-                    <div class="mt-2 space-y-1" transition:slide={{ duration: 150 }}>
-                        {#each CURRENCY_CODES as code (code)}
-                            <button
-                                onclick={() => saveCurrency(code)}
-                                disabled={isSaving}
-                                class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors {selectedCurrency === code ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
-                            >
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xl w-8 text-center">{CURRENCIES[code]?.symbol}</span>
-                                    <div class="text-left">
-                                        <div class="font-medium text-slate-900 dark:text-slate-100">{code}</div>
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">{getCurrencyName(code, $locale)}</div>
-                                    </div>
-                                </div>
-                                {#if selectedCurrency === code}
-                                    <Check class="h-5 w-5 text-indigo-500" />
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
+                {:else}
+                    <button
+                        type="button"
+                        onclick={() => { isEditingName = true; userName = auth.user?.name ?? ''; }}
+                        class="flex w-full min-h-14 items-center justify-between gap-3 rounded-b-[inherit] px-4 py-3 text-left transition-colors hover:bg-muted/60"
+                    >
+                        <span class="text-sm text-muted-foreground">{$t('user_settings.account.name')}</span>
+                        <span class="flex min-w-0 items-center gap-2">
+                            <span class="truncate font-medium">{auth.user.name || '-'}</span>
+                            <Pencil class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </span>
+                    </button>
                 {/if}
             </div>
         </section>
+    {/if}
 
-        <!-- Profile Picture -->
-        {#if auth.user}
-            <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                    <h2 class="font-semibold text-slate-900 dark:text-slate-100">{$t('user_settings.avatar.title')}</h2>
-                </div>
-                <div class="p-4">
-                    <div class="flex items-center gap-4">
-                        <!-- Avatar with camera overlay -->
-                        <div class="relative group">
-                            <Avatar 
-                                name={auth.user.name || auth.user.email} 
-                                record={auth.user}
-                                class="w-20 h-20 text-2xl"
-                            />
-                            {#if isSavingAvatar}
-                                <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                                    <Loader2 class="h-6 w-6 text-white animate-spin" />
-                                </div>
-                            {:else}
-                                <button 
-                                    class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                    onclick={() => fileInputRef?.click()}
-                                >
-                                    <Camera class="h-6 w-6 text-white" />
-                                </button>
+    <!-- Currency Preference -->
+    <section class="space-y-2">
+        <SectionLabel title={$t('user_settings.currency.title')} />
+        <div class="rounded-card border bg-card">
+            <button
+                type="button"
+                onclick={() => isCurrencyOpen = !isCurrencyOpen}
+                aria-expanded={isCurrencyOpen}
+                class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors hover:bg-muted/60"
+            >
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-base">{CURRENCIES[selectedCurrency]?.symbol}</span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="font-medium">{selectedCurrency}</span>
+                    <span class="truncate text-sm text-muted-foreground">{getCurrencyName(selectedCurrency, $locale)}</span>
+                </span>
+                <ChevronDown class="h-4 w-4 text-muted-foreground transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
+            </button>
+
+            {#if isCurrencyOpen}
+                <div class="divide-y border-t" transition:slide={{ duration: 150 }}>
+                    {#each CURRENCY_CODES as code (code)}
+                        <button
+                            type="button"
+                            onclick={() => saveCurrency(code)}
+                            disabled={isSaving}
+                            class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors last:rounded-b-[inherit] hover:bg-muted/60 {selectedCurrency === code ? 'bg-primary-soft' : ''}"
+                        >
+                            <span class="w-8 text-center text-base">{CURRENCIES[code]?.symbol}</span>
+                            <span class="flex min-w-0 flex-1 flex-col">
+                                <span class="font-medium">{code}</span>
+                                <span class="truncate text-sm text-muted-foreground">{getCurrencyName(code, $locale)}</span>
+                            </span>
+                            {#if selectedCurrency === code}
+                                <Check class="h-5 w-5 text-primary" />
                             {/if}
-                            <input 
-                                type="file" 
-                                accept="image/*"
-                                class="hidden" 
-                                bind:this={fileInputRef}
-                                onchange={handleAvatarChange}
-                            />
-                        </div>
-                        
-                        <!-- Buttons -->
-                        <div class="flex flex-col gap-2">
-                            <button
-                                onclick={() => fileInputRef?.click()}
-                                disabled={isSavingAvatar}
-                                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium disabled:opacity-50"
-                            >
-                                <Camera class="h-4 w-4" />
-                                {$t('user_settings.avatar.change')}
-                            </button>
-                            {#if auth.user.avatar}
-                                <button
-                                    onclick={confirmRemoveAvatar}
-                                    disabled={isSavingAvatar}
-                                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium disabled:opacity-50"
-                                >
-                                    <Trash2 class="h-4 w-4" />
-                                    {$t('user_settings.avatar.remove')}
-                                </button>
-                            {/if}
-                        </div>
-                    </div>
+                        </button>
+                    {/each}
                 </div>
-            </section>
-        {/if}
-
-        <!-- User Info -->
-        {#if auth.user}
-            <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                    <h2 class="font-semibold text-slate-900 dark:text-slate-100">{$t('user_settings.account.title')}</h2>
-                </div>
-                <div class="p-4 space-y-4">
-                    <!-- Email (read-only) -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.email')}</span>
-                        <span class="font-medium text-slate-900 dark:text-slate-100">{auth.user.email}</span>
-                    </div>
-
-                    <!-- Name (editable) -->
-                    {#if isEditingName}
-                        <div class="space-y-2">
-                            <span class="block text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
-                            <div class="space-y-2" transition:slide={{ duration: 150 }}>
-                                <input
-                                    type="text"
-                                    bind:value={userName}
-                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                                    placeholder={$t('user_settings.account.name_placeholder')}
-                                />
-                                <div class="flex gap-2 justify-end">
-                                    <button
-                                        onclick={() => isEditingName = false}
-                                        class="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm"
-                                    >
-                                        {$t('common.cancel')}
-                                    </button>
-                                    <button
-                                        onclick={saveName}
-                                        disabled={isSavingName || !userName.trim()}
-                                        class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm"
-                                    >
-                                        {#if isSavingName}
-                                            <Loader2 class="h-4 w-4 animate-spin" />
-                                        {:else}
-                                            <Check class="h-4 w-4" />
-                                        {/if}
-                                        {$t('common.save')}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {:else}
-                        <div class="flex items-center justify-between">
-                            <span class="block text-sm text-slate-500 dark:text-slate-400">{$t('user_settings.account.name')}</span>
-                            <button
-                                onclick={() => { isEditingName = true; userName = auth.user?.name ?? ''; }}
-                                class="flex items-center gap-2 group"
-                            >
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{auth.user.name || '-'}</span>
-                                <Pencil class="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                            </button>
-                        </div>
-                    {/if}
-                </div>
-            </section>
-        {/if}
-    </main>
+            {/if}
+        </div>
+        <p class="px-1 text-sm text-muted-foreground">{$t('user_settings.currency.desc')}</p>
+    </section>
 </div>
-

@@ -1,86 +1,110 @@
 <script lang="ts">
-  import Background from '#lib/components/ui/Background.svelte';
   import HomeHero from '#lib/components/home/HomeHero.svelte';
   import CreateKimpayForm from '#lib/components/home/CreateKimpayForm.svelte';
   import JoinKimpayForm from '#lib/components/home/JoinKimpayForm.svelte';
   import RecentKimpaysList from '#lib/components/home/RecentKimpaysList.svelte';
-  import CollapsibleCard from '#lib/components/ui/CollapsibleCard.svelte';
-    import { recentsStore } from '#lib/stores/recents.svelte.js';
-    import { offlineStore } from '#lib/stores/offline.svelte.js';
+  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
+  import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { auth } from '#lib/stores/auth.svelte.js';
-  import { Plus, ArrowRight, CloudOff } from '@lucide/svelte';
+  import { Plus, Link, CloudOff } from '@lucide/svelte';
   import { t } from '#lib/i18n.js';
 
-  // Fast check for initial render to avoid flash if possible
-  let showHero = $state(false);
-  
-  // Collapsible state
-  let isCreateExpanded = $state(false);
-  let isJoinExpanded = $state(false);
-  
-  // Show hero only for guests with no kimpays
+  type Flow = 'create' | 'join';
+
+  // Returning users get their groups first; newcomers get the forms.
+  let hasGroups = $derived(auth.isValid || recentsStore.recentKimpays.length > 0);
+  // Wait for the local list before choosing (no flash of the newcomer view),
+  // then keep that view: creating a group adds it to the list just before
+  // leaving the page, which must not swap the form away mid-creation.
+  let view = $state<'groups' | 'newcomer' | null>(null);
   $effect(() => {
-      if (recentsStore.initialized && !auth.isValid) {
-          showHero = recentsStore.recentKimpays.length === 0;
-      }
+      if (view !== null) return;
+      if (hasGroups) view = 'groups';
+      else if (recentsStore.initialized) view = 'newcomer';
   });
+
+  // Newcomers: one card, create or join.
+  let tab = $state<Flow>('create');
+  // Returning users: a tile opens the flow below it.
+  let openFlow = $state<Flow | null>(null);
+
+  function toggleFlow(flow: Flow) {
+      openFlow = openFlow === flow ? null : flow;
+  }
 </script>
 
+{#snippet offlineNotice()}
+    <div class="space-y-2 rounded-card bg-warning-soft p-6 text-center text-warning animate-pop-in">
+        <CloudOff class="mx-auto h-10 w-10" />
+        <p class="font-semibold">{$t('home.offline.title')}</p>
+        <p class="text-sm">{$t('home.offline.desc')}</p>
+    </div>
+{/snippet}
 
-<!-- Background -->
-<Background />
-
-<div class="relative z-10 flex flex-col items-center p-4 pb-4 w-full max-w-2xl mx-auto mt-4 md:mt-8">
-
-    <!-- My Kimpays List (unified for all users) -->
-    <div class="w-full space-y-6">
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
+    {#if view === null}
+        <!-- Reading the groups saved on this device -->
+    {:else if view === 'groups'}
         <RecentKimpaysList />
 
-        {#if auth.isValid}
-            <!-- Logged In: Collapsible Create/Join -->
-            <div>
-                <CollapsibleCard title={$t('home.create.title')} bind:isOpen={isCreateExpanded}>
-                    {#snippet icon()}
-                         <div class="h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
-                             <Plus class="h-5 w-5" />
-                         </div>
-                    {/snippet}
-                    <CreateKimpayForm hideTitle={true} />
-                </CollapsibleCard>
+        {#if offlineStore.isOffline}
+            {@render offlineNotice()}
+        {:else}
+            <div class="grid grid-cols-2 gap-3">
+                <button
+                    type="button"
+                    onclick={() => toggleFlow('create')}
+                    aria-expanded={openFlow === 'create'}
+                    class="flex flex-col items-start gap-2 rounded-card border border-primary bg-primary p-4 text-left text-primary-foreground transition-transform duration-150 active:scale-[0.98] {openFlow === 'create' ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}"
+                >
+                    <Plus class="h-6 w-6" />
+                    <span class="text-base font-bold">{$t('home.tile.create')}</span>
+                    <span class="text-sm opacity-85">{$t('home.tile.create_desc')}</span>
+                </button>
+                <button
+                    type="button"
+                    onclick={() => toggleFlow('join')}
+                    aria-expanded={openFlow === 'join'}
+                    class="flex flex-col items-start gap-2 rounded-card border bg-card p-4 text-left transition-transform duration-150 active:scale-[0.98] {openFlow === 'join' ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}"
+                >
+                    <Link class="h-6 w-6 text-primary" />
+                    <span class="text-base font-bold">{$t('home.tile.join')}</span>
+                    <span class="text-sm text-muted-foreground">{$t('home.tile.join_desc')}</span>
+                </button>
             </div>
 
-            <div>
-                <CollapsibleCard title={$t('home.join.accordion_title')} bind:isOpen={isJoinExpanded}>
-                    {#snippet icon()}
-                         <div class="h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform">
-                            <ArrowRight class="h-5 w-5" />
-                         </div>
-                    {/snippet}
-                    <JoinKimpayForm hideTitle={true} />
-                </CollapsibleCard>
-            </div>
-        {:else}
-            <!-- Guest View -->
-            {#if showHero}
-                <HomeHero />
-            {/if}
-            
-            {#if offlineStore.isOffline}
-                <!-- Offline message for guests -->
-                <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 text-center space-y-3 w-full animate-pop-in" style="animation-delay: 150ms;">
-                    <CloudOff class="h-10 w-10 mx-auto text-amber-500" />
-                    <div class="space-y-1">
-                        <p class="font-semibold text-amber-800 dark:text-amber-200">{$t('home.offline.title')}</p>
-                        <p class="text-sm text-amber-600 dark:text-amber-400">{$t('home.offline.desc')}</p>
-                    </div>
-                </div>
-            {:else}
-                <div class="bg-card p-4 md:p-6 rounded-2xl shadow-xs border space-y-4 md:space-y-6 w-full transition-colors animate-pop-in" style="animation-delay: 150ms;">
-                    <CreateKimpayForm />
-                    <JoinKimpayForm />
+            {#if openFlow}
+                <div class="rounded-card border bg-card p-4 animate-pop-in">
+                    {#if openFlow === 'create'}
+                        <CreateKimpayForm />
+                    {:else}
+                        <JoinKimpayForm />
+                    {/if}
                 </div>
             {/if}
         {/if}
-    </div>
-  
+    {:else}
+        <HomeHero />
+
+        {#if offlineStore.isOffline}
+            {@render offlineNotice()}
+        {:else}
+            <div class="space-y-5 rounded-card border bg-card p-4 animate-pop-in">
+                <SegmentedControl
+                    options={[
+                        { value: 'create', label: $t('home.tile.create') },
+                        { value: 'join', label: $t('home.tile.join') },
+                    ]}
+                    bind:value={tab}
+                    label={$t('home.tile.choose')}
+                />
+                {#if tab === 'create'}
+                    <CreateKimpayForm />
+                {:else}
+                    <JoinKimpayForm />
+                {/if}
+            </div>
+        {/if}
+    {/if}
 </div>

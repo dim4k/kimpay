@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { createKimpay, dismissInstallPrompt, waitForServiceWorker } from './test-utils';
 
 async function openAddExpense(page: Page) {
     await page.getByRole('link', { name: /add expense/i }).click();
@@ -37,32 +37,38 @@ test.describe('Sync between devices', () => {
         await otherContext.close();
     });
 
-    test('An expense created offline is synced once, without duplicate', async ({ page, context }) => {
-        await createKimpay(page, 'Offline Test', 'Olivia');
-        await dismissInstallPrompt(page);
+    test.describe('with the service worker', () => {
+        // The offline cache is the service worker's job (Chromium only in Playwright).
+        test.use({ serviceWorkers: 'allow' });
 
-        // Open the form while online: Playwright only supports service workers
-        // on Chromium, so on WebKit nothing would serve the route's code offline
-        // (a real Safari has it cached by the service worker).
-        await openAddExpense(page);
-        await context.setOffline(true);
-        await saveExpense(page, 'Offline Taxi', '30');
-        await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+        test('An expense created offline is synced once, without duplicate', async ({ page, context }) => {
+            await createKimpay(page, 'Offline Test', 'Olivia');
+            await dismissInstallPrompt(page);
+            await waitForServiceWorker(page);
 
-        // Back online: the queue is replayed, then the group is refetched
-        // (realtime / resync). The optimistic item must be merged with the
-        // server one, not shown next to it.
-        const created = page.waitForResponse((r) =>
-            r.url().includes('/api/collections/expenses/records') && r.request().method() === 'POST');
-        await context.setOffline(false);
-        expect((await created).ok()).toBe(true);
-        await page.waitForResponse((r) =>
-            r.url().includes('/api/collections/kimpays/records/') && r.request().method() === 'GET');
-        await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+            // Open the form while online: Playwright only supports service workers
+            // on Chromium, so on WebKit nothing would serve the route's code offline
+            // (a real Safari has it cached by the service worker).
+            await openAddExpense(page);
+            await context.setOffline(true);
+            await saveExpense(page, 'Offline Taxi', '30');
+            await expect(page.getByText('Offline Taxi')).toHaveCount(1);
 
-        // The server has it (POST above): a fresh load shows exactly one too.
-        await page.reload();
-        await expect(page.getByText('Offline Taxi')).toBeVisible();
-        await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+            // Back online: the queue is replayed, then the group is refetched
+            // (realtime / resync). The optimistic item must be merged with the
+            // server one, not shown next to it.
+            const created = page.waitForResponse((r) =>
+                r.url().includes('/api/collections/expenses/records') && r.request().method() === 'POST');
+            await context.setOffline(false);
+            expect((await created).ok()).toBe(true);
+            await page.waitForResponse((r) =>
+                r.url().includes('/api/collections/kimpays/records/') && r.request().method() === 'GET');
+            await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+
+            // The server has it (POST above): a fresh load shows exactly one too.
+            await page.reload();
+            await expect(page.getByText('Offline Taxi')).toBeVisible();
+            await expect(page.getByText('Offline Taxi')).toHaveCount(1);
+        });
     });
 });

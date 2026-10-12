@@ -13,8 +13,7 @@
     title={$t('email_help.modal.title')}
     description={$t('email_help.modal.desc')}
     icon={Mail}
-    iconBgClass="bg-indigo-100 dark:bg-indigo-900/30"
-    iconColorClass="text-indigo-500 dark:text-indigo-400"
+
     dismissible
 >
     <div class="space-y-2">

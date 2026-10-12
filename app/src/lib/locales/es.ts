@@ -1,9 +1,7 @@
 import type { TranslationKey } from "./en";
 
 export const es: Record<TranslationKey, string> = {
-    "app.name": "Kimpay",
     "app.slogan": "La forma más fácil de dividir gastos.",
-    "home.create.title": "Crear un Kimpay",
     "home.create.name_label": "Nombre del grupo",
     "home.create.name_placeholder": "ej. Viaje a París",
     "home.create.my_name_label": "Mi nombre",
@@ -14,7 +12,6 @@ export const es: Record<TranslationKey, string> = {
     "home.create.participants_placeholder": "Añadir persona",
     "home.create.button": "Crear",
     "home.create.loading": "Creando...",
-    "home.join.title": "O UNIRSE",
     "home.join.placeholder": "Código de invitación",
     "home.join.button": "Unirse",
     "home.join.error_not_found": "Kimpay no encontrado",
@@ -76,7 +73,6 @@ export const es: Record<TranslationKey, string> = {
     "common.confirm": "Confirmar",
     "common.save": "Guardar",
     "common.saved": "¡Guardado!",
-    "common.loading": "Cargando...",
     "common.delete": "Eliminar",
     "common.edit": "Editar",
     "common.you": "Tú",
@@ -107,9 +103,6 @@ export const es: Record<TranslationKey, string> = {
     "expense.list.reimbursement": "De {from} a {to}",
     "expense.list.empty.title": "Sin gastos aún.",
     "expense.list.empty.desc": "Toca + para añadir uno.",
-    "expense.my_contribution": "Mi contribución",
-
-    "expense.form.subtitle": "Introduce los detalles",
     "expense.form.desc_label": "Descripción",
     "expense.form.desc_placeholder": "¿Para qué fue?",
     "expense.form.amount_label": "Importe",
@@ -148,7 +141,6 @@ export const es: Record<TranslationKey, string> = {
         "No se puede eliminar: Este participante tiene gastos existentes.",
 
     "settings.title": "Ajustes",
-    "settings.subtitle": "Gestionar preferencias del grupo",
     "settings.edit_group": "Editar grupo",
     "settings.participants": "Participantes",
     "settings.participants.add": "Añadir",
@@ -157,10 +149,8 @@ export const es: Record<TranslationKey, string> = {
     "settings.switch_identity": "Cambiar identidad",
     "settings.switch_modal.desc":
         "¿Seguro que quieres cambiar a esta identidad?",
-    "settings.danger_zone": "Zona de peligro",
     "settings.leave_group": "Abandonar grupo",
     "settings.delete_group": "Eliminar grupo",
-    "settings.actions.title": "Acciones",
     "settings.actions.remove_desc":
         "Eliminar este grupo de tu lista en este dispositivo.",
     "settings.actions.delete_desc":
@@ -169,26 +159,19 @@ export const es: Record<TranslationKey, string> = {
         "ADVERTENCIA: Esto eliminará permanentemente el grupo, todos los gastos y datos para TODOS. Esta acción no se puede deshacer.",
 
     "balance.title": "Balance",
-    "balance.subtitle": "¿Quién debe a quién?",
     "balance.empty.title": "Sin gastos aún.",
     "balance.empty.desc": "Añade gastos para ver cómo dividirlos.",
     "balance.settled.title": "¡Todo saldado!",
-    "balance.settled.desc": "Perfectamente equilibrado, como debe ser.",
     "balance.suggested.title": "Pagos sugeridos",
-    "balance.payer": "Pagador",
-    "balance.receiver": "Receptor",
     "balance.pays": "paga",
-    "balance.your_summary": "Resumen",
-    "balance.total_group": "GASTOS TOTALES",
-    "balance.you_owe": "DEBES",
-    "balance.owed_to_you": "TE DEBEN",
+    "balance.total_group": "Gastos totales",
+    "balance.you_owe": "Debes",
+    "balance.owed_to_you": "Te deben",
 
     "balance.settle.modal.title": "¿Saldar deuda?",
     "balance.settle.modal.desc": "¿Marcar {amount} como pagado de {from} a {to}?",
     "balance.settle.confirm": "Confirmar pago",
     "balance.reimbursement": "Reembolso",
-    "balance.status": "ESTADO",
-    "balance.all_good": "Todo bien 😎",
     "balance.reimbursement.offline_unavailable":
         "Los reembolsos no están disponibles offline.",
     "balance.offline_warning":
@@ -199,7 +182,7 @@ export const es: Record<TranslationKey, string> = {
     "common.offline_edit_error": "No se pueden editar gastos offline",
 
     "share.invite_button": "Compartir enlace de invitación",
-    "share.invite_friends": "Invita amigos a dividir gastos",
+    "share.invite_friends": "Se unen al grupo con un toque, sin cuenta.",
     "share.copy_success": "¡Copiado!",
     "share.copy_button": "Copiar enlace",
 
@@ -235,17 +218,8 @@ export const es: Record<TranslationKey, string> = {
     "identity.create_button": "Unirse como nuevo",
 
     "identity.change": "Cambiar",
-    "settings.install.title": "Instalación",
-    "settings.install.desc_mobile":
-        "Instala para acceso rápido y soporte offline.",
     "settings.install.button": "Instalar Kimpay",
-
-    "settings.export.title": "Exportar datos",
-    "settings.export.desc":
-        "Descarga un resumen de este Kimpay con todos los gastos, saldos y pagos sugeridos.",
     "settings.bug_report.title": "Reportar un error",
-    "settings.bug_report.desc": "¿Encontraste un problema? Repórtalo en GitHub.",
-    "settings.bug_report.button": "Abrir issue en GitHub",
     "settings.export.csv": "CSV",
     "settings.export.md": "Markdown",
     "export.col.date": "Fecha",
@@ -300,12 +274,9 @@ export const es: Record<TranslationKey, string> = {
     "login_help.modal.desc":
         "Asegura tu acceso y encuentra tus kimpays en cualquier lugar.",
     "login_help.button": "Iniciar sesión",
-
-    "common.hello": "Hola",
     "modal.logout.title": "¿Cerrar sesión?",
     "modal.logout.desc": "¿Seguro que quieres cerrar sesión?",
     "modal.logout.confirm": "Cerrar sesión",
-    "home.join.accordion_title": "Unirse a un Kimpay",
 
     "home.offline.title": "Estás sin conexión",
     "home.offline.desc":
@@ -319,7 +290,6 @@ export const es: Record<TranslationKey, string> = {
     "user_settings.account.email": "Email",
     "user_settings.account.name": "Nombre",
     "user_settings.account.name_placeholder": "Introduce tu nombre",
-    "user_settings.avatar.title": "Foto de perfil",
     "user_settings.avatar.change": "Cambiar",
     "user_settings.avatar.remove": "Eliminar",
     "user_settings.avatar.remove_confirm_title": "¿Eliminar foto de perfil?",
@@ -391,4 +361,45 @@ export const es: Record<TranslationKey, string> = {
     "export.meta.balances": "Saldos",
     "export.meta.transfers": "Pagos sugeridos",
     "export.meta.settled": "¡Todo saldado!",
+    "header.identity": "Tú: {name}",
+    "date.yesterday": "Ayer",
+    "sort.label": "Orden",
+    "expense.list.people": "{count} pers.",
+    "expense.impact.lent": "adelantaste {amount}",
+    "expense.impact.owed": "te deben {amount}",
+    "expense.impact.owe": "debes {amount}",
+    "expense.impact.none": "no participas",
+    "expense.hero.label": "Tu saldo",
+    "expense.hero.total": "Total del grupo {amount}",
+    "expense.hero.settle": "Saldar",
+    "expense.hero.details": "Detalles",
+    "balance.hero.share": "Tu parte {amount}",
+    "balance.mark_settled": "Marcar como saldado",
+    "expense.not_found_desc": "Puede que se haya eliminado del grupo.",
+    "datepicker.previous": "Mes anterior",
+    "datepicker.next": "Mes siguiente",
+    "expense.form.scan_short": "Escanear",
+    "settings.created_by": "creado por {name}",
+    "settings.section.more": "Más",
+    "settings.payment.none": "Ninguno",
+    "settings.export.as": "Exportar en {format}",
+    "share.invite_title": "Invita a tus amigos",
+    "share.qr_title": "Código QR",
+    "share.qr_desc": "Para alguien a tu lado: lo escanea con la cámara del móvil.",
+    "home.group.settled": "Saldado",
+    "home.group.owed": "te deben",
+    "home.group.owe": "debes",
+    "home.group.swipe_hint": "Desliza un grupo hacia la izquierda para quitarlo de esta lista.",
+    "home.tile.create": "Crear un grupo",
+    "home.tile.create_desc": "Viaje, piso compartido, salida…",
+    "home.tile.join": "Unirse a un grupo",
+    "home.tile.join_desc": "Con un enlace o un código",
+    "home.tile.choose": "Crear o unirse a un grupo",
+    "home.hero.desc": "Crea un grupo, comparte el enlace y cada uno añade lo que pagó. Kimpay calcula quién debe a quién.",
+    "home.create.more_options": "Email y otros participantes (opcional)",
+    "home.create.more_participants": "Otros participantes (opcional)",
+    "home.join.label": "Enlace o código de invitación",
+    "identity.new_label": "¿No estás en la lista? Únete con tu nombre",
+    "common.back": "Atrás",
+    "common.you_in_sentence": "ti",
 };

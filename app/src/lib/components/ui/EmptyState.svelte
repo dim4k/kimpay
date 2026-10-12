@@ -16,14 +16,14 @@
     } = $props();
 </script>
 
-<div class="flex flex-col items-center justify-center text-center py-12 bg-muted/40 dark:bg-slate-900/50 rounded-3xl border border-dashed border-border {className}">
+<div class="flex flex-col items-center justify-center rounded-card border border-dashed bg-card/60 px-6 py-12 text-center {className}">
     {#if icon}
-        <div class="mb-3 text-muted-foreground/60">
+        <div class="mb-3 text-muted-foreground/70">
             {@render icon()}
         </div>
     {/if}
     {#if title}
-        <p class="font-medium text-foreground/80">{title}</p>
+        <p class="font-semibold">{title}</p>
     {/if}
     <p class="text-sm text-muted-foreground max-w-xs {title ? 'mt-1' : ''}">{description}</p>
     {#if action}

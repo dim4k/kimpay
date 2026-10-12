@@ -10,8 +10,6 @@
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
 
-    let { hideTitle = false }: { hideTitle?: boolean } = $props();
-
     let code = $state("");
     let joinError = $state("");
     let isLoading = $state(false);
@@ -64,53 +62,42 @@
      
 </script>
 
-{#if !hideTitle}
-<div class="relative py-4">
-    <div class="absolute inset-0 flex items-center">
-    <span class="w-full border-t border-slate-100 dark:border-slate-800"></span>
-    </div>
-    <div class="relative flex justify-center text-xs uppercase">
-    <span class="bg-card px-3 text-muted-foreground font-medium transition-colors">{$t('home.join.title')}</span>
-    </div>
-</div>
-{/if}
-
-<div class="flex flex-col gap-2">
+<div class="space-y-2">
+    <label for="join-code" class="block text-sm font-semibold leading-6 text-muted-foreground">{$t('home.join.label')}</label>
     <div class="flex gap-2">
-        <Input 
-            bind:value={code} 
-            placeholder={$t('home.join.placeholder')} 
-            class="text-center font-bold uppercase placeholder:font-normal {joinError ? 'border-red-500 ring-red-500' : ''}" 
+        <Input
+            id="join-code"
+            bind:value={code}
+            placeholder={$t('home.join.placeholder')}
+            class={joinError ? 'border-destructive focus-visible:ring-destructive' : ''}
+            aria-invalid={!!joinError}
             oninput={() => joinError = ""}
             onkeydown={(e) => e.key === 'Enter' && join()}
         />
-        
-        <Button onclick={join} variant="secondary" disabled={isLoading}>
-            {#if isLoading}
-                <LoaderCircle class="h-4 w-4 animate-spin" />
-            {:else}
-                {$t('home.join.button')}
-            {/if}
-        </Button>
-
-        <!-- Scan Button -->
-        <Button 
+        <Button
             variant="outline"
             size="icon"
-            class="aspect-square shrink-0"
+            class="shrink-0"
             onclick={() => isScannerOpen = true}
             aria-label={$t('join.scan_qr')}
+            title={$t('join.scan_qr')}
         >
-            <QrCode class="h-4 w-4" />
+            <QrCode />
         </Button>
     </div>
     {#if joinError}
-        <p class="text-xs text-red-500 text-center font-medium animate-pulse" transition:fade>{joinError}</p>
+        <p class="text-sm font-medium text-destructive" transition:fade>{joinError}</p>
     {/if}
+    <Button onclick={join} class="w-full" size="lg" disabled={isLoading || !code.trim()}>
+        {#if isLoading}
+            <LoaderCircle class="animate-spin" />
+        {/if}
+        {$t('home.join.button')}
+    </Button>
 </div>
 
-<ScannerModal 
-    isOpen={isScannerOpen} 
-    onScan={handleScan} 
-    onClose={() => isScannerOpen = false} 
+<ScannerModal
+    isOpen={isScannerOpen}
+    onScan={handleScan}
+    onClose={() => isScannerOpen = false}
 />

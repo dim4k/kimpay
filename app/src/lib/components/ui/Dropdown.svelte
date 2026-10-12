@@ -42,8 +42,8 @@
     }
 
     const sizeClasses = {
-        sm: 'text-xs px-2 py-1',
-        md: 'text-sm px-3 py-1.5'
+        sm: 'h-8 px-2.5 text-xs',
+        md: 'h-9 px-3 text-sm'
     };
 
     const positionClasses = {
@@ -59,7 +59,7 @@
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={label}
-        class={cn("flex items-center gap-1.5 rounded-lg bg-muted hover:bg-muted/70 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors font-medium", sizeClasses[size], triggerClass)}
+        class={cn("flex items-center gap-1.5 rounded-control bg-muted font-medium text-foreground transition-colors hover:bg-muted/70", sizeClasses[size], triggerClass)}
     >
         {@render trigger(isOpen)}
         <ChevronDown class="h-3 w-3 text-muted-foreground transition-transform {isOpen ? 'rotate-180' : ''}" />
@@ -67,7 +67,7 @@
 
     {#if isOpen}
         <div
-            class="absolute top-full mt-1 z-50 bg-popover text-popover-foreground rounded-lg shadow-xl border min-w-[120px] max-h-48 overflow-y-auto {positionClasses[position]}"
+            class="absolute top-full mt-1 z-50 min-w-[10rem] max-h-64 overflow-y-auto rounded-control border bg-popover py-1 text-popover-foreground shadow-xl {positionClasses[position]}"
             transition:slide={{ duration: 150 }}
         >
             {@render items(close)}

@@ -14,6 +14,11 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // The service worker installs in every fresh context, and a full page
+    // load (page.goto) started while it installs or claims the page can hang
+    // on Chromium. Tests that exercise it opt in with
+    // `test.use({ serviceWorkers: 'allow' })`.
+    serviceWorkers: 'block',
   },
   // Test both desktop and mobile browsers
   projects: [

@@ -63,9 +63,9 @@
             <FieldError message={error} />
         </div>
 
-        <Button type="submit" variant="outline" class="w-full" disabled={isLoading || !email}>
+        <Button type="submit" class="w-full" disabled={isLoading || !email}>
             {#if isLoading}
-                <LoaderCircle class="h-4 w-4 animate-spin mr-2" />
+                <LoaderCircle class="animate-spin" />
             {/if}
             {$t(buttonTextKey)}
         </Button>

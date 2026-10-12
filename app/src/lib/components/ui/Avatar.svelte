@@ -39,9 +39,9 @@
   let initials = $derived(name ? name.slice(0, 2).toUpperCase() : "?");
 </script>
 
-<div class={cn("rounded-full flex items-center justify-center text-white font-bold shadow-xs overflow-hidden", !imageUrl && gradient, className)}>
+<div class={cn("rounded-full flex items-center justify-center text-white font-bold overflow-hidden", !imageUrl && gradient, className)} aria-hidden="true">
   {#if imageUrl}
-    <img src={imageUrl} alt={name} class="w-full h-full object-cover" />
+    <img src={imageUrl} alt="" class="w-full h-full object-cover" />
   {:else}
     {initials}
   {/if}

@@ -10,10 +10,10 @@
     } = $props();
 </script>
 
-<div class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-    <Icon class="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
+<div class="flex items-start gap-3 rounded-control bg-muted p-3">
+    <Icon class="mt-0.5 h-5 w-5 shrink-0 text-primary" />
     <div class="text-sm">
-        <span class="font-bold text-slate-800 dark:text-slate-200 block">{title}</span>
-        <span class="text-slate-500 dark:text-slate-400">{description}</span>
+        <span class="block font-semibold">{title}</span>
+        <span class="text-muted-foreground">{description}</span>
     </div>
 </div>
