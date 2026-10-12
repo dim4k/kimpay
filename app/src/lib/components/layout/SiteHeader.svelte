@@ -85,11 +85,11 @@
       <a
         href="/"
         onclick={() => haptic('light')}
-        class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-muted"
+        class="-ml-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-muted"
         aria-label={$t('my_kimpays.title')}
         title={$t('my_kimpays.title')}
       >
-        <Logo class="h-7 w-7 text-primary" />
+        <Logo class="h-8 w-8 text-primary" />
       </a>
       <div class="relative min-w-0 flex-1" {@attach isSwitcherOpen && isDesktop && dismissable(() => (isSwitcherOpen = false))}>
         <button
