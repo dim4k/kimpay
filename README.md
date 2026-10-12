@@ -115,6 +115,11 @@ Configuration is handled via `docker-compose.yml`.
 -   `GEMINI_API_KEY` (PocketBase): Gemini API key used by the receipt scanner (optional, the scanner is disabled without it)
 -   `APP_ORIGINS` (PocketBase): comma-separated app origins allowed in emailed links, the first one being the default (default: `https://app.kimpay.io`)
 -   `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
+-   `RATE_LIMIT_MULTIPLIER` (PocketBase): scales every rate limit (default: `1`; the e2e stack raises it, all its browsers sharing one IP)
+
+### 🔒 Deployment behind a reverse proxy
+
+The rate limits count per client IP. PocketBase reads it from the right-most `X-Forwarded-For` value (set by migration `1740000005_trusted_proxy`, editable in Dashboard > Settings > Application). So PocketBase must only be reachable through the proxy: with port 8090 open to the internet, anyone could send that header and dodge the limits.
 
 ## 📝 License
 
