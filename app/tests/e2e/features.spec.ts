@@ -28,6 +28,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         const base = await setupGroup(page, 'Shares Test');
 
         await addExpense(page, base, 'Cabin', '90', async () => {
+            await page.getByRole('button', { name: /split equally/i }).click();
             await page.getByRole('radio', { name: 'Shares' }).click();
             await page.getByLabel('Share of Other').fill('2');
         });
@@ -44,6 +45,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         await page.getByPlaceholder('What was it for?').fill('Groceries');
         await page.getByPlaceholder('0.00').first().fill('50');
+        await page.getByRole('button', { name: /split equally/i }).click();
         await page.getByRole('radio', { name: 'Amounts' }).click();
         await page.getByLabel('Share of Payer').fill('10');
         await page.getByLabel('Share of Other').fill('30');
@@ -57,7 +59,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         await addExpense(page, base, 'Flat', '100');
         await addExpense(page, base, 'Deposit back', '40', async () => {
-            await page.getByRole('radio', { name: 'Money received' }).click();
+            await page.getByRole('switch', { name: 'Money received' }).click();
         });
 
         // Other owes 50 for the flat, minus their 20 of the deposit Payer received.
