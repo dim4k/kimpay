@@ -44,24 +44,23 @@
   });
 
   let newParticipantName = $state("");
-  let isAddingParticipant = $state(false);
   // The member whose sheet is open (rename, merge, delete).
   let openedId = $state<string | null>(null);
   let opened = $derived(participants.find((p) => p.id === openedId) ?? null);
 
+  // Shown at once (optimistic): the field is free for the next name right
+  // away, and gets the name back if it could not be added.
   async function handleAddParticipant() {
       const name = newParticipantName.trim();
       if (!name) return;
-      isAddingParticipant = true;
+      newParticipantName = "";
       try {
           await activeKimpay.addParticipant(name);
-          newParticipantName = "";
           toasts.success($t('members.added', { name }));
       } catch (e) {
           console.error(e);
+          if (!newParticipantName) newParticipantName = name;
           toasts.error(getErrorMessage(e, $t));
-      } finally {
-          isAddingParticipant = false;
       }
   }
 
@@ -123,8 +122,8 @@
                             bind:value={newParticipantName}
                             onkeydown={(e) => e.key === 'Enter' && handleAddParticipant()}
                         />
-                        <Button size="icon" class="shrink-0" onclick={handleAddParticipant} loading={isAddingParticipant} disabled={!newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
-                            {#if !isAddingParticipant}<UserPlus />{/if}
+                        <Button size="icon" class="shrink-0" onclick={handleAddParticipant} disabled={!newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
+                            <UserPlus />
                         </Button>
                     </div>
                 {/if}
