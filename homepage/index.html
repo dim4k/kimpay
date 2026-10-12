@@ -1,249 +1,495 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kimpay - The Modern Way to Share Expenses</title>
-    <meta name="title" content="Kimpay - The Modern Way to Share Expenses" />
-    <meta name="description" content="Split expenses easily with friends and family. Create a group in seconds, track shared costs, and settle debts with smart balance calculations." />
-    
-    <!-- Preconnect to external domains for faster resource loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    
-    <!-- Google Fonts with display=swap and async loading (non-render-blocking) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"></noscript>
-    
+    <title>Kimpay - Split expenses, not friendships</title>
+    <meta name="description" content="Create a group in ten seconds, add your expenses, and Kimpay works out who owes whom, to the cent. Free, no account needed." />
+    <link rel="canonical" href="https://kimpay.io/" />
+    <meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kimpay.io/" />
+    <meta property="og:title" content="Kimpay - Split expenses, not friendships" />
+    <meta property="og:description" content="Create a group in ten seconds, add your expenses, and Kimpay works out who owes whom, to the cent." />
+    <meta property="og:image" content="https://kimpay.io/assets/img/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
-    
-    <!-- Critical CSS inlined for above-the-fold content -->
-    <style>
-        :root{--primary:#6366f1;--primary-light:#818cf8;--bg-deep:#030014;--text-primary:#fff;--text-secondary:#94a3b8;--header-height:90px}
-        *{margin:0;padding:0;box-sizing:border-box}
-        html{scroll-behavior:smooth}
-        body{font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background-color:var(--bg-deep);color:var(--text-primary);overflow-x:hidden;line-height:1.6}
-        .mesh-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;background:radial-gradient(at 0% 0%,rgba(99,102,241,.15) 0,transparent 50%),radial-gradient(at 100% 0%,rgba(236,72,153,.15) 0,transparent 50%);opacity:.8}
-        header{height:var(--header-height);position:fixed;top:0;width:100%;z-index:100}
-        header .container{height:100%;display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;padding:0 1.5rem}
-        .logo{display:flex;align-items:center;gap:.75rem;font-weight:700;font-size:1.5rem;color:#fff;text-decoration:none}
-        .logo img{height:32px;width:32px}
-        .hero{position:relative;min-height:100vh;min-height:100dvh;padding-top:var(--header-height);display:flex;align-items:center;justify-content:center}
-        .hero-content{text-align:center;max-width:900px;z-index:10;display:flex;flex-direction:column;align-items:center;padding:2rem 1.5rem}
-        .hero h1{font-size:clamp(3rem,7vw,5.5rem);font-weight:800;margin-bottom:1.5rem;line-height:1.1}
-    </style>
-    
-    <!-- Main CSS loaded async (non-render-blocking) -->
-    <link rel="stylesheet" href="css/style.css" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="css/style.css"></noscript>
+    <link rel="preload" href="assets/fonts/Outfit.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- Lets the CSS hide reveal-on-scroll content only when the script can show it again -->
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script src="js/translations.js" defer></script>
+    <script src="js/main.js" defer></script>
 </head>
 <body>
-    <div class="mesh-bg"></div>
+    <a class="skip-link" href="#main" data-i18n="nav.skip">Skip to content</a>
 
-    <header>
-        <div class="container">
-            <a href="/" class="logo">
-                <img src="assets/img/logo-light.svg" alt="Kimpay Logo" width="32" height="32" />
-                Kimpay
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="#top" class="logo" aria-label="Kimpay">
+                <picture>
+                    <source srcset="assets/img/logo-light.svg" media="(prefers-color-scheme: dark)" />
+                    <img src="assets/img/logo.svg" alt="" width="28" height="28" />
+                </picture>
+                <span>Kimpay</span>
             </a>
+            <nav class="nav" aria-label="Sections">
+                <a href="#features" data-i18n="nav.features">Features</a>
+                <a href="#how" data-i18n="nav.how">How it works</a>
+                <a href="#faq" data-i18n="nav.faq">FAQ</a>
+            </nav>
             <div class="header-actions">
-                <div class="lang-selector">
-                    <button id="lang-toggle" class="btn-lang" aria-label="Switch Language" aria-expanded="false">
-                        <span class="lang-text">EN</span>
-                        <svg class="lang-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                <div class="lang">
+                    <button id="lang-toggle" class="lang-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu" data-i18n-aria="nav.language" aria-label="Language">
+                        <span class="lang-code">EN</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div class="lang-dropdown" id="lang-dropdown">
-                        <button class="lang-option" data-lang="en">English</button>
-                        <button class="lang-option" data-lang="fr">Français</button>
-                        <button class="lang-option" data-lang="de">Deutsch</button>
-                        <button class="lang-option" data-lang="es">Español</button>
-                        <button class="lang-option" data-lang="pt">Português</button>
-                    </div>
+                    <ul id="lang-menu" class="lang-menu" hidden>
+                        <li><button type="button" data-lang="en">English</button></li>
+                        <li><button type="button" data-lang="fr">Français</button></li>
+                        <li><button type="button" data-lang="de">Deutsch</button></li>
+                        <li><button type="button" data-lang="es">Español</button></li>
+                        <li><button type="button" data-lang="pt">Português</button></li>
+                    </ul>
                 </div>
-                <a href="https://app.kimpay.io" class="btn btn-outline">
-                    <span data-i18n="nav.launch">Launch App</span>
-                    <i class="ph ph-arrow-right"></i>
+                <a href="https://app.kimpay.io" class="btn btn-sm btn-ink" data-i18n-aria="nav.launch" aria-label="Open the app">
+                    <span data-i18n="nav.launch">Open the app</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </a>
             </div>
         </div>
+        <!-- Mobile only: where am I in the page, once past the hero -->
+        <div class="subnav-wrap">
+            <nav class="subnav container" aria-label="Sections">
+                <a href="#how" data-i18n="nav.how">How it works</a>
+                <a href="#features" data-i18n="nav.features">Features</a>
+                <a href="#faq" data-i18n="nav.faq">FAQ</a>
+            </nav>
+            <span class="progress" aria-hidden="true"></span>
+        </div>
     </header>
 
-    <main>
-        <section class="hero">
-            <div class="container">
-                <div class="hero-content">
-                    <div class="badge fade-in-up">
-                        <i class="ph-fill ph-sparkle"></i>
-                        <span data-i18n="hero.badge">Reimagined Expense Sharing</span>
-                    </div>
-                    <h1 class="fade-in-up">
-                        <span data-i18n="hero.title.1">Split Expenses with</span>
-                        <br />
-                        <span class="text-gradient-primary" id="dynamic-word">Friends</span>
-                    </h1>
-                    <p class="hero-subtitle fade-in-up" data-i18n="hero.subtitle">
-                        Stop worrying about who owes what. Create a group in seconds, track shared costs, and settle debts with smart balance calculations.
+    <main id="main">
+        <!-- Hero -->
+        <section id="top" class="hero">
+            <div class="container hero-grid">
+                <div class="hero-copy">
+                    <p class="badge hide-mobile">
+                        <span class="badge-tag" data-i18n="hero.badge.tag">New</span>
+                        <span data-i18n="hero.badge">Settle up in one tap with PayPal &amp; Revolut</span>
                     </p>
-                    <div class="hero-actions fade-in-up">
-                        <a href="https://app.kimpay.io" class="btn btn-glow">
-                            <span data-i18n="hero.cta.start">Start for Free</span>
-                            <i class="ph-bold ph-lightning"></i>
+                    <h1>
+                        <span data-i18n="hero.title.1">Split expenses,</span>
+                        <span class="accent" data-i18n="hero.title.2">not friendships.</span>
+                    </h1>
+                    <p class="lead" data-i18n="hero.subtitle">Create a group in ten seconds, add your expenses, and Kimpay works out who owes whom. To the cent, no account needed.</p>
+                    <div class="actions">
+                        <a href="https://app.kimpay.io" class="btn btn-lg btn-primary">
+                            <span data-i18n="hero.cta.start">Create a group</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                         </a>
-                        <a href="#features" class="btn btn-outline" data-i18n="hero.cta.how">How it works</a>
+                        <a href="#how" class="btn btn-lg btn-ghost hide-mobile" data-i18n="hero.cta.how">See how it works</a>
+                    </div>
+                    <ul class="checks">
+                        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="hero.check.account">No account</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="hero.check.ads">No ads, no tracking</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="hero.check.offline">Installable, works offline</span></li>
+                    </ul>
+                </div>
+
+                <!-- Live demo: the app at work, played step by step by main.js -->
+                <div class="demo" id="demo" data-step="0">
+                    <div class="demo-steps">
+                        <button type="button" data-step="0" aria-pressed="true" data-i18n="demo.step.0">The group</button>
+                        <button type="button" data-step="1" aria-pressed="false" data-i18n="demo.step.1">New expense</button>
+                        <button type="button" data-step="2" aria-pressed="false" data-i18n="demo.step.2">Who owes whom</button>
+                        <button type="button" data-step="3" aria-pressed="false" data-i18n="demo.step.3">Settled</button>
+                    </div>
+                    <p class="demo-caption" aria-hidden="true"></p>
+
+                    <div class="demo-card" aria-hidden="true">
+                        <div class="demo-head">
+                            <span class="emoji-tile">🏖️</span>
+                            <div class="demo-group">
+                                <strong data-i18n="demo.group">Weekend in Biarritz</strong>
+                                <span data-i18n="demo.members">4 members · EUR</span>
+                            </div>
+                            <div class="demo-total">
+                                <span data-i18n="demo.total">Total</span>
+                                <strong class="num" data-total-a="116.40" data-total-b="155.00"></strong>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="demo-label" data-i18n="demo.expenses">Expenses</p>
+                            <div class="collapse demo-new">
+                                <div>
+                                    <div class="expense is-new">
+                                        <span class="emoji-tile sm">🛒</span>
+                                        <span class="expense-text">
+                                            <strong data-i18n="demo.expense.groceries">Groceries</strong>
+                                            <span><span data-i18n="demo.paid_by">Paid by</span> Inès · <time data-date="2026-10-12"></time></span>
+                                        </span>
+                                        <strong class="num" data-money="38.60"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="expense">
+                                <span class="emoji-tile sm">⛽</span>
+                                <span class="expense-text">
+                                    <strong data-i18n="demo.expense.fuel">Fuel</strong>
+                                    <span><span data-i18n="demo.paid_by">Paid by</span> Tom · <time data-date="2026-10-11"></time></span>
+                                </span>
+                                <strong class="num" data-money="52.40"></strong>
+                            </div>
+                            <div class="expense">
+                                <span class="emoji-tile sm">🍕</span>
+                                <span class="expense-text">
+                                    <strong>Pizzeria Da Marco</strong>
+                                    <span><span data-i18n="demo.paid_by">Paid by</span> Léa · <time data-date="2026-10-11"></time></span>
+                                </span>
+                                <strong class="num" data-money="64.00"></strong>
+                            </div>
+                        </div>
+
+                        <!-- On phones, the transfers take the place of the balances -->
+                        <div class="demo-swap">
+                            <div class="demo-balances">
+                                <p class="demo-label" data-i18n="demo.balances">Balances</p>
+                                <ul class="balances">
+                                    <li data-a="34.90" data-b="25.25"><span class="who"><span class="avatar" style="--c: #4F46E5">L</span>Léa</span><span class="track"><span class="bar"></span></span><strong class="num amount"></strong></li>
+                                    <li data-a="23.30" data-b="13.65"><span class="who"><span class="avatar" style="--c: #0F766E">T</span>Tom</span><span class="track"><span class="bar"></span></span><strong class="num amount"></strong></li>
+                                    <li data-a="-29.10" data-b="-0.15"><span class="who"><span class="avatar" style="--c: #B45309">I</span>Inès</span><span class="track"><span class="bar"></span></span><strong class="num amount"></strong></li>
+                                    <li data-a="-29.10" data-b="-38.75"><span class="who"><span class="avatar" style="--c: #BE185D">H</span>Hugo</span><span class="track"><span class="bar"></span></span><strong class="num amount"></strong></li>
+                                </ul>
+                            </div>
+
+                            <div class="collapse demo-settle">
+                                <div>
+                                    <div class="settle">
+                                        <p class="demo-label" data-i18n="demo.settle">Who owes whom</p>
+                                        <div class="settle-row first">
+                                            <span>Hugo</span><span class="arrow">→</span><span class="grow">Léa</span>
+                                            <strong class="num" data-money="25.25"></strong>
+                                            <span class="pill pill-pay" data-i18n="demo.pay">Pay</span>
+                                            <span class="pill pill-done"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="demo.settled">Settled</span></span>
+                                        </div>
+                                        <div class="settle-row">
+                                            <span>Hugo</span><span class="arrow">→</span><span class="grow">Tom</span>
+                                            <strong class="num" data-money="13.50"></strong>
+                                            <span class="pill pill-pay" data-i18n="demo.pay">Pay</span>
+                                        </div>
+                                        <div class="settle-row">
+                                            <span>Inès</span><span class="arrow">→</span><span class="grow">Tom</span>
+                                            <strong class="num" data-money="0.15"></strong>
+                                            <span class="pill pill-pay" data-i18n="demo.pay">Pay</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="features" class="features">
-            <div class="container">
-                <div class="text-center section-header">
-                    <h2>
-                        <span data-i18n="features.title.1">Everything you need,</span>
-                        <br />
-                        <span class="text-gradient" data-i18n="features.title.2">Nothing you don't</span>
-                    </h2>
-                    <p data-i18n="features.subtitle">Built for speed, privacy, and simplicity.</p>
+        <!-- How it works -->
+        <section id="how" class="section section-alt">
+            <div class="container how-grid">
+                <div class="how-copy">
+                    <div class="section-head reveal">
+                        <p class="eyebrow" data-i18n="how.eyebrow">How it works</p>
+                        <h2 data-i18n="how.title">Three steps, zero spreadsheets.</h2>
+                    </div>
+                    <div class="how-steps reveal" role="tablist" aria-orientation="vertical" data-i18n-aria="how.eyebrow" aria-label="How it works">
+                        <button type="button" role="tab" id="how-tab-0" aria-controls="how-panel-0" aria-selected="true">
+                            <span class="how-num">1</span>
+                            <span class="how-text">
+                                <strong data-i18n="how.1.title">Create the group</strong>
+                                <span data-i18n="how.1.desc">A name, an emoji, the people. Then share a link, a QR code or the group code.</span>
+                            </span>
+                        </button>
+                        <button type="button" role="tab" id="how-tab-1" aria-controls="how-panel-1" aria-selected="false" tabindex="-1">
+                            <span class="how-num">2</span>
+                            <span class="how-text">
+                                <strong data-i18n="how.2.title">Add expenses</strong>
+                                <span data-i18n="how.2.desc">Who paid, for whom, how to split: equally, by shares, amounts or percentages. Or just scan the receipt.</span>
+                            </span>
+                        </button>
+                        <button type="button" role="tab" id="how-tab-2" aria-controls="how-panel-2" aria-selected="false" tabindex="-1">
+                            <span class="how-num">3</span>
+                            <span class="how-text">
+                                <strong data-i18n="how.3.title">Settle up</strong>
+                                <span data-i18n="how.3.desc">Kimpay keeps transfers to a minimum. One tap to pay with PayPal or Revolut.</span>
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bento-grid">
-                    <!-- Row 1: 2-width, 1-width -->
-                    <div class="bento-card span-2" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-lightning"></i></div>
-                            <h3 data-i18n="feature.fast.title">Lightning Fast</h3>
-                            <p data-i18n="feature.fast.desc">Create a group and start tracking expenses in seconds. No account required.</p>
+                <div class="phone reveal">
+                    <div class="phone-screen">
+                        <span class="phone-notch" aria-hidden="true"></span>
+
+                        <div class="screen" id="how-panel-0" role="tabpanel" aria-labelledby="how-tab-0">
+                            <p class="screen-title" data-i18n="screen.1.title">New group</p>
+                            <span class="emoji-tile xl" aria-hidden="true">🏖️</span>
+                            <div class="field">
+                                <span class="field-label" data-i18n="screen.1.name">Group name</span>
+                                <span class="field-input is-focused" data-i18n="demo.group">Weekend in Biarritz</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-label" data-i18n="screen.1.people">Participants</span>
+                                <span class="chips">
+                                    <span class="chip">Léa</span><span class="chip">Tom</span><span class="chip">Inès</span><span class="chip">Hugo</span><span class="chip chip-add" data-i18n="screen.1.add">+ Add</span>
+                                </span>
+                            </div>
+                            <span class="fake-btn" data-i18n="screen.1.cta">Create the group</span>
+                            <span class="screen-note" data-i18n="screen.1.note">Then share the link, the QR code or the group code</span>
                         </div>
-                    </div>
-                    <div class="bento-card" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-globe"></i></div>
-                            <h3 data-i18n="feature.lang.title">Multi-Language Support</h3>
-                            <p data-i18n="feature.lang.desc">Available in English and French, with more languages coming soon.</p>
+
+                        <div class="screen" id="how-panel-1" role="tabpanel" aria-labelledby="how-tab-1" hidden>
+                            <p class="screen-title" data-i18n="screen.2.title">New expense</p>
+                            <div class="screen-amount">
+                                <strong class="num" data-money="38.60"></strong>
+                                <span>🛒 <span data-i18n="demo.expense.groceries">Groceries</span> · <time data-date="2026-10-12"></time></span>
+                            </div>
+                            <dl class="rows">
+                                <div><dt data-i18n="screen.2.paid">Paid by</dt><dd>Inès</dd></div>
+                                <div><dt data-i18n="screen.2.for">For</dt><dd data-i18n="screen.2.everyone">Everyone</dd></div>
+                                <div><dt data-i18n="screen.2.split">Split</dt><dd data-i18n="screen.2.equal">Equally</dd></div>
+                            </dl>
+                            <span class="fake-btn fake-btn-ghost">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+                                <span data-i18n="screen.2.scan">Scan a receipt</span>
+                            </span>
+                            <span class="fake-btn" data-i18n="screen.2.save">Save</span>
                         </div>
-                    </div>
-                    <!-- Row 2: 1-width, 2-width -->
-                    <div class="bento-card" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-calculator"></i></div>
-                            <h3 data-i18n="feature.smart.title">Smart Balances</h3>
-                            <p data-i18n="feature.smart.desc">Automatic debt minimization algorithms to simplify settlements.</p>
-                        </div>
-                    </div>
-                    <div class="bento-card span-2" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-device-mobile"></i></div>
-                            <h3 data-i18n="feature.pwa.title">Installable App</h3>
-                            <p data-i18n="feature.pwa.desc">Add to your home screen and use it offline, just like a native app.</p>
-                        </div>
-                    </div>
-                    <!-- Row 3: 2-width, 1-width -->
-                    <div class="bento-card span-2" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-sparkle"></i></div>
-                            <h3 data-i18n="feature.ocr.title">AI Receipt Scanner</h3>
-                            <p data-i18n="feature.ocr.desc">Scan receipts with AI to auto-fill expense details, amount, and date.</p>
-                        </div>
-                    </div>
-                    <div class="bento-card" data-spotlight>
-                        <div class="bento-content">
-                            <div class="bento-icon"><i class="ph-fill ph-currency-circle-dollar"></i></div>
-                            <h3 data-i18n="feature.currency.title">Multi-Currency</h3>
-                            <p data-i18n="feature.currency.desc">Support for 8 currencies with real-time exchange rate conversion.</p>
+
+                        <div class="screen" id="how-panel-2" role="tabpanel" aria-labelledby="how-tab-2" hidden>
+                            <p class="screen-title" data-i18n="screen.3.title">Settle up</p>
+                            <div class="owe">
+                                <span data-i18n="screen.3.owe">You owe</span>
+                                <strong class="num" data-money="38.75"></strong>
+                            </div>
+                            <div class="rows">
+                                <div class="pay-row">
+                                    <span><span data-i18n="screen.3.you">You</span> → <b>Léa</b></span>
+                                    <b class="num" data-money="25.25"></b>
+                                </div>
+                                <div class="pay-buttons">
+                                    <span class="paypal">PayPal</span>
+                                    <span class="revolut">Revolut</span>
+                                </div>
+                                <div class="pay-row">
+                                    <span><span data-i18n="screen.3.you">You</span> → <b>Tom</b></span>
+                                    <b class="num" data-money="13.50"></b>
+                                </div>
+                            </div>
+                            <span class="screen-note" data-i18n="screen.3.note">The number of transfers is kept to a minimum.</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="steps-section">
+        <!-- Features -->
+        <section id="features" class="section">
             <div class="container">
-                <div class="text-center section-header">
-                    <h2 data-i18n="steps.title">
-                        <span class="text-gradient">Simple as</span>&nbsp;
-                        <span class="count-step">1</span><span class="count-step">, 2</span><span class="count-step">, 3</span>
-                    </h2>
-                    <p data-i18n="steps.subtitle">Get your finances in order in minutes.</p>
+                <div class="section-head narrow reveal">
+                    <p class="eyebrow" data-i18n="features.eyebrow">Features</p>
+                    <h2 data-i18n="features.title">Everything you need. Nothing more.</h2>
+                    <p class="section-lead" data-i18n="features.subtitle">Built for the weekend, the flatshare and the trip. Fast, private and simple.</p>
                 </div>
 
-                <div class="steps-grid">
-                    <div class="step-card">
-                        <div class="step-icon-wrapper"><i class="ph-fill ph-users-three"></i></div>
-                        <h3 data-i18n="step.1.title">Create Group</h3>
-                        <p data-i18n="step.1.desc">Start a new Kimpay in seconds.</p>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon-wrapper"><i class="ph-fill ph-receipt"></i></div>
-                        <h3 data-i18n="step.2.title">Add Expenses</h3>
-                        <p data-i18n="step.2.desc">Track who paid and who participated.</p>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon-wrapper"><i class="ph-fill ph-hand-coins"></i></div>
-                        <h3 data-i18n="step.3.title">Settle Up</h3>
-                        <p data-i18n="step.3.desc">See who owes what and mark reimbursements.</p>
-                    </div>
+                <div class="bento">
+                    <article class="card span-2 card-split reveal">
+                        <div class="card-copy">
+                            <span class="icon-tile" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></span>
+                            <h3 data-i18n="feature.ocr.title">Scan the receipt, it's filled in.</h3>
+                            <p data-i18n="feature.ocr.desc">AI reads the amount, the date and the category, then suggests who it was for.</p>
+                        </div>
+                        <div class="scan-visual" aria-hidden="true">
+                            <div class="receipt">
+                                <span class="line w60 strong"></span>
+                                <span class="line w80"></span>
+                                <span class="line w70"></span>
+                                <span class="line w85"></span>
+                                <span class="line w55"></span>
+                                <span class="receipt-total"><span>TOTAL</span><span class="num" data-number="38.60"></span></span>
+                                <span class="scanline"></span>
+                            </div>
+                            <dl class="scan-fields">
+                                <div><dt data-i18n="scan.amount">Amount</dt><dd class="num" data-money="38.60"></dd></div>
+                                <div class="hide-mobile"><dt data-i18n="scan.date">Date</dt><dd><time data-date="2026-10-12"></time></dd></div>
+                                <div><dt data-i18n="scan.category">Category</dt><dd>🛒 <span data-i18n="demo.expense.groceries">Groceries</span></dd></div>
+                                <div class="is-suggested hide-mobile"><dt data-i18n="scan.for">For</dt><dd data-i18n="scan.suggestion">Suggested: 4 people</dd></div>
+                            </dl>
+                        </div>
+                    </article>
+
+                    <article class="card reveal">
+                        <div class="visual-box num" aria-hidden="true">
+                            <span class="muted"><span data-money="100"></span> ÷ 3</span>
+                            <strong class="big"><span data-number="33.34"></span> + <span data-number="33.33"></span> + <span data-number="33.33"></span></strong>
+                            <span class="ok"><span data-i18n="feature.cent.result">= 0 cents lost</span></span>
+                        </div>
+                        <h3 data-i18n="feature.cent.title">To the cent</h3>
+                        <p data-i18n="feature.cent.desc">Rounding is shared out fairly, the total always adds up.</p>
+                    </article>
+
+                    <article class="card reveal">
+                        <div class="visual-box row num" aria-hidden="true">
+                            <strong class="big" data-money="12" data-currency="GBP"></strong>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="muted"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            <strong class="big accent" data-money="14.02"></strong>
+                        </div>
+                        <ul class="tags" aria-hidden="true"><li>EUR</li><li>USD</li><li>GBP</li><li>JPY</li><li>CHF</li><li>+4</li></ul>
+                        <h3 data-i18n="feature.currency.title">9 currencies</h3>
+                        <p data-i18n="feature.currency.desc">Each expense keeps the exchange rate of its date.</p>
+                    </article>
+
+                    <article class="card span-2 card-split card-inverse reveal">
+                        <div class="card-copy">
+                            <h3 data-i18n="feature.pay.title">Settle up in one tap.</h3>
+                            <p data-i18n="feature.pay.desc">Add your PayPal.me or Revolut.me once. It only shows in the groups you choose.</p>
+                        </div>
+                        <div class="pay-visual" aria-hidden="true">
+                            <div class="pay-line">
+                                <span class="avatar" style="--c: #BE185D">H</span>
+                                <span class="grow">Hugo → Léa</span>
+                                <strong class="num" data-money="25.25"></strong>
+                            </div>
+                            <div class="pay-actions">
+                                <span class="pay-main" data-i18n="feature.pay.paypal">Pay with PayPal</span>
+                                <span class="pay-alt">Revolut</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card reveal">
+                        <div class="link-field" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span class="grow">kimpay.io/r/••••••</span>
+                            <span class="accent" data-i18n="feature.readonly.copy">Copy</span>
+                        </div>
+                        <h3 data-i18n="feature.readonly.title">Read-only link</h3>
+                        <p data-i18n="feature.readonly.desc">Share the summary (expenses, balances, transfers) without giving edit rights.</p>
+                    </article>
+
+                    <article class="card reveal">
+                        <div class="install" aria-hidden="true">
+                            <span class="install-icon"><img src="assets/img/favicon.svg" alt="" width="28" height="28" /></span>
+                            <span><strong data-i18n="feature.pwa.add">Add to Home Screen</strong><br /><span class="muted" data-i18n="feature.pwa.offline">Works offline</span></span>
+                        </div>
+                        <h3 data-i18n="feature.pwa.title">Like a real app</h3>
+                        <p data-i18n="feature.pwa.desc">Installs on iPhone, Android and desktop. Nothing to download from a store.</p>
+                    </article>
+
+                    <article class="card reveal">
+                        <div class="lang-chips">
+                            <button type="button" data-lang="en">English</button>
+                            <button type="button" data-lang="fr">Français</button>
+                            <button type="button" data-lang="de">Deutsch</button>
+                            <button type="button" data-lang="es">Español</button>
+                            <button type="button" data-lang="pt">Português</button>
+                        </div>
+                        <h3 data-i18n="feature.lang.title">5 languages</h3>
+                        <p data-i18n="feature.lang.desc">Everyone uses Kimpay in their own language, in the same group.</p>
+                    </article>
+                </div>
+                <!-- Mobile only: position in the swipeable list of features, filled by main.js -->
+                <div class="carousel-dots" aria-hidden="true"></div>
+            </div>
+        </section>
+
+        <!-- Trust -->
+        <section class="trust-section">
+            <ul class="container trust">
+                <li class="reveal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                    <div><strong data-i18n="trust.account.title">No account</strong><p data-i18n="trust.account.desc">A link is enough to invite people. An account stays optional.</p></div>
+                </li>
+                <li class="reveal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <div><strong data-i18n="trust.privacy.title">Your data stays yours</strong><p data-i18n="trust.privacy.desc">No ads, no tracking, nothing sold.</p></div>
+                </li>
+                <li class="reveal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                    <div><strong data-i18n="trust.realtime.title">Real-time</strong><p data-i18n="trust.realtime.desc">Every expense shows up instantly on everyone's phone.</p></div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="section section-alt">
+            <div class="container faq-grid">
+                <div class="section-head reveal">
+                    <p class="eyebrow" data-i18n="faq.eyebrow">FAQ</p>
+                    <h2 data-i18n="faq.title">The questions people ask us.</h2>
+                </div>
+                <div class="faq reveal">
+                    <details name="faq" open>
+                        <summary><span data-i18n="faq.1.q">Is Kimpay really free?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                        <p data-i18n="faq.1.a">Yes. No subscription, no ads, no hidden premium tier.</p>
+                    </details>
+                    <details name="faq">
+                        <summary><span data-i18n="faq.2.q">Do I need an account?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                        <p data-i18n="faq.2.a">No. A link is all it takes to join a group. An account (a magic link sent by email) only helps you find your groups on several devices.</p>
+                    </details>
+                    <details name="faq">
+                        <summary><span data-i18n="faq.3.q">Does it work without a connection?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                        <p data-i18n="faq.3.a">Yes. Kimpay installs like an app: offline, you can still see your groups and add expenses, and everything syncs once you are back online.</p>
+                    </details>
+                    <details name="faq">
+                        <summary><span data-i18n="faq.4.q">How are the transfers calculated?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                        <p data-i18n="faq.4.a">Kimpay looks for the smallest possible number of transfers and shares out the rounding cents: the total always adds up.</p>
+                    </details>
                 </div>
             </div>
         </section>
 
-        <section class="cta-section">
+        <!-- Final call to action -->
+        <section class="section">
             <div class="container">
-                <div class="cta-card">
-                    <div class="cta-content">
-                        <h2 data-i18n="cta.title">Ready to simplify expense sharing?</h2>
-                        <p data-i18n="cta.subtitle">Join thousands of groups already using Kimpay.</p>
-                        <br />
-                        <a href="https://app.kimpay.io" class="btn btn-glow">
-                            <span data-i18n="cta.button">Start Tracking Now</span>
-                            <i class="ph-bold ph-arrow-right"></i>
+                <div class="cta reveal">
+                    <div class="cta-copy">
+                        <h2 data-i18n="cta.title">Your next weekend is already sorted.</h2>
+                        <p data-i18n="cta.subtitle">Free, no account, ready in ten seconds.</p>
+                        <a href="https://app.kimpay.io" class="btn btn-lg btn-light">
+                            <span data-i18n="cta.button">Create a group</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                         </a>
                     </div>
+                    <figure class="qr">
+                        <img src="assets/img/qr-app.svg" alt="QR code: app.kimpay.io" width="124" height="124" />
+                        <figcaption data-i18n="cta.qr">Scan to open it on your phone</figcaption>
+                    </figure>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <a href="/" class="logo">
-                        <img src="assets/img/logo-light.svg" alt="Kimpay Logo" width="32" height="32" />
-                        Kimpay
-                    </a>
-                    <p data-i18n="footer.desc">The simplest way to split expenses. Built for the modern web.</p>
-                </div>
-                <div class="footer-links">
-                    <p class="footer-title" data-i18n="footer.product">Product</p>
-                    <ul>
-                        <li><a href="#features" data-i18n="footer.features">Features</a></li>
-                        <li><a href="https://app.kimpay.io" data-i18n="footer.launch">Launch App</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>
-                    &copy; <span id="current-year">2025</span> Kimpay.
-                    <span data-i18n="footer.made_with">Made with <i class="ph-fill ph-heart" style="color: #ec4899"></i> by <a href="https://antoine.kim" target="_blank">Antoine Kim</a>.</span>
-                </p>
-            </div>
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p class="footer-brand">
+                <img src="assets/img/favicon.svg" alt="" width="20" height="20" />
+                <strong>Kimpay</strong>
+                <span>© <span id="current-year">2026</span> · <span data-i18n="footer.by">by</span> <a href="https://antoine.kim" target="_blank" rel="noopener">Antoine Kim</a></span>
+            </p>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="#features" data-i18n="nav.features">Features</a>
+                <a href="#faq" data-i18n="nav.faq">FAQ</a>
+                <a href="https://app.kimpay.io" data-i18n="nav.launch">Open the app</a>
+            </nav>
         </div>
     </footer>
-
-    <!-- Phosphor Icons with font-display: swap for better LCP -->
-    <link rel="stylesheet" href="css/phosphor-icons.css" />
-    
-    <!-- Animation libraries with defer for non-blocking load -->
-    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js" defer></script>
-    <script src="js/translations.js" defer></script>
-    <script src="js/main.js" defer></script>
 </body>
 </html>
