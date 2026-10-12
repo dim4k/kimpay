@@ -2,11 +2,12 @@
     import type { Snippet } from 'svelte';
     import { cn } from '#lib/utils/cn.js';
 
-    type Tone = 'primary' | 'success' | 'warning' | 'neutral';
+    type Tone = 'solid' | 'primary' | 'success' | 'warning' | 'neutral';
 
     let { tone = 'primary', class: className = '', children }: { tone?: Tone; class?: string; children: Snippet } = $props();
 
     const tones: Record<Tone, string> = {
+        solid: 'bg-primary text-primary-foreground',
         primary: 'bg-primary-soft text-primary-soft-foreground',
         success: 'bg-success-soft text-success',
         warning: 'bg-warning-soft text-warning',

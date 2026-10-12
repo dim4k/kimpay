@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { createKimpay, dismissInstallPrompt, switchIdentity } from './test-utils';
 
 test.describe('Settings & Participants', () => {
 
@@ -31,29 +31,22 @@ test.describe('Settings & Participants', () => {
     }
   });
 
+  test('Opens the profile from its shortcut', async ({ page }) => {
+     // On my own row of the participants list
+     await page.locator('[data-is-me="true"]').getByRole('button', { name: 'My profile' }).click();
+     await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();
+  });
+
   test('Switch Identity', async ({ page }) => {
      // 1. Add Alice
      await page.getByPlaceholder('New name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click(); 
      await expect(page.getByText('Alice').first()).toBeVisible();
 
-     // 2. Switch Identity to Alice
-     // Since we are "Admin", Alice is the only one with a switch button.
-     const switchBtn = page.getByRole('button', { name: /switch identity|changer d'identité/i });
-     await expect(switchBtn).toBeVisible();
-     await switchBtn.click({ force: true });
+     // 2. Switch Identity to Alice, from the profile ("That's not me")
+     await switchIdentity(page, 'Alice');
 
-     // 3. Confirm Modal
-     // Wait for modal description to appear to ensure click worked and modal opened
-     await expect(page.getByText(/switch to this identity|changer d'identité/i)).toBeVisible({ timeout: 10000 });
-
-     const confirmBtn = page.getByRole('dialog').getByRole('button', { name: /save|enregistrer/i }); // 'Save' is the confirm text
-     await expect(confirmBtn).toBeVisible();
-     await confirmBtn.click({ force: true });
-     
-     // 4. Verify "You" badge moved and Page Reloaded
-     // Ensure modal is gone
-     await expect(page.getByRole('dialog')).toBeHidden();
+     // 3. Verify "You" badge moved
      
      // Evaluate "You" badge position
      // Use .group class which identifies the row container

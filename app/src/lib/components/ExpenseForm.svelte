@@ -3,7 +3,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goBack } from '#lib/utils/navigation.js';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
   import InputModal from '#lib/components/ui/modals/InputModal.svelte';
@@ -211,7 +211,7 @@
           }
           
           haptic('success');
-          await goto(`/k/${kimpayId}`);
+          await goBack(`/k/${kimpayId}`);
       } catch (e) {
           console.error(e);
           haptic('error');
@@ -300,6 +300,7 @@ ${$t('expense.form.scan_suggested', { name: similar.description })}` : ''),
         <div class="mx-auto flex h-14 max-w-lg items-center gap-2 px-4">
             <a
                 href="/k/{kimpayId}"
+                onclick={(e) => { e.preventDefault(); goBack(`/k/${kimpayId}`); }}
                 class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label={$t('common.close')}
                 title={$t('common.close')}

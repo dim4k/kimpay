@@ -73,7 +73,7 @@ test.describe('Expense Management', () => {
     await expect(page.getByText('Shared Dinner')).toBeVisible();
 
     // 4. Go to Balance Page using UI link
-    await page.getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
 
     // 5. Verify "You are owed" (balance card, then the payment and balances)
     await expect(page.getByText('You are owed')).toBeVisible({ timeout: 10000 });

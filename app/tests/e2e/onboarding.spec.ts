@@ -44,6 +44,8 @@ test.describe('Onboarding & Validation', () => {
     
     await expect(page).toHaveURL(/\/k\//);
     await expect(page.getByText('Success Trip')).toBeVisible();
+    // My identity in the group is in the avatar menu
+    await page.getByRole('button', { name: 'Menu' }).click();
     await expect(page.getByText('Creator')).toBeVisible();
   });
 

@@ -3,61 +3,50 @@ import { browser } from '$app/env';
 
 type Theme = 'light' | 'dark';
 
+/** What the user picked: a theme, or follow the system ("Auto"). */
+export type ThemeChoice = Theme | 'system';
+
 function createThemeStore() {
-    const { subscribe, set, update } = writable<Theme>('light');
+    // The theme in use (what `$theme` reads).
+    const { subscribe, set } = writable<Theme>('light');
+    const choice = writable<ThemeChoice>('system');
+    let current: ThemeChoice = 'system';
+    let media: MediaQueryList | null = null;
+
+    function apply() {
+        const resolved: Theme = current === 'system' ? (media?.matches ? 'dark' : 'light') : current;
+        set(resolved);
+        document.documentElement.classList.toggle('dark', resolved === 'dark');
+    }
 
     return {
         subscribe,
+        /** The user's choice, including "system" */
+        choice: { subscribe: choice.subscribe },
         init: () => {
             if (!browser) return;
-            
-            const stored = localStorage.getItem('theme') as Theme;
-            if (stored) {
-                set(stored);
-                if (stored === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            } else {
-                // If no stored preference, use system preference (Default to Light if no system preference)
-                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                
-                const applySystem = (matches: boolean) => {
-                    if (matches) {
-                        set('dark');
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        set('light');
-                        document.documentElement.classList.remove('dark');
-                    }
-                };
-                
-                applySystem(mediaQuery.matches);
-                
-                // Listen for system changes
-                mediaQuery.addEventListener('change', (e) => {
-                    // Only apply if user hasn't manually overridden
-                    if (!localStorage.getItem('theme')) {
-                        applySystem(e.matches);
-                    }
-                });
-            }
-        },
-        toggle: () => {
-            update((current) => {
-                const next = current === 'light' ? 'dark' : 'light';
-                if (browser) {
-                    localStorage.setItem('theme', next);
-                    if (next === 'dark') {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
-                }
-                return next;
+            media = window.matchMedia('(prefers-color-scheme: dark)');
+            const stored = localStorage.getItem('theme');
+            current = stored === 'light' || stored === 'dark' ? stored : 'system';
+            choice.set(current);
+            apply();
+            // Follows the system while no theme is picked.
+            media.addEventListener('change', () => {
+                if (current === 'system') apply();
             });
-        }
+        },
+        choose: (next: ThemeChoice) => {
+            if (!browser) return;
+            current = next;
+            choice.set(next);
+            try {
+                if (next === 'system') localStorage.removeItem('theme');
+                else localStorage.setItem('theme', next);
+            } catch {
+                // Not remembered, still applied.
+            }
+            apply();
+        },
     };
 }
 

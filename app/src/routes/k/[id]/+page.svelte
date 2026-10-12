@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Wallet, Check, ArrowRight, Search, SlidersHorizontal, X } from "@lucide/svelte";
+  import { Wallet, Check, ChevronRight, Search, SlidersHorizontal, X } from "@lucide/svelte";
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -7,10 +7,8 @@
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
-  import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
-  import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import type { Expense } from '#lib/types.js';
@@ -170,7 +168,6 @@
 
   let participantIds = $derived(participants.map(p => p.id));
   let myBalance = $derived(activeKimpay?.myBalance ?? 0);
-  let totalAmount = $derived(activeKimpay?.totalAmount ?? 0);
   let owesMoney = $derived(myBalance < -0.005);
   let isOwed = $derived(myBalance > 0.005);
 
@@ -246,19 +243,24 @@
   <OfflineBanner message={$t('expense.offline_warning')} />
 
   {#if !isLoading && rawExpenses.length > 0 && currentUserId}
-      <BalanceHero
-          label={owesMoney ? $t('balance.you_owe') : isOwed ? $t('balance.owed_to_you') : $t('expense.hero.label')}
-          amount={owesMoney || isOwed ? myBalance : undefined}
-          text={$t('balance.settled.title')}
-          currency={kimpayC}
-          tone={owesMoney ? 'warning' : isOwed ? 'success' : 'neutral'}
+      <!-- My balance in one line; the details are in the Balance tab. -->
+      <a
+          href="/k/{kimpayId}/balance"
+          data-sveltekit-replacestate
+          class="flex min-h-11 items-center gap-2 rounded-control border bg-card px-4 py-2 transition-colors duration-150 hover:bg-muted/50 animate-pop-in"
       >
-          <span>{$t('expense.hero.total', { amount: formatAmount(totalAmount, kimpayC, $locale) })}</span>
-          <Button href="/k/{kimpayId}/balance" size="sm" variant={owesMoney ? 'default' : 'soft'}>
-              {owesMoney ? $t('expense.hero.settle') : $t('expense.hero.details')}
-              <ArrowRight />
-          </Button>
-      </BalanceHero>
+          {#if owesMoney || isOwed}
+              <span class="text-sm text-muted-foreground">{owesMoney ? $t('balance.you_owe') : $t('balance.owed_to_you')}</span>
+              <span class="font-bold tabular-nums {owesMoney ? 'text-warning' : 'text-success'}">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
+          {:else}
+              <Check class="h-4 w-4 shrink-0 text-success" />
+              <span class="text-sm font-medium">{$t('balance.settled.title')}</span>
+          {/if}
+          <span class="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
+              {owesMoney ? $t('expense.hero.settle') : $t('nav.balance')}
+              <ChevronRight class="h-4 w-4" />
+          </span>
+      </a>
   {/if}
 
   {#if rawExpenses.length > 0}

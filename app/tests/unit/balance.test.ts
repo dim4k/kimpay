@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDebts, expenseImpact, shareOf, type Transaction } from '../../src/lib/balance';
+import { calculateBalances, calculateDebts, expenseShare, shareOf, type Transaction } from '../../src/lib/balance';
 import type { Expense, Participant } from '../../src/lib/types';
 
 function createParticipant(id: string, name: string): Participant {
@@ -208,35 +208,34 @@ describe('calculateDebts', () => {
     });
 });
 
-describe('expenseImpact', () => {
+describe('expenseShare', () => {
     const ids = ['a', 'b', 'c', 'd'];
 
-    it('is what the payer advanced for the others', () => {
-        expect(expenseImpact(createExpense('1', 120, 'a', ids), 'a', ids)).toBe(90);
+    it('is an equal part of the amount', () => {
+        expect(expenseShare(createExpense('1', 120, 'a', ids), 'a', ids)).toBe(30);
+        expect(expenseShare(createExpense('1', 120, 'a', ids), 'b', ids)).toBe(30);
     });
 
-    it('is minus the share of someone who did not pay', () => {
-        expect(expenseImpact(createExpense('1', 360, 'b', ids), 'a', ids)).toBe(-90);
+    it('is 0 for the payer when they are not involved', () => {
+        expect(expenseShare(createExpense('1', 50, 'a', ['b', 'c']), 'a', ids)).toBe(0);
+        expect(expenseShare(createExpense('1', 50, 'a', ['b', 'c']), 'b', ids)).toBe(25);
     });
 
-    it('is 0 when not involved and not the payer', () => {
-        expect(expenseImpact(createExpense('1', 50, 'b', ['b', 'c']), 'a', ids)).toBe(0);
+    it('splits cents without losing any', () => {
+        const expense = createExpense('1', 10, 'a', ['a', 'b', 'c']);
+        const total = ['a', 'b', 'c'].reduce((sum, id) => sum + expenseShare(expense, id, ids), 0);
+        expect(total).toBeCloseTo(10, 10);
     });
 
-    it('counts the full amount when the payer is not involved', () => {
-        expect(expenseImpact(createExpense('1', 50, 'a', ['b', 'c']), 'a', ids)).toBe(50);
+    it('follows a custom split', () => {
+        const expense = { ...createExpense('1', 100, 'a', ['a', 'b']), split: { mode: 'shares' as const, values: { a: 3, b: 1 } } };
+        expect(expenseShare(expense, 'a', ids)).toBe(75);
+        expect(expenseShare(expense, 'b', ids)).toBe(25);
     });
 
-    it('works the other way round for money received', () => {
-        const income = { ...createExpense('1', 40, 'a', ['a', 'b']), is_income: true };
-        expect(expenseImpact(income, 'a', ids)).toBe(-20);
-        expect(expenseImpact(income, 'b', ids)).toBe(20);
-    });
-
-    it('ignores reimbursements', () => {
+    it('is 0 for reimbursements', () => {
         const refund = { ...createExpense('1', 20, 'd', ['a']), is_reimbursement: true };
-        expect(expenseImpact(refund, 'a', ids)).toBe(0);
-        expect(expenseImpact(refund, 'd', ids)).toBe(0);
+        expect(expenseShare(refund, 'a', ids)).toBe(0);
     });
 });
 
@@ -252,5 +251,37 @@ describe('shareOf', () => {
             { ...createExpense('4', 20, 'd', ['a']), is_reimbursement: true },
         ];
         expect(shareOf(expenses, participants, 'a', 'EUR', {})).toBe(6 + 90 - 20);
+    });
+});
+
+describe('calculateBalances', () => {
+    const refund = (id: string, amount: number, from: string, to: string): Expense =>
+        ({ ...createExpense(id, amount, from, [to]), is_reimbursement: true });
+
+    it('shows a group settled with the former rounding as settled', () => {
+        // 183 € for 7 people (26.142857... each), settled with the payments
+        // the app suggested before shares were counted in cents: 6 x 26.14.
+        const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+        const participants = ids.map((id) => createParticipant(id, id));
+        const expenses = [
+            createExpense('1', 183, 'a', ids),
+            ...ids.slice(1).map((id, i) => refund(`r${i}`, 26.14, id, 'a')),
+        ];
+        expect(Object.values(calculateBalances(expenses, participants))).toEqual(ids.map(() => 0));
+        expect(calculateDebts(expenses, participants)).toEqual([]);
+    });
+
+    it('does not pile the indivisible cents up on the same person', () => {
+        const participants = ['a', 'b', 'c'].map((id) => createParticipant(id, id));
+        const expenses = Array.from({ length: 10 }, (_, i) => createExpense(String(i), 10, 'c', ['a', 'b', 'c']));
+        const balances = calculateBalances(expenses, participants);
+        expect(Math.round(Math.abs(balances.a! - balances.b!) * 100)).toBeLessThanOrEqual(1);
+        expect(balances.a! + balances.b! + balances.c!).toBeCloseTo(0, 10);
+    });
+
+    it('keeps balances in whole cents adding up to 0', () => {
+        const participants = ['a', 'b', 'c'].map((id) => createParticipant(id, id));
+        const balances = calculateBalances([createExpense('1', 10, 'a', ['a', 'b', 'c'])], participants);
+        expect(balances).toEqual({ a: 6.67, b: -3.33, c: -3.34 });
     });
 });

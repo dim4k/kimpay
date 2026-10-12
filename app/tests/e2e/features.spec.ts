@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { createKimpay, dismissInstallPrompt, openProfile } from './test-utils';
 
 /** Group of two: "Payer" (this device) and "Other". */
 async function setupGroup(page: Page, name: string) {
@@ -33,7 +33,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         });
 
         // Other has 2 shares out of 3: owes 60 to Payer.
-        await page.getByRole('link', { name: /balance/i }).click();
+        await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
         await expect(page.getByText('€60.00').first()).toBeVisible();
     });
 
@@ -61,7 +61,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         });
 
         // Other owes 50 for the flat, minus their 20 of the deposit Payer received.
-        await page.getByRole('link', { name: /balance/i }).click();
+        await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
         await expect(page.getByText('€30.00').first()).toBeVisible();
     });
 
@@ -84,19 +84,52 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText('No matching expenses.')).toBeVisible();
     });
 
+    test('Payment links stay private until shown in a group', async ({ page }) => {
+        const base = await setupGroup(page, 'Private Links');
+
+        // Entered in the profile: not shown in the group yet.
+        await openProfile(page);
+        await page.getByRole('button', { name: /my payment links/i }).click();
+        await page.getByLabel('Revolut.me').fill('payer.rev');
+        await page.getByRole('button', { name: /^save$/i }).click();
+        await expect(page.getByRole('dialog', { name: 'My payment links' })).toBeHidden();
+        await expect(page.getByRole('switch', { name: 'Show my payment links here' })).not.toBeChecked();
+
+        // Someone owes me: the card offers to show them; "Later" hides it for good.
+        await addExpense(page, base, 'Groceries', '40');
+        await page.goto(`${base}/balance`);
+        await expect(page.getByRole('button', { name: 'Show to this group' })).toBeVisible();
+        await page.getByRole('button', { name: 'Later' }).click();
+        await expect(page.getByText('Help Other pay you')).toBeHidden();
+        await page.reload();
+        await expect(page.getByText('You are owed')).toBeVisible();
+        await expect(page.getByText('Help Other pay you')).toBeHidden();
+
+        // Shown from the profile switch instead.
+        await openProfile(page);
+        await page.getByRole('switch', { name: 'Show my payment links here' }).click();
+        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+    });
+
     test('Shares a read-only summary with payment links', async ({ page }) => {
         const base = await setupGroup(page, 'Readonly Test');
         await addExpense(page, base, 'Museum', '100');
 
-        // Payer is owed money: give them a PayPal.me handle (settings sheet).
-        await page.goto(`${base}/settings`);
-        await page.getByRole('button', { name: /my payment links/i }).click();
+        // Payer is owed money: Balance offers to add a payment link and show it here.
+        await page.goto(`${base}/balance`);
+        await expect(page.getByText('Help Other pay you')).toBeVisible();
+        await page.getByRole('button', { name: 'Add a payment link' }).click();
         await page.getByLabel('PayPal.me').fill('https://paypal.me/payer.pp');
         await page.getByRole('button', { name: /^save$/i }).click();
-        await expect(page.getByRole('dialog')).toBeHidden();
+        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+        await expect(page.getByText('Help Other pay you')).toBeHidden();
+
+        // The profile keeps the link (cleaned up) and shows it in this group.
+        await openProfile(page);
+        await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeChecked();
         await page.getByRole('button', { name: /my payment links/i }).click();
         await expect(page.getByLabel('PayPal.me')).toHaveValue('payer.pp');
-        await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+        await page.getByRole('dialog', { name: 'My payment links' }).getByRole('button', { name: 'Cancel' }).click();
 
         // The read-only link is one of the ways to share the group.
         await page.goto(`${base}/share`);

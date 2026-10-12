@@ -54,7 +54,7 @@ async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['
 }
 
 async function navTo(page: Page, name: RegExp) {
-    await page.getByRole('link', { name }).last().click();
+    await page.getByRole('navigation').getByRole('link', { name }).click();
 }
 
 async function addExpense(page: Page, description: string, amount: string) {
@@ -96,6 +96,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await expect(page.getByText('Added!')).toBeVisible();
             await expect(page.getByText('Added!')).toBeHidden();
             await snapshot(page, `group-settings-${colorScheme}`);
+
+            // The profile: a sheet on phones, a popover on desktop.
+            await page.getByRole('button', { name: 'Menu' }).click();
+            await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();
+            await snapshot(page, `profile-${colorScheme}`, [page.getByText(/^Kimpay v/)]);
+            await page.keyboard.press('Escape');
+            await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeHidden();
+
+            // The group switcher behaves the same way.
+            await page.getByRole('button', { name: /Trip to Lisbon/ }).click();
+            await expect(page.getByRole('link', { name: /Trip to Lisbon/ })).toBeVisible();
+            await snapshot(page, `group-switcher-${colorScheme}`);
+            await page.keyboard.press('Escape');
+            await expect(page.getByRole('link', { name: /Trip to Lisbon/ })).toBeHidden();
 
             await navTo(page, /expenses/i);
             await addExpense(page, 'Dinner', '60');

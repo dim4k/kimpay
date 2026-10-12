@@ -4,10 +4,10 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { LogOut, Trash2, UserPlus, UserRoundCheck, Bug, Download, FileText, Table, LoaderCircle, Wallet, Pencil } from "@lucide/svelte";
+  import { ChevronRight, LogOut, Trash2, UserPlus, FileText, Table, LoaderCircle, Pencil } from "@lucide/svelte";
+  import { profileMenu } from '#lib/stores/profileMenu.svelte.js';
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t } from '#lib/i18n.js';
-  import { installStore } from '#lib/stores/install.svelte.js';
   import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { storageService } from '#lib/services/storage.js';
@@ -27,7 +27,6 @@
   import Modal from '#lib/components/ui/modals/Modal.svelte';
   import { locale } from '#lib/i18n.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
-  import { normalizeHandle } from '#lib/utils/payment.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -170,17 +169,6 @@
       await storageService.removeRecentKimpay(id);
   }
 
-  function handleSwitchIdentity(pId: string) {
-      modals.confirm({
-          title: $t('settings.switch_identity'),
-          description: $t('settings.switch_modal.desc'),
-          confirmText: $t('common.save'),
-          onConfirm: async () => {
-              await activeKimpay.setMyParticipant(pId);
-          }
-      });
-  }
-
   function handleExport(format: ExportFormat) {
       if (!kimpay || !activeKimpay) return;
       try {
@@ -200,54 +188,7 @@
       }
   }
 
-  // Payment handles of the current identity, edited in a sheet
-  let me = $derived(currentParticipantId ? activeKimpay?.participantsById.get(currentParticipantId) : undefined);
-  let isPaymentOpen = $state(false);
-  let paypalInput = $state("");
-  let revolutInput = $state("");
-  let isSavingHandles = $state(false);
-  let handlesSummary = $derived([me?.paypal && 'PayPal', me?.revolut && 'Revolut'].filter(Boolean).join(', '));
-
-  function openPayment() {
-      paypalInput = me?.paypal ?? "";
-      revolutInput = me?.revolut ?? "";
-      isPaymentOpen = true;
-  }
-
-  async function savePaymentHandles() {
-      const paypal = normalizeHandle(paypalInput);
-      const revolut = normalizeHandle(revolutInput);
-      if (paypal === null || revolut === null) {
-          modals.alert({ message: $t('payment.invalid_handle') });
-          return;
-      }
-      isSavingHandles = true;
-      try {
-          await activeKimpay.updateMyPaymentHandles({ paypal, revolut });
-          isPaymentOpen = false;
-          toasts.success($t('common.saved'));
-      } catch (e) {
-          console.error("Failed to save payment handles", e);
-          modals.alert({ message: getErrorMessage(e, $t) });
-      } finally {
-          isSavingHandles = false;
-      }
-  }
 </script>
-
-{#snippet handleInput(id: 'paypal' | 'revolut', label: string, prefix: string)}
-    <div class="space-y-2">
-        <Label for={id}>{label}</Label>
-        <div class="flex h-11 items-center rounded-control border border-input bg-card focus-within:ring-2 focus-within:ring-ring">
-            <span class="select-none pl-3 text-base text-muted-foreground">{prefix}</span>
-            {#if id === 'paypal'}
-                <input {id} bind:value={paypalInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-full min-w-0 flex-1 bg-transparent pr-3 text-base outline-hidden" />
-            {:else}
-                <input {id} bind:value={revolutInput} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={$t('settings.payment.handle_placeholder')} class="h-full min-w-0 flex-1 bg-transparent pr-3 text-base outline-hidden" />
-            {/if}
-        </div>
-    </div>
-{/snippet}
 
 <div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
     <h1 class="sr-only">{$t('settings.title')}</h1>
@@ -290,17 +231,14 @@
                                 <Badge>{$t('common.you')}</Badge>
                             {/if}
                         </span>
-                        {#if !isMe}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="text-muted-foreground hover:text-primary"
-                                onclick={() => handleSwitchIdentity(p.id)}
-                                title={$t('settings.switch_identity')}
-                                aria-label={$t('settings.switch_identity')}
-                            >
-                                <UserRoundCheck />
+                        {#if isMe}
+                            <!-- What is mine (payment links, theme...) lives in the profile. -->
+                            <Button variant="soft" size="sm" onclick={() => profileMenu.open()}>
+                                {$t('settings.my_profile')}
+                                <ChevronRight />
                             </Button>
+                        {/if}
+                        {#if !isMe}
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -345,19 +283,10 @@
     {/if}
 
     <section class="space-y-2">
-        <SectionLabel title={$t('settings.section.more')} />
+        <SectionLabel title={$t('settings.section.data')} />
         <ListGroup>
-            {#if !offlineStore.isOffline && me}
-                <ListRow icon={Wallet} title={$t('settings.payment.title')} value={handlesSummary || $t('settings.payment.none')} onclick={openPayment} />
-            {/if}
-            {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
-                <ListRow icon={Download} title={$t('settings.install.button')} onclick={() => installStore.install()} />
-            {/if}
             <ListRow icon={Table} title={$t('settings.export.as', { format: $t('settings.export.csv') })} onclick={() => handleExport('csv')} />
             <ListRow icon={FileText} title={$t('settings.export.as', { format: $t('settings.export.md') })} onclick={() => handleExport('md')} />
-            {#if !offlineStore.isOffline}
-                <ListRow icon={Bug} title={$t('settings.bug_report.title')} href="https://github.com/dim4k/kimpay/issues" external />
-            {/if}
         </ListGroup>
     </section>
 
@@ -369,8 +298,6 @@
             {/if}
         </ListGroup>
     </section>
-
-    <p class="pt-2 text-center text-xs text-muted-foreground">Kimpay v{__APP_VERSION__}</p>
 </div>
 
 <Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} class="overflow-visible">
@@ -386,24 +313,6 @@
         <Button variant="secondary" onclick={() => isEditOpen = false}>{$t('common.cancel')}</Button>
         <Button onclick={handleSave} disabled={isSavingGroup || !editName.trim()}>
             {#if isSavingGroup}<LoaderCircle class="animate-spin" />{/if}
-            {$t('common.save')}
-        </Button>
-    </div>
-</Modal>
-
-<Modal isOpen={isPaymentOpen} onClose={() => isPaymentOpen = false} variant="sheet" label={$t('settings.payment.title')}>
-    <div class="space-y-1">
-        <h2 class="text-xl font-bold">{$t('settings.payment.title')}</h2>
-        <p class="text-sm text-muted-foreground">{$t('settings.payment.desc')}</p>
-    </div>
-    <div class="space-y-4">
-        {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}
-        {@render handleInput('revolut', 'Revolut.me', 'revolut.me/')}
-    </div>
-    <div class="grid grid-cols-2 gap-3">
-        <Button variant="secondary" onclick={() => isPaymentOpen = false}>{$t('common.cancel')}</Button>
-        <Button onclick={savePaymentHandles} disabled={isSavingHandles}>
-            {#if isSavingHandles}<LoaderCircle class="animate-spin" />{/if}
             {$t('common.save')}
         </Button>
     </div>

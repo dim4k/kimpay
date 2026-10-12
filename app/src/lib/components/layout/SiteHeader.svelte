@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { Languages, ChevronDown, ChevronLeft, Check, Sun, Moon, Menu, Camera, RefreshCw, WifiOff, LogOut, LayoutDashboard, UserPlus, Settings, House } from "@lucide/svelte";
-  import type { Component } from 'svelte';
-  import type { LucideProps } from '@lucide/svelte';
+  import { Check, Menu, WifiOff, LayoutDashboard } from "@lucide/svelte";
   import Logo from "#lib/components/ui/Logo.svelte";
-  import { locale, t, LOCALE_NAMES } from '#lib/i18n.js';
-  import { theme } from '#lib/theme.js';
+  import { t } from '#lib/i18n.js';
   import { slide } from 'svelte/transition';
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
-  import { modals } from '#lib/stores/modals.svelte.js';
   import Avatar from '#lib/components/ui/Avatar.svelte';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import ListGroup from '#lib/components/ui/ListGroup.svelte';
+  import ListRow from '#lib/components/ui/ListRow.svelte';
+  import Modal from '#lib/components/ui/modals/Modal.svelte';
+  import ProfilePanel from '#lib/components/profile/ProfilePanel.svelte';
+  import { profileMenu } from '#lib/stores/profileMenu.svelte.js';
 
   import LoginHelpModal from '#lib/components/ui/modals/LoginHelpModal.svelte';
   import OfflineHelpModal from '#lib/components/ui/modals/OfflineHelpModal.svelte';
@@ -21,15 +21,10 @@
   import { haptic } from '#lib/utils/haptic.js';
   import { dismissable } from '#lib/attachments/dismissable.js';
   import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
-  import { toasts } from '#lib/stores/toasts.svelte.js';
 
-  let isMenuOpen = $state(false);
-  let isLangOptionsOpen = $state(false);
-  let isMyKimpaysOpen = $state(false);
+  let isSwitcherOpen = $state(false);
   let showOfflineHelp = $state(false);
   let isLoginHelpOpen = $state(false);
-
-  let fileInputRef = $state<HTMLInputElement | null>(null);
 
   // Only show Kimpay context if we are actually on a /k/[id] route
   let isInKimpayContext = $derived(page.url.pathname.startsWith('/k/'));
@@ -39,38 +34,43 @@
   afterNavigate(({ shallow, type }) => {
     if (shallow && type === 'goto') return;
 
-    isMenuOpen = false;
+    profileMenu.close();
+    isSwitcherOpen = false;
   });
 
-  async function handleAvatarChange(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (input.files && input.files[0] && currentParticipant) {
-      const file = input.files[0];
-      try {
-        // The instance updates its participants list optimistically, which
-        // the navbar reflects via the activeKimpayGlobal derived getters.
-        await activeKimpayGlobal.instance?.updateMyAvatar(file);
-        toasts.success($t('toast.avatar_updated'));
-        haptic('light');
-      } catch (err) {
-        console.error("Failed to update avatar", err);
-        toasts.error($t('toast.avatar_update_failed'));
-      }
-      // Reset file input
-      input.value = '';
-    }
-  }
-
-  function openIdentityModal() {
-      if (!currentKimpay) return;
-      isMenuOpen = false;
-      modals.identity({ kimpayId: currentKimpay.id });
-  }
+  // Phones get bottom sheets, larger screens popovers under the trigger.
+  let isDesktop = $state(false);
+  $effect(() => {
+    const query = window.matchMedia('(min-width: 768px)');
+    isDesktop = query.matches;
+    const onChange = (e: MediaQueryListEvent) => (isDesktop = e.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  });
 </script>
 
-{#snippet menuItem(Icon: Component<LucideProps>, label: string)}
-  <Icon class="h-4 w-4 shrink-0 text-muted-foreground" />
-  <span class="flex-1 truncate text-left text-sm font-medium">{label}</span>
+{#snippet groupSwitcher(currentId: string)}
+  <div class="space-y-3">
+    <ListGroup>
+      {#each recentsStore.recentKimpays as k (k.id)}
+        {@const isCurrent = k.id === currentId}
+        <a
+          href="/k/{k.id}"
+          data-sveltekit-preload-data="false"
+          onclick={() => { haptic('light'); isSwitcherOpen = false; }}
+          aria-current={isCurrent ? 'page' : undefined}
+          class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
+        >
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-muted text-lg" aria-hidden="true">{k.icon || DEFAULT_GROUP_ICON}</span>
+          <span class="flex-1 truncate text-base font-medium">{k.name}</span>
+          {#if isCurrent}<Check class="h-4 w-4 shrink-0 text-primary" />{/if}
+        </a>
+      {/each}
+    </ListGroup>
+    <ListGroup>
+      <ListRow icon={LayoutDashboard} title={$t('my_kimpays.title')} href="/" />
+    </ListGroup>
+  </div>
 {/snippet}
 
 <header
@@ -79,24 +79,39 @@
 >
   <div class="mx-auto flex h-14 max-w-2xl items-center gap-2 px-4">
     {#if currentKimpay}
-      <!-- Inside a group: the group is the page title, home is one tap back. -->
+      <!-- Inside a group: the logo leads home, the title switches groups.
+           No back chevron: the group's pages are tabs, not a history. -->
       <a
         href="/"
         onclick={() => haptic('light')}
-        class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        aria-label={$t('nav.home')}
-        title={$t('nav.home')}
+        class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-muted"
+        aria-label={$t('my_kimpays.title')}
+        title={$t('my_kimpays.title')}
       >
-        <ChevronLeft class="h-5 w-5" />
+        <Logo class="h-7 w-7 text-primary" />
       </a>
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-base font-bold leading-tight">
-          <span aria-hidden="true">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
-          {currentKimpay.name}
-        </p>
-        <p class="truncate text-xs text-muted-foreground">
-          {currentParticipant ? $t('header.identity', { name: currentParticipant.name }) : $t('identity.title')}
-        </p>
+      <div class="relative min-w-0 flex-1" {@attach isSwitcherOpen && isDesktop && dismissable(() => (isSwitcherOpen = false))}>
+        <button
+          onclick={() => isSwitcherOpen = !isSwitcherOpen}
+          class="-ml-1 flex h-11 max-w-full items-center rounded-control px-2 transition-colors hover:bg-muted"
+          aria-haspopup="dialog"
+          aria-expanded={isSwitcherOpen}
+          title={$t('header.switch_group')}
+        >
+          <span class="truncate text-base font-bold">
+            <span aria-hidden="true">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
+            {currentKimpay.name}
+          </span>
+        </button>
+
+        {#if isSwitcherOpen && isDesktop}
+          <div
+            class="absolute left-0 top-full mt-2 max-h-[calc(100dvh-5rem)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-3 text-popover-foreground shadow-xl"
+            transition:slide={{ duration: 150 }}
+          >
+            {@render groupSwitcher(currentKimpay.id)}
+          </div>
+        {/if}
       </div>
     {:else}
       <a href="/" onclick={() => haptic('light')} class="flex items-center gap-2">
@@ -117,164 +132,45 @@
       </button>
     {/if}
 
-    <div class="relative shrink-0" {@attach isMenuOpen && dismissable(() => (isMenuOpen = false))}>
+    <div class="relative shrink-0" {@attach profileMenu.isOpen && isDesktop && dismissable(() => profileMenu.close())}>
       <button
-        onclick={() => isMenuOpen = !isMenuOpen}
-        class="flex h-11 items-center gap-1 rounded-full transition-colors hover:bg-muted {currentKimpay || auth.user ? 'pl-1 pr-2' : 'w-11 justify-center'}"
+        onclick={() => profileMenu.toggle()}
+        class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted"
         title={$t('nav.menu')}
         aria-label={$t('nav.menu')}
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
+        aria-haspopup="dialog"
+        aria-expanded={profileMenu.isOpen}
       >
         {#if currentKimpay}
           <Avatar name={currentParticipant ? currentParticipant.name : "?"} record={currentParticipant} class="h-9 w-9 text-xs" />
-          <ChevronDown class="h-4 w-4 text-muted-foreground" />
         {:else if auth.user}
           <Avatar name={auth.user.name} record={auth.user} class="h-9 w-9 text-xs" />
-          <ChevronDown class="h-4 w-4 text-muted-foreground" />
         {:else}
           <Menu class="h-6 w-6" />
         {/if}
       </button>
 
-      {#if isMenuOpen}
+      {#if profileMenu.isOpen && isDesktop}
         <div
-          class="absolute right-0 top-full mt-2 flex w-72 flex-col overflow-hidden rounded-card border bg-popover text-popover-foreground shadow-xl"
+          class="absolute right-0 top-full mt-2 max-h-[calc(100dvh-5rem)] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-3 text-popover-foreground shadow-xl"
           transition:slide={{ duration: 150 }}
         >
-          <div class="max-h-[70vh] overflow-y-auto">
-            {#if currentKimpay}
-              <!-- Identity in this group -->
-              <div class="flex items-center gap-3 border-b p-4">
-                <div class="group relative shrink-0">
-                  <Avatar name={currentParticipant ? currentParticipant.name : "?"} record={currentParticipant} class="h-12 w-12 text-base" />
-                  {#if currentParticipant && !offlineStore.isOffline}
-                    <button
-                      class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                      onclick={() => fileInputRef?.click()}
-                      aria-label={$t('user_settings.avatar.change')}
-                    >
-                      <Camera class="h-5 w-5 text-white" />
-                    </button>
-                    <input type="file" accept="image/*" multiple class="hidden" bind:this={fileInputRef} onchange={handleAvatarChange} />
-                  {/if}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-semibold">{currentParticipant ? currentParticipant.name : $t('identity.title')}</p>
-                  <p class="truncate text-xs text-muted-foreground">{currentKimpay.icon || DEFAULT_GROUP_ICON} {currentKimpay.name}</p>
-                  {#if !offlineStore.isOffline}
-                    <button onclick={openIdentityModal} class="mt-1 flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                      <RefreshCw class="h-3 w-3" />
-                      {$t('identity.change')}
-                    </button>
-                  {/if}
-                </div>
-              </div>
-            {/if}
-
-            {#if !auth.user}
-              <div class="flex gap-2 border-b p-3">
-                <Button size="sm" class="flex-1" onclick={() => { isMenuOpen = false; modals.register({}); }}>
-                  <UserPlus />
-                  {$t('register.button')}
-                </Button>
-                <Button size="sm" variant="secondary" class="flex-1" onclick={() => { isMenuOpen = false; isLoginHelpOpen = true; }}>
-                  {$t('login_help.button')}
-                </Button>
-              </div>
-            {/if}
-
-            <!-- My Kimpays -->
-            <div class="p-2">
-              <button
-                onclick={() => isMyKimpaysOpen = !isMyKimpaysOpen}
-                class="flex w-full items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-muted"
-                aria-expanded={isMyKimpaysOpen}
-              >
-                {@render menuItem(LayoutDashboard, $t('my_kimpays.title'))}
-                <ChevronDown class="h-4 w-4 text-muted-foreground transition-transform {isMyKimpaysOpen ? 'rotate-180' : ''}" />
-              </button>
-
-              {#if isMyKimpaysOpen}
-                <div class="space-y-0.5 pl-2" transition:slide={{ duration: 150 }}>
-                  <a href="/" onclick={() => haptic('light')} class="flex items-center gap-3 rounded-control px-3 py-2 transition-colors hover:bg-muted">
-                    {@render menuItem(House, $t('nav.home'))}
-                  </a>
-                  {#if recentsStore.recentKimpays.length === 0}
-                    <p class="px-3 py-2 text-sm text-muted-foreground">{$t('my_kimpays.empty')}</p>
-                  {:else}
-                    {@const filteredKimpays = recentsStore.recentKimpays.filter((k) => k.id !== currentKimpay?.id)}
-                    {#each filteredKimpays as k (k.id)}
-                      <a
-                        href="/k/{k.id}"
-                        data-sveltekit-preload-data="false"
-                        onclick={() => haptic('light')}
-                        class="flex items-center gap-3 rounded-control px-3 py-2 transition-colors hover:bg-muted"
-                      >
-                        <span class="w-4 text-center text-base" aria-hidden="true">{k.icon || DEFAULT_GROUP_ICON}</span>
-                        <span class="truncate text-sm font-medium">{k.name}</span>
-                      </a>
-                    {/each}
-                    {#if filteredKimpays.length === 0 && currentKimpay}
-                      <p class="px-3 py-2 text-sm text-muted-foreground">{$t('my_kimpays.no_other')}</p>
-                    {/if}
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          </div>
-
-          <!-- Preferences -->
-          <div class="space-y-0.5 border-t bg-muted/40 p-2">
-            <button onclick={theme.toggle} class="flex w-full items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-muted">
-              {@render menuItem($theme === 'dark' ? Moon : Sun, $t('menu.theme'))}
-              <span class="rounded-md border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                {$theme === 'dark' ? $t('menu.theme.dark') : $t('menu.theme.light')}
-              </span>
-            </button>
-
-            <button
-              onclick={() => isLangOptionsOpen = !isLangOptionsOpen}
-              class="flex w-full items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-muted"
-              aria-expanded={isLangOptionsOpen}
-            >
-              {@render menuItem(Languages, $t('menu.language'))}
-              <span class="rounded-md border bg-card px-2 py-0.5 text-xs font-semibold uppercase text-muted-foreground">{$locale}</span>
-            </button>
-            {#if isLangOptionsOpen}
-              <div class="space-y-0.5 pl-2" transition:slide={{ duration: 150 }}>
-                {#each Object.entries(LOCALE_NAMES) as [code, name] (code)}
-                  <button
-                    class="flex w-full items-center justify-between rounded-control px-3 py-2 text-sm font-medium transition-colors hover:bg-muted {$locale === code ? 'text-primary' : ''}"
-                    onclick={() => { locale.set(code); isLangOptionsOpen = false; }}
-                    aria-pressed={$locale === code}
-                    lang={code}
-                  >
-                    {name}
-                    {#if $locale === code}<Check class="h-4 w-4" />{/if}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-
-            {#if auth.user}
-              <a href="/settings" class="flex w-full items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-muted">
-                {@render menuItem(Settings, $t('user_settings.title'))}
-              </a>
-              <button
-                onclick={() => { isMenuOpen = false; auth.confirmLogout(); }}
-                class="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-destructive transition-colors hover:bg-destructive/10"
-              >
-                <LogOut class="h-4 w-4 shrink-0" />
-                <span class="flex-1 text-left text-sm font-medium">{$t('auth.logout')}</span>
-              </button>
-            {/if}
-          </div>
+          <ProfilePanel onClose={() => profileMenu.close()} onLoginHelp={() => isLoginHelpOpen = true} />
         </div>
       {/if}
     </div>
   </div>
 </header>
+
+<!-- On phones, both menus slide up from the bottom (easier to reach). -->
+{#if currentKimpay}
+  <Modal isOpen={isSwitcherOpen && !isDesktop} onClose={() => isSwitcherOpen = false} variant="sheet" label={$t('header.switch_group')} class="space-y-0 bg-background">
+    {@render groupSwitcher(currentKimpay.id)}
+  </Modal>
+{/if}
+<Modal isOpen={profileMenu.isOpen && !isDesktop} onClose={() => profileMenu.close()} variant="sheet" label={$t('profile.title')} class="space-y-0 bg-background">
+  <ProfilePanel onClose={() => profileMenu.close()} onLoginHelp={() => isLoginHelpOpen = true} />
+</Modal>
 
 <OfflineHelpModal isOpen={showOfflineHelp} onClose={() => showOfflineHelp = false} />
 <LoginHelpModal isOpen={isLoginHelpOpen} onClose={() => isLoginHelpOpen = false} />

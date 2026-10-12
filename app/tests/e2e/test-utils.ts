@@ -51,20 +51,22 @@ export async function dismissInstallPrompt(page: Page) {
     }
 }
 
-/**
- * Switches the current device identity to the other participant from the
- * settings page. Only the participant that is NOT the current identity exposes
- * a "Switch identity" button, so with two participants the target is
- * unambiguous.
- *
- * The identity is applied in place (no page reload): wait for the confirm
- * dialog to close before returning.
- */
-export async function switchIdentity(page: Page) {
-    await page.getByRole('button', { name: /switch identity|changer/i }).first().click();
+/** Opens the profile (avatar): a sheet on phones, a popover on desktop. */
+export async function openProfile(page: Page) {
+    await page.getByRole('button', { name: 'Menu' }).click();
+}
 
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: /save|enregistrer/i }).click();
+/**
+ * Switches the current device identity to `name`, from the profile ("That's
+ * not me"). The identity is applied in place (no page reload): wait for the
+ * "Who are you?" dialog to close before returning.
+ */
+export async function switchIdentity(page: Page, name: string) {
+    await openProfile(page);
+    await page.getByRole('button', { name: "That's not me" }).click();
+
+    const dialog = page.getByRole('dialog', { name: 'Who are you?' });
+    await dialog.getByRole('button', { name: new RegExp(name) }).click();
     await expect(dialog).toBeHidden();
 }
 

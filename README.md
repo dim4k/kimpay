@@ -40,12 +40,12 @@
 -   **Flexible Splits**: Split equally, by shares, by exact amounts or by percentage
 -   **Money Received**: Record refunds or returned deposits, shared back between the group
 -   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom"), with no cent lost to rounding
--   **Pay in One Tap**: PayPal.me and Revolut.me links on the payments you owe
+-   **Pay in One Tap**: PayPal.me and Revolut.me links on the payments you owe, entered once in your profile and shown only in the groups you choose
 -   **Real-Time**: Updates align instantly across devices
 -   **Multilingual**: Available in English 🇬🇧, French 🇫🇷, German 🇩🇪, Spanish 🇪🇸 and Portuguese 🇵🇹
 -   **Multi-Currency**: Support for 9 currencies (EUR, USD, GBP, JPY, AUD, CAD, CHF, CNH, VND); each expense keeps the exchange rate of its date
 -   **Export**: CSV and Markdown, with balances and suggested payments
--   **Dark Mode**: Elegant interface supporting both light and dark themes
+-   **Dark Mode**: Elegant interface in light or dark theme, or following the system
 -   **Delightful UX**: Smooth animations, emojis, and polished design
 -   **PWA Ready**: Install as a Progressive Web App on any device, usable offline
 -   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category, and suggest who it was for

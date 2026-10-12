@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { LogOut, ChevronRight, Check } from "@lucide/svelte";
+    import { LogOut, ChevronRight } from "@lucide/svelte";
     import { t, locale } from '#lib/i18n.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
@@ -13,9 +13,10 @@
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import { haptic } from '#lib/utils/haptic.js';
+    import { relativeDay } from '#lib/utils/date.js';
     import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
-    import { calculateBalances } from '#lib/balance.js';
-    import { DEFAULT_CURRENCY, formatAmount, getExchangeRates } from '#lib/services/currency.js';
+    import { pb } from '#lib/pocketbase.js';
+    import type { Expense, Kimpay } from '#lib/types.js';
 
     // Offline, only list the Kimpays whose data is cached (they can be opened).
     let cachedIds = $state<string[] | null>(null);
@@ -34,30 +35,60 @@
 
     interface Summary {
         members: number;
-        /** My balance in the group, null without an identity there */
-        balance: number | null;
-        currency: string;
+        /** Expenses added by others since my last visit on this device */
+        news: number;
+        /** Creation date of the latest expense, null without any */
+        lastActivity: string | null;
     }
 
-    // Members and my balance, from the copy of each group cached on this
-    // device (groups never opened here have none yet).
+    type ExpenseStamp = Pick<Expense, 'id' | 'created' | 'created_by'>;
+
+    function latest(expenses: ExpenseStamp[]): string | null {
+        return expenses.reduce<string | null>((max, e) => (!max || e.created > max ? e.created : max), null);
+    }
+
+    /** The group's expenses on the server, reduced to what tells them apart. */
+    async function fetchStamps(id: string): Promise<ExpenseStamp[] | null> {
+        try {
+            const record = await pb.collection('kimpays').getOne(id, {
+                expand: 'expenses_via_kimpay',
+                fields: 'id,expand.expenses_via_kimpay.id,expand.expenses_via_kimpay.created,expand.expenses_via_kimpay.created_by',
+                requestKey: null,
+            });
+            return (record.expand?.expenses_via_kimpay as ExpenseStamp[] | undefined) ?? [];
+        } catch {
+            return null;
+        }
+    }
+
+    // The copy of each group cached on this device is written by the group
+    // page only, so it is what I saw on my last visit: anything on the server
+    // that it lacks is new (groups never opened here have no copy yet).
     let summaries = $state<Record<string, Summary>>({});
     $effect(() => {
         const ids = kimpaysToDisplay.map(k => k.id);
+        const online = !offlineStore.isOffline;
         let cancelled = false;
         (async () => {
-            const rates = await getExchangeRates().catch(() => ({}));
-            const entries = await Promise.all(ids.map(async (id): Promise<[string, Summary] | null> => {
-                const data = await storageService.getKimpayData(id);
-                if (!data?.expand) return null;
-                const participants = data.expand.participants_via_kimpay ?? [];
-                const expenses = data.expand.expenses_via_kimpay ?? [];
-                const currency = data.currency || DEFAULT_CURRENCY;
-                const me = data.myParticipantId ?? await storageService.getMyParticipantId(id);
-                const balances = calculateBalances(expenses, participants, currency, rates);
-                return [id, { members: participants.length, balance: me ? balances[me] ?? null : null, currency }];
+            const cached = (await Promise.all(ids.map(id => storageService.getKimpayData(id))))
+                .filter((data) => !!data?.expand) as Kimpay[];
+            if (cancelled) return;
+            // The cached copy first (instant), then what changed since.
+            summaries = Object.fromEntries(cached.map((data) => [data.id, {
+                members: data.expand!.participants_via_kimpay?.length ?? 0,
+                news: 0,
+                lastActivity: latest(data.expand!.expenses_via_kimpay ?? []),
+            }]));
+            if (!online) return;
+            await Promise.all(cached.map(async (data) => {
+                const fresh = await fetchStamps(data.id);
+                const summary = summaries[data.id];
+                if (cancelled || !fresh || !summary) return;
+                const seen = new Set((data.expand!.expenses_via_kimpay ?? []).map(e => e.id));
+                const me = data.myParticipantId || null;
+                summary.news = fresh.filter(e => !seen.has(e.id) && e.created_by !== me).length;
+                summary.lastActivity = latest(fresh);
             }));
-            if (!cancelled) summaries = Object.fromEntries(entries.filter((e) => e !== null));
         })();
         return () => { cancelled = true; };
     });
@@ -117,22 +148,20 @@
                         >
                             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-muted text-2xl" aria-hidden="true">{k.icon || DEFAULT_GROUP_ICON}</span>
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-base font-semibold">{k.name}</span>
+                                <span class="block truncate text-base {summary?.news ? 'font-semibold' : 'font-medium'}">{k.name}</span>
                                 {#if summary}
-                                    <span class="block truncate text-sm text-muted-foreground">{$t('expense.list.people', { count: String(summary.members) })}</span>
-                                {/if}
-                            </span>
-                            {#if summary && summary.balance !== null}
-                                {#if Math.abs(summary.balance) < 0.005}
-                                    <Badge tone="neutral"><Check class="h-3 w-3" />{$t('home.group.settled')}</Badge>
-                                {:else}
-                                    <span class="shrink-0 text-right">
-                                        <span class="block text-base font-semibold tabular-nums {summary.balance > 0 ? 'text-success' : 'text-warning'}">
-                                            {summary.balance > 0 ? '+' : '−'}{formatAmount(Math.abs(summary.balance), summary.currency, $locale)}
-                                        </span>
-                                        <span class="block text-xs text-muted-foreground">{summary.balance > 0 ? $t('home.group.owed') : $t('home.group.owe')}</span>
+                                    <span class="block truncate text-sm text-muted-foreground">
+                                        {[
+                                            $t('expense.list.people', { count: String(summary.members) }),
+                                            summary.lastActivity && relativeDay(summary.lastActivity, $locale),
+                                        ].filter(Boolean).join(' · ')}
                                     </span>
                                 {/if}
+                            </span>
+                            {#if summary?.news}
+                                <Badge tone="solid">
+                                    {summary.news === 1 ? $t('home.group.new_one') : $t('home.group.new_many', { count: String(summary.news) })}
+                                </Badge>
                             {/if}
                             <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
                         </a>

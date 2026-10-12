@@ -37,6 +37,48 @@ test.describe('Sync between devices', () => {
         await otherContext.close();
     });
 
+    test('Home flags the expenses others added since my last visit', async ({ page, browser }) => {
+        await createKimpay(page, 'News Test', 'Alice');
+        await dismissInstallPrompt(page);
+        const kimpayUrl = page.url();
+        await page.goto(kimpayUrl.replace(/\/?$/, '/settings'));
+        await page.getByPlaceholder('New name').fill('Bob');
+        await page.getByRole('button', { name: /add/i }).click();
+        await expect(page.getByText('Bob')).toBeVisible();
+
+        // Mine do not count.
+        await page.getByRole('navigation').getByRole('link', { name: /expenses/i }).click();
+        await openAddExpense(page);
+        await saveExpense(page, 'My Coffee', '3');
+        await page.goto('/');
+        await expect(page.getByText('News Test')).toBeVisible();
+        await expect(page.getByText(/\bnew\b/)).toHaveCount(0);
+
+        // Bob adds two from his phone while I am away.
+        const otherContext = await browser.newContext();
+        const other = await otherContext.newPage();
+        await other.goto(kimpayUrl);
+        const identity = other.getByRole('dialog');
+        await identity.getByRole('button', { name: /bob/i }).click();
+        await expect(identity).toBeHidden();
+        await dismissInstallPrompt(other);
+        for (const [description, amount] of [['Bob Pizza', '20'], ['Bob Taxi', '15']] as const) {
+            await openAddExpense(other);
+            await saveExpense(other, description, amount);
+        }
+        await otherContext.close();
+
+        await page.reload();
+        await expect(page.getByText('2 new')).toBeVisible();
+
+        // Opening the group marks them as seen.
+        await page.getByText('News Test').click();
+        await expect(page.getByText('Bob Taxi')).toBeVisible();
+        await page.getByRole('link', { name: 'My Kimpays' }).click();
+        await expect(page.getByText('News Test')).toBeVisible();
+        await expect(page.getByText(/\bnew\b/)).toHaveCount(0);
+    });
+
     test.describe('with the service worker', () => {
         // The offline cache is the service worker's job (Chromium only in Playwright).
         test.use({ serviceWorkers: 'allow' });

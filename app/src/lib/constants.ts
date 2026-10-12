@@ -87,6 +87,10 @@ export const STORAGE_KEYS = {
     RATES_CACHE_PREFIX: 'kimpay_rates_',
     /** Sort order of the expense list (localStorage) */
     EXPENSE_SORT: 'kimpay_expense_sort',
+    /** Payment handles of a guest's profile (localStorage) */
+    PAYMENT_HANDLES: 'kimpay_payment_handles',
+    /** Prefix: "show my payment links" card dismissed in a group (localStorage) */
+    PAYMENT_NUDGE_DISMISSED_PREFIX: 'kimpay_payment_nudge_dismissed_',
     /** Legacy key for migration (deprecated) */
     LEGACY_MY_KIMPAYS: 'my_kimpays',
 } as const;

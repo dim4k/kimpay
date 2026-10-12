@@ -13,7 +13,7 @@ test.describe('Navigation & UX', () => {
     await expect(page).toHaveURL(/\/k\//);
     
     // Go to Balance
-    await page.getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
     await expect(page).toHaveURL(/\/balance/);
     
     // Go to Share
@@ -39,14 +39,63 @@ test.describe('Navigation & UX', () => {
   });
 
   test('Return to home from Kimpay', async ({ page }) => {
-    // Click on logo/home link in header
-    const homeLink = page.getByRole('link', { name: /kimpay|home|accueil/i }).first();
-    
-    if (await homeLink.isVisible()) {
-      await homeLink.click();
-      await expect(page).toHaveURL('/');
-      await expect(page.getByText('Navigation Test')).toBeVisible(); // Should appear in recents
-    }
+    // The logo in the header leads home
+    await page.getByRole('link', { name: 'My Kimpays' }).click();
+    await expect(page).toHaveURL('/');
+    await expect(page.getByText('Navigation Test')).toBeVisible(); // Should appear in recents
+  });
+
+  test('Group switcher in the header lists the groups', async ({ page }) => {
+    await page.getByRole('button', { name: /Navigation Test/ }).click();
+    await expect(page.getByRole('link', { name: /Navigation Test/ })).toHaveAttribute('aria-current', 'page');
+
+    await page.getByRole('link', { name: 'My Kimpays' }).last().click();
+    await expect(page).toHaveURL('/');
+  });
+
+  test('Tabs do not pile up in the history', async ({ page }) => {
+    const tabs = page.getByRole('navigation');
+    await tabs.getByRole('link', { name: /balance/i }).click();
+    await expect(page).toHaveURL(/\/balance/);
+    await tabs.getByRole('link', { name: /share/i }).click();
+    await expect(page).toHaveURL(/\/share/);
+
+    // Back leaves the group instead of replaying the tabs
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+  });
+
+  test('Closing the expense form returns to the tab it was opened from', async ({ page }) => {
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+    await expect(page).toHaveURL(/\/balance/);
+
+    await page.getByRole('link', { name: /add expense/i }).click();
+    await expect(page).toHaveURL(/\/add/);
+    await page.getByRole('link', { name: 'Close' }).click();
+    await expect(page).toHaveURL(/\/balance/);
+  });
+
+  test('Bottom sheets close with their handle', async ({ page }) => {
+    test.skip(!test.info().project.use.isMobile, 'Sheets only slide up from the bottom on phones');
+    const profile = page.getByRole('dialog', { name: 'Profile' });
+    const handle = profile.getByRole('button', { name: 'Close' });
+
+    // Dragged down
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await expect(profile).toBeVisible();
+    // hover() waits for the sheet to finish sliding in.
+    await handle.hover();
+    const box = (await handle.boundingBox())!;
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + 200, { steps: 10 });
+    await page.mouse.up();
+    await expect(profile).toBeHidden();
+
+    // Tapped
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await expect(profile).toBeVisible();
+    await handle.click();
+    await expect(profile).toBeHidden();
   });
 
   test('Share page shows invite options', async ({ page }) => {

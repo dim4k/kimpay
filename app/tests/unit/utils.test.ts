@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { generateUUID, generatePocketBaseId } from '../../src/lib/utils/id';
 import { isValidEmail } from '../../src/lib/utils/email';
+import { relativeDay } from '../../src/lib/utils/date';
 
 // =============================================================================
 // utils/id.ts - ID Generation Tests
@@ -179,5 +180,26 @@ describe('utils/email', () => {
                 expect(isValidEmail('a@b.co')).toBe(true);
             });
         });
+    });
+});
+
+describe('relativeDay', () => {
+    const now = new Date(2026, 9, 12, 9, 0);
+
+    it('counts calendar days, not hours', () => {
+        expect(relativeDay(new Date(2026, 9, 12, 8, 0).toISOString(), 'en', now)).toBe('today');
+        expect(relativeDay(new Date(2026, 9, 11, 23, 0).toISOString(), 'en', now)).toBe('yesterday');
+        expect(relativeDay(new Date(2026, 9, 9, 10, 0).toISOString(), 'en', now)).toBe('3 days ago');
+    });
+
+    it('switches to weeks, months, then years', () => {
+        expect(relativeDay(new Date(2026, 8, 28).toISOString(), 'en', now)).toBe('2 weeks ago');
+        expect(relativeDay(new Date(2026, 6, 1).toISOString(), 'en', now)).toBe('3 months ago');
+        expect(relativeDay(new Date(2024, 9, 1).toISOString(), 'en', now)).toBe('2 years ago');
+    });
+
+    it('reads PocketBase datetimes', () => {
+        const pbDate = new Date(2026, 9, 11, 12, 0).toISOString().replace('T', ' ');
+        expect(relativeDay(pbDate, 'fr', now)).toBe('hier');
     });
 });

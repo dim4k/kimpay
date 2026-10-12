@@ -7,6 +7,7 @@
   import { LoaderCircle, SearchX } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { goBack } from '#lib/utils/navigation.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
@@ -18,12 +19,17 @@
   // as soon as fresh data arrives.
   let initialData = $derived(activeKimpay?.expenses.find(e => e.id === expenseId) ?? null);
   let isLoading = $derived(!initialData && (activeKimpay?.loading ?? true));
-  let notFound = $derived(!initialData && !isLoading);
+  // Set once deleted: the page is on its way out, not "missing".
+  let leaving = $state(false);
+  let notFound = $derived(!initialData && !isLoading && !leaving);
 
   function handleDelete() {
       if (!activeKimpay || !expenseId) return;
       // Leave the page first: it would show the expense as missing otherwise.
-      confirmDeleteExpense(activeKimpay, expenseId, `/k/${kimpayId}`);
+      confirmDeleteExpense(activeKimpay, expenseId, () => {
+          leaving = true;
+          return goBack(`/k/${kimpayId}`);
+      });
   }
 </script>
 

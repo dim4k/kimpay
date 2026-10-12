@@ -5,6 +5,9 @@ export interface User {
     name: string;
     avatar?: string;
     preferred_currency?: string;
+    /** Payment handles of the profile (private, see profileStore) */
+    paypal?: string;
+    revolut?: string;
     created: string;
     updated: string;
 }

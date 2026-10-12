@@ -13,8 +13,10 @@
     let { href, icon: Icon, label, isActive }: Props = $props();
 </script>
 
+<!-- Tabs replace each other in the history: back leaves the group. -->
 <a
     {href}
+    data-sveltekit-replacestate
     onclick={() => haptic('light')}
     aria-current={isActive ? 'page' : undefined}
     class="flex h-full flex-col items-center justify-center gap-0.5 transition-colors duration-150 {isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"

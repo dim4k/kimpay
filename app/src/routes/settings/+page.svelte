@@ -1,10 +1,9 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { auth } from '#lib/stores/auth.svelte.js';
-    import { t, locale } from '#lib/i18n.js';
-    import { CURRENCIES, CURRENCY_CODES, DEFAULT_CURRENCY, getCurrencyName } from '#lib/services/currency.js';
+    import { t } from '#lib/i18n.js';
     import { userService } from '#lib/services/user.js';
-    import { ArrowLeft, ChevronDown, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
+    import { ArrowLeft, Check, Pencil, Loader2, Camera, Trash2 } from '@lucide/svelte';
     import { Button } from '#lib/components/ui/button/index.js';
     import { Input } from '#lib/components/ui/input/index.js';
     import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
@@ -13,10 +12,6 @@
     import { modals } from '#lib/stores/modals.svelte.js';
     import { toasts } from '#lib/stores/toasts.svelte.js';
     import { getErrorMessage } from '#lib/utils/errors.js';
-
-    let selectedCurrency = $state(auth.user?.preferred_currency ?? DEFAULT_CURRENCY);
-    let isCurrencyOpen = $state(false);
-    let isSaving = $state(false);
 
     // Name editing
     let userName = $state(auth.user?.name ?? '');
@@ -39,22 +34,6 @@
             window.history.back();
         } else {
             goto('/');
-        }
-    }
-
-    async function saveCurrency(code: string) {
-        selectedCurrency = code;
-        isCurrencyOpen = false;
-        isSaving = true;
-
-        try {
-            const updated = await userService.updatePreferences(auth.user!.id, { currency: code });
-            auth.setUser(updated);
-        } catch (e) {
-            console.error('Failed to save currency preference', e);
-            toasts.error(getErrorMessage(e, $t));
-        } finally {
-            isSaving = false;
         }
     }
 
@@ -193,47 +172,4 @@
             </div>
         </section>
     {/if}
-
-    <!-- Currency Preference -->
-    <section class="space-y-2">
-        <SectionLabel title={$t('user_settings.currency.title')} />
-        <div class="rounded-card border bg-card">
-            <button
-                type="button"
-                onclick={() => isCurrencyOpen = !isCurrencyOpen}
-                aria-expanded={isCurrencyOpen}
-                class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors hover:bg-muted/60"
-            >
-                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-base">{CURRENCIES[selectedCurrency]?.symbol}</span>
-                <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="font-medium">{selectedCurrency}</span>
-                    <span class="truncate text-sm text-muted-foreground">{getCurrencyName(selectedCurrency, $locale)}</span>
-                </span>
-                <ChevronDown class="h-4 w-4 text-muted-foreground transition-transform {isCurrencyOpen ? 'rotate-180' : ''}" />
-            </button>
-
-            {#if isCurrencyOpen}
-                <div class="divide-y border-t" transition:slide={{ duration: 150 }}>
-                    {#each CURRENCY_CODES as code (code)}
-                        <button
-                            type="button"
-                            onclick={() => saveCurrency(code)}
-                            disabled={isSaving}
-                            class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors last:rounded-b-[inherit] hover:bg-muted/60 {selectedCurrency === code ? 'bg-primary-soft' : ''}"
-                        >
-                            <span class="w-8 text-center text-base">{CURRENCIES[code]?.symbol}</span>
-                            <span class="flex min-w-0 flex-1 flex-col">
-                                <span class="font-medium">{code}</span>
-                                <span class="truncate text-sm text-muted-foreground">{getCurrencyName(code, $locale)}</span>
-                            </span>
-                            {#if selectedCurrency === code}
-                                <Check class="h-5 w-5 text-primary" />
-                            {/if}
-                        </button>
-                    {/each}
-                </div>
-            {/if}
-        </div>
-        <p class="px-1 text-sm text-muted-foreground">{$t('user_settings.currency.desc')}</p>
-    </section>
 </div>

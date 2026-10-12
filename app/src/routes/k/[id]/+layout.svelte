@@ -10,6 +10,7 @@
   import NavItem from '#lib/components/ui/NavItem.svelte';
   import { haptic } from '#lib/utils/haptic.js';
   import { installStore } from '#lib/stores/install.svelte.js';
+  import { profileStore } from '#lib/stores/profile.svelte.js';
   
   import { onDestroy, type Snippet } from 'svelte';
   
@@ -58,6 +59,15 @@
       if (!hasIdentity && !modals.identityState) {
           modals.identity({ kimpayId: activeKimpay.id });
       }
+  });
+
+  // Payment handles used to be entered per group: the first ones found
+  // become the profile's (they stay shown in that group).
+  $effect(() => {
+      if (!activeKimpay || activeKimpay.loading) return;
+      profileStore.adopt(activeKimpayGlobal.myParticipant ?? undefined).catch((e) =>
+          console.warn("Could not take the payment handles into the profile", e),
+      );
   });
 </script>
 

@@ -1,5 +1,4 @@
 import { get } from 'svelte/store';
-import { goto } from '$app/navigation';
 import { t } from '#lib/i18n.js';
 import { modals } from '#lib/stores/modals.svelte.js';
 import { toasts } from '#lib/stores/toasts.svelte.js';
@@ -11,14 +10,14 @@ import type { ActiveKimpay } from '#lib/stores/activeKimpay.svelte.js';
  * Ask for confirmation, then delete an expense (optimistically) with
  * success / error feedback.
  *
- * @param navigateTo Page to leave to before deleting (e.g. from the edit
- *                   page of that expense, which would otherwise show it as
- *                   missing). On failure the expense is restored there.
+ * @param leave Leaves the page before deleting (e.g. the edit page of that
+ *              expense, which would otherwise show it as missing). On failure
+ *              the expense is restored where the user went.
  */
 export function confirmDeleteExpense(
     activeKimpay: ActiveKimpay,
     expenseId: string,
-    navigateTo?: string,
+    leave?: () => Promise<void>,
 ) {
     const translate = get(t);
     modals.confirm({
@@ -28,7 +27,7 @@ export function confirmDeleteExpense(
         cancelText: translate('common.cancel'),
         variant: 'destructive',
         onConfirm: async () => {
-            if (navigateTo) await goto(navigateTo);
+            await leave?.();
             try {
                 await activeKimpay.deleteExpense(expenseId);
                 haptic('success');

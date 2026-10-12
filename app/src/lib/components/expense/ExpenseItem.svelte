@@ -7,7 +7,7 @@
     import { goto } from '$app/navigation';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-    import { expenseImpact } from '#lib/balance.js';
+    import { expenseShare } from '#lib/balance.js';
     import SwipeableItem from '#lib/components/ui/SwipeableItem.svelte';
     import Badge from '#lib/components/ui/Badge.svelte';
     import { Button } from '#lib/components/ui/button/index.js';
@@ -54,7 +54,10 @@
         return currentUserId && id === currentUserId ? $t('common.you_in_sentence') : nameOf(id, name);
     }
 
-    let subtitle = $derived.by(() => {
+    let paidByMe = $derived(!!currentUserId && expense.payer === currentUserId);
+
+    // "Paid by Laetitia", or "Paid by you" highlighted: what I paid stands out.
+    let payerLabel = $derived.by(() => {
         if (expense.is_reimbursement) {
             const to = expense.expand?.involved?.[0];
             return $t('expense.list.reimbursement', {
@@ -63,25 +66,17 @@
             });
         }
         const paidBy = expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by');
-        const people = $t('expense.list.people', { count: String(expense.involved?.length || 0) });
-        return `${paidBy} ${inSentence(expense.payer, expense.expand?.payer?.name)} · ${people}`;
+        return `${paidBy} ${inSentence(expense.payer, expense.expand?.payer?.name)}`;
     });
+    let people = $derived($t('expense.list.people', { count: String(expense.involved?.length || 0) }));
 
-    // What this expense means for me, under its amount.
-    let impact = $derived.by(() => {
-        if (!currentUserId || expense.is_reimbursement) return null;
-        const involved = expense.payer === currentUserId || (expense.involved ?? []).includes(currentUserId);
-        if (!involved) return { label: $t('expense.impact.none'), tone: 'text-muted-foreground' };
-
-        const value = expenseImpact(expense, currentUserId, participantIds);
-        if (Math.abs(value) < 0.005) return null;
-        const amount = formatAmount(Math.abs(value), currency, $locale);
-        if (value < 0) return { label: $t('expense.impact.owe', { amount }), tone: 'text-warning' };
-        return {
-            label: $t(expense.is_income ? 'expense.impact.owed' : 'expense.impact.lent', { amount }),
-            tone: 'text-success',
-        };
-    });
+    // My part of an equal split, in the details (a custom split already shows
+    // everyone's part next to their name).
+    let myShare = $derived(
+        currentUserId && !shares && !expense.is_reimbursement && (expense.involved ?? []).includes(currentUserId)
+            ? expenseShare(expense, currentUserId, participantIds)
+            : null
+    );
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.target !== e.currentTarget) return;
@@ -133,16 +128,19 @@
             <p class="truncate text-base font-medium">
                 {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
             </p>
-            <p class="truncate text-sm text-muted-foreground">{subtitle}</p>
+            <p class="truncate text-sm text-muted-foreground">
+                {#if expense.is_reimbursement}
+                    {payerLabel}
+                {:else}
+                    <span class={paidByMe ? 'font-semibold text-primary' : ''}>{payerLabel}</span>{` · ${people}`}
+                {/if}
+            </p>
         </div>
 
         <div class="shrink-0 text-right">
             <p class="text-base font-semibold tabular-nums">
                 {expense.is_income ? '+' : ''}{formatAmount(expense.amount, currency, $locale)}
             </p>
-            {#if impact}
-                <p class="text-xs font-medium tabular-nums {impact.tone}">{impact.label}</p>
-            {/if}
         </div>
     </div>
 
@@ -170,6 +168,12 @@
                             {/if}
                         </dd>
                     </div>
+                    {#if myShare !== null}
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-muted-foreground">{$t('expense.list.your_share')}:</dt>
+                            <dd class="font-semibold tabular-nums">{formatAmount(myShare, currency, $locale)}</dd>
+                        </div>
+                    {/if}
                 {/if}
             </dl>
 

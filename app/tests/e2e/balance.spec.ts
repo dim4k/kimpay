@@ -17,7 +17,7 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Other')).toBeVisible();
 
     // Navigate to balance page
-    await page.getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
     
     // With no expenses, should show "No expenses yet" empty state
     await expect(page.getByText(/no expenses/i)).toBeVisible({ timeout: 5000 });
@@ -45,7 +45,7 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Test Expense')).toBeVisible();
 
     // 3. Go to balance
-    await page.getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
 
     // 4. Verify I am owed money (100/2 = 50) - look for transaction showing debt
     // Wait for balance to load and show debt summary
@@ -64,7 +64,7 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Rich Person')).toBeVisible();
 
     // 2. Switch identity to Rich Person so they pay
-    await switchIdentity(page);
+    await switchIdentity(page, 'Rich Person');
 
     // 3. Add expense paid by Rich Person (now me), shared with both
     await page.getByRole('link', { name: /expenses/i }).click();
@@ -76,11 +76,10 @@ test.describe('Balance & Debts', () => {
     await page.getByRole('button', { name: /save|enregistrer/i }).first().click();
 
     // 4. Switch back to Payer to see debt
-    await page.goto(url.replace(/\/?$/, '/settings'));
-    await switchIdentity(page);
+    await switchIdentity(page, 'Payer');
 
     // 5. Go to balance
-    await page.getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
     await expect(page).toHaveURL(/\/balance/);
 
     // 6. Verify I owe money (200/2 = 100) - look for the specific "You owe" text

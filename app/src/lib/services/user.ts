@@ -16,6 +16,11 @@ export const userService = {
         return await pb.collection('users').update<User>(userId, data);
     },
 
+    /** Save the profile's payment handles ("" clears one). */
+    async updatePaymentHandles(userId: string, handles: { paypal: string; revolut: string }): Promise<User> {
+        return await pb.collection('users').update<User>(userId, handles);
+    },
+
     /**
      * Update user avatar
      */

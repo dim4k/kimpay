@@ -44,27 +44,44 @@ export function splitWeights(expense: Pick<Expense, 'involved' | 'split'>, parti
 }
 
 /**
- * Split an integer `total` (minor units) proportionally to `weights`, without
- * losing or creating a single cent: the leftover units go to the largest
- * remainders (ties broken by ID, so every client gets the same result).
+ * Exact (fractional) split of `total` proportionally to `weights`. Balances
+ * add these up and round once at the end: rounding every expense would put
+ * its indivisible cents on the same people each time.
  */
-export function distribute(total: number, weights: Record<string, number>): Record<string, number> {
-    const ids = Object.keys(weights).sort();
+export function exactShares(total: number, weights: Record<string, number>): Record<string, number> {
+    const ids = Object.keys(weights);
     const sum = ids.reduce((acc, id) => acc + weights[id]!, 0);
-    const result: Record<string, number> = {};
-    if (ids.length === 0 || sum <= 0) return result;
+    if (ids.length === 0 || sum <= 0) return {};
+    return Object.fromEntries(ids.map((id) => [id, (total * weights[id]!) / sum]));
+}
 
-    const exact = ids.map((id) => ({ id, value: (total * weights[id]!) / sum }));
+/**
+ * Round fractional minor units to integers adding up exactly to `total`: the
+ * leftover units go to the largest remainders (ties broken by ID, so every
+ * client gets the same result).
+ */
+export function roundToSum(values: Record<string, number>, total: number): Record<string, number> {
+    const ids = Object.keys(values).sort();
+    const result: Record<string, number> = {};
     let left = total;
-    for (const { id, value } of exact) {
-        result[id] = Math.floor(value);
+    for (const id of ids) {
+        result[id] = Math.floor(values[id]!);
         left -= result[id]!;
     }
-    exact
-        .sort((a, b) => (b.value - Math.floor(b.value)) - (a.value - Math.floor(a.value)) || (a.id < b.id ? -1 : 1))
-        .slice(0, left)
-        .forEach(({ id }) => result[id]!++);
+    const fraction = (id: string) => values[id]! - result[id]!;
+    [...ids]
+        .sort((a, b) => fraction(b) - fraction(a) || (a < b ? -1 : 1))
+        .slice(0, Math.round(left))
+        .forEach((id) => result[id]!++);
     return result;
+}
+
+/**
+ * Split an integer `total` (minor units) proportionally to `weights`, without
+ * losing or creating a single cent (see roundToSum).
+ */
+export function distribute(total: number, weights: Record<string, number>): Record<string, number> {
+    return roundToSum(exactShares(total, weights), total);
 }
 
 /**

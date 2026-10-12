@@ -16,6 +16,7 @@
     import { auth } from '#lib/stores/auth.svelte.js';
     import { storageService } from '#lib/services/storage.js';
     import { participantService } from '#lib/services/participant.js';
+    import { trackNavigation } from '#lib/utils/navigation.js';
 
     let { children, data }: LayoutProps = $props();
 
@@ -26,9 +27,10 @@
     // (not the document), reset it to the top on each navigation.
     let mainEl = $state<HTMLElement>();
 
-    afterNavigate(({ shallow, type }) => {
-        if (shallow && type === 'goto') return;
+    afterNavigate((navigation) => {
+        if (navigation.shallow && navigation.type === 'goto') return;
 
+        trackNavigation(navigation);
         mainEl?.scrollTo({ top: 0 });
     });
 

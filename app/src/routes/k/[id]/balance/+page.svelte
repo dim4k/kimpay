@@ -19,6 +19,11 @@
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { formatAmount, convert, DEFAULT_CURRENCY } from '#lib/services/currency.js';
+  import { profileStore, hasHandles } from '#lib/stores/profile.svelte.js';
+  import { toasts } from '#lib/stores/toasts.svelte.js';
+  import { getErrorMessage } from '#lib/utils/errors.js';
+  import { STORAGE_KEYS } from '#lib/constants.js';
+  import PaymentHandlesSheet from '#lib/components/profile/PaymentHandlesSheet.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -101,6 +106,51 @@
       myId ? toDisplayCurrency(shareOf(expenses, participants, myId, kimpayDefaultCurrency, exchangeRates), kimpayDefaultCurrency) : 0
   );
 
+  // Someone owes me and cannot pay me in one tap: offer to show my payment
+  // links here (they are private until shown in a group).
+  let owingMe = $derived([...new Set(transactions.filter((tx) => myId && tx.to === myId).map((tx) => tx.from))]);
+  let nudgeKey = $derived(`${STORAGE_KEYS.PAYMENT_NUDGE_DISMISSED_PREFIX}${activeKimpay?.id ?? ''}`);
+  let nudgeDismissed = $state(false);
+  $effect(() => {
+      try {
+          nudgeDismissed = localStorage.getItem(nudgeKey) === 'true';
+      } catch {
+          nudgeDismissed = false;
+      }
+  });
+  let showNudge = $derived(
+      !!myId && owingMe.length > 0 && !nudgeDismissed && !offlineStore.isOffline &&
+          !hasHandles(activeKimpay?.participantsById.get(myId))
+  );
+  let isPaymentOpen = $state(false);
+  let isShowing = $state(false);
+
+  async function showMyHandles() {
+      if (!profileStore.hasHandles) {
+          isPaymentOpen = true;
+          return;
+      }
+      isShowing = true;
+      try {
+          await profileStore.showInActiveGroup(true);
+          toasts.success($t('profile.payment.shown'));
+      } catch (e) {
+          console.error("Failed to show payment handles", e);
+          toasts.error(getErrorMessage(e, $t));
+      } finally {
+          isShowing = false;
+      }
+  }
+
+  function dismissNudge() {
+      nudgeDismissed = true;
+      try {
+          localStorage.setItem(nudgeKey, 'true');
+      } catch {
+          // Hidden for this visit only.
+      }
+  }
+
   // Everyone's net balance, the biggest creditor first.
   let balanceRows = $derived(
       participants
@@ -164,6 +214,25 @@
             </BalanceHero>
         {/if}
 
+        {#if showNudge}
+            <section class="space-y-3 rounded-card bg-primary-soft p-4 animate-pop-in">
+                <div class="space-y-1">
+                    <p class="text-base font-semibold">
+                        {owingMe.length === 1 ? $t('payment.nudge.title_one', { name: getName(owingMe[0]!) }) : $t('payment.nudge.title_many')}
+                    </p>
+                    <p class="text-sm text-muted-foreground">
+                        {profileStore.hasHandles ? $t('payment.nudge.desc') : $t('payment.nudge.desc_empty')}
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <Button size="sm" onclick={showMyHandles} disabled={isShowing}>
+                        {profileStore.hasHandles ? $t('payment.nudge.show') : $t('profile.payment.add')}
+                    </Button>
+                    <Button size="sm" variant="ghost" onclick={dismissNudge}>{$t('payment.nudge.later')}</Button>
+                </div>
+            </section>
+        {/if}
+
         {#if transactions.length > 0}
             <section class="space-y-2 animate-slide-up">
                 <SectionLabel title={$t('balance.suggested.title')}>
@@ -220,3 +289,5 @@
         </section>
     {/if}
 </div>
+
+<PaymentHandlesSheet isOpen={isPaymentOpen} onClose={() => isPaymentOpen = false} onSaved={showMyHandles} />
