@@ -110,8 +110,9 @@ function sendTemplatedEmail(opts) {
 /**
  * Create a single-use magic-link OTP for `user` and email it to them.
  *
- * Generates a 64-char code stored in `auth_otps` (24h expiry), builds the
- * login URL `${origin}/?code=...`, and sends the `login_magic_link` template.
+ * Generates a 64-char code whose SHA-256 is stored in `auth_otps` (24h
+ * expiry, a few minutes once used: see /api/login/verify), builds the login
+ * URL `${origin}/?code=...`, and sends the `login_magic_link` template.
  * Shared by /api/login/magic-link and /api/register to avoid duplication.
  *
  * @param {object} opts
@@ -126,7 +127,7 @@ function createOtpAndSendMagicLink(opts) {
     var code = $security.randomString(64);
     var otps = $app.findCollectionByNameOrId("auth_otps");
     var otpRecord = new Record(otps);
-    otpRecord.set("code", code);
+    otpRecord.set("code", $security.sha256(code));
     otpRecord.set("user", opts.user.id);
 
     // Expiration: 24 hours (PocketBase date format "YYYY-MM-DD HH:MM:SS").

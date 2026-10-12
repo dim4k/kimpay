@@ -184,14 +184,24 @@ routerAdd("POST", "/api/login/verify", (c) => {
             });
         }
 
-        // Find a valid (non-expired) OTP. Bound params: no manual escaping.
+        // Find a valid OTP: not expired, and not opened more than a few
+        // minutes ago. Only the code's hash is stored. Bound params: no
+        // manual escaping.
+        //
+        // Note: OTP is NOT deleted on first use. A single magic link is
+        // frequently opened more than once for the same click (e.g. first in
+        // the mail client's in-app webview, then again in the real
+        // browser/PWA): deleting it breaks those subsequent loads with
+        // "Invalid Link". It stays valid a few minutes after the first one.
+        const GRACE_MS = 5 * 60 * 1000;
+        const dbDate = (ms) => new Date(ms).toISOString().replace("T", " ");
         try {
             let otp;
             try {
                 otp = $app.findFirstRecordByFilter(
                     "auth_otps",
-                    "code = {:code} && expires >= @now",
-                    { code: String(data.code) },
+                    "code = {:code} && expires >= @now && (used = '' || used >= {:since})",
+                    { code: $security.sha256(String(data.code)), since: dbDate(Date.now() - GRACE_MS) },
                 );
             } catch (e) {
                 return c.json(400, { message: "Invalid or expired code" });
@@ -199,11 +209,15 @@ routerAdd("POST", "/api/login/verify", (c) => {
 
             const user = $app.findRecordById("users", otp.get("user"));
 
-            // Note: OTP is NOT deleted here. A single magic link is frequently
-            // requested more than once for the same click (e.g. the link opens
-            // first in the mail client's in-app webview, then again in the real
-            // browser/PWA). Deleting on first use breaks those subsequent loads
-            // with "Invalid Link". The link stays valid until it expires.
+            if (!otp.getString("used")) {
+                otp.set("used", dbDate(Date.now()));
+                $app.save(otp);
+            }
+            // Links requested before (or after) this one stop working.
+            $app.db()
+                .newQuery("DELETE FROM auth_otps WHERE user = {:user} AND id != {:id}")
+                .bind({ user: user.id, id: otp.id })
+                .execute();
 
             // Standard auth response ({ token, record, meta }): serializes the
             // record like any PocketBase login (email included for its owner)

@@ -3,9 +3,10 @@
 // =============================================================================
 // Scheduled cleanup of expired magic-link OTPs.
 //
-// `auth_otps` records are intentionally kept valid until they expire (a single
-// magic link is often opened several times — mail webview, then real browser).
-// They are never deleted on use, so without a sweep the table grows forever.
+// `auth_otps` records are intentionally not deleted on use (a single magic
+// link is often opened several times — mail webview, then real browser): they
+// only stop working a few minutes later. Without a sweep the table grows
+// forever.
 //
 // This cron purges every OTP whose `expires` timestamp is in the past, once an
 // hour, in a single statement (no hooks are attached to `auth_otps`).
