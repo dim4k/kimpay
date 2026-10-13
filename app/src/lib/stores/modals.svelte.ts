@@ -73,6 +73,24 @@ class ModalStore {
     closeRegister() {
         this.registerState = null;
     }
+
+    /** Magic link form ("Login / Recover") */
+    isLoginOpen = $state(false);
+    login() {
+        this.isLoginOpen = true;
+    }
+    closeLogin() {
+        this.isLoginOpen = false;
+    }
+
+    /** Logout, offering to remove the account's groups from this device */
+    isLogoutOpen = $state(false);
+    logout() {
+        this.isLogoutOpen = true;
+    }
+    closeLogout() {
+        this.isLogoutOpen = false;
+    }
 }
 
 export const modals = new ModalStore();

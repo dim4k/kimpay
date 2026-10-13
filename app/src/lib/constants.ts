@@ -100,6 +100,8 @@ export const STORAGE_KEYS = {
     PAYMENT_NUDGE_DISMISSED_PREFIX: 'kimpay_payment_nudge_dismissed_',
     /** Groups archived on this device, without an account (localStorage) */
     ARCHIVED_KIMPAYS: 'kimpay_archived',
+    /** An account was logged in on this device: the empty home offers to log back in (localStorage) */
+    HAD_ACCOUNT: 'kimpay_had_account',
     /** Times the "swipe a group" hint was shown (localStorage) */
     SWIPE_HINT_SHOWN: 'kimpay_swipe_hint_shown',
     /** Prefix: "archive this settled group?" dismissed (localStorage) */

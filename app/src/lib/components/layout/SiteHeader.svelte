@@ -14,7 +14,6 @@
   import ProfilePanel from '#lib/components/profile/ProfilePanel.svelte';
   import { profileMenu } from '#lib/stores/profileMenu.svelte.js';
 
-  import LoginHelpModal from '#lib/components/ui/modals/LoginHelpModal.svelte';
   import OfflineHelpModal from '#lib/components/ui/modals/OfflineHelpModal.svelte';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { afterNavigate } from '$app/navigation';
@@ -27,7 +26,6 @@
 
   let isSwitcherOpen = $state(false);
   let showOfflineHelp = $state(false);
-  let isLoginHelpOpen = $state(false);
 
   // Only show Kimpay context if we are actually on a /k/[id] route
   let isInKimpayContext = $derived(page.url.pathname.startsWith('/k/'));
@@ -191,7 +189,7 @@
           class="absolute right-0 top-full mt-2 max-h-[calc(100dvh-5rem)] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-3 text-popover-foreground shadow-xl"
           transition:slide={{ duration: 150 }}
         >
-          <ProfilePanel onClose={() => profileMenu.close()} onLoginHelp={() => isLoginHelpOpen = true} />
+          <ProfilePanel onClose={() => profileMenu.close()} />
         </div>
       {/if}
     </div>
@@ -205,8 +203,7 @@
   </Modal>
 {/if}
 <Modal isOpen={profileMenu.isOpen && !isDesktop} onClose={() => profileMenu.close()} variant="sheet" label={$t('profile.title')} class="space-y-0 bg-background">
-  <ProfilePanel onClose={() => profileMenu.close()} onLoginHelp={() => isLoginHelpOpen = true} />
+  <ProfilePanel onClose={() => profileMenu.close()} />
 </Modal>
 
 <OfflineHelpModal isOpen={showOfflineHelp} onClose={() => showOfflineHelp = false} />
-<LoginHelpModal isOpen={isLoginHelpOpen} onClose={() => isLoginHelpOpen = false} />

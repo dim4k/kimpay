@@ -93,3 +93,15 @@
     />
     {/await}
 {/if}
+
+{#if modals.isLoginOpen}
+    {#await import('#lib/components/ui/modals/LoginHelpModal.svelte') then { default: LoginHelpModal }}
+    <LoginHelpModal isOpen={true} onClose={() => modals.closeLogin()} />
+    {/await}
+{/if}
+
+{#if modals.isLogoutOpen}
+    {#await import('#lib/components/ui/modals/LogoutModal.svelte') then { default: LogoutModal }}
+    <LogoutModal onClose={() => modals.closeLogout()} />
+    {/await}
+{/if}

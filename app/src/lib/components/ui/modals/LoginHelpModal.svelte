@@ -8,19 +8,14 @@
 
   let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();
 
-  // The form (remounted on each opening) shows its own success message; we
-  // only add a close button once the link is sent.
+  // Mounted only while open (see GlobalModals). The form shows its own
+  // success message; we only add a close button once the link is sent.
   let sent = $state(false);
-
-  function close() {
-      sent = false;
-      onClose();
-  }
 </script>
 
 <BaseInfoModal
     {isOpen}
-    onClose={close}
+    {onClose}
     title={$t('login_help.modal.title')}
     description={$t('login_help.modal.desc')}
     icon={Mail}
@@ -34,7 +29,7 @@
         </div>
 
         {#if sent}
-            <Button variant="outline" class="w-full" onclick={close}>{$t('common.got_it')}</Button>
+            <Button variant="outline" class="w-full" onclick={onClose}>{$t('common.got_it')}</Button>
         {/if}
     </div>
 </BaseInfoModal>

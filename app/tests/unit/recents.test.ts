@@ -31,7 +31,19 @@ const pb = {
     collection: vi.fn((name: string) => (name === "participants" ? participants : kimpays)),
     filter: vi.fn((raw: string) => raw),
     send: vi.fn(),
-    authStore: { isValid: false, record: null },
+    authStore: {
+        isValid: false,
+        record: null as { id: string } | null,
+        listeners: [] as ((token: string, record: { id: string } | null) => void)[],
+        onChange(fn: (token: string, record: { id: string } | null) => void) {
+            this.listeners.push(fn);
+        },
+        /** Logs `record` in (or out with null), as PocketBase does. */
+        save(record: { id: string } | null) {
+            this.record = record;
+            this.listeners.forEach((fn) => fn("", record));
+        },
+    },
     health: { check: vi.fn() },
 };
 vi.mock("#lib/pocketbase.js", () => ({ pb }));
@@ -66,6 +78,8 @@ const ids = (list: { id: string }[]) => list.map((k) => k.id).sort();
 
 beforeEach(() => {
     for (const key in mockStore) delete mockStore[key];
+    pb.authStore.listeners = [];
+    pb.authStore.record = null;
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.stubGlobal("navigator", { onLine: true });
@@ -130,6 +144,42 @@ describe("recentsStore with an account", () => {
 
         await recentsStore.init();
         expect(ids(recentsStore.recentKimpays)).toEqual(["kimpayopen00001"]);
+    });
+});
+
+describe("recentsStore on login", () => {
+    it("brings in the account's groups once loaded (here or in another tab)", async () => {
+        auth.user = null;
+        const { recentsStore } = await load();
+        await recentsStore.init();
+        expect(recentsStore.recentKimpays).toEqual([]);
+
+        participants.getFullList.mockResolvedValue([
+            { id: "paccount000001", kimpay: "kimpayacct00001", user: USER, expand: { kimpay: { id: "kimpayacct00001", name: "Trip", created_by: "" } } },
+        ]);
+        auth.user = { id: USER };
+        pb.authStore.save({ id: USER });
+        await vi.waitFor(() => expect(ids(recentsStore.recentKimpays)).toEqual(["kimpayacct00001"]));
+    });
+
+    it("leaves the first load to come do it", async () => {
+        const { recentsStore } = await load();
+        pb.authStore.save({ id: USER });
+        expect(participants.getFullList).not.toHaveBeenCalled();
+        expect(recentsStore.loading).toBe(false);
+    });
+
+    it("reloads after the running load instead of alongside it", async () => {
+        cacheGroup("kimpaykept00001", { user: "" });
+        const { recentsStore } = await load();
+
+        const first = recentsStore.init();
+        recentsStore.init(true);
+        recentsStore.init(true);
+        await first;
+        await vi.waitFor(() => expect(recentsStore.loading).toBe(false));
+        // The first load, then one more (the two asks are merged).
+        expect(participants.getFullList).toHaveBeenCalledTimes(2);
     });
 });
 

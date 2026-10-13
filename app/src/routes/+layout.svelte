@@ -16,8 +16,7 @@
     import { auth } from '#lib/stores/auth.svelte.js';
     import { storageService } from '#lib/services/storage.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
-    import { participantService } from '#lib/services/participant.js';
-    import { kimpayService } from '#lib/services/kimpay.js';
+    import { afterLogin } from '#lib/services/session.js';
     import { trackNavigation } from '#lib/utils/navigation.js';
 
     let { children, data }: LayoutProps = $props();
@@ -53,39 +52,6 @@
         ogImage: 'https://kimpay.io/og-image.png'
     });
 
-    /**
-     * After a successful login, if the user is currently on a Kimpay page with a participant
-     * identity, automatically claim that participant for their account.
-     */
-    async function tryClaimCurrentParticipant() {
-        // loginWithOtp has already saved the auth session synchronously, so the
-        // user is available right away — no need to wait for a tick.
-        const user = auth.user;
-        if (!user) return;
-        
-        // Get ALL kimpays where this device has a participant identity
-        const recentKimpayIds = await storageService.getRecentKimpayIds();
-        
-        for (const kimpayId of recentKimpayIds) {
-            const participantId = await storageService.getMyParticipantId(kimpayId);
-            if (!participantId) continue;
-            
-            try {
-                await participantService.claim(participantId, kimpayId, user.id);
-            } catch (e) {
-                console.error("Failed to auto-claim participant", kimpayId, e);
-            }
-            try {
-                await kimpayService.claimOwnership(kimpayId);
-            } catch (e) {
-                console.error("Failed to claim the group's ownership", kimpayId, e);
-            }
-        }
-        
-        // Reload stores to reflect the claimed kimpays
-        recentsStore.init(true);
-    }
-    
     onMount(async () => {
         const migrated = await storageService.migrate();
         theme.init();
@@ -123,8 +89,7 @@
                 // Remove code from URL
                 url.searchParams.delete('code');
                 window.history.replaceState({}, '', url);
-                // Auto-claim participant if on a Kimpay page
-                tryClaimCurrentParticipant();
+                afterLogin();
             } else {
                 // Invalid or expired code
                 url.searchParams.delete('code');

@@ -243,9 +243,14 @@ export const fr: Record<TranslationKey, string> = {
     "my_kimpays.empty": "Vous n'avez rejoint aucun Kimpay pour le moment.",
 
     "home.recover.button": "Envoyer le lien magique",
-    "home.recover.success_title": "Lien envoyé !",
-    "home.recover.success_desc": "Vérifiez votre boîte de réception.",
+    "home.recover.success_title": "Vérifiez vos emails",
+    "home.recover.success_desc": "Si un compte Kimpay existe pour cette adresse, vous allez recevoir un lien de connexion.",
     "home.recover.error": "Impossible d'envoyer le lien. Réessayez plus tard.",
+    "home.recover.no_account": "Pas de compte ? Vos Kimpays se rouvrent alors avec leur lien d'invitation.",
+    "home.recover.have_account": "Déjà un compte ?",
+    "home.recover.link": "Retrouvez vos Kimpays",
+    "home.welcome_back.title": "Bon retour !",
+    "home.welcome_back.desc": "Vos Kimpays ne sont plus sur cet appareil. Recevez un lien par email pour les retrouver.",
 
     "register.title": "S'inscrire",
     "register.desc": "Créez un compte pour sauvegarder vos kimpays.",
@@ -270,8 +275,11 @@ export const fr: Record<TranslationKey, string> = {
         "Sécurisez votre accès et retrouvez vos kimpays partout.",
     "login_help.button": "Se connecter",
     "modal.logout.title": "Se déconnecter ?",
-    "modal.logout.desc": "Êtes-vous sûr de vouloir vous déconnecter ?",
+    "modal.logout.desc": "Vos Kimpays restent sur cet appareil et s'ouvrent sans compte.",
     "modal.logout.confirm": "Se déconnecter",
+    "modal.logout.forget": "Retirer mes Kimpays de cet appareil",
+    "modal.logout.forget_hint": "Conseillé sur un appareil prêté. Ils reviennent quand vous vous reconnectez.",
+    "modal.logout.forget_pending": "Des modifications faites hors ligne attendent d'être envoyées : reconnectez-vous à internet d'abord.",
 
     "home.offline.title": "Vous êtes hors ligne",
     "home.offline.desc":

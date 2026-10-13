@@ -30,10 +30,9 @@
     interface Props {
         /** Close the panel (before opening another dialog) */
         onClose: () => void;
-        onLoginHelp: () => void;
     }
 
-    let { onClose, onLoginHelp }: Props = $props();
+    let { onClose }: Props = $props();
 
     // Inside a group: who I am there.
     let inGroup = $derived(page.url.pathname.startsWith('/k/'));
@@ -252,7 +251,7 @@
                 <UserPlus />
                 {$t('register.button')}
             </Button>
-            <Button size="sm" variant="secondary" class="flex-1" onclick={() => { onClose(); onLoginHelp(); }}>
+            <Button size="sm" variant="secondary" class="flex-1" onclick={() => { onClose(); modals.login(); }}>
                 {$t('login_help.button')}
             </Button>
         </div>
@@ -313,7 +312,7 @@
 
     {#if auth.user}
         <ListGroup>
-            <ListRow icon={LogOut} tone="danger" title={$t('auth.logout')} onclick={() => { onClose(); auth.confirmLogout(); }} />
+            <ListRow icon={LogOut} tone="danger" title={$t('auth.logout')} onclick={() => { onClose(); modals.logout(); }} />
         </ListGroup>
     {/if}
 

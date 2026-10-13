@@ -15,15 +15,30 @@ class RecentsStore {
     // Loaded without the server (offline, or unreachable): validated and
     // subscribed to once back online.
     private needsServer = false;
+    // A forced reload asked for while one was running: done right after it.
+    private reloadQueued = false;
+    private userId = pb.authStore.record?.id ?? null;
 
     constructor() {
         offlineStore.onSynced(() => {
             if (this.needsServer && !this.loading) this.init(true);
         });
+        // Logged in, here or in another tab: bring in the account's Kimpays
+        // (the first load, if still to come, will do it).
+        pb.authStore.onChange((_token, record) => {
+            const userId = record?.id ?? null;
+            if (userId === this.userId) return;
+            this.userId = userId;
+            if (userId && (this.initialized || this.loading)) this.init(true);
+        });
     }
 
     async init(force = false) {
-        if ((this.initialized || this.loading) && !force) return;
+        if (this.loading) {
+            if (force) this.reloadQueued = true;
+            return;
+        }
+        if (this.initialized && !force) return;
 
         try {
             this.loading = true;
@@ -61,6 +76,10 @@ class RecentsStore {
             console.error("Failed to load kimpays", e);
         } finally {
             this.loading = false;
+            if (this.reloadQueued) {
+                this.reloadQueued = false;
+                this.init(true);
+            }
         }
     }
 

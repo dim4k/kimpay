@@ -241,9 +241,14 @@ export const de: Record<TranslationKey, string> = {
     "my_kimpays.empty": "Du hast noch keinen Kimpays beigetreten.",
 
     "home.recover.button": "Magic-Link senden",
-    "home.recover.success_title": "Link gesendet!",
-    "home.recover.success_desc": "Überprüfe deinen E-Mail-Posteingang.",
+    "home.recover.success_title": "Prüfe deine E-Mails",
+    "home.recover.success_desc": "Wenn es für diese Adresse ein Kimpay-Konto gibt, bekommst du einen Anmeldelink.",
     "home.recover.error": "Magic-Link konnte nicht gesendet werden. Versuche es später erneut.",
+    "home.recover.no_account": "Kein Konto? Dann öffnest du deine Kimpays wieder über ihren Einladungslink.",
+    "home.recover.have_account": "Schon ein Konto?",
+    "home.recover.link": "Finde deine Kimpays wieder",
+    "home.welcome_back.title": "Willkommen zurück!",
+    "home.welcome_back.desc": "Deine Kimpays sind nicht mehr auf diesem Gerät. Hol dir einen Link per E-Mail, um sie wiederzufinden.",
 
     "register.title": "Registrieren",
     "register.desc": "Erstelle ein Konto, um deine Kimpays zu speichern.",
@@ -268,8 +273,11 @@ export const de: Record<TranslationKey, string> = {
         "Sichere deinen Zugang und finde deine Kimpays überall.",
     "login_help.button": "Anmelden",
     "modal.logout.title": "Abmelden?",
-    "modal.logout.desc": "Möchtest du dich wirklich abmelden?",
+    "modal.logout.desc": "Deine Kimpays bleiben auf diesem Gerät und lassen sich ohne Konto öffnen.",
     "modal.logout.confirm": "Abmelden",
+    "modal.logout.forget": "Meine Kimpays von diesem Gerät entfernen",
+    "modal.logout.forget_hint": "Empfohlen auf einem geliehenen Gerät. Sie kommen zurück, wenn du dich wieder anmeldest.",
+    "modal.logout.forget_pending": "Offline gemachte Änderungen warten noch auf das Senden: geh zuerst wieder online.",
 
     "home.offline.title": "Du bist offline",
     "home.offline.desc":

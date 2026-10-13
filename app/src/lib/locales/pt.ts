@@ -241,9 +241,14 @@ export const pt: Record<TranslationKey, string> = {
     "my_kimpays.empty": "Você ainda não entrou em nenhum Kimpay.",
 
     "home.recover.button": "Enviar link mágico",
-    "home.recover.success_title": "Link enviado!",
-    "home.recover.success_desc": "Verifique sua caixa de entrada.",
+    "home.recover.success_title": "Verifique seu e-mail",
+    "home.recover.success_desc": "Se existir uma conta Kimpay com este endereço, você vai receber um link de acesso.",
     "home.recover.error": "Não foi possível enviar o link. Tente novamente mais tarde.",
+    "home.recover.no_account": "Sem conta? Então seus Kimpays abrem de novo pelo link de convite.",
+    "home.recover.have_account": "Já tem conta?",
+    "home.recover.link": "Recupere seus Kimpays",
+    "home.welcome_back.title": "Que bom te ver de novo!",
+    "home.welcome_back.desc": "Seus Kimpays não estão mais neste dispositivo. Receba um link por e-mail para recuperá-los.",
 
     "register.title": "Cadastrar",
     "register.desc": "Crie uma conta para salvar seus kimpays.",
@@ -268,8 +273,11 @@ export const pt: Record<TranslationKey, string> = {
         "Proteja seu acesso e encontre seus kimpays em qualquer lugar.",
     "login_help.button": "Entrar",
     "modal.logout.title": "Sair?",
-    "modal.logout.desc": "Tem certeza que quer sair?",
+    "modal.logout.desc": "Seus Kimpays ficam neste dispositivo e abrem sem conta.",
     "modal.logout.confirm": "Sair",
+    "modal.logout.forget": "Remover meus Kimpays deste dispositivo",
+    "modal.logout.forget_hint": "Recomendado em um dispositivo emprestado. Eles voltam quando você entrar de novo.",
+    "modal.logout.forget_pending": "Há alterações feitas offline aguardando envio: conecte-se à internet primeiro.",
 
     "home.offline.title": "Você está offline",
     "home.offline.desc":

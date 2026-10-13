@@ -2,9 +2,8 @@ import { pb } from '#lib/pocketbase.js';
 import type { RecordModel } from 'pocketbase';
 import type { User } from '#lib/types.js';
 import { isNetworkError } from '#lib/utils/errors.js';
-import { get } from 'svelte/store';
-import { t } from '#lib/i18n.js';
-import { modals } from '#lib/stores/modals.svelte.js';
+import { prefs } from '#lib/utils/prefs.js';
+import { STORAGE_KEYS } from '#lib/constants.js';
 
 class AuthStore {
     user = $state<User | null>(pb.authStore.record as User | null);
@@ -15,26 +14,14 @@ class AuthStore {
         pb.authStore.onChange((_token, model) => {
             this.user = model as User | null;
             this.isValid = pb.authStore.isValid;
+            // Kept after logging out (see the home page), unless the account's
+            // groups are removed from this device.
+            if (model) prefs.set(STORAGE_KEYS.HAD_ACCOUNT, 'true');
         }, true);
     }
 
     logout() {
         pb.authStore.clear();
-    }
-
-    /** Ask for confirmation, then log out and reload the app on the home page. */
-    confirmLogout() {
-        const translate = get(t);
-        modals.confirm({
-            title: translate('modal.logout.title'),
-            description: translate('modal.logout.desc'),
-            confirmText: translate('modal.logout.confirm'),
-            variant: 'destructive',
-            onConfirm: () => {
-                this.logout();
-                window.location.href = "/";
-            }
-        });
     }
 
     /**

@@ -75,41 +75,54 @@ export async function switchIdentity(page: Page, name: string) {
     await expect(dialog).toBeHidden();
 }
 
+async function superuserHeaders(request: APIRequestContext) {
+    const auth = await request.post(`${PB_URL}/api/collections/_superusers/auth-with-password`, { data: SUPERUSER });
+    expect(auth.ok()).toBe(true);
+    return { Authorization: (await auth.json()).token };
+}
+
 /**
  * Logs this device in with a new account named `name`, through a real magic
  * link opened on the current page: like after a real login, the account
  * claims the device's participants (and the groups it created). The email is
- * skipped: the superuser stores the link's code.
+ * skipped: the superuser stores the link's code. Returns the account's id.
  */
-export async function loginWithNewAccount(page: Page, request: APIRequestContext, name: string) {
-    const auth = await request.post(`${PB_URL}/api/collections/_superusers/auth-with-password`, { data: SUPERUSER });
-    expect(auth.ok()).toBe(true);
-    const headers = { Authorization: (await auth.json()).token };
-
+export async function loginWithNewAccount(page: Page, request: APIRequestContext, name: string): Promise<string> {
     const password = randomBytes(12).toString('hex');
     const email = `${name.toLowerCase()}-${randomBytes(6).toString('hex')}@kimpay.test`;
     const user = await request.post(`${PB_URL}/api/collections/users/records`, {
-        headers,
+        headers: await superuserHeaders(request),
         data: { email, name, password, passwordConfirm: password, verified: true },
     });
     expect(user.ok()).toBe(true);
+    const userId: string = (await user.json()).id;
 
+    const claimed = page.waitForResponse((r) => r.url().includes('/api/collections/participants/records/') && r.request().method() === 'PATCH');
+    const url = new URL(page.url());
+    url.searchParams.set('code', await createLoginCode(request, userId));
+    await page.goto(url.toString());
+    expect((await claimed).ok()).toBe(true);
+    await expect(page).not.toHaveURL(/[?&]code=/);
+    return userId;
+}
+
+/** Opens a magic link logging in the account `userId`, on `path` (the home page by default). */
+export async function openMagicLink(page: Page, request: APIRequestContext, userId: string, path = '/') {
+    await page.goto(`${path}?code=${await createLoginCode(request, userId)}`);
+    await expect(page).not.toHaveURL(/[?&]code=/);
+}
+
+async function createLoginCode(request: APIRequestContext, userId: string): Promise<string> {
     // Only the code's hash is stored (see pb_hooks/lib/email.js).
     const code = randomBytes(32).toString('hex');
     const otp = await request.post(`${PB_URL}/api/collections/auth_otps/records`, {
-        headers,
+        headers: await superuserHeaders(request),
         data: {
             code: createHash('sha256').update(code).digest('hex'),
-            user: (await user.json()).id,
+            user: userId,
             expires: new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' '),
         },
     });
     expect(otp.ok()).toBe(true);
-
-    const claimed = page.waitForResponse((r) => r.url().includes('/api/collections/participants/records/') && r.request().method() === 'PATCH');
-    const url = new URL(page.url());
-    url.searchParams.set('code', code);
-    await page.goto(url.toString());
-    expect((await claimed).ok()).toBe(true);
-    await expect(page).not.toHaveURL(/[?&]code=/);
+    return code;
 }

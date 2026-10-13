@@ -239,9 +239,14 @@ export const en = {
     "my_kimpays.empty": "You have not joined any Kimpays yet.",
 
     "home.recover.button": "Send Magic Link",
-    "home.recover.success_title": "Link sent!",
-    "home.recover.success_desc": "Check your email inbox.",
+    "home.recover.success_title": "Check your email",
+    "home.recover.success_desc": "If a Kimpay account exists for this address, you will receive a login link.",
     "home.recover.error": "Unable to send magic link. Please try again later.",
+    "home.recover.no_account": "No account? Then your Kimpays open again from their invite link.",
+    "home.recover.have_account": "Already have an account?",
+    "home.recover.link": "Find your Kimpays",
+    "home.welcome_back.title": "Welcome back!",
+    "home.welcome_back.desc": "Your Kimpays are no longer on this device. Get a link by email to find them.",
 
     "register.title": "Sign Up",
     "register.desc": "Create an account to save your kimpays.",
@@ -266,8 +271,11 @@ export const en = {
         "Secure your access and find your kimpays everywhere.",
     "login_help.button": "Login",
     "modal.logout.title": "Log out?",
-    "modal.logout.desc": "Are you sure you want to log out?",
+    "modal.logout.desc": "Your Kimpays stay on this device and open without an account.",
     "modal.logout.confirm": "Log out",
+    "modal.logout.forget": "Remove my Kimpays from this device",
+    "modal.logout.forget_hint": "Best on a borrowed device. They come back when you log in again.",
+    "modal.logout.forget_pending": "Changes made offline are still waiting to be sent: get back online first.",
 
     "home.offline.title": "You're offline",
     "home.offline.desc":

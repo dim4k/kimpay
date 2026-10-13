@@ -41,6 +41,30 @@ export const participantService = {
     },
 
     /**
+     * Links this device's identity in a group to the account, on login. The
+     * account wins: when it already has a member there, that member is
+     * returned for the device to take, and the device's one is left as is.
+     * Returns the identity to use on this device.
+     */
+    async linkToAccount(participantId: string, kimpayId: string, userId: string): Promise<string> {
+        const kimpay = await pb.collection('kimpays').getOne(kimpayId, {
+            expand: 'participants_via_kimpay',
+            requestKey: null,
+        });
+        const records = (kimpay.expand?.participants_via_kimpay || []) as Participant[];
+
+        const accounts = records.find((p) => p.user === userId);
+        if (accounts) return accounts.id;
+
+        // Gone, or someone else's: nothing to link.
+        const device = records.find((p) => p.id === participantId);
+        if (!device || device.user) return participantId;
+
+        await pb.collection('participants').update(participantId, { user: userId });
+        return participantId;
+    },
+
+    /**
      * Update participant avatar
      */
     async updateAvatar(participantId: string, file: File): Promise<Participant> {

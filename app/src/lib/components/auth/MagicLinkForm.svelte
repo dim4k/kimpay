@@ -45,7 +45,11 @@
 </script>
 
 {#if success}
-    <Notice title={$t('home.recover.success_title')} description={$t('home.recover.success_desc')} />
+    <div class="space-y-2">
+        <Notice title={$t('home.recover.success_title')} description={$t('home.recover.success_desc')} />
+        <!-- Only accounts get the email (whether one exists is not told). -->
+        <p class="px-1 text-xs text-muted-foreground">{$t('home.recover.no_account')}</p>
+    </div>
 {:else}
     <form onsubmit={handleSubmit} class="space-y-3">
         <div class="space-y-2">
