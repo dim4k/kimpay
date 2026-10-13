@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { closeExpenseSheet, createKimpay, dismissInstallPrompt } from './test-utils';
 
 test.describe('Navigation & UX', () => {
 
@@ -71,7 +71,7 @@ test.describe('Navigation & UX', () => {
 
     await page.getByRole('link', { name: /add expense/i }).click();
     await expect(page).toHaveURL(/\/add/);
-    await page.getByRole('link', { name: 'Close' }).click();
+    await closeExpenseSheet(page);
     await expect(page).toHaveURL(/\/balance/);
   });
 

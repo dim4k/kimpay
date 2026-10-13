@@ -5,7 +5,7 @@
     import { parseLocalISODate } from '#lib/utils/date.js';
     import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
     import { slide } from 'svelte/transition';
-    import { goto } from '$app/navigation';
+    import { openExpenseSheet } from '#lib/expenseSheet.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { formatAmount, DEFAULT_CURRENCY } from '#lib/services/currency.js';
     import { expenseImpact, expenseShare, isSettled, toKimpayAmount } from '#lib/balance.js';
@@ -59,6 +59,12 @@
     } = $props();
 
     let isExpanded = $derived(expandedId === expense.id);
+
+    // The form opens over the list: the expense folds, as it was before.
+    function openFolded(target: { expenseId?: string; from?: string }) {
+        onToggleExpand(expense.id);
+        openExpenseSheet(kimpayId, target);
+    }
     let hasPhotos = $derived(!!expense.photos && expense.photos.length > 0);
 
     // Each person's share, shown when the expense is not split equally.
@@ -174,7 +180,7 @@
 
 <SwipeableItem
     disabled={swipeDisabled}
-    onEdit={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
+    onEdit={() => openExpenseSheet(kimpayId, { expenseId: expense.id })}
     onDelete={() => onRequestDelete(expense.id)}
 >
 <div class="expense-item" data-expense={expense.id}>
@@ -327,7 +333,7 @@
                         variant="outline"
                         size="sm"
                         disabled={offlineStore.isOffline}
-                        onclick={() => goto(`/k/${kimpayId}/edit/${expense.id}`)}
+                        onclick={() => openFolded({ expenseId: expense.id })}
                     >
                         <Pencil />
                         {$t('common.edit')}
@@ -336,7 +342,7 @@
                     <Button
                         variant="outline"
                         size="sm"
-                        onclick={() => goto(`/k/${kimpayId}/add?from=${expense.id}`)}
+                        onclick={() => openFolded({ from: expense.id })}
                     >
                         <Copy />
                         {$t('expense.list.duplicate')}

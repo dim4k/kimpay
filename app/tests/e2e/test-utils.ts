@@ -126,3 +126,13 @@ async function createLoginCode(request: APIRequestContext, userId: string): Prom
     expect(otp.ok()).toBe(true);
     return code;
 }
+
+/** The expense form, in its sheet over the group's pages. */
+export function expenseSheet(page: Page) {
+    return page.getByRole('dialog', { name: /^(add|edit) expense$/i });
+}
+
+/** Closes the expense form with the close button of its header (phones also have a handle named "Close"). */
+export async function closeExpenseSheet(page: Page) {
+    await expenseSheet(page).locator('header').getByRole('button', { name: 'Close' }).click();
+}

@@ -5,13 +5,14 @@
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
-  import { goto, replaceState } from '$app/navigation';
+  import { replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import IconTile from '#lib/components/ui/IconTile.svelte';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
   import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
+  import { openExpenseSheet, opensExpenseSheet } from '#lib/expenseSheet.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
@@ -378,7 +379,7 @@
   /** A receipt photographed from the empty list: the form reads it. */
   function scanFromList(file: File) {
       pendingReceipt.set(file);
-      goto(`/k/${kimpayId}/add`);
+      openExpenseSheet(kimpayId);
   }
 
   function requestDelete(id: string) {
@@ -656,7 +657,7 @@
           {/snippet}
           {#snippet action()}
               <div class="flex w-64 max-w-full flex-col gap-2">
-                  <Button href="/k/{kimpayId}/add" size="lg" class="w-full">
+                  <Button href="/k/{kimpayId}/add" onclick={opensExpenseSheet(kimpayId)} size="lg" class="w-full">
                       <Plus class="size-5!" />
                       {$t('expense.list.empty.add')}
                   </Button>

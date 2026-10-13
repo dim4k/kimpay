@@ -53,15 +53,13 @@ test.describe('Expense Management', () => {
     await expect(page.getByRole('dialog', { name: 'Sign Up' }).getByText(/free account to scan your receipts/)).toBeVisible();
   });
 
-  test('The new expense form invites to scan a receipt', async ({ page }) => {
+  test('The new expense form offers to scan a receipt', async ({ page }) => {
     await page.getByRole('link', { name: /add expense/i }).click();
-    const card = page.getByRole('button', { name: /scan a receipt/i });
-    await expect(card).toBeVisible();
-
-    // Typing by hand: the card leaves room, the top bar keeps the scanner.
-    await page.getByPlaceholder('0.00').fill('12');
-    await expect(card).toBeHidden();
     await expect(page.getByRole('button', { name: 'Scan', exact: true })).toBeVisible();
+
+    // Not for money received.
+    await page.getByRole('switch', { name: 'Money received' }).click();
+    await expect(page.getByRole('button', { name: 'Scan', exact: true })).toBeHidden();
   });
 
   test('Finds an emoji by typing its name', async ({ page }) => {
@@ -101,10 +99,16 @@ test.describe('Expense Management', () => {
     await expect(page.getByPlaceholder('Search')).toBeFocused();
   });
 
-  test('The payer is one line, unfolded on demand', async ({ page }) => {
+  test('The payer is one line, changed in its panel', async ({ page }) => {
     await page.getByRole('link', { name: /add expense/i }).click();
-    await page.getByRole('button', { name: /spender.*change/i }).click();
-    await expect(page.getByRole('group', { name: 'Paid by' }).getByRole('button', { name: 'Spender' })).toHaveAttribute('aria-pressed', 'true');
+    const payer = page.getByRole('button', { name: /^paid by spender/i });
+    await payer.click();
+    const choice = page.getByRole('group', { name: 'Paid by' }).getByRole('button', { name: 'Spender' });
+    await expect(choice).toHaveAttribute('aria-pressed', 'true');
+
+    // One payer: picking them closes the panel.
+    await choice.click();
+    await expect(payer).toBeVisible();
   });
 
   // Reimbursement flow might require 2 participants to be meaningful,

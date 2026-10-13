@@ -22,6 +22,8 @@
         onAddNew?: () => void;
         /** Show select all/none toggle (only for multi mode) */
         showToggleAll?: boolean;
+        /** The label is read out only (the panel holding it says it already) */
+        hideLabel?: boolean;
     }
 
     let { 
@@ -32,7 +34,8 @@
         hint = '',
         onSelectionChange,
         onAddNew,
-        showToggleAll = false
+        showToggleAll = false,
+        hideLabel = false
     }: Props = $props();
 
     function handleSelect(participantId: string) {
@@ -69,7 +72,7 @@
 </script>
 
 <div class="space-y-2" role="group" aria-label={label}>
-    <div class="flex min-h-6 items-center justify-between">
+    <div class="flex min-h-6 items-center justify-between" class:sr-only={hideLabel}>
         <Label tag="span">
             {label}
             {#if mode === 'multi'}

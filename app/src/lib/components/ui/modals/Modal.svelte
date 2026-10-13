@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
+  import { ChevronDown } from '@lucide/svelte';
   import { cn } from "#lib/utils/index.js";
   import { t } from '#lib/i18n.js';
 
@@ -14,10 +15,14 @@
     label?: string;
     class?: string;
     backdropClass?: string;
+    /** Stays at the top while the content scrolls (e.g. a form's title) */
+    header?: Snippet;
+    /** Stays at the bottom while the content scrolls (e.g. a form's save button) */
+    footer?: Snippet;
     children?: Snippet;
   }
 
-  let { isOpen = false, onClose, variant = 'dialog', label, class: className, backdropClass, children }: Props = $props();
+  let { isOpen = false, onClose, variant = 'dialog', label, class: className, backdropClass, header, footer, children }: Props = $props();
 
   let dialog = $state<HTMLDialogElement>();
   let isSheet = $derived(variant === 'sheet');
@@ -55,6 +60,25 @@
     else dragY = 0;
   }
 
+  // With a header or a footer, only the content in between scrolls: what is
+  // left below it fades out and the footer casts a shadow over it.
+  let framed = $derived(!!header || !!footer);
+  let body = $state<HTMLElement>();
+  let content = $state<HTMLElement>();
+  let moreBelow = $state(false);
+
+  function measure() {
+    if (body) moreBelow = body.scrollHeight - body.scrollTop - body.clientHeight > 4;
+  }
+
+  $effect(() => {
+    if (!body || !content) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(body);
+    observer.observe(content);
+    return () => observer.disconnect();
+  });
+
   function panelIn(node: Element) {
     return isSheet ? fly(node, { y: 48, duration: 300 }) : scale(node, { start: 0.95, opacity: 0, duration: 150 });
   }
@@ -77,10 +101,11 @@
     >
         <div
             class={cn(
-                "relative w-full space-y-6 border bg-card p-6 text-card-foreground shadow-2xl outline-hidden",
+                "relative w-full border bg-card text-card-foreground shadow-2xl outline-hidden",
+                framed ? "flex flex-col overflow-hidden" : "space-y-6 p-6",
                 !dragFrom && "transition-transform duration-200",
                 isSheet
-                    ? "max-h-[90dvh] max-w-lg overflow-y-auto rounded-t-card pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-card sm:pb-6"
+                    ? cn("max-h-[90dvh] max-w-lg rounded-t-card sm:rounded-card", !framed && "overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6")
                     : "max-w-sm rounded-card",
                 className
             )}
@@ -104,7 +129,33 @@
                     <span class="h-1 w-10 rounded-full bg-muted-foreground/30"></span>
                 </button>
             {/if}
-            {@render children?.()}
+            {#if framed}
+                {#if header}
+                    <header class="shrink-0 px-6 pt-6 pb-2">
+                        {@render header()}
+                    </header>
+                {/if}
+                <div class="relative flex min-h-0 flex-1 flex-col">
+                    <div bind:this={body} class="min-h-0 flex-1 overflow-y-auto overscroll-contain" onscroll={measure}>
+                        <div bind:this={content} class="space-y-6 px-6 pt-2 pb-6">
+                            {@render children?.()}
+                        </div>
+                    </div>
+                    <div
+                        class="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-linear-to-b from-transparent to-card to-85% pb-1 transition-opacity duration-200 {moreBelow ? 'opacity-100' : 'opacity-0'}"
+                        aria-hidden="true"
+                    >
+                        <ChevronDown class="h-4 w-4 text-primary motion-safe:animate-bounce" />
+                    </div>
+                </div>
+                {#if footer}
+                    <div class="shrink-0 border-t bg-card px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] transition-shadow duration-200 sm:pb-3 {moreBelow ? 'shadow-[0_-10px_18px_-12px_rgb(0_0_0/0.35)]' : ''}">
+                        {@render footer()}
+                    </div>
+                {/if}
+            {:else}
+                {@render children?.()}
+            {/if}
         </div>
     </dialog>
 {/if}

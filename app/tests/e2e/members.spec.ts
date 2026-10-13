@@ -118,6 +118,7 @@ test.describe('Members', () => {
         await expect(row(page, 'Carol').getByText('No longer taking part')).toBeVisible();
 
         await page.getByRole('link', { name: /add expense/i }).click();
+        await page.getByRole('button', { name: /^for whom/i }).click();
         const forWhom = page.getByRole('group', { name: 'For whom' });
         await expect(forWhom.getByRole('button', { name: 'Bob' })).toHaveAttribute('aria-pressed', 'true');
         await expect(forWhom.getByRole('button', { name: 'Carol' })).toHaveAttribute('aria-pressed', 'false');
@@ -133,6 +134,7 @@ test.describe('Members', () => {
         await expect(row(page, 'Bob').getByText('2 shares')).toBeVisible();
 
         await page.getByRole('link', { name: /add expense/i }).click();
+        await page.getByRole('button', { name: /^split by shares/i }).click();
         await expect(page.getByRole('radio', { name: 'Shares' })).toHaveAttribute('aria-checked', 'true');
         await expect(page.getByLabel('Share of Bob')).toHaveValue('2');
         await expect(page.getByLabel('Share of Alice')).toHaveValue('1');

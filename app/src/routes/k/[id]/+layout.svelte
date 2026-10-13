@@ -9,6 +9,8 @@
   
   import { modals } from '#lib/stores/modals.svelte.js';
   import NavItem from '#lib/components/ui/NavItem.svelte';
+  import ExpenseSheet from '#lib/components/expense/ExpenseSheet.svelte';
+  import { opensExpenseSheet } from '#lib/expenseSheet.js';
   import { haptic } from '#lib/utils/haptic.js';
   import { installStore } from '#lib/stores/install.svelte.js';
   import { profileStore } from '#lib/stores/profile.svelte.js';
@@ -61,7 +63,8 @@
   // A group of one: inviting the others is the next step.
   let isAlone = $derived(!!activeKimpay && !activeKimpay.loading && activeKimpay.participants.length <= 1);
 
-  // Expense forms are full-screen: no tab bar (they have their own save bar).
+  // The addresses of the expense form, opened from a link or a reload: they
+  // only open the form's sheet over the expense list (no tab bar meanwhile).
   let isFormRoute = $derived(/\/(add|edit)(\/|$)/.test(page.url.pathname));
   
   // Ask "who are you?" once the Kimpay is loaded and this device has no
@@ -143,7 +146,7 @@
         <!-- The one primary action of a group: add an expense. -->
         <a
             href="/k/{kimpayId}/add"
-            onclick={() => haptic('light')}
+            onclick={(e) => { haptic('light'); opensExpenseSheet(kimpayId)(e); }}
             class="-mt-6 flex h-13 w-13 items-center justify-center justify-self-center rounded-card bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-150 hover:scale-105 active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
             title={$t('expense.add.title')}
             aria-label={$t('expense.add.title')}
@@ -168,3 +171,5 @@
     </div>
 </nav>
 {/if}
+
+<ExpenseSheet {kimpayId} />

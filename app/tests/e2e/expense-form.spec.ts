@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { closeExpenseSheet, createKimpay, dismissInstallPrompt, expenseSheet } from './test-utils';
 
 test.describe('Expense form', () => {
     test.beforeEach(async ({ page }) => {
@@ -7,6 +7,7 @@ test.describe('Expense form', () => {
         await dismissInstallPrompt(page);
         await page.getByRole('link', { name: /add expense/i }).click();
         await expect(page).toHaveURL(/\/add$/);
+        await expect(expenseSheet(page)).toBeVisible();
     });
 
     test('the icon follows the description until picked', async ({ page }) => {
@@ -17,12 +18,26 @@ test.describe('Expense form', () => {
         await expect(icon).toHaveText('🚆');
     });
 
-    test('an equal split is one line, unfolded on demand', async ({ page }) => {
+    test('each setting is a line of the summary, changed in its panel', async ({ page }) => {
         await page.getByPlaceholder('0.00').fill('30');
         const summary = page.getByRole('button', { name: /split equally/i });
         await expect(summary).toBeVisible();
         await summary.click();
         await expect(page.getByRole('radio', { name: 'Amounts' })).toBeVisible();
+        await expect(expenseSheet(page).getByRole('heading', { name: 'Split' })).toBeVisible();
+
+        // Back closes the panel, not the sheet.
+        await page.goBack();
+        await expect(summary).toBeVisible();
+        await expect(page).toHaveURL(/\/add$/);
+    });
+
+    test('the date is picked in its panel, which closes once picked', async ({ page }) => {
+        await expenseSheet(page).getByRole('button', { name: /^date/i }).click();
+        const calendar = page.getByRole('group', { name: 'Date' });
+        await calendar.getByRole('button', { name: '1', exact: true }).first().click();
+        await expect(calendar).toBeHidden();
+        await expect(expenseSheet(page).getByRole('button', { name: /^date/i })).toBeVisible();
     });
 
     test('amounts of a split accept a decimal comma', async ({ page }) => {
@@ -36,7 +51,7 @@ test.describe('Expense form', () => {
 
     test('money received is a switch at the bottom', async ({ page }) => {
         await page.getByRole('switch', { name: 'Money received' }).click();
-        await expect(page.getByText('Received by')).toBeVisible();
+        await expect(page.getByRole('button', { name: /^received by/i })).toBeVisible();
     });
 
     test('save and add another stays on an empty form', async ({ page }) => {
@@ -50,21 +65,49 @@ test.describe('Expense form', () => {
         await expect(page.getByPlaceholder('What was it for?')).toHaveValue('');
 
         // Nothing typed since: closing does not ask.
-        await page.getByRole('link', { name: 'Close' }).click();
+        await closeExpenseSheet(page);
+        await expect(expenseSheet(page)).toBeHidden();
         await expect(page.getByText('Coffee')).toBeVisible();
     });
 
     test('closing with something typed asks first', async ({ page }) => {
         await page.getByPlaceholder('What was it for?').fill('Groceries');
-        await page.getByRole('link', { name: 'Close' }).click();
+        await closeExpenseSheet(page);
 
-        const dialog = page.getByRole('dialog');
-        await expect(dialog.getByText('Discard this expense?')).toBeVisible();
+        const dialog = page.getByRole('dialog', { name: 'Discard this expense?' });
+        await expect(dialog).toBeVisible();
         await dialog.getByRole('button', { name: 'Keep editing' }).click();
         await expect(page.getByPlaceholder('What was it for?')).toHaveValue('Groceries');
 
-        await page.getByRole('link', { name: 'Close' }).click();
-        await page.getByRole('dialog').getByRole('button', { name: 'Discard' }).click();
+        await closeExpenseSheet(page);
+        await dialog.getByRole('button', { name: 'Discard' }).click();
+        await expect(expenseSheet(page)).toBeHidden();
         await expect(page).not.toHaveURL(/\/add$/);
+    });
+
+    test('back with something typed asks first', async ({ page }) => {
+        await page.getByPlaceholder('What was it for?').fill('Groceries');
+        await page.goBack();
+
+        const dialog = page.getByRole('dialog', { name: 'Discard this expense?' });
+        await dialog.getByRole('button', { name: 'Keep editing' }).click();
+        await expect(page.getByPlaceholder('What was it for?')).toHaveValue('Groceries');
+        await expect(page).toHaveURL(/\/add$/);
+
+        await page.goBack();
+        await dialog.getByRole('button', { name: 'Discard' }).click();
+        await expect(expenseSheet(page)).toBeHidden();
+        await expect(page).not.toHaveURL(/\/add$/);
+    });
+
+    test('opens over the expense list from its own address', async ({ page }) => {
+        await closeExpenseSheet(page);
+        await page.goto(`${page.url()}/add`);
+        await expect(expenseSheet(page)).toBeVisible();
+        await expect(page).toHaveURL(/\/add$/);
+
+        // Back: the list it opened over.
+        await closeExpenseSheet(page);
+        await expect(page).toHaveURL(/\/k\/[a-z0-9]+\/?$/);
     });
 });

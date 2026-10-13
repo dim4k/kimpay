@@ -21,6 +21,7 @@
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
+  import { opensExpenseSheet } from '#lib/expenseSheet.js';
   import { formatAmount, convert, DEFAULT_CURRENCY } from '#lib/services/currency.js';
   import { profileStore, hasHandles } from '#lib/stores/profile.svelte.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
@@ -231,7 +232,7 @@
                 <Wallet class="h-12 w-12" />
             {/snippet}
             {#snippet action()}
-                <Button href="/k/{activeKimpay?.id ?? ''}/add" size="lg">
+                <Button href="/k/{activeKimpay?.id ?? ''}/add" onclick={opensExpenseSheet(activeKimpay?.id ?? '')} size="lg">
                     <Plus class="size-5!" />
                     {$t('expense.list.empty.add')}
                 </Button>

@@ -1,5 +1,5 @@
 import { test, expect, type Page, type BrowserContextOptions } from '@playwright/test';
-import { createKimpay } from './test-utils';
+import { closeExpenseSheet, createKimpay } from './test-utils';
 
 /**
  * Visual regression baselines for the main screens, in light and dark mode,
@@ -14,7 +14,7 @@ test.skip(process.platform !== 'linux', 'Visual baselines are generated in the D
 /**
  * Opens the home page in a stable state. The clock is not faked (it would
  * also stall JS animations such as the balance count-up); the only date shown
- * ("today" in the date picker) is masked instead.
+ * ("today" in the expense form) is hidden instead.
  */
 async function setup(page: Page) {
     // Exchange rates come from an external API: keep the screens offline-stable.
@@ -40,7 +40,7 @@ async function setup(page: Page) {
 }
 
 /** Waits for transient UI (toasts) to go away, then compares the viewport. */
-async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['locator']>[]) {
+async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['locator']>[], style?: string) {
     await expect(page.locator('[data-toast]')).toHaveCount(0, { timeout: 10000 });
     // Focusing a field may scroll it into view (mobile): always compare the
     // top of the page, without focus.
@@ -50,7 +50,7 @@ async function snapshot(page: Page, name: string, mask = [] as ReturnType<Page['
         window.scrollTo(0, 0);
     });
     // Soft: compare every screen of a test even when one differs.
-    await expect.soft(page).toHaveScreenshot(`${name}.png`, { mask, maxDiffPixelRatio: 0.001 });
+    await expect.soft(page).toHaveScreenshot(`${name}.png`, { mask, maxDiffPixelRatio: 0.001, ...(style && { style }) });
 }
 
 async function navTo(page: Page, name: RegExp) {
@@ -146,11 +146,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             await page.getByRole('link', { name: /add expense/i }).click();
             await expect(page.getByPlaceholder('What was it for?')).toBeVisible();
-            // "Today" in the date picker changes every day.
-            const datePicker = page.getByRole('button').filter({ has: page.locator('.lucide-calendar') });
-            await snapshot(page, `add-expense-${colorScheme}`, [datePicker]);
-            // Full-screen form: no tab bar until it is closed.
-            await page.getByRole('link', { name: 'Close' }).click();
+            // Today's date changes every day: hidden (a mask would be painted
+            // over the sheet's footer, where the date line scrolls under).
+            await snapshot(page, `add-expense-${colorScheme}`, [], '[data-testid="expense-date"] { visibility: hidden; }');
+            await closeExpenseSheet(page);
 
             await navTo(page, /balance/i);
             await expect(page.getByText('Bob').first()).toBeVisible();

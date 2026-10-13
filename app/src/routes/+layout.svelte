@@ -17,7 +17,6 @@
     import { storageService } from '#lib/services/storage.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { afterLogin } from '#lib/services/session.js';
-    import { trackNavigation } from '#lib/utils/navigation.js';
 
     let { children, data }: LayoutProps = $props();
 
@@ -29,9 +28,9 @@
     let mainEl = $state<HTMLElement>();
 
     afterNavigate((navigation) => {
-        if (navigation.shallow && navigation.type === 'goto') return;
+        // Shallow (a sheet or its panel, opened or closed): same page, same place.
+        if (navigation.shallow) return;
 
-        trackNavigation(navigation);
         mainEl?.scrollTo({ top: 0 });
     });
 

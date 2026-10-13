@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, loginWithNewAccount, openProfile, switchIdentity } from './test-utils';
+import { createKimpay, dismissInstallPrompt, expenseSheet, loginWithNewAccount, openProfile, switchIdentity } from './test-utils';
 
 /** Group of two: "Payer" (this device) and "Other". */
 async function setupGroup(page: Page, name: string) {
@@ -20,6 +20,7 @@ async function addExpense(page: Page, base: string, description: string, amount:
     await page.getByPlaceholder(/what was it for|deposit returned/i).fill(description);
     await page.getByPlaceholder('0.00').first().fill(amount);
     await page.getByRole('button', { name: /save expense/i }).first().click();
+    await expect(expenseSheet(page)).toBeHidden();
     await expect(page.getByText(description)).toBeVisible();
 }
 
@@ -31,6 +32,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
             await page.getByRole('button', { name: /split equally/i }).click();
             await page.getByRole('radio', { name: 'Shares' }).click();
             await page.getByLabel('Share of Other').fill('2');
+            await page.getByRole('button', { name: 'Back' }).click();
         });
 
         // Other has 2 shares out of 3: owes 60 to Payer.
@@ -50,7 +52,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByLabel('Share of Payer').fill('10');
         await page.getByLabel('Share of Other').fill('30');
 
-        await expect(page.getByText('€10.00 left to assign')).toBeVisible();
+        await expect(page.getByText('€10.00 left to assign').filter({ visible: true })).toBeVisible();
         await expect(page.getByRole('button', { name: /save expense/i }).first()).toBeDisabled();
     });
 
