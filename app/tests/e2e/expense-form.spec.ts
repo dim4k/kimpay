@@ -57,6 +57,13 @@ test.describe('Expense form', () => {
         await expect(field).toHaveValue('10,5');
     });
 
+    test('a photo picker closed without a photo keeps the sheet open', async ({ page }) => {
+        // What the browser sends when the picker is dismissed: a `cancel` that bubbles up.
+        await expenseSheet(page).locator('input[type="file"][multiple]').dispatchEvent('cancel', { bubbles: true });
+        await expect(expenseSheet(page)).toBeVisible();
+        await expect(page).toHaveURL(/\/add$/);
+    });
+
     test('money received is a switch at the bottom', async ({ page }) => {
         await page.getByRole('switch', { name: 'Money received' }).click();
         await expect(page.getByRole('button', { name: /^received by/i })).toBeVisible();

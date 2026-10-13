@@ -96,7 +96,12 @@
             backdropClass
         )}
         transition:fade={{ duration: 150 }}
-        oncancel={(e) => { e.preventDefault(); onClose?.(); }}
+        oncancel={(e) => {
+            // A file picker dismissed inside fires a bubbling `cancel` too: only the dialog's own (Escape) closes it.
+            if (e.target !== dialog) return;
+            e.preventDefault();
+            onClose?.();
+        }}
         onclick={(e) => { if (e.target === dialog) onClose?.(); }}
     >
         <div
