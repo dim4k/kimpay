@@ -101,7 +101,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // Inviting: a sheet with the link and the QR code (both contain
             // the random group id).
-            await page.getByRole('button', { name: 'Invite to the group' }).click();
+            await page.getByRole('button', { name: 'Share the invite link' }).click();
             const invite = page.getByRole('dialog', { name: 'Invite to the group' });
             await expect(invite.getByAltText(/QR code/i)).toBeVisible();
             await snapshot(page, `invite-${colorScheme}`, [invite.getByAltText(/QR code/i), invite.locator('.font-mono')]);

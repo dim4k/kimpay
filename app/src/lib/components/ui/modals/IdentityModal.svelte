@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { t } from '#lib/i18n.js';
   import { modals } from '#lib/stores/modals.svelte.js';
   import { Input } from "#lib/components/ui/input/index.js";
@@ -45,6 +46,17 @@
     })
   );
 
+  // Opened from their own invite link: "Are you Coralie?" first, unless
+  // that name is taken (or unknown), or they say no.
+  let declinedId = $state<string | null>(null);
+  // Read once: the modal is mounted for each opening, and keeps its view while it closes.
+  const suggestedId = untrack(() => modals.identityState?.suggestedId ?? null);
+  let suggested = $derived(
+    suggestedId && suggestedId !== declinedId
+      ? selectableParticipants.find((p) => p.id === suggestedId) ?? null
+      : null
+  );
+
   // Typing a name already in the list ("pierre" for "Pierre M."): most
   // likely that person, added by someone else.
   let similar = $derived(newParticipantName.trim() ? findSimilarName(newParticipantName, selectableParticipants) : null);
@@ -88,6 +100,23 @@
     backdropClass="bg-background/95"
     label={$t('identity.title')}
 >
+    {#if suggested}
+    <div class="flex flex-col items-center gap-4 p-6 text-center" data-testid="identity-suggested">
+        <Avatar name={suggested.name} record={suggested} class="h-16 w-16 text-xl" />
+        <ModalHeader
+            title={$t('identity.suggested_title', { name: suggested.name })}
+            description={$t('identity.suggested_desc', { group: activeKimpay?.kimpay?.name ?? 'Kimpay' })}
+        />
+        <div class="flex w-full flex-col gap-2">
+            <Button size="lg" class="w-full" onclick={() => selectParticipant(suggested!.id)}>
+                {$t('identity.suggested_yes')}
+            </Button>
+            <Button variant="ghost" class="w-full" onclick={() => declinedId = suggested!.id}>
+                {$t('identity.suggested_no')}
+            </Button>
+        </div>
+    </div>
+    {:else}
     <div class="p-6 pb-2">
         <ModalHeader
             title={$t('identity.title')}
@@ -136,5 +165,6 @@
         {/if}
         <FieldError message={createError} />
     </div>
+    {/if}
 </Modal>
 {/if}

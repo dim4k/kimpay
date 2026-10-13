@@ -77,6 +77,8 @@ routerAdd("POST", "/api/kimpay/create", (e) => {
             participant.set("name", member.name);
             participant.set("kimpay", body.id);
             if (i === 0 && userId) participant.set("user", userId);
+            // The creator uses the group; the others are names until they open it.
+            if (i === 0) participant.set("joined", true);
             txApp.save(participant);
         });
 

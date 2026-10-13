@@ -90,7 +90,9 @@
 
   let search = $state('');
   let showFilters = $state(false);
-  let personFilter = $state<string | null>(null);
+  // A member opened from the Members tab ("?person=ID"), applied once.
+  const linkedPerson = page.url.searchParams.get('person');
+  let personFilter = $state<string | null>(linkedPerson);
   let typeFilter = $state<TypeFilter>('all');
   // A category opened from the balance page ("?category=FOOD"), applied once.
   const linkedCategory = page.url.searchParams.get('category');
@@ -98,10 +100,13 @@
       EMOJI_CATEGORY_ORDER.find((key) => key === linkedCategory) ?? null
   );
   onMount(() => {
-      if (!linkedCategory) return;
+      if (!linkedCategory && !linkedPerson) return;
       const url = new URL(page.url.href);
       url.searchParams.delete('category');
+      url.searchParams.delete('person');
       replaceState(url, page.state);
+      // The chip says whose expenses these are.
+      if (linkedPerson) showFilters = true;
   });
 
   let activeFilterCount = $derived((personFilter ? 1 : 0) + (typeFilter !== 'all' ? 1 : 0) + (categoryFilter ? 1 : 0));
@@ -192,7 +197,6 @@
   let participantIds = $derived(participants.map(p => p.id));
   let myBalance = $derived(activeKimpay?.myBalance ?? 0);
   let owesMoney = $derived(balanceTone(myBalance) === 'warning');
-  let isOwed = $derived(balanceTone(myBalance) === 'success');
 
   /** "Today", "Yesterday", then the date ("Sat 19 Sep" when `short`). */
   function dayTitle(key: string, short = false): string {
@@ -343,7 +347,9 @@
       }
   }
 
-  let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId);
+  // Only when there is something to do: paying back. Otherwise the balance
+  // is on the Balance tab (its badge).
+  let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId && owesMoney);
   // Changed or deleted by others since my last look at the history (the
   // additions are the dots above). Loaded again with every change to the group.
   let activities = $state<Activity[]>([]);
@@ -451,20 +457,16 @@
   {/if}
 
   {#if showBalance || hasNews}
-  <!-- One card above the list: where I stand, and under it what the others
-       added or changed since my last visit. The whole card leads to the
-       Balance tab, except the news, which lead to the lines concerned. -->
-  <div class="relative flex min-h-11 items-center gap-3 rounded-control border bg-card px-4 py-2 transition-colors duration-150 animate-pop-in {showBalance ? 'hover:bg-muted/50' : ''}">
+  <!-- One card above the list, only when there is something to see or do:
+       what I owe, and what the others added or changed since my last visit.
+       The whole card leads to the Balance tab, except the news, which lead
+       to the lines concerned. -->
+  <div class="relative flex min-h-11 items-center gap-3 rounded-control border px-4 py-2 transition-colors duration-150 animate-pop-in {showBalance ? 'border-transparent bg-warning-soft hover:bg-warning-soft/70' : 'bg-card'}" data-testid="list-summary">
       <div class="min-w-0 flex-1">
           {#if showBalance}
               <p class="flex items-center gap-2">
-                  {#if owesMoney || isOwed}
-                      <span class="text-sm text-muted-foreground">{owesMoney ? $t('balance.you_owe') : $t('balance.owed_to_you')}</span>
-                      <span class="font-bold tabular-nums {owesMoney ? 'text-warning' : 'text-success'}">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
-                  {:else}
-                      <Check class="h-4 w-4 shrink-0 text-success" />
-                      <span class="text-sm font-medium">{$t('balance.settled.title')}</span>
-                  {/if}
+                  <span class="text-sm text-muted-foreground">{$t('balance.you_owe')}</span>
+                  <span class="font-bold tabular-nums text-warning">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
               </p>
           {/if}
           {#if hasNews}
@@ -491,7 +493,7 @@
               data-sveltekit-replacestate
               class="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary after:absolute after:inset-0 after:rounded-control"
           >
-              {owesMoney ? $t('expense.hero.settle') : $t('nav.balance')}
+              {$t('expense.hero.settle')}
               <ChevronRight class="h-4 w-4" />
           </a>
       {/if}

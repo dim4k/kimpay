@@ -1,5 +1,6 @@
-import type { Expense, ExpenseSplit, SplitMode } from './types';
+import type { Expense, ExpenseSplit, Participant, SplitMode } from './types';
 import { CURRENCIES, DEFAULT_CURRENCY } from './services/currency';
+import { defaultSharesOf } from './utils/members';
 
 /** Number of decimals of a currency (2 when unknown). */
 export function currencyDecimals(currency: string): number {
@@ -131,20 +132,47 @@ export function checkSplit(mode: SplitMode, values: Record<string, number>, invo
 }
 
 /**
- * Default values when switching the split editor to `mode`: one share each,
- * or the equal split expressed in percent / amounts.
+ * Default values when switching the split editor to `mode`: one share each
+ * (or the members' default shares, `weights`), or that split expressed in
+ * percent / amounts.
  */
-export function defaultSplitValues(mode: SplitMode, involved: string[], amount: number, currency: string): Record<string, number> {
+export function defaultSplitValues(
+    mode: SplitMode,
+    involved: string[],
+    amount: number,
+    currency: string,
+    weights: Record<string, number> = {},
+): Record<string, number> {
     if (mode === 'equal' || involved.length === 0) return {};
-    if (mode === 'shares') return Object.fromEntries(involved.map((id) => [id, 1]));
+    const shares = Object.fromEntries(involved.map((id) => [id, weights[id] ?? 1]));
+    if (mode === 'shares') return shares;
 
-    const weights = Object.fromEntries(involved.map((id) => [id, 1]));
     if (mode === 'percent') {
-        const parts = distribute(100 * 100, weights);
+        const parts = distribute(100 * 100, shares);
         return Object.fromEntries(involved.map((id) => [id, parts[id]! / 100]));
     }
-    const parts = distribute(toMinor(amount || 0, currency), weights);
+    const parts = distribute(toMinor(amount || 0, currency), shares);
     return Object.fromEntries(involved.map((id) => [id, fromMinor(parts[id]!, currency)]));
+}
+
+/** The shares each member counts for in a new expense (1 unless set). */
+export function memberWeights(participants: readonly Pick<Participant, 'id' | 'default_shares'>[]): Record<string, number> {
+    return Object.fromEntries(participants.map((p) => [p.id, defaultSharesOf(p)]));
+}
+
+/**
+ * Who a new expense is for, and how it is split, before any change: the
+ * members still taking part (everyone if none is), by shares when one of
+ * them counts for more than one.
+ */
+export function newExpenseDefaults(
+    participants: readonly Pick<Participant, 'id' | 'inactive' | 'default_shares'>[],
+): { involved: string[]; split: ExpenseSplit } {
+    const active = participants.filter((p) => !p.inactive);
+    const involved = (active.length > 0 ? active : participants).map((p) => p.id);
+    const weights = memberWeights(participants);
+    if (!involved.some((id) => weights[id]! > 1)) return { involved, split: { mode: 'equal' } };
+    return { involved, split: { mode: 'shares', values: defaultSplitValues('shares', involved, 0, DEFAULT_CURRENCY, weights) } };
 }
 
 /** The split to store, keeping only the values of involved participants. */

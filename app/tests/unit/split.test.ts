@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBalances, calculateDebts, toKimpayAmount, totalSpent } from '../../src/lib/balance';
-import { buildSplit, checkSplit, defaultSplitValues, distribute, expenseShares, splitWeights } from '../../src/lib/split';
+import { calculateBalances, calculateDebts, paidBy, toKimpayAmount, totalSpent } from '../../src/lib/balance';
+import { buildSplit, checkSplit, defaultSplitValues, distribute, expenseShares, memberWeights, newExpenseDefaults, splitWeights } from '../../src/lib/split';
 import type { Expense, Participant } from '../../src/lib/types';
 
 const participants = ['a', 'b', 'c'].map((id) => ({ id, name: id.toUpperCase() }) as Participant);
@@ -153,5 +153,45 @@ describe('debts', () => {
         // a is owed 0.01 by b: not worth a payment.
         const e = expense({ amount: 0.02, involved: ['a', 'b'] });
         expect(calculateDebts([e], participants)).toEqual([]);
+    });
+});
+
+describe('new expense defaults', () => {
+    it('ticks everyone, split equally, by default', () => {
+        expect(newExpenseDefaults([{ id: 'a' }, { id: 'b' }])).toEqual({ involved: ['a', 'b'], split: { mode: 'equal' } });
+    });
+
+    it('leaves out the members no longer taking part, unless nobody is', () => {
+        expect(newExpenseDefaults([{ id: 'a' }, { id: 'b', inactive: true }]).involved).toEqual(['a']);
+        expect(newExpenseDefaults([{ id: 'a', inactive: true }]).involved).toEqual(['a']);
+    });
+
+    it('splits by shares when someone counts for more than one', () => {
+        const members = [{ id: 'a', default_shares: 2 }, { id: 'b', default_shares: 0 }, { id: 'c' }];
+        expect(memberWeights(members)).toEqual({ a: 2, b: 1, c: 1 });
+        expect(newExpenseDefaults(members)).toEqual({
+            involved: ['a', 'b', 'c'],
+            split: { mode: 'shares', values: { a: 2, b: 1, c: 1 } },
+        });
+        // Someone left: their shares do not count.
+        expect(newExpenseDefaults([{ id: 'a', default_shares: 2, inactive: true }, { id: 'b' }, { id: 'c' }]).split).toEqual({ mode: 'equal' });
+    });
+
+    it('starts the other modes from the default shares', () => {
+        expect(defaultSplitValues('percent', ['a', 'b'], 0, 'EUR', { a: 3, b: 1 })).toEqual({ a: 75, b: 25 });
+        expect(defaultSplitValues('amounts', ['a', 'b'], 9, 'EUR', { a: 2 })).toEqual({ a: 6, b: 3 });
+    });
+});
+
+describe('paidBy', () => {
+    it('adds up what someone paid, less what they received, without reimbursements', () => {
+        const list = [
+            expense({ id: '1', amount: 30, payer: 'a' }),
+            expense({ id: '2', amount: 10, payer: 'a', is_income: true }),
+            expense({ id: '3', amount: 5, payer: 'a', is_reimbursement: true, involved: ['b'] }),
+            expense({ id: '4', amount: 50, payer: 'b' }),
+        ];
+        expect(paidBy(list, 'a', 'EUR', {})).toBe(20);
+        expect(paidBy(list, 'c', 'EUR', {})).toBe(0);
     });
 });

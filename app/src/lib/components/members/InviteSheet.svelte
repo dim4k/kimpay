@@ -14,9 +14,13 @@
         /** Link opening the group */
         link: string;
         groupName: string;
+        /** A member invited by name: the link opens the group as them */
+        name?: string | undefined;
     }
 
-    let { isOpen, onClose, link, groupName }: Props = $props();
+    let { isOpen, onClose, link, groupName, name }: Props = $props();
+
+    let title = $derived(name ? $t('members.invite_named', { name }) : $t('members.invite'));
 
     let copied = $state(false);
     let qrDataUrl = $state<string | null>(null);
@@ -48,7 +52,7 @@
         try {
             await navigator.share({
                 title: $t('share.native_title', { name: groupName }),
-                text: $t('share.native_text'),
+                text: name ? $t('share.personal_text', { name }) : $t('share.native_text'),
                 url: link,
             });
         } catch {
@@ -57,8 +61,8 @@
     }
 </script>
 
-<Modal {isOpen} {onClose} variant="sheet" label={$t('members.invite')}>
-    <ModalHeader title={$t('members.invite')} description={$t('share.invite_friends')} icon={UserPlus} align="start" {onClose} />
+<Modal {isOpen} {onClose} variant="sheet" label={title}>
+    <ModalHeader {title} description={name ? $t('share.personal_desc', { name }) : $t('share.invite_friends')} icon={UserPlus} align="start" {onClose} />
 
     {#if canShare}
         <Button size="lg" class="w-full" onclick={shareNative}>

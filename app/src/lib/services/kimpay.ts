@@ -143,6 +143,15 @@ export const kimpayService = {
         await pb.send(`/api/kimpay/${kimpayId}/currency`, { method: 'POST', body: { to, rate } });
     },
 
+    /** What a member counts for in new expenses (see members.pb.js). */
+    async setMemberDefaults(
+        kimpayId: string,
+        participantId: string,
+        changes: { inactive?: boolean; default_shares?: number },
+    ): Promise<void> {
+        await pb.send(`/api/kimpay/${kimpayId}/participants/${participantId}/defaults`, { method: 'POST', body: changes });
+    },
+
     /**
      * Leave a Kimpay - handles participant deletion/unclaim logic.
      * Checks if participant is creator or involved in expenses before deciding action.

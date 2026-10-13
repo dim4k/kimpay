@@ -69,15 +69,7 @@
 
   /** Record the payment: a reimbursement, in the Kimpay's currency. */
   async function settle(tx: Transaction, amount = tx.amount, date = new Date().toISOString()) {
-      await activeKimpay.addExpense({
-          payer: tx.from,
-          involved: [tx.to],
-          amount,
-          currency: tx.currency,
-          description: $t('balance.reimbursement'),
-          is_reimbursement: true,
-          date
-      });
+      await activeKimpay.recordReimbursement(tx, $t('balance.reimbursement'), amount, date);
   }
 
   // Paid in PayPal or Revolut: back in the app, ask whether it went through

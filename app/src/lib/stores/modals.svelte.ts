@@ -30,6 +30,8 @@ export type RegisterOptions = {
 
 export type IdentityOptions = {
     kimpayId: string;
+    /** The member a personal invite link was made for ("Are you Coralie?") */
+    suggestedId?: string;
 };
 
 class ModalStore {

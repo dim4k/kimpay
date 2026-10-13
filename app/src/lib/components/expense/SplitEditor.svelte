@@ -14,9 +14,11 @@
         values: Record<string, number>;
         amount: number;
         currency: string;
+        /** Shares each member counts for by default (1 when missing) */
+        weights?: Record<string, number>;
     }
 
-    let { involved, mode = $bindable(), values = $bindable(), amount, currency }: Props = $props();
+    let { involved, mode = $bindable(), values = $bindable(), amount, currency, weights = {} }: Props = $props();
 
     let ids = $derived(involved.map((p) => p.id));
 
@@ -32,7 +34,7 @@
     let texts = $state<Record<string, string>>({});
 
     function changeMode(next: SplitMode) {
-        values = defaultSplitValues(next, ids, amount, currency);
+        values = defaultSplitValues(next, ids, amount, currency, weights);
         texts = {};
     }
 
@@ -44,11 +46,11 @@
         values = { ...values, [id]: parseDecimal(clean) };
     }
 
-    // Someone added to the expense gets one share by default.
+    // Someone added to the expense gets their shares by default (one, unless set).
     $effect(() => {
         if (mode !== 'shares') return;
         const missing = ids.filter((id) => values[id] === undefined);
-        if (missing.length) values = { ...values, ...Object.fromEntries(missing.map((id) => [id, 1])) };
+        if (missing.length) values = { ...values, ...Object.fromEntries(missing.map((id) => [id, weights[id] ?? 1])) };
     });
 
     let check = $derived(checkSplit(mode, values, ids, amount, currency));

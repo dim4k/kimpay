@@ -17,6 +17,7 @@ import { calculateBalances, calculateDebts, totalSpent, type Transaction } from 
 import { getExchangeRates, DEFAULT_CURRENCY } from "#lib/services/currency.js";
 import { objectToFormData } from "#lib/utils/formData.js";
 import { generatePocketBaseId } from "#lib/utils/id.js";
+import { groupAvatarLooks } from "#lib/utils/avatar.js";
 
 /**
  * The `/k/[id]` layout provides its ActiveKimpay to every page and component
@@ -96,6 +97,9 @@ export class ActiveKimpay {
     /** Participants by id, for lookups in lists (balance, exports...). */
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt, never mutated
     participantsById = $derived(new Map(this.participants.map((p) => [p.id, p])));
+
+    /** Initials and colors of the members, told apart (see Avatar). */
+    avatarLooks = $derived(groupAvatarLooks(this.participants));
 
     myBalance = $derived.by(() => {
         const myId = this.myParticipantId;
@@ -299,6 +303,27 @@ export class ActiveKimpay {
     async setMyParticipant(participantId: string | null) {
         this.myParticipantId = participantId;
         await storageService.setMyParticipantId(this.id, participantId);
+    }
+
+    // Asked once per member and per visit (it may be refused: a name linked
+    // to my account, while logged out).
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping, never rendered
+    private joinAsked = new Set<string>();
+
+    /**
+     * This device uses its name in the group: the others see it joined on
+     * the Members tab. Best effort, never in the way (called by the layout
+     * once the group and the identity are known).
+     */
+    markJoined() {
+        const me = this.participants.find((p) => p.id === this.myParticipantId);
+        if (!me || me.joined || me.user || this.pendingIds.has(me.id) || offlineStore.isOffline) return;
+        if (this.joinAsked.has(me.id)) return;
+        this.joinAsked.add(me.id);
+        this.participants = this.participants.map((p) => (p.id === me.id ? { ...p, joined: true } : p));
+        pb.collection("participants")
+            .update(me.id, { joined: true }, { requestKey: null })
+            .catch((e) => console.warn("Could not mark the member as joined", e));
     }
 
     // --- Actions ---
@@ -543,6 +568,38 @@ export class ActiveKimpay {
         await kimpayService.mergeParticipants(this.id, from, into);
         if (this.myParticipantId === from) await this.setMyParticipant(into);
         await this.refetch();
+    }
+
+    /**
+     * What a member counts for in new expenses: still taking part, and with
+     * how many shares. Anyone in the group sets it, for anyone. Online only.
+     */
+    async setMemberDefaults(participantId: string, changes: { inactive?: boolean; default_shares?: number }) {
+        const previous = this.participants;
+        this.participants = this.participants.map((p) => (p.id === participantId ? { ...p, ...changes } : p));
+        try {
+            await kimpayService.setMemberDefaults(this.id, participantId, changes);
+            this.persist();
+        } catch (e) {
+            this.participants = previous;
+            throw e;
+        }
+    }
+
+    /**
+     * A payment between two members (all of a suggested one, or part of it),
+     * recorded as a reimbursement in the transaction's currency.
+     */
+    async recordReimbursement(tx: Transaction, description: string, amount: number, date: string) {
+        await this.addExpense({
+            payer: tx.from,
+            involved: [tx.to],
+            amount,
+            currency: tx.currency,
+            description,
+            is_reimbursement: true,
+            date,
+        });
     }
 
     /**

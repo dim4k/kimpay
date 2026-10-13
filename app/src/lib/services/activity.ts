@@ -14,6 +14,7 @@ export type ActivityAction =
     | 'participant_deleted'
     | 'participants_merged'
     | 'participant_payment_changed'
+    | 'participant_defaults_changed'
     | 'currency_changed';
 
 /** A payment link before / after a change ("" = none). */
@@ -56,6 +57,9 @@ export interface Activity {
         /** Payment links changed (the services changed only) */
         paypal?: HandleChange;
         revolut?: HandleChange;
+        /** New expense settings changed (the values changed only) */
+        inactive?: { from: boolean; to: boolean };
+        default_shares?: { from: number; to: number };
         /** Updates */
         changed?: (keyof ExpenseSnapshot)[];
         before?: ExpenseSnapshot;
@@ -84,6 +88,7 @@ const CHANGES: readonly ActivityAction[] = [
     'participant_deleted',
     'participants_merged',
     'participant_payment_changed',
+    'participant_defaults_changed',
     'currency_changed',
 ];
 

@@ -27,6 +27,12 @@ export interface Participant {
     /** Public payment handles: paypal.me/<paypal>, revolut.me/<revolut> */
     paypal?: string;
     revolut?: string;
+    /** Uses the group (picked this name on a device, or has an account) */
+    joined?: boolean;
+    /** No longer ticked by default in new expenses */
+    inactive?: boolean;
+    /** Shares in new expenses (0 or missing = 1) */
+    default_shares?: number;
     expand?: {
         kimpay?: Kimpay;
         user?: User;

@@ -32,7 +32,7 @@
   import { notifyError } from '#lib/utils/notify.js';
   import type { Expense, SplitMode } from '#lib/types.js';
   import { toLocalISODate } from '#lib/utils/date.js';
-  import { buildSplit, checkSplit } from '#lib/split.js';
+  import { buildSplit, checkSplit, memberWeights, newExpenseDefaults } from '#lib/split.js';
   import { findSimilarExpense } from '#lib/utils/suggest.js';
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
   import { sanitizeDecimal } from '#lib/utils/amount.js';
@@ -82,6 +82,8 @@
 
   let participants = $derived(activeKimpay?.participants || []);
   let involvedParticipants = $derived(participants.filter(p => involved.includes(p.id)));
+  // A couple counting as 2: their shares when split by shares.
+  let weights = $derived(memberWeights(participants));
   // Typed as text (decimal keyboard, "," or "." as separator).
   let amountValue = $derived(parseFloat(amount.replace(',', '.')) || 0);
   let splitCheck = $derived(checkSplit(splitMode, splitValues, involved, amountValue, currency));
@@ -162,8 +164,14 @@
           if (!known.has(payer)) payer = "";
       }
 
+      // A new expense: the members still taking part, by their shares.
       if (!initialData && involved.length === 0) {
-          involved = participants.map(p => p.id);
+          const defaults = newExpenseDefaults(participants);
+          involved = defaults.involved;
+          if (defaults.split.values) {
+              splitMode = defaults.split.mode;
+              splitValues = { ...defaults.split.values };
+          }
       }
 
       if (!initialData && !payer && activeKimpay?.myParticipantId) {
@@ -661,6 +669,7 @@
                         bind:values={splitValues}
                         amount={amountValue}
                         {currency}
+                        {weights}
                     />
                 {:else}
                     <button

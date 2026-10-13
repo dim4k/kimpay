@@ -20,7 +20,7 @@
         onClose,
     }: {
         title: string;
-        description?: string;
+        description?: string | undefined;
         icon?: Component<LucideProps>;
         tone?: Tone;
         /** Centered for short dialogs, start for sheets holding a form */

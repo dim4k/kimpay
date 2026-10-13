@@ -312,6 +312,25 @@ export function formatAmount(
 /**
  * Format amount in compact form (just number + symbol)
  */
+/**
+ * An amount in few characters, for a badge: whole units from 10 up
+ * ("14 €" for 13.59 €), with its decimals below.
+ */
+export function formatAmountShort(amount: number, currencyCode: string, locale?: string): string {
+    const currency = currencyCode.toUpperCase();
+    const decimals = Math.abs(amount) < 10 ? CURRENCIES[currency]?.decimals ?? 2 : 0;
+    try {
+        return new Intl.NumberFormat(locale ?? "fr-FR", {
+            style: "currency",
+            currency,
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        }).format(amount);
+    } catch {
+        return `${amount.toFixed(decimals)} ${currencyCode}`;
+    }
+}
+
 export function formatAmountCompact(
     amount: number,
     currencyCode: string,

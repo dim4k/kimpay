@@ -59,6 +59,7 @@
       participant_deleted: 'activity.participant_deleted',
       participants_merged: 'activity.participants_merged',
       participant_payment_changed: 'activity.participant_payment_changed',
+      participant_defaults_changed: 'activity.participant_defaults_changed',
       currency_changed: 'activity.currency_changed',
   };
 
@@ -129,6 +130,16 @@
           .map(([field, change]) => $t('activity.change', { field, before: change!.from || '—', after: change!.to || '—' }));
   }
 
+  /** "Ticked by default: Yes → No", "Shares: 1 → 2". */
+  function defaultsChanges(a: Activity): string[] {
+      const { inactive, default_shares } = a.data;
+      const yesNo = (included: boolean) => (included ? $t('common.yes') : $t('common.no'));
+      return [
+          inactive && $t('activity.change', { field: $t('members.defaults.include'), before: yesNo(!inactive.from), after: yesNo(!inactive.to) }),
+          default_shares && $t('activity.change', { field: $t('members.defaults.shares'), before: String(default_shares.from), after: String(default_shares.to) }),
+      ].filter((line): line is string => !!line);
+  }
+
   /** "Amount: €84.00 → €92.00", one line per field changed. */
   function changes(a: Activity): string[] {
       const { before, after, changed } = a.data;
@@ -173,7 +184,7 @@
                 <ListGroup>
                     {#each day.items as a (a.id)}
                         {@const deleted = a.action.endsWith('_deleted')}
-                        {@const lines = a.action === 'expense_updated' ? changes(a) : a.action === 'participant_payment_changed' ? handleChanges(a) : []}
+                        {@const lines = a.action === 'expense_updated' ? changes(a) : a.action === 'participant_payment_changed' ? handleChanges(a) : a.action === 'participant_defaults_changed' ? defaultsChanges(a) : []}
                         <div class="flex items-start gap-3 px-4 py-3" data-activity={a.action}>
                             <IconTile size="sm" tone={a.action.startsWith('reimbursement_') ? 'success' : 'muted'} class="mt-0.5 text-foreground">
                                 {#if isExpense(a) && !a.action.startsWith('reimbursement_')}

@@ -78,6 +78,15 @@ export function totalSpent(expenses: Expense[], kimpayCurrency: string, rates: R
 }
 
 /**
+ * What one participant advanced for the group: the expenses they paid minus
+ * the money they received for it, reimbursements excluded. In the Kimpay's
+ * currency (the counterpart of shareOf).
+ */
+export function paidBy(expenses: Expense[], participantId: string, kimpayCurrency: string, rates: Record<string, number>): number {
+    return totalSpent(expenses.filter((e) => e.payer === participantId), kimpayCurrency, rates);
+}
+
+/**
  * One participant's part of a single expense (or of money received), in the
  * expense currency: 0 when they are not involved. Reimbursements have none.
  */
