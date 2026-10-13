@@ -17,7 +17,6 @@
     import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
     import EmptyState from '#lib/components/ui/EmptyState.svelte';
     import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
-    import PaymentLinks from '#lib/components/PaymentLinks.svelte';
 
     let data = $state<ReadonlyKimpay | null>(null);
     let rates = $state<Record<string, number>>({});
@@ -93,16 +92,13 @@
             {:else}
                 <ListGroup>
                     {#each transactions as tx, i (i)}
-                        <div class="space-y-2 px-4 py-3">
-                            <div class="flex items-center gap-3">
-                                <span class="flex min-w-0 flex-1 items-center gap-1.5 text-base font-medium">
-                                    <span class="truncate">{nameOf(tx.from)}</span>
-                                    <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={$t('balance.pays')} />
-                                    <span class="truncate">{nameOf(tx.to)}</span>
-                                </span>
-                                <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(tx.amount, tx.currency, $locale)}</span>
-                            </div>
-                            <PaymentLinks to={byId.get(tx.to)} amount={tx.amount} currency={tx.currency} />
+                        <div class="flex items-center gap-3 px-4 py-3">
+                            <span class="flex min-w-0 flex-1 items-center gap-1.5 text-base font-medium">
+                                <span class="truncate">{nameOf(tx.from)}</span>
+                                <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={$t('balance.pays')} />
+                                <span class="truncate">{nameOf(tx.to)}</span>
+                            </span>
+                            <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(tx.amount, tx.currency, $locale)}</span>
                         </div>
                     {/each}
                 </ListGroup>

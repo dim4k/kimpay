@@ -4,7 +4,7 @@ import type { Expense, ExpenseSplit, Participant } from '#lib/types.js';
 /** What the read-only endpoint returns (participants are "p0", "p1"... refs). */
 interface ReadonlyResponse {
     kimpay: { name: string; icon: string; currency: string };
-    participants: { ref: string; name: string; paypal: string; revolut: string }[];
+    participants: { ref: string; name: string }[];
     expenses: {
         description: string;
         amount: number;
@@ -37,7 +37,7 @@ export async function fetchReadonlyKimpay(token: string): Promise<ReadonlyKimpay
     const data = await pb.send<ReadonlyResponse>(`/api/readonly/${encodeURIComponent(token)}`, { method: 'GET' });
 
     const participants = data.participants.map(
-        (p) => ({ id: p.ref, name: p.name, paypal: p.paypal, revolut: p.revolut, kimpay: '' }) as Participant,
+        (p) => ({ id: p.ref, name: p.name, kimpay: '' }) as Participant,
     );
     const byId = new Map(participants.map((p) => [p.id, p]));
 

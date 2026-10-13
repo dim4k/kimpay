@@ -155,7 +155,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
-    test('Shares a read-only summary with payment links', async ({ page, request }) => {
+    test('Shares a read-only summary, without payment links', async ({ page, request }) => {
         const base = await setupGroup(page, 'Readonly Test');
         await addExpense(page, base, 'Museum', '100');
         await loginWithNewAccount(page, request, 'Payer');
@@ -186,8 +186,10 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         const summary = page.waitForResponse((r) => r.url().includes('/api/readonly/'));
         await page.goto(url);
-        // The summary never reveals the group ID (a write capability).
-        expect(await (await summary).text()).not.toContain(base.split('/k/')[1]!);
+        // The summary never reveals the group ID (a write capability), nor payment handles.
+        const body = await (await summary).text();
+        expect(body).not.toContain(base.split('/k/')[1]!);
+        expect(body).not.toContain('payer.pp');
         await expect(page.getByRole('heading', { name: 'Readonly Test' })).toBeVisible();
         await expect(page.getByText('Read only')).toBeVisible();
         await expect(page.getByText('Museum')).toBeVisible();
@@ -195,7 +197,8 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByRole('button', { name: /Museum/ }).click();
         await expect(page.getByText('Date:')).toBeVisible();
         await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
-        await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveAttribute('href', 'https://paypal.me/payer.pp/50.00EUR');
+        // A summary is for reading: no payment buttons.
+        await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveCount(0);
 
         // Once disabled, the link stops working.
         await page.goto(`${base}/settings`);

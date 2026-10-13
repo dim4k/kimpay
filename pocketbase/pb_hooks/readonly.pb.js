@@ -8,7 +8,7 @@
 // their `kimpay` field included. So this endpoint must never return a real
 // record ID: participants are renamed "p0", "p1"... and expenses get no ID.
 // Avatars and photos are left out for the same reason (file URLs contain
-// record IDs).
+// record IDs). Payment handles too: a summary is for reading, not paying.
 // =============================================================================
 
 routerAdd("GET", "/api/readonly/{token}", (e) => {
@@ -71,8 +71,6 @@ routerAdd("GET", "/api/readonly/{token}", (e) => {
             participants: participants.map((p) => ({
                 ref: ref(p.id),
                 name: p.getString("name"),
-                paypal: p.getString("paypal"),
-                revolut: p.getString("revolut"),
             })),
             expenses: expenses.map((x) => ({
                 description: x.getString("description"),
