@@ -556,7 +556,32 @@
   }
 </script>
 
-<Modal isOpen onClose={onClose} variant="sheet" label={title}>
+<!-- Only on the summary: a panel goes back with its chevron. -->
+{#snippet saveFooter()}
+    <!-- The one save button, always in reach -->
+    <div class="space-y-1.5">
+        <Button size="lg" class="w-full" onclick={() => save()} loading={isLoading} disabled={!isValid || isOfflineEdit}>
+            {saveLabel}
+        </Button>
+        {#if missing && !isOfflineEdit}
+            <p class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
+                {$t('expense.form.missing', { fields: missing })}
+            </p>
+        {:else if !initialData}
+            <!-- Several in a row (after a trip): stays on the form. -->
+            <button
+                type="button"
+                onclick={() => save(true)}
+                disabled={isLoading}
+                class="flex min-h-9 w-full items-center justify-center rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
+            >
+                {$t('expense.form.save_and_new')}
+            </button>
+        {/if}
+    </div>
+{/snippet}
+
+<Modal isOpen onClose={onClose} variant="sheet" label={title} footer={view === 'main' ? saveFooter : undefined}>
     {#snippet header()}
         <div class="flex items-center gap-1">
             {#if view !== 'main'}
@@ -759,35 +784,6 @@
             {/if}
         </div>
     {/if}
-
-    {#snippet footer()}
-        {#if view !== 'main'}
-            <!-- In a panel, saving the whole expense would be out of place: back to the summary. -->
-            <Button size="lg" class="w-full" onclick={closeView}>{$t('common.ok')}</Button>
-        {:else}
-            <!-- The one save button, always in reach -->
-            <div class="space-y-1.5">
-                <Button size="lg" class="w-full" onclick={() => save()} loading={isLoading} disabled={!isValid || isOfflineEdit}>
-                    {saveLabel}
-                </Button>
-                {#if missing && !isOfflineEdit}
-                    <p class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
-                        {$t('expense.form.missing', { fields: missing })}
-                    </p>
-                {:else if !initialData}
-                    <!-- Several in a row (after a trip): stays on the form. -->
-                    <button
-                        type="button"
-                        onclick={() => save(true)}
-                        disabled={isLoading}
-                        class="flex min-h-9 w-full items-center justify-center rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
-                    >
-                        {$t('expense.form.save_and_new')}
-                    </button>
-                {/if}
-            </div>
-        {/if}
-    {/snippet}
 
     <!-- Add Participant Modal -->
     <InputModal

@@ -18,7 +18,7 @@
     /** Stays at the top while the content scrolls (e.g. a form's title) */
     header?: Snippet;
     /** Stays at the bottom while the content scrolls (e.g. a form's save button) */
-    footer?: Snippet;
+    footer?: Snippet | undefined;
     children?: Snippet;
   }
 

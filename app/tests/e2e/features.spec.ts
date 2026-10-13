@@ -53,7 +53,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByLabel('Share of Other').fill('30');
 
         await expect(page.getByText('€10.00 left to assign').filter({ visible: true })).toBeVisible();
-        await page.getByRole('button', { name: 'OK', exact: true }).click();
+        await page.getByRole('button', { name: 'Back' }).click();
         await expect(page.getByRole('button', { name: /save expense/i }).first()).toBeDisabled();
     });
 
