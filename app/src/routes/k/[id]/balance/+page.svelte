@@ -215,6 +215,14 @@
     <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale)}</span>
 {/snippet}
 
+<!-- The amounts of the page, in another currency if needed: on the first heading. -->
+{#snippet displayIn()}
+    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>{$t('balance.display_in')}</span>
+        <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
+    </div>
+{/snippet}
+
 <div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4">
     <h1 class="sr-only">{$t('balance.title')}</h1>
 
@@ -259,12 +267,6 @@
             </BalanceHero>
         {/if}
 
-        <!-- The amounts below, in another currency if needed. -->
-        <div class="-mt-2 flex items-center justify-end gap-2 text-sm text-muted-foreground">
-            <span>{$t('balance.display_in')}</span>
-            <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
-        </div>
-
         {#if showNudge}
             <section class="space-y-3 rounded-card bg-primary-soft p-4 animate-pop-in">
                 <div class="space-y-1">
@@ -286,7 +288,7 @@
 
         {#if transactions.length > 0}
             <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.suggested.title')} />
+                <SectionLabel title={$t('balance.suggested.title')} actions={displayIn} />
                 <ListGroup>
                     {#each transactions as tx, i (i)}
                         {#if myId && (tx.from === myId || tx.to === myId)}
@@ -330,7 +332,7 @@
         {/if}
 
         <section class="space-y-2 animate-slide-up">
-            <SectionLabel title={$t('readonly.balances')} />
+            <SectionLabel title={$t('readonly.balances')} actions={transactions.length > 0 ? undefined : displayIn} />
             <BalanceBars rows={balanceRows} currency={displayCurrency} />
         </section>
 

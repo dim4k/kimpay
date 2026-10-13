@@ -2,7 +2,7 @@
     import type { Snippet } from 'svelte';
 
     /** Heading of a group of content (sentence case, never shouted). */
-    let { title, id, actions }: { title: string; id?: string; actions?: Snippet } = $props();
+    let { title, id, actions }: { title: string; id?: string; actions?: Snippet | undefined } = $props();
 </script>
 
 <div class="flex min-h-9 items-center justify-between gap-3 px-1">
