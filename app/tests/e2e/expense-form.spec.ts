@@ -26,7 +26,15 @@ test.describe('Expense form', () => {
         await expect(page.getByRole('radio', { name: 'Amounts' })).toBeVisible();
         await expect(expenseSheet(page).getByRole('heading', { name: 'Split' })).toBeVisible();
 
+        // A panel offers OK (back to the summary), not the expense's Save.
+        const sheet = expenseSheet(page);
+        await expect(sheet.getByRole('button', { name: /save expense/i })).toHaveCount(0);
+        await sheet.getByRole('button', { name: 'OK', exact: true }).click();
+        await expect(summary).toBeVisible();
+        await expect(sheet.getByRole('button', { name: /save expense/i })).toBeVisible();
+
         // Back closes the panel, not the sheet.
+        await summary.click();
         await page.goBack();
         await expect(summary).toBeVisible();
         await expect(page).toHaveURL(/\/add$/);
