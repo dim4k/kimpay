@@ -74,6 +74,9 @@ test.describe('Sync between devices', () => {
         // Opening the group marks them as seen.
         await page.getByText('News Test').click();
         await expect(page.getByText('Bob Taxi')).toBeVisible();
+        // In the group, under my balance, in the same card.
+        const card = page.locator('div.rounded-control', { hasText: /You owe|You are owed/ }).filter({ hasText: '2 new since your last visit' });
+        await expect(card).toBeVisible();
         await page.getByRole('link', { name: 'My Kimpays' }).click();
         await expect(page.getByText('News Test')).toBeVisible();
         await expect(page.getByText(/\bnew\b/)).toHaveCount(0);

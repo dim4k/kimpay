@@ -86,4 +86,36 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText(/100[.,]00/).first()).toBeVisible();
   });
 
+  test('Records part of what is owed', async ({ page }) => {
+    const url = page.url();
+    await page.goto(url.replace(/\/?$/, '/members'));
+    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByRole('button', { name: /add/i }).click();
+    await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
+
+    await page.getByRole('link', { name: /expenses/i }).click();
+    await page.getByRole('link', { name: /add expense/i }).click();
+    await page.getByPlaceholder('What was it for?').fill('Dinner');
+    await page.getByPlaceholder('0.00').fill('100');
+    await page.getByRole('button', { name: /save expense/i }).first().click();
+    await expect(page.getByText('Dinner')).toBeVisible();
+
+    // Debtor owes 50 and pays 20 of it: 30 left.
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('button', { name: 'Mark as settled' }).click();
+    const sheet = page.getByRole('dialog');
+    const amount = sheet.getByLabel('Amount paid');
+    await expect(amount).toHaveValue('50');
+    await amount.fill('80');
+    await expect(sheet.getByText('At most €50.00, the amount due.')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Confirm Payment' })).toBeDisabled();
+    await amount.fill('20');
+    await expect(sheet.getByText('€30.00 will remain to be settled.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Confirm Payment' }).click();
+    await expect(sheet).toBeHidden();
+
+    await expect(page.getByText('You are owed')).toBeVisible();
+    await expect(page.getByText('€30.00').first()).toBeVisible();
+  });
+
 });

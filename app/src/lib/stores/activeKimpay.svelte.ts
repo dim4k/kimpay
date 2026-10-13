@@ -93,11 +93,6 @@ export class ActiveKimpay {
      */
     seenIds = $state<SvelteSet<string> | null>(null);
 
-    /** Everything listed now counts as seen. */
-    markAllSeen() {
-        this.seenIds = new SvelteSet(this.expenses.map((e) => e.id));
-    }
-
     /** Participants by id, for lookups in lists (balance, exports...). */
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt, never mutated
     participantsById = $derived(new Map(this.participants.map((p) => [p.id, p])));
@@ -547,6 +542,27 @@ export class ActiveKimpay {
     async mergeParticipant(from: string, into: string) {
         await kimpayService.mergeParticipants(this.id, from, into);
         if (this.myParticipantId === from) await this.setMyParticipant(into);
+        await this.refetch();
+    }
+
+    /**
+     * Today's rate from the group currency to `to` (1 = rate), null when
+     * unknown (rates not loaded).
+     */
+    currencyRate(to: string): number | null {
+        const from = this.kimpay?.currency || DEFAULT_CURRENCY;
+        const eurTo = (code: string) => (code === "EUR" ? 1 : this.exchangeRates[code.toLowerCase()] ?? NaN);
+        const rate = eurTo(to) / eurTo(from);
+        return Number.isFinite(rate) && rate > 0 ? rate : null;
+    }
+
+    /** New group currency, the expenses converted at today's rate. Online only. */
+    async changeCurrency(to: string) {
+        const rate = this.currencyRate(to);
+        if (rate === null && this.expenses.some((e) => (e.currency || DEFAULT_CURRENCY) !== to)) {
+            throw new Error("Exchange rate unavailable");
+        }
+        await kimpayService.changeCurrency(this.id, to, rate ?? 1);
         await this.refetch();
     }
 

@@ -4,7 +4,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { Copy, FileText, History, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
+  import { Archive, ArchiveRestore, Copy, FileText, History, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import { auth } from '#lib/stores/auth.svelte.js';
@@ -12,6 +12,7 @@
   import { storageService } from '#lib/services/storage.js';
   import { kimpayService } from '#lib/services/kimpay.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { archiveStore } from '#lib/stores/archive.svelte.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { generateUUID } from '#lib/utils/id.js';
@@ -21,6 +22,8 @@
 
   import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
+  import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
+  import { DEFAULT_CURRENCY } from '#lib/services/currency.js';
   import IconTile from '#lib/components/ui/IconTile.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListRow from '#lib/components/ui/ListRow.svelte';
@@ -49,22 +52,55 @@
           : activeKimpay?.participantsById.get(kimpay?.created_by ?? '')?.name
   );
 
-  // Group name and icon, edited in a sheet
+  // Group name, icon and currency, edited in a sheet
   let isEditOpen = $state(false);
   let editName = $state("");
   let editIcon = $state("");
+  let editCurrency = $state("");
   let isSavingGroup = $state(false);
+  let groupCurrency = $derived(kimpay?.currency || DEFAULT_CURRENCY);
 
   function openEdit() {
       editName = kimpay?.name ?? "";
       editIcon = kimpay?.icon || DEFAULT_KIMPAY_EMOJI;
+      editCurrency = groupCurrency;
       isEditOpen = true;
   }
 
-  async function handleSave() {
-      if (!editName.trim()) return;
+  // Another currency: online only. Expenses in other currencies are
+  // converted at today's rate, after a confirmation saying so.
+  function handleSave() {
+      if (!editName.trim() || !activeKimpay) return;
+      const to = editCurrency;
+      if (to === groupCurrency) return save(false);
+      if (offlineStore.isOffline) {
+          toasts.warning($t('settings.currency.offline'));
+          return;
+      }
+      const converts = activeKimpay.expenses.some((e) => (e.currency || DEFAULT_CURRENCY) !== to);
+      if (!converts) return save(true);
+      const rate = activeKimpay.currencyRate(to);
+      if (rate === null) {
+          toasts.error($t('settings.currency.no_rate'));
+          return;
+      }
+      isEditOpen = false;
+      modals.confirm({
+          title: $t('settings.currency.confirm_title', { to }),
+          description: $t('settings.currency.confirm_desc', {
+              from: groupCurrency,
+              to,
+              rate: rate.toLocaleString($locale, { maximumSignificantDigits: 4 }),
+          }),
+          confirmText: $t('settings.currency.confirm', { to }),
+          onConfirm: () => save(true),
+      });
+  }
+
+  async function save(currencyChanged: boolean) {
       isSavingGroup = true;
       try {
+          if (currencyChanged) await activeKimpay.changeCurrency(editCurrency);
           await activeKimpay.updateKimpay(editName.trim(), editIcon);
           isEditOpen = false;
           toasts.success($t('common.saved'));
@@ -142,6 +178,22 @@
              await leaveKimpayPage();
           }
       });
+  }
+
+  // Archiving is personal (see archiveStore): done with this Kimpay, it is
+  // folded on the home page, where we go back to.
+  let isArchived = $derived(archiveStore.has(kimpayId));
+
+  async function toggleArchived() {
+      const archived = !isArchived;
+      try {
+          await archiveStore.set(kimpayId, archived);
+          toasts.success($t(archived ? 'home.archive.done' : 'home.archive.restored', { name: kimpay?.name ?? '' }));
+          if (archived) await goto('/');
+      } catch (e) {
+          console.error("Failed to archive", e);
+          toasts.error(getErrorMessage(e, $t));
+      }
   }
 
   function requestDelete() {
@@ -254,6 +306,14 @@
 
     <section class="space-y-2">
         <ListGroup>
+            <!-- Saved on the account when logged in: online only then -->
+            <ListRow
+                icon={isArchived ? ArchiveRestore : Archive}
+                title={$t(isArchived ? 'settings.unarchive' : 'settings.archive')}
+                subtitle={$t(isArchived ? 'settings.unarchive_desc' : 'settings.archive_desc')}
+                onclick={toggleArchived}
+                disabled={offlineStore.isOffline && !!auth.user}
+            />
             <ListRow icon={LogOut} tone="danger" title={$t('settings.leave_group')} subtitle={$t('settings.actions.remove_desc')} onclick={requestLeave} disabled={offlineStore.isOffline} />
             {#if isCreator}
                 <ListRow icon={Trash2} tone="danger" title={$t('settings.delete_group')} subtitle={$t('settings.actions.delete_desc')} onclick={requestDelete} disabled={offlineStore.isOffline} />
@@ -277,7 +337,11 @@
         <div class="flex gap-2">
             <EmojiInput variant="kimpay" bind:value={editIcon} />
             <Input id="group-name" bind:value={editName} onkeydown={(e) => e.key === 'Enter' && handleSave()} />
+            <CurrencySelect bind:value={editCurrency} triggerClass="h-11 shrink-0 gap-1 px-3" />
         </div>
+        {#if editCurrency !== groupCurrency && (activeKimpay?.expenses.length ?? 0) > 0}
+            <p class="text-sm text-muted-foreground">{$t('settings.currency.hint', { to: editCurrency })}</p>
+        {/if}
     </div>
     <ModalActions>
         <Button variant="secondary" onclick={() => isEditOpen = false}>{$t('common.cancel')}</Button>

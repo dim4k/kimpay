@@ -12,9 +12,9 @@ export const en = {
     "home.join.button": "Join",
     "home.join.error_not_found": "Kimpay not found",
 
-    "modal.leave.title": "Leave Group?",
+    "modal.leave.title": "Leave Kimpay?",
     "modal.leave.desc":
-        "Are you sure you want to remove this group from your recent list? This will also remove you as a participant.",
+        "Are you sure you want to remove this Kimpay from your recent list? This will also remove you as a participant.",
     "modal.leave.confirm": "Leave",
 
     "modal.delete_expense.title": "Delete Expense?",
@@ -123,17 +123,21 @@ export const en = {
     "modal.delete_participant.confirm":
         "Are you sure you want to delete this participant?",
 
-    "settings.edit_group": "Edit group",
+    "settings.edit_group": "Edit Kimpay",
     "settings.participants.add": "Add",
     "settings.participants.placeholder": "New name",
-    "settings.leave_group": "Leave group",
-    "settings.delete_group": "Delete group",
+    "settings.leave_group": "Leave Kimpay",
+    "settings.delete_group": "Delete Kimpay",
+    "settings.archive": "Archive Kimpay",
+    "settings.archive_desc": "Fold it at the bottom of your home page. Nothing changes for the other participants.",
+    "settings.unarchive": "Unarchive Kimpay",
+    "settings.unarchive_desc": "Put it back with your other Kimpays on the home page.",
     "settings.actions.remove_desc":
-        "Remove this group from your recent list on this device.",
+        "Remove this Kimpay from your recent list on this device.",
     "settings.actions.delete_desc":
-        "Permanently delete this group and all its data for everyone.",
+        "Permanently delete this Kimpay and all its data for everyone.",
     "settings.actions.delete_warning":
-        "WARNING: This will permanently delete the group, all expenses, and all data for EVERYONE. This action cannot be undone.",
+        "WARNING: This will permanently delete the Kimpay, all expenses, and all data for EVERYONE. This action cannot be undone.",
 
     "balance.title": "Balance",
     "balance.empty.title": "No expenses yet",
@@ -157,8 +161,12 @@ export const en = {
     "balance.owed_to_you": "You are owed",
 
     "balance.settle.modal.title": "Settle Debt?",
-    "balance.settle.modal.desc": "Mark {amount} as paid from {from} to {to}?",
     "balance.settle.confirm": "Confirm Payment",
+    "balance.settle.sheet.desc": "From {from} to {to}. Change the amount if only part of it was paid.",
+    "balance.settle.amount_label": "Amount paid",
+    "balance.settle.remaining": "{amount} will remain to be settled.",
+    "balance.settle.too_much": "At most {amount}, the amount due.",
+    "balance.settle.partial_hint": "All of it. Paid only part? Change the amount.",
     "balance.reimbursement": "Reimbursement",
     "balance.reimbursement.offline_unavailable":
         "Reimbursements are not available offline.",
@@ -317,7 +325,7 @@ export const en = {
     "settings.payment.desc": "People who owe you money can pay you in one tap, in the groups where you show these links.",
     "settings.payment.handle_placeholder": "username",
     "settings.readonly.title": "Read-only link",
-    "settings.readonly.desc": "Share a summary (expenses, balances, payments to make) with someone who must not be able to edit the group.",
+    "settings.readonly.desc": "Share a summary (expenses, balances, payments to make) with someone who must not be able to edit the Kimpay.",
     "settings.readonly.create": "Create the link",
     "settings.readonly.disable": "Disable the link",
     "settings.readonly.disable_title": "Disable the read-only link?",
@@ -465,7 +473,7 @@ export const en = {
     "members.merge.done": "Merged into {name}",
     "identity.similar": "Is that you, {name}?",
     "identity.similar_yes": "Yes, that's me",
-    "settings.delete_needs_account": "Create a free account to delete this group: it proves you created it.",
+    "settings.delete_needs_account": "Create a free account to delete this Kimpay: it proves you created it.",
     "home.join.have_link": "I have a link or a QR code",
     "home.archive.action": "Archive",
     "home.archive.restore": "Restore",
@@ -497,6 +505,13 @@ export const en = {
     "activity.participant_renamed": "Member renamed",
     "activity.participant_deleted": "Member removed",
     "activity.participants_merged": "Members merged",
+    "settings.currency.hint": "The amounts of the Kimpay will be converted to {to} at today's rate.",
+    "settings.currency.confirm_title": "Switch the Kimpay to {to}?",
+    "settings.currency.confirm_desc": "Expenses keep their own currency, but every amount of the Kimpay is converted at today's rate: 1 {from} = {rate} {to}. Balances change for everyone.",
+    "settings.currency.confirm": "Convert to {to}",
+    "settings.currency.offline": "Changing the currency needs a connection.",
+    "settings.currency.no_rate": "Exchange rate unavailable for now, try again later.",
+    "activity.currency_changed": "Group currency changed",
     "activity.participant_payment_changed": "Payment links changed",
 } as const;
 

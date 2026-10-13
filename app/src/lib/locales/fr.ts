@@ -14,9 +14,9 @@ export const fr: Record<TranslationKey, string> = {
     "home.join.button": "Rejoindre",
     "home.join.error_not_found": "Kimpay introuvable",
 
-    "modal.leave.title": "Quitter le groupe ?",
+    "modal.leave.title": "Quitter le Kimpay ?",
     "modal.leave.desc":
-        "Voulez-vous vraiment retirer ce groupe de votre liste ? Cela vous retirera également des participants.",
+        "Voulez-vous vraiment retirer ce Kimpay de votre liste ? Cela vous retirera également des participants.",
     "modal.leave.confirm": "Quitter",
 
     "modal.delete_expense.title": "Supprimer la dépense ?",
@@ -125,17 +125,21 @@ export const fr: Record<TranslationKey, string> = {
     "modal.delete_participant.confirm":
         "Voulez-vous vraiment supprimer ce participant ?",
 
-    "settings.edit_group": "Modifier le groupe",
+    "settings.edit_group": "Modifier le Kimpay",
     "settings.participants.add": "Ajouter",
     "settings.participants.placeholder": "Prénom",
-    "settings.leave_group": "Quitter le groupe",
-    "settings.delete_group": "Supprimer le groupe",
+    "settings.leave_group": "Quitter le Kimpay",
+    "settings.delete_group": "Supprimer le Kimpay",
+    "settings.archive": "Archiver le Kimpay",
+    "settings.archive_desc": "Le ranger en bas de votre accueil. Rien ne change pour les autres participants.",
+    "settings.unarchive": "Désarchiver le Kimpay",
+    "settings.unarchive_desc": "Le remettre avec vos autres Kimpays sur l'accueil.",
     "settings.actions.remove_desc":
-        "Retirer ce groupe de votre liste récente sur cet appareil.",
+        "Retirer ce Kimpay de votre liste récente sur cet appareil.",
     "settings.actions.delete_desc":
-        "Supprimer définitivement ce groupe et toutes ses données pour tout le monde.",
+        "Supprimer définitivement ce Kimpay et toutes ses données pour tout le monde.",
     "settings.actions.delete_warning":
-        "ATTENTION : Cela supprimera définitivement le groupe, toutes les dépenses et toutes les données pour TOUT LE MONDE. Cette action est irréversible.",
+        "ATTENTION : Cela supprimera définitivement le Kimpay, toutes les dépenses et toutes les données pour TOUT LE MONDE. Cette action est irréversible.",
 
     "balance.title": "Équilibre",
     "balance.empty.title": "Aucune dépense pour l'instant",
@@ -160,9 +164,12 @@ export const fr: Record<TranslationKey, string> = {
     "balance.owed_to_you": "On vous doit",
 
     "balance.settle.modal.title": "Régler la dette ?",
-    "balance.settle.modal.desc":
-        "Marquer {amount} comme payé de {from} à {to} ?",
     "balance.settle.confirm": "Confirmer le paiement",
+    "balance.settle.sheet.desc": "De {from} à {to}. Modifiez le montant si seule une partie a été payée.",
+    "balance.settle.amount_label": "Montant payé",
+    "balance.settle.remaining": "Il restera {amount} à régler.",
+    "balance.settle.too_much": "Au plus {amount}, le montant dû.",
+    "balance.settle.partial_hint": "La totalité. Payé en partie ? Modifiez le montant.",
     "balance.reimbursement": "Remboursement",
     "balance.reimbursement.offline_unavailable":
         "Les remboursements ne sont pas disponibles hors ligne.",
@@ -322,7 +329,7 @@ export const fr: Record<TranslationKey, string> = {
     "settings.payment.desc": "Les personnes qui vous doivent de l'argent pourront vous payer en un geste, dans les groupes où vous montrez ces liens.",
     "settings.payment.handle_placeholder": "identifiant",
     "settings.readonly.title": "Lien en lecture seule",
-    "settings.readonly.desc": "Partagez un récapitulatif (dépenses, soldes, paiements à faire) avec quelqu'un qui ne doit pas pouvoir modifier le groupe.",
+    "settings.readonly.desc": "Partagez un récapitulatif (dépenses, soldes, paiements à faire) avec quelqu'un qui ne doit pas pouvoir modifier le Kimpay.",
     "settings.readonly.create": "Créer le lien",
     "settings.readonly.disable": "Désactiver le lien",
     "settings.readonly.disable_title": "Désactiver le lien en lecture seule ?",
@@ -470,7 +477,7 @@ export const fr: Record<TranslationKey, string> = {
     "members.merge.done": "Fusionné avec {name}",
     "identity.similar": "C'est vous, {name} ?",
     "identity.similar_yes": "Oui, c'est moi",
-    "settings.delete_needs_account": "Créez un compte gratuit pour supprimer ce groupe : il prouve que vous l'avez créé.",
+    "settings.delete_needs_account": "Créez un compte gratuit pour supprimer ce Kimpay : il prouve que vous l'avez créé.",
     "home.join.have_link": "J'ai un lien ou un QR code",
     "home.archive.action": "Archiver",
     "home.archive.restore": "Restaurer",
@@ -502,5 +509,12 @@ export const fr: Record<TranslationKey, string> = {
     "activity.participant_renamed": "Membre renommé",
     "activity.participant_deleted": "Membre retiré",
     "activity.participants_merged": "Membres fusionnés",
+    "settings.currency.hint": "Les montants du Kimpay seront convertis en {to} au taux du jour.",
+    "settings.currency.confirm_title": "Passer le Kimpay en {to} ?",
+    "settings.currency.confirm_desc": "Les dépenses gardent leur devise, mais tous les montants du Kimpay sont convertis au taux du jour : 1 {from} = {rate} {to}. Les soldes changent pour tout le monde.",
+    "settings.currency.confirm": "Convertir en {to}",
+    "settings.currency.offline": "Changer la devise nécessite une connexion.",
+    "settings.currency.no_rate": "Taux de change indisponible pour le moment, réessayez plus tard.",
+    "activity.currency_changed": "Devise du groupe changée",
     "activity.participant_payment_changed": "Liens de paiement modifiés",
 };

@@ -49,4 +49,28 @@ test.describe('Home and new group', () => {
         await expect(page.getByRole('button', { name: /Archived/ })).toBeHidden();
         await expect(tripA).toBeVisible();
     });
+
+    test('the switcher folds the archived groups', async ({ page }) => {
+        await createKimpay(page, 'Trip A', 'Alice');
+        await dismissInstallPrompt(page);
+        await page.goto('/');
+        await page.getByRole('button', { name: 'Create a group' }).click();
+        await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
+        await page.getByPlaceholder('e.g. Antoine').fill('Alice');
+        await page.getByRole('button', { name: 'Create', exact: true }).click();
+        await expect(page).toHaveURL(/\/k\//);
+        await page.goto('/');
+        const tripA = page.getByRole('link', { name: /Trip A/ });
+        await tripA.click();
+        await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+        await page.getByRole('button', { name: /^archive kimpay/i }).click();
+        await expect(page).toHaveURL(/\/$/);
+
+        await page.getByRole('link', { name: /Trip B/ }).click();
+        await page.getByRole('button', { name: /Trip B/ }).click();
+        await expect(page.getByRole('link', { name: /Trip B/ })).toBeVisible();
+        await expect(tripA).toBeHidden();
+        await page.getByRole('button', { name: 'Archived (1)' }).click();
+        await expect(tripA).toBeVisible();
+    });
 });

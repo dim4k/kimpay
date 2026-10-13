@@ -63,6 +63,45 @@ test.describe('Members & group settings', () => {
      await expect(page.getByText('€20.00').first()).toBeVisible();
   });
 
+  test('Changes the group currency, converting the amounts', async ({ page }) => {
+     // 1 EUR = 2 USD today.
+     await page.route(/currency-api/, (route) => route.fulfill({ json: { eur: { eur: 1, usd: 2 } }, headers: { 'access-control-allow-origin': '*' } }));
+     // Not the real rates fetched (and cached) while the group was created.
+     await page.addInitScript(() => Object.keys(localStorage).filter((k) => k.startsWith('kimpay_rates_')).forEach((k) => localStorage.removeItem(k)));
+     await page.reload();
+     const base = page.url().replace(/\/members$/, '');
+     await page.getByPlaceholder('New name').fill('Bob');
+     await page.getByRole('button', { name: /add/i }).click();
+     await expect(page.locator('[data-participant-id]', { hasText: 'Bob' })).toBeVisible();
+
+     await page.goto(base);
+     await page.getByRole('link', { name: /add expense/i }).click();
+     await page.getByPlaceholder('What was it for?').fill('Dinner');
+     await page.getByPlaceholder('0.00').fill('30');
+     await page.getByRole('button', { name: /save expense/i }).first().click();
+     await expect(page.getByText('Dinner')).toBeVisible();
+
+     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await page.getByRole('button', { name: 'Edit' }).click();
+     const sheet = page.getByRole('dialog');
+     await sheet.getByRole('button', { name: 'Currency' }).click();
+     await sheet.getByRole('button', { name: /USD/ }).click();
+     await sheet.getByRole('button', { name: 'Save' }).click();
+
+     const confirm = page.getByRole('dialog', { name: 'Switch the Kimpay to USD?' });
+     await expect(confirm.getByText(/1 EUR = 2 USD/)).toBeVisible();
+     const changed = page.waitForResponse((r) => r.url().endsWith('/currency'));
+     await confirm.getByRole('button', { name: 'Convert to USD' }).click();
+     const response = await changed;
+     expect(response.status(), await response.text()).toBe(200);
+     await expect(page.getByText(/^USD ·/)).toBeVisible();
+
+     // Owed 15 EUR, now 30 USD; the expense keeps its 30 EUR.
+     await page.goto(`${base}/balance`);
+     await expect(page.getByText('You are owed')).toBeVisible();
+     await expect(page.getByText('$30.00').first()).toBeVisible();
+  });
+
   test('Offers an existing member with the same first name', async ({ page }) => {
      await page.getByPlaceholder('New name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click();
@@ -80,7 +119,7 @@ test.describe('Members & group settings', () => {
 
   test('Tells a creator without an account how to delete the group', async ({ page }) => {
      await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
-     await expect(page.getByRole('button', { name: /delete group/i })).toContainText('Create a free account');
+     await expect(page.getByRole('button', { name: /delete kimpay/i })).toContainText('Create a free account');
   });
 
   test('Lets the creator delete the group once logged in on this device', async ({ page, request }) => {
@@ -92,20 +131,36 @@ test.describe('Members & group settings', () => {
      await loginWithNewAccount(page, request, 'Admin');
      expect((await owned).ok()).toBe(true);
 
-     await page.getByRole('button', { name: /delete group/i }).click();
+     await page.getByRole('button', { name: /delete kimpay/i }).click();
      await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
      await expect(page).toHaveURL(/\/$/);
      const gone = await request.get(`${PB_URL}/api/kimpay/${kimpayId}/data`);
      expect(gone.status()).toBe(404);
   });
 
+  test('Archives the Kimpay from its settings, and unarchives it', async ({ page }) => {
+     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await expect(page).toHaveURL(/\/settings$/);
+     const settings = page.url();
+     await page.getByRole('button', { name: /^archive kimpay/i }).click();
+     await expect(page.getByText('Settings Test Group archived')).toBeVisible();
+     await expect(page).toHaveURL(/\/$/);
+     await expect(page.getByRole('button', { name: 'Archived (1)' })).toBeVisible();
+
+     await page.goto(settings);
+     await page.getByRole('button', { name: /^unarchive kimpay/i }).click();
+     await expect(page.getByRole('button', { name: /^archive kimpay/i })).toBeVisible();
+     await page.goto('/');
+     await expect(page.getByRole('button', { name: /Archived/ })).toBeHidden();
+  });
+
   test('Verify Offline Buttons (Online Mode)', async ({ page }) => {
     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
     // Ensure critical buttons are enabled when online
-    const leaveBtn = page.getByRole('button', { name: /leave group/i });
+    const leaveBtn = page.getByRole('button', { name: /leave kimpay/i });
     await expect(leaveBtn).toBeEnabled();
 
-    const deleteBtn = page.getByRole('button', { name: /delete group/i });
+    const deleteBtn = page.getByRole('button', { name: /delete kimpay/i });
     if (await deleteBtn.isVisible()) {
         await expect(deleteBtn).toBeEnabled();
     }

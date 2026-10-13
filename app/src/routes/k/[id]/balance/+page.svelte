@@ -29,6 +29,7 @@
   import { groupStats, spendingByCategory } from '#lib/stats.js';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import PaymentHandlesSheet from '#lib/components/profile/PaymentHandlesSheet.svelte';
+  import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -40,15 +41,10 @@
   let kimpayDefaultCurrency = $derived(kimpay?.currency || DEFAULT_CURRENCY);
   let exchangeRates = $derived(activeKimpay?.exchangeRates || {});
   
-  // Display currency selector state (defaults to Kimpay's currency)
-  let displayCurrency = $state('');
-  
-  // Initialize displayCurrency when kimpay loads
-  $effect(() => {
-    if (kimpayDefaultCurrency && !displayCurrency) {
-      displayCurrency = kimpayDefaultCurrency;
-    }
-  });
+  // Display currency: the group's (which follows it once loaded, or when it
+  // changes), until another one is picked here.
+  let chosenCurrency = $state('');
+  let displayCurrency = $derived(chosenCurrency || kimpayDefaultCurrency);
   
   // Helper: convert amount to display currency
   function toDisplayCurrency(amount: number, fromCurrency: string): number {
@@ -60,38 +56,27 @@
   
   let isLoading = $derived(activeKimpay?.loading ?? true);
 
+  // Recording a payment: the amount due, or part of it, on a chosen day.
+  let settling = $state<Transaction | null>(null);
+
   function openSettleModal(tx: Transaction) {
       if (offlineStore.isOffline) {
           toasts.warning($t('balance.reimbursement.offline_unavailable'));
           return;
       }
-
-      // Show amount in display currency for user understanding
-      const displayAmount = toDisplayCurrency(tx.amount, tx.currency);
-
-      modals.confirm({
-          title: $t('balance.settle.modal.title'),
-          description: $t('balance.settle.modal.desc', {
-                amount: formatAmount(displayAmount, displayCurrency, $locale),
-                from: tx.from === myId ? $t('common.you') : getName(tx.from),
-                to: tx.to === myId ? $t('common.you') : getName(tx.to)
-          }),
-          confirmText: $t('balance.settle.confirm'),
-          cancelText: $t('common.cancel'),
-          onConfirm: () => settle(tx),
-      });
+      settling = tx;
   }
 
   /** Record the payment: a reimbursement, in the Kimpay's currency. */
-  async function settle(tx: Transaction) {
+  async function settle(tx: Transaction, amount = tx.amount, date = new Date().toISOString()) {
       await activeKimpay.addExpense({
           payer: tx.from,
           involved: [tx.to],
-          amount: tx.amount,
+          amount,
           currency: tx.currency,
           description: $t('balance.reimbursement'),
           is_reimbursement: true,
-          date: new Date().toISOString()
+          date
       });
   }
 
@@ -284,7 +269,7 @@
         <!-- The amounts below, in another currency if needed. -->
         <div class="-mt-2 flex items-center justify-end gap-2 text-sm text-muted-foreground">
             <span>{$t('balance.display_in')}</span>
-            <CurrencySelect size="sm" bind:value={displayCurrency} />
+            <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
         </div>
 
         {#if showNudge}
@@ -438,3 +423,20 @@
 </div>
 
 <PaymentHandlesSheet isOpen={isPaymentOpen} onClose={() => isPaymentOpen = false} onSaved={showMyHandles} />
+<SettleSheet
+    tx={settling}
+    from={settling ? label(settling.from) : ''}
+    to={settling ? label(settling.to) : ''}
+    {displayCurrency}
+    {exchangeRates}
+    onClose={() => settling = null}
+    onConfirm={async (amount, date) => {
+        try {
+            await settle(settling!, amount, date);
+        } catch (e) {
+            console.error("Failed to record the reimbursement", e);
+            toasts.error(getErrorMessage(e, $t));
+            throw e;
+        }
+    }}
+/>

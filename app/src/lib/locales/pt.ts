@@ -14,9 +14,9 @@ export const pt: Record<TranslationKey, string> = {
     "home.join.button": "Entrar",
     "home.join.error_not_found": "Kimpay não encontrado",
 
-    "modal.leave.title": "Sair do grupo?",
+    "modal.leave.title": "Sair do Kimpay?",
     "modal.leave.desc":
-        "Tem certeza que quer remover este grupo da sua lista? Você também será removido como participante.",
+        "Tem certeza que quer remover este Kimpay da sua lista? Você também será removido como participante.",
     "modal.leave.confirm": "Sair",
 
     "modal.delete_expense.title": "Excluir despesa?",
@@ -125,17 +125,21 @@ export const pt: Record<TranslationKey, string> = {
     "modal.delete_participant.confirm":
         "Tem certeza que quer excluir este participante?",
 
-    "settings.edit_group": "Editar grupo",
+    "settings.edit_group": "Editar o Kimpay",
     "settings.participants.add": "Adicionar",
     "settings.participants.placeholder": "Novo nome",
-    "settings.leave_group": "Sair do grupo",
-    "settings.delete_group": "Excluir grupo",
+    "settings.leave_group": "Sair do Kimpay",
+    "settings.delete_group": "Excluir o Kimpay",
+    "settings.archive": "Arquivar o Kimpay",
+    "settings.archive_desc": "Guardá-lo no fim da sua página inicial. Nada muda para os outros participantes.",
+    "settings.unarchive": "Desarquivar o Kimpay",
+    "settings.unarchive_desc": "Devolvê-lo aos seus outros Kimpays na página inicial.",
     "settings.actions.remove_desc":
-        "Remover este grupo da sua lista neste dispositivo.",
+        "Remover este Kimpay da sua lista neste dispositivo.",
     "settings.actions.delete_desc":
-        "Excluir permanentemente este grupo e todos os dados para todos.",
+        "Excluir permanentemente este Kimpay e todos os dados para todos.",
     "settings.actions.delete_warning":
-        "AVISO: Isso excluirá permanentemente o grupo, todas as despesas e dados para TODOS. Esta ação não pode ser desfeita.",
+        "AVISO: Isso excluirá permanentemente o Kimpay, todas as despesas e dados para TODOS. Esta ação não pode ser desfeita.",
 
     "balance.title": "Saldo",
     "balance.empty.title": "Ainda não há despesas",
@@ -159,8 +163,12 @@ export const pt: Record<TranslationKey, string> = {
     "balance.owed_to_you": "Devem a você",
 
     "balance.settle.modal.title": "Acertar dívida?",
-    "balance.settle.modal.desc": "Marcar {amount} como pago de {from} para {to}?",
     "balance.settle.confirm": "Confirmar pagamento",
+    "balance.settle.sheet.desc": "De {from} para {to}. Altere o valor se apenas uma parte foi paga.",
+    "balance.settle.amount_label": "Valor pago",
+    "balance.settle.remaining": "Restarão {amount} por acertar.",
+    "balance.settle.too_much": "No máximo {amount}, o valor devido.",
+    "balance.settle.partial_hint": "O valor total. Pago só em parte? Altere o valor.",
     "balance.reimbursement": "Reembolso",
     "balance.reimbursement.offline_unavailable":
         "Reembolsos não disponíveis offline.",
@@ -319,7 +327,7 @@ export const pt: Record<TranslationKey, string> = {
     "settings.payment.desc": "Quem te deve dinheiro poderá te pagar com um toque, nos grupos onde você mostrar esses links.",
     "settings.payment.handle_placeholder": "utilizador",
     "settings.readonly.title": "Link só de leitura",
-    "settings.readonly.desc": "Partilhe um resumo (despesas, saldos, pagamentos a fazer) com alguém que não deve poder alterar o grupo.",
+    "settings.readonly.desc": "Partilhe um resumo (despesas, saldos, pagamentos a fazer) com alguém que não deve poder alterar o Kimpay.",
     "settings.readonly.create": "Criar o link",
     "settings.readonly.disable": "Desativar o link",
     "settings.readonly.disable_title": "Desativar o link só de leitura?",
@@ -467,7 +475,7 @@ export const pt: Record<TranslationKey, string> = {
     "members.merge.done": "Junto com {name}",
     "identity.similar": "É você, {name}?",
     "identity.similar_yes": "Sim, sou eu",
-    "settings.delete_needs_account": "Crie uma conta gratuita para eliminar este grupo: prova que foi você que o criou.",
+    "settings.delete_needs_account": "Crie uma conta gratuita para eliminar este Kimpay: prova que foi você que o criou.",
     "home.join.have_link": "Tenho um link ou um código QR",
     "home.archive.action": "Arquivar",
     "home.archive.restore": "Restaurar",
@@ -499,5 +507,12 @@ export const pt: Record<TranslationKey, string> = {
     "activity.participant_renamed": "Membro renomeado",
     "activity.participant_deleted": "Membro removido",
     "activity.participants_merged": "Membros juntos",
+    "settings.currency.hint": "Os valores do Kimpay serão convertidos para {to} à taxa de hoje.",
+    "settings.currency.confirm_title": "Passar o Kimpay para {to}?",
+    "settings.currency.confirm_desc": "As despesas mantêm sua moeda, mas todos os valores do Kimpay são convertidos à taxa de hoje: 1 {from} = {rate} {to}. Os saldos mudam para todos.",
+    "settings.currency.confirm": "Converter para {to}",
+    "settings.currency.offline": "Mudar a moeda requer conexão.",
+    "settings.currency.no_rate": "Taxa de câmbio indisponível no momento, tente novamente mais tarde.",
+    "activity.currency_changed": "Moeda do grupo alterada",
     "activity.participant_payment_changed": "Links de pagamento alterados",
 };

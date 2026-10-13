@@ -13,7 +13,8 @@ export type ActivityAction =
     | 'participant_renamed'
     | 'participant_deleted'
     | 'participants_merged'
-    | 'participant_payment_changed';
+    | 'participant_payment_changed'
+    | 'currency_changed';
 
 /** A payment link before / after a change ("" = none). */
 export interface HandleChange {
@@ -50,6 +51,8 @@ export interface Activity {
         from?: string;
         to?: string;
         into?: string;
+        /** Currency changed: 1 from = rate to (when expenses were converted) */
+        rate?: number;
         /** Payment links changed (the services changed only) */
         paypal?: HandleChange;
         revolut?: HandleChange;
@@ -81,6 +84,7 @@ const CHANGES: readonly ActivityAction[] = [
     'participant_deleted',
     'participants_merged',
     'participant_payment_changed',
+    'currency_changed',
 ];
 
 /** Changes and deletions made by others after `since` (ms). */

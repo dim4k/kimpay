@@ -348,21 +348,23 @@
   // additions are the dots above). Loaded again with every change to the group.
   let activities = $state<Activity[]>([]);
   let seenAt = $state(0);
+  let activityShown = false;
   $effect(() => {
       const id = kimpayId;
       void activeKimpay?.kimpay?.updated;
       if (!id || offlineStore.isOffline) return;
       seenAt = activitySeenAt(id);
-      listActivity(id).then((list) => (activities = list)).catch(() => {});
+      listActivity(id).then((list) => { activities = list; activityShown = true; }).catch(() => {});
+  });
+  // Shown here, so seen once I leave the list: like the new expenses, the
+  // changes are those since my last visit.
+  $effect(() => {
+      const id = kimpayId;
+      return () => { if (id && activityShown) markActivitySeen(id); };
   });
   let changes = $derived(seenAt ? changesSince(activities, seenAt, currentUserId) : 0);
 
   let hasNews = $derived(!isLoading && (newIds.size > 0 || changes > 0));
-
-  function dismissNews() {
-      activeKimpay?.markAllSeen();
-      seenAt = markActivitySeen(kimpayId);
-  }
 
   /** A receipt photographed from the empty list: the form reads it. */
   function scanFromList(file: File) {
@@ -449,56 +451,50 @@
   {/if}
 
   {#if showBalance || hasNews}
-  <!-- Where I stand, then what the others added since my last visit: one card. -->
-  <div class="divide-y overflow-hidden rounded-control border bg-card animate-pop-in">
-  {#if showBalance}
-      <!-- My balance in one line; the details are in the Balance tab. -->
-      <a
-          href="/k/{kimpayId}/balance"
-          data-sveltekit-replacestate
-          class="flex min-h-11 items-center gap-2 px-4 py-2 transition-colors duration-150 hover:bg-muted/50"
-      >
-          {#if owesMoney || isOwed}
-              <span class="text-sm text-muted-foreground">{owesMoney ? $t('balance.you_owe') : $t('balance.owed_to_you')}</span>
-              <span class="font-bold tabular-nums {owesMoney ? 'text-warning' : 'text-success'}">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
-          {:else}
-              <Check class="h-4 w-4 shrink-0 text-success" />
-              <span class="text-sm font-medium">{$t('balance.settled.title')}</span>
+  <!-- One card above the list: where I stand, and under it what the others
+       added or changed since my last visit. The whole card leads to the
+       Balance tab, except the news, which lead to the lines concerned. -->
+  <div class="relative flex min-h-11 items-center gap-3 rounded-control border bg-card px-4 py-2 transition-colors duration-150 animate-pop-in {showBalance ? 'hover:bg-muted/50' : ''}">
+      <div class="min-w-0 flex-1">
+          {#if showBalance}
+              <p class="flex items-center gap-2">
+                  {#if owesMoney || isOwed}
+                      <span class="text-sm text-muted-foreground">{owesMoney ? $t('balance.you_owe') : $t('balance.owed_to_you')}</span>
+                      <span class="font-bold tabular-nums {owesMoney ? 'text-warning' : 'text-success'}">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
+                  {:else}
+                      <Check class="h-4 w-4 shrink-0 text-success" />
+                      <span class="text-sm font-medium">{$t('balance.settled.title')}</span>
+                  {/if}
+              </p>
           {/if}
-          <span class="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
+          {#if hasNews}
+              <!-- A dot marks each new line in the list. -->
+              <p class="relative z-10 flex flex-wrap items-center gap-x-1.5 font-medium text-muted-foreground {showBalance ? 'text-xs' : 'text-sm'}">
+                  <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                  {#if newIds.size > 0}
+                      <button type="button" onclick={showNews} class="min-w-0 truncate py-0.5 text-left hover:text-foreground">
+                          {$t('expense.list.new_since', { count: String(newIds.size) })}
+                      </button>
+                  {/if}
+                  {#if newIds.size > 0 && changes > 0}<span aria-hidden="true">·</span>{/if}
+                  {#if changes > 0}
+                      <a href="/k/{kimpayId}/settings/activity" class="min-w-0 truncate py-0.5 text-primary">
+                          {$t('activity.changes_since', { count: String(changes) })}
+                      </a>
+                  {/if}
+              </p>
+          {/if}
+      </div>
+      {#if showBalance}
+          <a
+              href="/k/{kimpayId}/balance"
+              data-sveltekit-replacestate
+              class="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary after:absolute after:inset-0 after:rounded-control"
+          >
               {owesMoney ? $t('expense.hero.settle') : $t('nav.balance')}
               <ChevronRight class="h-4 w-4" />
-          </span>
-      </a>
-  {/if}
-
-  {#if hasNews}
-      <!-- A dot marks each of these lines in the list. -->
-      <div class="flex min-h-11 items-center gap-1 pl-4 pr-1">
-          <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-          <div class="min-w-0 flex-1 py-1">
-              {#if newIds.size > 0}
-                  <button type="button" onclick={showNews} class="block w-full truncate py-1 pl-2 text-left text-sm font-medium">
-                      {$t('expense.list.new_since', { count: String(newIds.size) })}
-                  </button>
-              {/if}
-              {#if changes > 0}
-                  <a href="/k/{kimpayId}/settings/activity" class="flex items-center gap-0.5 py-1 pl-2 text-sm font-medium text-primary">
-                      <span class="truncate">{$t('activity.changes_since', { count: String(changes) })}</span>
-                      <ChevronRight class="h-4 w-4 shrink-0" />
-                  </a>
-              {/if}
-          </div>
-          <button
-              type="button"
-              onclick={dismissNews}
-              aria-label={$t('common.close')}
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted"
-          >
-              <X class="h-4 w-4" />
-          </button>
-      </div>
-  {/if}
+          </a>
+      {/if}
   </div>
   {/if}
 

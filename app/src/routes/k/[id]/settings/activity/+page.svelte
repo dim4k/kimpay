@@ -59,6 +59,7 @@
       participant_deleted: 'activity.participant_deleted',
       participants_merged: 'activity.participants_merged',
       participant_payment_changed: 'activity.participant_payment_changed',
+      currency_changed: 'activity.currency_changed',
   };
 
   function isExpense(a: Activity): boolean {
@@ -70,7 +71,7 @@
       const d = a.data;
       if (a.action.startsWith('reimbursement_')) return `${d.payer ?? '?'} → ${d.involved?.[0] ?? '?'}`;
       if (isExpense(a)) return d.description ?? '';
-      if (a.action === 'participant_renamed') return `${d.from} → ${d.to}`;
+      if (a.action === 'participant_renamed' || a.action === 'currency_changed') return `${d.from} → ${d.to}`;
       if (a.action === 'participants_merged') return `${d.from} → ${d.into}`;
       return d.name ?? '';
   }

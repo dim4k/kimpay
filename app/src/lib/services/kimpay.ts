@@ -138,6 +138,11 @@ export const kimpayService = {
         await pb.send(`/api/kimpay/${kimpayId}/merge`, { method: 'POST', body: { from, into } });
     },
 
+    /** New group currency; `rate` (1 old = rate new) converts the expenses, server side. */
+    async changeCurrency(kimpayId: string, to: string, rate: number): Promise<void> {
+        await pb.send(`/api/kimpay/${kimpayId}/currency`, { method: 'POST', body: { to, rate } });
+    },
+
     /**
      * Leave a Kimpay - handles participant deletion/unclaim logic.
      * Checks if participant is creator or involved in expenses before deciding action.

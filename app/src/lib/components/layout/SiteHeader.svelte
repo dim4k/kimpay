@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Check, Menu, WifiOff, LayoutDashboard } from "@lucide/svelte";
+  import { Check, ChevronDown, Menu, WifiOff, LayoutDashboard } from "@lucide/svelte";
   import Logo from "#lib/components/ui/Logo.svelte";
   import { t } from '#lib/i18n.js';
   import { slide } from 'svelte/transition';
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { archiveStore } from '#lib/stores/archive.svelte.js';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import IconTile from '#lib/components/ui/IconTile.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
@@ -22,6 +23,7 @@
   import { haptic } from '#lib/utils/haptic.js';
   import { dismissable } from '#lib/attachments/dismissable.js';
   import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
+  import type { RecentKimpay } from '#lib/types.js';
 
   let isSwitcherOpen = $state(false);
   let showOfflineHelp = $state(false);
@@ -32,11 +34,18 @@
   let currentParticipant = $derived(isInKimpayContext ? activeKimpayGlobal.myParticipant : null);
   let currentKimpay = $derived(isInKimpayContext ? activeKimpayGlobal.kimpay : null);
 
+  // Archived Kimpays are folded, as on the home page (the current one stays
+  // in the list, with its check).
+  let switcherKimpays = $derived(recentsStore.recentKimpays.filter(k => !archiveStore.has(k.id) || k.id === currentKimpay?.id));
+  let archivedKimpays = $derived(recentsStore.recentKimpays.filter(k => archiveStore.has(k.id) && k.id !== currentKimpay?.id));
+  let isArchiveOpen = $state(false);
+
   afterNavigate(({ shallow, type }) => {
     if (shallow && type === 'goto') return;
 
     profileMenu.close();
     isSwitcherOpen = false;
+    isArchiveOpen = false;
   });
 
   // Phones get bottom sheets, larger screens popovers under the trigger.
@@ -50,24 +59,50 @@
   });
 </script>
 
+{#snippet switcherRow(k: RecentKimpay, currentId: string)}
+  {@const isCurrent = k.id === currentId}
+  <a
+    href="/k/{k.id}"
+    data-sveltekit-preload-data="false"
+    onclick={() => { haptic('light'); isSwitcherOpen = false; }}
+    aria-current={isCurrent ? 'page' : undefined}
+    class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
+  >
+    <IconTile size="sm">{k.icon || DEFAULT_GROUP_ICON}</IconTile>
+    <span class="flex-1 truncate text-base font-medium">{k.name}</span>
+    {#if isCurrent}<Check class="h-4 w-4 shrink-0 text-primary" />{/if}
+  </a>
+{/snippet}
+
 {#snippet groupSwitcher(currentId: string)}
   <div class="space-y-3">
     <ListGroup>
-      {#each recentsStore.recentKimpays as k (k.id)}
-        {@const isCurrent = k.id === currentId}
-        <a
-          href="/k/{k.id}"
-          data-sveltekit-preload-data="false"
-          onclick={() => { haptic('light'); isSwitcherOpen = false; }}
-          aria-current={isCurrent ? 'page' : undefined}
-          class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
-        >
-          <IconTile size="sm">{k.icon || DEFAULT_GROUP_ICON}</IconTile>
-          <span class="flex-1 truncate text-base font-medium">{k.name}</span>
-          {#if isCurrent}<Check class="h-4 w-4 shrink-0 text-primary" />{/if}
-        </a>
+      {#each switcherKimpays as k (k.id)}
+        {@render switcherRow(k, currentId)}
       {/each}
     </ListGroup>
+    {#if archivedKimpays.length > 0}
+      <div class="space-y-2">
+        <button
+          type="button"
+          onclick={() => isArchiveOpen = !isArchiveOpen}
+          aria-expanded={isArchiveOpen}
+          class="flex items-center gap-1.5 px-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronDown class="h-4 w-4 transition-transform {isArchiveOpen ? 'rotate-180' : ''}" />
+          {$t('home.archive.title', { count: String(archivedKimpays.length) })}
+        </button>
+        {#if isArchiveOpen}
+          <div transition:slide={{ duration: 150 }}>
+            <ListGroup>
+              {#each archivedKimpays as k (k.id)}
+                {@render switcherRow(k, currentId)}
+              {/each}
+            </ListGroup>
+          </div>
+        {/if}
+      </div>
+    {/if}
     <ListGroup>
       <ListRow icon={LayoutDashboard} title={$t('my_kimpays.title')} href="/" />
     </ListGroup>
