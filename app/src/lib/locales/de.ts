@@ -446,6 +446,7 @@ export const de: Record<TranslationKey, string> = {
     "expense.list.everyone_but": "Alle außer {names}",
     "expense.list.new": "Neu",
     "expense.list.new_since": "{count} neu seit deinem letzten Besuch",
+    "expense.list.news_dismiss": "Als gesehen markieren",
     "expense.list.reimbursements_count": "{count} Rückzahlung(en)",
     "expense.form.discard_title": "Diese Ausgabe verwerfen?",
     "expense.form.discard_desc": "Ihre Eingaben gehen verloren.",

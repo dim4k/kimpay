@@ -305,6 +305,11 @@ export class ActiveKimpay {
         await storageService.setMyParticipantId(this.id, participantId);
     }
 
+    /** Seen on this visit: no longer marked new (the next visit starts from the cache). */
+    markSeen(ids: Iterable<string>) {
+        for (const id of ids) this.seenIds?.add(id);
+    }
+
     // Asked once per member and per visit (it may be refused: a name linked
     // to my account, while logged out).
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping, never rendered

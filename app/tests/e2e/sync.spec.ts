@@ -74,9 +74,23 @@ test.describe('Sync between devices', () => {
         // Opening the group marks them as seen.
         await page.getByText('News Test').click();
         await expect(page.getByText('Bob Taxi')).toBeVisible();
-        // In the group, under my balance, in the same card.
-        const card = page.locator('div.rounded-control', { hasText: /You owe|You are owed/ }).filter({ hasText: '2 new since your last visit' });
-        await expect(card).toBeVisible();
+        // In the group: the news only (no balance), a dot on each new line.
+        const card = page.getByTestId('list-summary');
+        await expect(card).toHaveText(/2 new since your last visit/);
+        await expect(card).not.toHaveText(/You owe|You are owed/);
+        const dots = page.getByRole('img', { name: 'New', exact: true });
+        await expect(dots).toHaveCount(2);
+
+        // Opening a new line: seen.
+        await page.getByText('Bob Taxi').click();
+        await expect(page.locator('[data-expense]', { hasText: 'Bob Taxi' }).getByRole('img', { name: 'New', exact: true })).toHaveCount(0);
+        await expect(card).toHaveText(/1 new since your last visit/);
+
+        // The cross: all seen.
+        await card.getByRole('button', { name: 'Mark as seen' }).click();
+        await expect(card).toHaveCount(0);
+        await expect(dots).toHaveCount(0);
+
         await page.getByRole('link', { name: 'My Kimpays' }).click();
         await expect(page.getByText('News Test')).toBeVisible();
         await expect(page.getByText(/\bnew\b/)).toHaveCount(0);

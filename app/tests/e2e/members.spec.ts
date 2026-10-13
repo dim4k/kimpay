@@ -80,9 +80,8 @@ test.describe('Members', () => {
         await addMember(page, 'Bob');
         await addExpense(page, 'Groceries', '30');
 
-        // Owed money: no card above the list, the amount is on the Balance tab.
+        // Owed money: nothing to do, no card above the list.
         await expect(page.getByTestId('list-summary')).toHaveCount(0);
-        await expect(page.getByRole('navigation').getByTestId('nav-tag')).toHaveText('+€15');
 
         await openMembers(page);
         await row(page, 'Bob').click();
@@ -98,10 +97,10 @@ test.describe('Members', () => {
         const settle = page.getByRole('dialog', { name: 'Settle Debt?' });
         await settle.getByRole('button', { name: 'Confirm Payment' }).click();
         await expect(settle).toBeHidden();
-        await expect(page.getByRole('navigation').getByTestId('nav-tag')).toHaveCount(0);
 
         await row(page, 'Bob').click();
-        await page.getByRole('dialog', { name: 'Bob' }).getByRole('button', { name: 'See their expenses (2)' }).click();
+        await expect(sheet.getByTestId('member-settle')).toHaveCount(0);
+        await sheet.getByRole('button', { name: 'See their expenses (2)' }).click();
         await expect(page).toHaveURL(/\/k\/[a-zA-Z0-9]+$/);
         await expect(page.getByRole('button', { name: 'Person' })).toContainText('Bob');
         await expect(page.getByText('Groceries')).toBeVisible();

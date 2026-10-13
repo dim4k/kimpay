@@ -2,7 +2,7 @@
   import { page } from '$app/state';
   import { afterNavigate, replaceState } from '$app/navigation';
   import { ChartPie, Plus, Settings, Users, Wallet } from "@lucide/svelte";
-  import { t, locale } from '#lib/i18n.js';
+  import { t } from '#lib/i18n.js';
 
   import { ActiveKimpay, setActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
@@ -16,8 +16,6 @@
   import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { kimpayService } from '#lib/services/kimpay.js';
-  import { formatAmountShort, DEFAULT_CURRENCY } from '#lib/services/currency.js';
-  import { balanceSign, balanceTone } from '#lib/balance.js';
   
   import { onDestroy, untrack, type Snippet } from 'svelte';
   
@@ -62,16 +60,6 @@
 
   // A group of one: inviting the others is the next step.
   let isAlone = $derived(!!activeKimpay && !activeKimpay.loading && activeKimpay.participants.length <= 1);
-
-  // Where I stand, on the Balance tab: "+14 €", "−18 €" (nothing when settled).
-  let balanceTag = $derived.by(() => {
-      if (!activeKimpay?.myParticipantId || activeKimpay.loading || activeKimpay.expenses.length === 0) return null;
-      const amount = activeKimpay.myBalance;
-      const tone = balanceTone(amount);
-      if (tone === 'neutral') return null;
-      const currency = activeKimpay.kimpay?.currency || DEFAULT_CURRENCY;
-      return { text: `${balanceSign(amount)}${formatAmountShort(Math.abs(amount), currency, $locale)}`, tone };
-  });
 
   // Expense forms are full-screen: no tab bar (they have their own save bar).
   let isFormRoute = $derived(/\/(add|edit)(\/|$)/.test(page.url.pathname));
@@ -150,8 +138,6 @@
             icon={ChartPie}
             label={$t('nav.balance')}
             isActive={page.url.pathname.includes('/balance')}
-            tag={balanceTag?.text}
-            tagTone={balanceTag?.tone}
         />
 
         <!-- The one primary action of a group: add an expense. -->

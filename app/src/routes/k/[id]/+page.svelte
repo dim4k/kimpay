@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Wallet, Check, ChevronRight, Plus, Search, Share2, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
+  import { Wallet, Check, Plus, Search, Share2, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
   import InviteSheet from '#lib/components/members/InviteSheet.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
@@ -195,8 +195,6 @@
   });
 
   let participantIds = $derived(participants.map(p => p.id));
-  let myBalance = $derived(activeKimpay?.myBalance ?? 0);
-  let owesMoney = $derived(balanceTone(myBalance) === 'warning');
 
   /** "Today", "Yesterday", then the date ("Sat 19 Sep" when `short`). */
   function dayTitle(key: string, short = false): string {
@@ -312,11 +310,13 @@
   // Accordion State
   let expandedId = $state<string | null>(null);
 
+  // Opening a new line: seen, its dot goes.
   function toggleExpand(id: string) {
       if (expandedId === id) {
           expandedId = null;
       } else {
           expandedId = id;
+          activeKimpay?.markSeen([id]);
       }
   }
 
@@ -347,9 +347,6 @@
       }
   }
 
-  // Only when there is something to do: paying back. Otherwise the balance
-  // is on the Balance tab (its badge).
-  let showBalance = $derived(!isLoading && rawExpenses.length > 0 && !!currentUserId && owesMoney);
   // Changed or deleted by others since my last look at the history (the
   // additions are the dots above). Loaded again with every change to the group.
   let activities = $state<Activity[]>([]);
@@ -371,6 +368,12 @@
   let changes = $derived(seenAt ? changesSince(activities, seenAt, currentUserId) : 0);
 
   let hasNews = $derived(!isLoading && (newIds.size > 0 || changes > 0));
+
+  /** The news seen: no more dots, no more card (until the next ones). */
+  function dismissNews() {
+      activeKimpay?.markSeen(newIds);
+      if (changes > 0) seenAt = markActivitySeen(kimpayId);
+  }
 
   /** A receipt photographed from the empty list: the form reads it. */
   function scanFromList(file: File) {
@@ -456,47 +459,34 @@
       </section>
   {/if}
 
-  {#if showBalance || hasNews}
-  <!-- One card above the list, only when there is something to see or do:
-       what I owe, and what the others added or changed since my last visit.
-       The whole card leads to the Balance tab, except the news, which lead
-       to the lines concerned. -->
-  <div class="relative flex min-h-11 items-center gap-3 rounded-control border px-4 py-2 transition-colors duration-150 animate-pop-in {showBalance ? 'border-transparent bg-warning-soft hover:bg-warning-soft/70' : 'bg-card'}" data-testid="list-summary">
-      <div class="min-w-0 flex-1">
-          {#if showBalance}
-              <p class="flex items-center gap-2">
-                  <span class="text-sm text-muted-foreground">{$t('balance.you_owe')}</span>
-                  <span class="font-bold tabular-nums text-warning">{formatAmount(Math.abs(myBalance), kimpayC, $locale)}</span>
-              </p>
+  {#if hasNews}
+  <!-- What the others added or changed since my last visit: each part leads
+       to the lines concerned (a dot marks each new line), the cross marks
+       it all as seen. -->
+  <div class="flex min-h-11 items-center gap-2 rounded-control border bg-card py-1 pl-4 pr-1 animate-pop-in" data-testid="list-summary">
+      <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+      <p class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-sm font-medium text-muted-foreground">
+          {#if newIds.size > 0}
+              <button type="button" onclick={showNews} class="min-w-0 truncate py-1 text-left hover:text-foreground">
+                  {$t('expense.list.new_since', { count: String(newIds.size) })}
+              </button>
           {/if}
-          {#if hasNews}
-              <!-- A dot marks each new line in the list. -->
-              <p class="relative z-10 flex flex-wrap items-center gap-x-1.5 font-medium text-muted-foreground {showBalance ? 'text-xs' : 'text-sm'}">
-                  <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-                  {#if newIds.size > 0}
-                      <button type="button" onclick={showNews} class="min-w-0 truncate py-0.5 text-left hover:text-foreground">
-                          {$t('expense.list.new_since', { count: String(newIds.size) })}
-                      </button>
-                  {/if}
-                  {#if newIds.size > 0 && changes > 0}<span aria-hidden="true">·</span>{/if}
-                  {#if changes > 0}
-                      <a href="/k/{kimpayId}/settings/activity" class="min-w-0 truncate py-0.5 text-primary">
-                          {$t('activity.changes_since', { count: String(changes) })}
-                      </a>
-                  {/if}
-              </p>
+          {#if newIds.size > 0 && changes > 0}<span aria-hidden="true">·</span>{/if}
+          {#if changes > 0}
+              <a href="/k/{kimpayId}/settings/activity" class="min-w-0 truncate py-1 text-primary">
+                  {$t('activity.changes_since', { count: String(changes) })}
+              </a>
           {/if}
-      </div>
-      {#if showBalance}
-          <a
-              href="/k/{kimpayId}/balance"
-              data-sveltekit-replacestate
-              class="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary after:absolute after:inset-0 after:rounded-control"
-          >
-              {$t('expense.hero.settle')}
-              <ChevronRight class="h-4 w-4" />
-          </a>
-      {/if}
+      </p>
+      <button
+          type="button"
+          onclick={dismissNews}
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label={$t('expense.list.news_dismiss')}
+          title={$t('expense.list.news_dismiss')}
+      >
+          <X class="h-4 w-4" />
+      </button>
   </div>
   {/if}
 

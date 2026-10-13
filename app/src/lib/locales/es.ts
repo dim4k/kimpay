@@ -446,6 +446,7 @@ export const es: Record<TranslationKey, string> = {
     "expense.list.everyone_but": "Todos menos {names}",
     "expense.list.new": "Nuevo",
     "expense.list.new_since": "{count} novedad(es) desde tu última visita",
+    "expense.list.news_dismiss": "Marcar como visto",
     "expense.list.reimbursements_count": "{count} reembolso(s)",
     "expense.form.discard_title": "¿Descartar este gasto?",
     "expense.form.discard_desc": "Se perderá lo que has introducido.",

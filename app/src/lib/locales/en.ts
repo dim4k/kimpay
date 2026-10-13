@@ -444,6 +444,7 @@ export const en = {
     "expense.list.everyone_but": "Everyone but {names}",
     "expense.list.new": "New",
     "expense.list.new_since": "{count} new since your last visit",
+    "expense.list.news_dismiss": "Mark as seen",
     "expense.list.reimbursements_count": "{count} reimbursement(s)",
     "expense.form.discard_title": "Discard this expense?",
     "expense.form.discard_desc": "What you entered will be lost.",
