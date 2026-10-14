@@ -19,6 +19,9 @@ export default defineConfig({
     // on Chromium. Tests that exercise it opt in with
     // `test.use({ serviceWorkers: 'allow' })`.
     serviceWorkers: 'block',
+    // English, in a euro-zone country: new groups get the euro, as the
+    // amounts in the tests expect (see guessCurrency).
+    locale: 'en-IE',
   },
   // Test both desktop and mobile browsers
   projects: [

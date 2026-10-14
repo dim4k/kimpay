@@ -30,13 +30,15 @@
 >
     {#each $toasts as toast (toast.id)}
         {@const Icon = icons[toast.type]}
-        <!-- Stays while hovered or focused (a pause, not an action); an error can be closed. -->
+        <!-- Stays while the pointer moves over it or it is focused (a pause, not
+             an action); an error can be closed. Appearing under a still pointer
+             (Chrome then sends a move of 0 px) does not pause it. -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
             class="pointer-events-auto flex max-w-sm items-center gap-2 rounded-card bg-foreground/90 py-2 pl-2.5 text-sm text-background shadow-lg backdrop-blur-md {toast.type === 'error' ? 'pr-1' : 'pr-4'}"
             in:fly={{ y: 20, duration: 200 }}
             out:fade={{ duration: 150 }}
-            onpointerenter={() => toasts.pause(toast.id)}
+            onpointermove={(e) => { if (e.movementX || e.movementY) toasts.pause(toast.id); }}
             onpointerleave={() => toasts.resume(toast.id)}
             onfocusin={() => toasts.pause(toast.id)}
             onfocusout={() => toasts.resume(toast.id)}

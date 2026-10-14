@@ -2,45 +2,55 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Onboarding & Validation', () => {
 
-  test('Validation: Cannot create Kimpay with empty fields', async ({ page }) => {
+  test('Validation: says what is missing instead of creating', async ({ page }) => {
     await page.goto('/');
-    const createBtn = page.getByRole('button', { name: /create|créer/i });
+    const createBtn = page.getByRole('button', { name: 'Create the group' });
+    const missing = page.locator('#create-missing');
 
-    // Initially disabled
-    await expect(createBtn).toBeDisabled();
+    // The button stays lit; under it, what is left to fill in.
+    await expect(createBtn).toBeEnabled();
+    await expect(missing).toHaveText("Missing: the group's name, your first name");
 
-    // Fill only one field
-    await page.getByPlaceholder('e.g. Trip to Paris').fill('Test Kimpay');
-    await expect(createBtn).toBeDisabled();
-
-    await page.getByPlaceholder('e.g. Trip to Paris').clear();
-    await page.getByPlaceholder('e.g. Antoine').fill('Test User');
-    await expect(createBtn).toBeDisabled();
+    await page.getByLabel('Group name', { exact: true }).fill('Test Kimpay');
+    await expect(missing).toHaveText('Missing: your first name');
+    await createBtn.click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel('Your first name')).toBeFocused();
   });
 
   test('Validation: Cannot create Kimpay with invalid email', async ({ page }) => {
     await page.goto('/');
-    await page.getByPlaceholder('e.g. Trip to Paris').fill('Email Test');
-    await page.getByPlaceholder('e.g. Antoine').fill('Tester');
+    await page.getByLabel('Group name', { exact: true }).fill('Email Test');
+    await page.getByLabel('Your first name').fill('Tester');
 
-    // Email is optional: folded.
-    await page.getByRole('button', { name: /receive the link by email/i }).click();
-    const emailInput = page.getByPlaceholder('your@email.com');
-    if (await emailInput.isVisible()) {
-        await emailInput.fill('invalid-email');
-        await page.getByRole('button', { name: /create|créer/i }).click();
+    // Optional, always shown, with what it is for.
+    await expect(page.getByText('To find the group again on any device')).toBeVisible();
+    await page.getByLabel('Get the link by email').fill('invalid-email');
+    await page.getByRole('button', { name: 'Create the group' }).click();
 
-        // Told under the field
-        await expect(page.getByText('Please enter a valid email address')).toBeVisible();
-    }
+    // Told under the field
+    await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+  });
+
+  test('A suggestion fills the name and the emoji of the group', async ({ page }) => {
+    await page.goto('/');
+    const suggestion = page.getByRole('group', { name: 'Suggested names' }).getByRole('button', { name: 'Holidays' });
+    await suggestion.click();
+    await expect(page.getByLabel('Group name', { exact: true })).toHaveValue('Holidays');
+    await expect(page.getByRole('button', { name: 'Choose an emoji' })).toHaveText('🏖️');
+    await expect(suggestion).toHaveAttribute('aria-pressed', 'true');
+
+    // Typed over: no suggestion is the chosen one any more.
+    await page.getByLabel('Group name', { exact: true }).fill('Holidays in Crete');
+    await expect(suggestion).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('Successful Kimpay Creation', async ({ page }) => {
     await page.goto('/');
-    await page.getByPlaceholder('e.g. Trip to Paris').fill('Success Trip');
-    await page.getByPlaceholder('e.g. Antoine').fill('Creator');
+    await page.getByLabel('Group name', { exact: true }).fill('Success Trip');
+    await page.getByLabel('Your first name').fill('Creator');
 
-    await page.getByRole('button', { name: /create|créer/i }).click();
+    await page.getByRole('button', { name: 'Create the group' }).click();
 
     await expect(page).toHaveURL(/\/k\//);
     await expect(page.getByText('Success Trip')).toBeVisible();
@@ -52,9 +62,9 @@ test.describe('Onboarding & Validation', () => {
   test('Switch between Kimpays', async ({ page }) => {
     // 1. Create First Kimpay
     await page.goto('/');
-    await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip A');
-    await page.getByPlaceholder('e.g. Antoine').fill('User A');
-    await page.getByRole('button', { name: /create|créer/i }).click();
+    await page.getByLabel('Group name', { exact: true }).fill('Trip A');
+    await page.getByLabel('Your first name').fill('User A');
+    await page.getByRole('button', { name: 'Create the group' }).click();
     await expect(page).toHaveURL(/\/k\//);
 
     // 2. Go Home: groups come first, the creation form opens from its tile
@@ -62,10 +72,10 @@ test.describe('Onboarding & Validation', () => {
     await page.getByRole('button', { name: /create a group/i }).click();
 
     // 3. Create Second Kimpay
-    await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
+    await page.getByLabel('Group name', { exact: true }).fill('Trip B');
     // Name might be pre-filled from local storage if not cleared, but let's overwrite
-    await page.getByPlaceholder('e.g. Antoine').fill('User B');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.getByLabel('Your first name').fill('User B');
+    await page.getByRole('button', { name: 'Create the group' }).click();
     await expect(page).toHaveURL(/\/k\//);
     await expect(page.getByText('Trip B')).toBeVisible();
 

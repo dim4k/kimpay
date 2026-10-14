@@ -30,9 +30,9 @@ test.describe('Home and new group', () => {
         await createKimpay(page, 'Trip A', 'Alice');
         await page.goto('/');
         await page.getByRole('button', { name: 'Create a group' }).click();
-        await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
-        await page.getByPlaceholder('e.g. Antoine').fill('Alice');
-        await page.getByRole('button', { name: 'Create', exact: true }).click();
+        await page.getByLabel('Group name', { exact: true }).fill('Trip B');
+        await page.getByLabel('Your first name').fill('Alice');
+        await page.getByRole('button', { name: 'Create the group' }).click();
         await expect(page).toHaveURL(/\/k\//);
         await page.goto('/');
 
@@ -55,9 +55,9 @@ test.describe('Home and new group', () => {
         await dismissInstallPrompt(page);
         await page.goto('/');
         await page.getByRole('button', { name: 'Create a group' }).click();
-        await page.getByPlaceholder('e.g. Trip to Paris').fill('Trip B');
-        await page.getByPlaceholder('e.g. Antoine').fill('Alice');
-        await page.getByRole('button', { name: 'Create', exact: true }).click();
+        await page.getByLabel('Group name', { exact: true }).fill('Trip B');
+        await page.getByLabel('Your first name').fill('Alice');
+        await page.getByRole('button', { name: 'Create the group' }).click();
         await expect(page).toHaveURL(/\/k\//);
         await page.goto('/');
         const tripA = page.getByRole('link', { name: /Trip A/ });

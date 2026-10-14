@@ -8,6 +8,7 @@ import {
     formatAmount,
     formatAmountCompact,
     getCurrencyName,
+    guessCurrency,
     hasRatesInCache
 } from '../../src/lib/services/currency';
 
@@ -218,5 +219,28 @@ describe('getCurrencyName', () => {
 
     it('falls back to the built-in name for unknown codes', () => {
         expect(getCurrencyName('XYZ', 'en')).toBe('XYZ');
+    });
+});
+
+describe('guessCurrency', () => {
+    it("takes the currency of the browser's country", () => {
+        expect(guessCurrency(['en-GB', 'en'])).toBe('GBP');
+        expect(guessCurrency(['en-US'])).toBe('USD');
+        expect(guessCurrency(['de-CH'])).toBe('CHF');
+    });
+
+    it('takes the euro for a country of the euro zone, even before another language', () => {
+        expect(guessCurrency(['fr-FR', 'en-US'])).toBe('EUR');
+        expect(guessCurrency(['pt-PT'])).toBe('EUR');
+    });
+
+    it('reads a language spoken in one country only', () => {
+        expect(guessCurrency(['ja'])).toBe('JPY');
+        expect(guessCurrency(['vi', 'en'])).toBe('VND');
+    });
+
+    it('falls back to the euro', () => {
+        expect(guessCurrency(['en'])).toBe('EUR');
+        expect(guessCurrency([])).toBe('EUR');
     });
 });

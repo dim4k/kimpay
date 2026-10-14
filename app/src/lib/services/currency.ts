@@ -30,6 +30,30 @@ export const CURRENCIES: Record<string, CurrencyInfo> = {
 
 export const DEFAULT_CURRENCY = "EUR";
 
+// Countries (and languages spoken in one country only) whose currency Kimpay
+// has, other than the euro.
+const REGION_CURRENCIES: Record<string, string> = {
+    US: "USD", GB: "GBP", JP: "JPY", AU: "AUD", CA: "CAD", CH: "CHF", LI: "CHF", CN: "CNH", VN: "VND",
+};
+const LANGUAGE_CURRENCIES: Record<string, string> = { ja: "JPY", vi: "VND", zh: "CNH" };
+
+/**
+ * The currency a new group most likely uses, from the browser's languages
+ * ("en-GB" → GBP, "ja" → JPY); the default (euro) otherwise.
+ */
+export function guessCurrency(
+    languages: readonly string[] = typeof navigator !== "undefined" ? navigator.languages ?? [navigator.language] : [],
+): string {
+    for (const tag of languages) {
+        const [language = "", region = ""] = tag.split("-");
+        const found = REGION_CURRENCIES[region.toUpperCase()] ?? LANGUAGE_CURRENCIES[language.toLowerCase()];
+        if (found) return found;
+        // A country of the euro zone, or a language with its region: that one.
+        if (region) return DEFAULT_CURRENCY;
+    }
+    return DEFAULT_CURRENCY;
+}
+
 export const CURRENCY_CODES = Object.keys(
     CURRENCIES,
 ) as (keyof typeof CURRENCIES)[];

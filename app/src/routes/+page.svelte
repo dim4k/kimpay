@@ -4,7 +4,6 @@
   import JoinKimpayForm from '#lib/components/home/JoinKimpayForm.svelte';
   import RecentKimpaysList from '#lib/components/home/RecentKimpaysList.svelte';
   import MagicLinkForm from '#lib/components/auth/MagicLinkForm.svelte';
-  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
@@ -43,6 +42,9 @@
   // link or a QR code opens the group by itself).
   let openFlow = $state<Flow | null>(null);
 
+  // The newcomer's form (not the "welcome back" login): the brand's light, two columns on larger screens.
+  let isNewcomerForm = $derived(view === 'newcomer' && !(welcomeBack && !offlineStore.isOffline));
+
   function toggleFlow(flow: Flow) {
       openFlow = openFlow === flow ? null : flow;
   }
@@ -56,7 +58,13 @@
     </div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
+<!-- Full width, so the brand's light behind the newcomer's form fades out
+     at the screen's edges (clipped there, never scrolled to). -->
+<div class="w-full {isNewcomerForm ? 'relative isolate overflow-x-clip' : ''}">
+{#if isNewcomerForm}
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-brand-glow" aria-hidden="true"></div>
+{/if}
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 {isNewcomerForm ? 'md:max-w-4xl md:py-14' : ''}">
     {#if view === null}
         <!-- Reading the groups saved on this device: their place if it takes
              a while, not a blank page (nothing flashes when it is quick). -->
@@ -111,32 +119,43 @@
             {$t('home.tile.choose')}
         </button>
     {:else}
-        <HomeHero />
+        <div class="space-y-5 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] md:items-start md:gap-12 md:space-y-0">
+            <HomeHero />
 
-        {#if offlineStore.isOffline}
-            {@render offlineNotice()}
-        {:else}
-            <div class="space-y-5 rounded-card border bg-card p-4 animate-pop-in">
-                <SegmentedControl
-                    options={[
-                        { value: 'create', label: $t('home.tile.create') },
-                        { value: 'join', label: $t('home.tile.join') },
-                    ]}
-                    bind:value={tab}
-                    label={$t('home.tile.choose')}
-                />
-                {#if tab === 'create'}
-                    <CreateKimpayForm />
-                {:else}
-                    <JoinKimpayForm />
-                {/if}
-            </div>
-            <p class="text-center text-sm text-muted-foreground">
-                {$t('home.recover.have_account')}
-                <button type="button" onclick={() => modals.login()} class="font-semibold text-primary hover:underline">
-                    {$t('home.recover.link')}
-                </button>
-            </p>
-        {/if}
+            {#if offlineStore.isOffline}
+                {@render offlineNotice()}
+            {:else}
+                <div class="space-y-3">
+                    <div class="rounded-card border bg-card p-4 animate-pop-in">
+                        {#if tab === 'create'}
+                            <CreateKimpayForm />
+                        {:else}
+                            <JoinKimpayForm />
+                        {/if}
+                    </div>
+                    <!-- Joining is rare (a link or a QR code opens the group by itself). -->
+                    <button
+                        type="button"
+                        onclick={() => (tab = tab === 'create' ? 'join' : 'create')}
+                        class="flex min-h-11 w-full items-center justify-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft"
+                    >
+                        {#if tab === 'create'}
+                            <QrCode class="h-4 w-4" />
+                            {$t('home.join.have_link')}
+                        {:else}
+                            <Plus class="h-4 w-4" />
+                            {$t('home.tile.create')}
+                        {/if}
+                    </button>
+                    <p class="text-center text-sm text-muted-foreground">
+                        {$t('home.recover.have_account')}
+                        <button type="button" onclick={() => modals.login()} class="font-semibold text-primary hover:underline">
+                            {$t('home.recover.link')}
+                        </button>
+                    </p>
+                </div>
+            {/if}
+        </div>
     {/if}
+</div>
 </div>

@@ -75,7 +75,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
         test('Home', async ({ page }) => {
             await setup(page);
-            await expect(page.getByPlaceholder('e.g. Trip to Paris')).toBeVisible();
+            await expect(page.getByLabel('Group name', { exact: true })).toBeVisible();
             await snapshot(page, `home-${colorScheme}`);
         });
 

@@ -65,7 +65,7 @@ test.describe('Account on this device', () => {
         await logout(page, { forgetDevice: true });
         await expect(page.getByRole('link', { name: /Borrowed Phone/ })).toBeHidden();
         // Nothing tells the next person an account was used here.
-        await expect(page.getByPlaceholder('e.g. Trip to Paris')).toBeVisible();
+        await expect(page.getByLabel('Group name', { exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Welcome back!' })).toBeHidden();
 
         // Back with the next login.

@@ -133,7 +133,8 @@
           title={$t('header.switch_group')}
         >
           <span class="truncate text-base font-bold">
-            <span aria-hidden="true">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
+            <!-- A group just created: its emoji jumps once. -->
+            <span aria-hidden="true" class="inline-block {page.state.justCreated ? 'animate-celebrate' : ''}">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
             {currentKimpay.name}
           </span>
           <!-- Tells the title opens the other groups. -->

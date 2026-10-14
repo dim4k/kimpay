@@ -92,6 +92,14 @@
   }
 }
 
+/* The brand's light behind the top of the home page (decoration only). Both
+   lights fade out before the right edge, where the scrollbar gutter would cut them. */
+@utility bg-brand-glow {
+  background:
+    radial-gradient(60% 55% at 30% 20%, hsl(var(--primary) / 0.16), transparent 70%),
+    radial-gradient(30% 45% at 70% 25%, hsl(217 91% 60% / 0.1), transparent 70%);
+}
+
 @utility text-gradient-brand {
   /* Single source of truth for the brand gradient (logo wordmark, home hero only) */
   @apply bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-blue-500 dark:from-indigo-400 dark:to-blue-400;
@@ -245,6 +253,35 @@
 
 .animate-pop-in {
     animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* A field filled by a suggestion: lit up for a moment, so the eye follows. */
+@keyframes fieldFilled {
+    from {
+        box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5);
+        background-color: hsl(var(--primary-soft));
+    }
+    to {
+        box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
+    }
+}
+
+.animate-field-filled {
+    animation: fieldFilled 0.7s ease-out;
+}
+
+/* A new group: its emoji jumps before the group opens. */
+@keyframes celebrate {
+    0%, 100% {
+        transform: scale(1) rotate(0);
+    }
+    45% {
+        transform: scale(1.35) rotate(-8deg);
+    }
+}
+
+.animate-celebrate {
+    animation: celebrate 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* The line sweeping over a receipt while it is read. */
