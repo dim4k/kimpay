@@ -1,7 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 // =============================================================================
-// Expenses repeated every month (rent, subscriptions): the copies due are
+// Repeated expenses (rent, subscriptions): the copies due are
 // made every hour, a few minutes past, so a copy dated today is there early
 // in the morning in Europe. See lib/repeat.js.
 //

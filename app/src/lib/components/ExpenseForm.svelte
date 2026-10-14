@@ -23,7 +23,7 @@
   import { DEFAULT_EXPENSE_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
 
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { Calendar as CalendarIcon, ChevronLeft, CircleAlert, CircleCheck, HandCoins, Repeat, Sparkles, Split, Trash2, UserRound, X } from "@lucide/svelte";
+  import { Calendar as CalendarIcon, Check, ChevronLeft, CircleAlert, CircleCheck, HandCoins, Repeat, Sparkles, Split, Trash2, UserRound, X } from "@lucide/svelte";
   import { slide } from 'svelte/transition';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { CURRENCY_CODES, DEFAULT_CURRENCY, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
@@ -36,7 +36,7 @@
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import { buildSplit, checkSplit, memberWeights, newExpenseDefaults } from '#lib/split.js';
   import { findSimilarExpense } from '#lib/utils/suggest.js';
-  import { nextRepeatDate } from '#lib/repeat.js';
+  import { nextRepeatDate, repeatFrequency, REPEAT_FREQUENCIES, type RepeatFrequency } from '#lib/repeat.js';
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
   import { sanitizeDecimal } from '#lib/utils/amount.js';
   import { loadKeywords } from '#lib/emoji/search.js';
@@ -88,8 +88,8 @@
   let isIncome = $state(false);
   let splitMode = $state<SplitMode>('equal');
   let splitValues = $state<Record<string, number>>({});
-  // Repeated every month (rent, subscriptions): copied by the server.
-  let repeats = $state(false);
+  // Repeated (rent, subscriptions): copied by the server this often, "" = not.
+  let repeatEvery = $state<RepeatFrequency | ''>('');
 
   let participants = $derived(activeKimpay?.participants || []);
   let involvedParticipants = $derived(participants.filter(p => involved.includes(p.id)));
@@ -142,6 +142,7 @@
       : view === 'involved' ? $t('expense.form.for_whom_label')
       : view === 'split' ? $t('expense.split.label')
       : view === 'date' ? $t('expense.form.date_label')
+      : view === 'repeat' ? $t('expense.repeat.label')
       : title
   );
 
@@ -162,7 +163,7 @@
 
   // What the form held when opened (or last saved): leaving with changes asks first.
   function formState(): string {
-      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length, repeats]);
+      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length, repeatEvery]);
   }
   let baseline = $state('');
   let isDirty = $derived(baseline !== '' && formState() !== baseline);
@@ -195,7 +196,7 @@
              existingPhotos = initialData.photos;
          }
          // A duplicate does not repeat: the one it comes from already does.
-         repeats = !!initialData?.repeat_day;
+         repeatEvery = initialData?.repeat_day ? repeatFrequency(initialData.repeat_every) : '';
       } else {
          // New expense: use Kimpay currency
          currency = defaultCurrency;
@@ -399,19 +400,33 @@
       }
   }
 
-  /** Repeated on the day of its date, from the next copy on (none when not repeated). */
-  function repeatFields(): Pick<Expense, 'repeat_day' | 'repeat_next'> {
-      if (!repeats) return { repeat_day: 0, repeat_next: '' };
-      return { repeat_day: Number(date.slice(8, 10)), repeat_next: `${nextRepeat} 00:00:00.000Z` };
+  /** Repeated from its date (the day of the month, or the weekday), from the next copy on. */
+  function repeatFields(): Pick<Expense, 'repeat_day' | 'repeat_every' | 'repeat_next'> {
+      if (!repeatEvery) return { repeat_day: 0, repeat_every: '', repeat_next: '' };
+      return { repeat_day: Number(date.slice(8, 10)), repeat_every: repeatEvery, repeat_next: `${nextRepeat} 00:00:00.000Z` };
   }
 
   // The next copy ("YYYY-MM-DD"): the one already planned while neither the
-  // repetition nor the date change, else the first month to come.
+  // frequency nor the date change, else the first one to come.
   let nextRepeat = $derived(
-      initialData?.repeat_day && initialData.repeat_next && initialData.date.slice(0, 10) === date
+      repeatEvery && initialData?.repeat_day && initialData.repeat_next && initialData.date.slice(0, 10) === date
+          && repeatFrequency(initialData.repeat_every) === repeatEvery
           ? initialData.repeat_next.slice(0, 10)
-          : nextRepeatDate(date, Number(date.slice(8, 10)), toLocalISODate())
+          : repeatEvery ? nextRepeatDate(date, Number(date.slice(8, 10)), toLocalISODate(), repeatEvery) : ''
   );
+  // "Every month · next on Nov 14", "Never"
+  let repeatSummary = $derived(
+      repeatEvery
+          ? `${$t(`expense.repeat.${repeatEvery}`)} · ${$t('expense.list.next_on', { date: parseLocalISODate(nextRepeat).toLocaleDateString($locale, { day: 'numeric', month: 'short' }) })}`
+          : $t('expense.repeat.never')
+  );
+
+  const REPEAT_CHOICES = ['', ...REPEAT_FREQUENCIES] as const;
+
+  function chooseRepeat(every: RepeatFrequency | '') {
+      repeatEvery = every;
+      closeView();
+  }
   // Copied already: the repetition goes on from the copy (the latest one).
   let repeatedLater = $derived(!!initialData && (activeKimpay?.expenses ?? []).some((e) => e.repeat_of === initialData!.id));
 
@@ -423,7 +438,7 @@
       amount = "";
       icon = autoIcon = DEFAULT_EXPENSE_EMOJI;
       newPhotos = [];
-      repeats = false;
+      repeatEvery = '';
       filled = { amount: false, description: false };
       scanApplied = null;
       scanError = "";
@@ -769,15 +784,9 @@
                 record={initialData}
             />
             {#if !repeatedLater}
-                <ListRow
-                    icon={Repeat}
-                    title={$t('expense.repeat.label')}
-                    subtitle={repeats ? $t('expense.repeat.next', { date: parseLocalISODate(nextRepeat).toLocaleDateString($locale, { day: 'numeric', month: 'long' }) }) : undefined}
-                >
-                    {#snippet trailing()}
-                        <Switch checked={repeats} label={$t('expense.repeat.label')} onchange={(v) => repeats = v} />
-                    {/snippet}
-                </ListRow>
+                <SummaryRow label={$t('expense.repeat.label')} icon={Repeat} onclick={() => openView('repeat')}>
+                    <span class="truncate">{repeatSummary}</span>
+                </SummaryRow>
             {/if}
             <!-- Money received (a deposit back, a sale...): rare, so last. -->
             <ListRow icon={HandCoins} title={$t('expense.type.income')} subtitle={$t('expense.form.income_hint')}>
@@ -834,6 +843,26 @@
                 />
             {:else if view === 'date'}
                 <Calendar bind:value={date} label={$t('expense.form.date_label')} onselect={closeView} />
+            {:else if view === 'repeat'}
+                <ListGroup>
+                    <div role="radiogroup" aria-label={$t('expense.repeat.label')} class="divide-y divide-border">
+                        {#each REPEAT_CHOICES as every (every)}
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={repeatEvery === every}
+                                onclick={() => chooseRepeat(every)}
+                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left text-base font-medium transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
+                            >
+                                <span class="flex-1">{$t(every ? `expense.repeat.${every}` : 'expense.repeat.never')}</span>
+                                {#if repeatEvery === every}
+                                    <Check class="h-5 w-5 shrink-0 text-primary" />
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                </ListGroup>
+                <p class="mt-3 px-1 text-sm text-muted-foreground">{$t('expense.repeat.hint')}</p>
             {/if}
         </div>
     {/if}

@@ -1,8 +1,9 @@
 /// <reference path="../../pb_data/types.d.ts" />
 
 // =============================================================================
-// Expenses repeated every month: the copies due, made by the
-// `repeat_expenses` cron (see repeat.pb.js and the 1740000008 migration).
+// Repeated expenses: the copies due, made by the `repeat_expenses` cron
+// (see repeat.pb.js and the 1740000008-9 migrations), every week, two weeks,
+// month, quarter or year (`repeat_every`).
 //
 //   const repeat = require(`${__hooks}/lib/repeat.js`);
 //   repeat.run($app);
@@ -13,6 +14,17 @@
 
 /** Copies older than this are not made any more (a server down for long, a date set by hand). */
 var MAX_LATE_DAYS = 62;
+
+/** Days between two copies (weeks), or months (the others). */
+var STEPS = {
+    week: { days: 7 },
+    two_weeks: { days: 14 },
+    month: { months: 1 },
+    quarter: { months: 3 },
+    year: { months: 12 },
+};
+
+var DAY_MS = 86400000;
 
 function pad(n) {
     return (n < 10 ? "0" : "") + n;
@@ -26,15 +38,27 @@ function anchored(year, month, day) {
     return y + "-" + pad(m + 1) + "-" + pad(Math.min(day, last));
 }
 
+/** The frequency of an expense set to repeat (monthly when not said, as before there was a choice). */
+function frequency(every) {
+    return Object.prototype.hasOwnProperty.call(STEPS, every) ? every : "month";
+}
+
 /**
- * The first monthly date on `day` after `from` and after `after`
- * ("YYYY-MM-DD", compared as text).
+ * The first date of the series after `from` and after `after` ("YYYY-MM-DD",
+ * compared as text): on `day` of the month, or the weekday of `from`.
  */
-function nextDate(from, day, after) {
+function nextDate(from, day, after, every) {
+    var step = STEPS[frequency(every)];
+    if (step.days) {
+        var start = Date.parse(from + "T00:00:00Z");
+        var late = Math.max(0, Math.floor((Date.parse(after + "T00:00:00Z") - start) / DAY_MS));
+        var count = Math.floor(late / step.days) + 1;
+        return new Date(start + count * step.days * DAY_MS).toISOString().slice(0, 10);
+    }
     var year = Number(from.slice(0, 4));
     var month = Number(from.slice(5, 7)) - 1;
     for (var i = 1; i < 1200; i++) {
-        var candidate = anchored(year, month + i, day);
+        var candidate = anchored(year, month + i * step.months, day);
         if (candidate > from && candidate > after) return candidate;
     }
     return "";
@@ -92,15 +116,16 @@ function repeatOne(app, id, today, ratesByDay) {
     var made = 0;
     app.runInTransaction(function (txApp) {
         var source = txApp.findRecordById("expenses", id);
-        // At most a year at once, whatever the data says.
+        // At most 12 copies at once, whatever the data says.
         for (var guard = 0; guard < 12; guard++) {
             var day = source.getInt("repeat_day");
+            var every = frequency(source.getString("repeat_every"));
             var next = source.getString("repeat_next").slice(0, 10);
             if (day < 1 || day > 31 || !next || next > today || source.getBool("is_reimbursement")) return;
 
             if (next < daysBefore(today, MAX_LATE_DAYS)) {
                 // Too late to be useful: on to the next one to come.
-                source.set("repeat_next", nextDate(next, day, today) + " 00:00:00.000Z");
+                source.set("repeat_next", nextDate(next, day, today, every) + " 00:00:00.000Z");
                 txApp.save(source);
                 return;
             }
@@ -117,7 +142,8 @@ function repeatOne(app, id, today, ratesByDay) {
             copy.set("date", next + " 00:00:00.000Z");
             copy.set("exchange_rate", rateOn(txApp, ratesByDay, source, next, today));
             copy.set("repeat_day", day);
-            copy.set("repeat_next", nextDate(next, day, next) + " 00:00:00.000Z");
+            copy.set("repeat_every", every);
+            copy.set("repeat_next", nextDate(next, day, next, every) + " 00:00:00.000Z");
             copy.set("repeat_of", source.id);
             txApp.save(copy);
 
@@ -159,6 +185,7 @@ function run(app) {
 
 module.exports = {
     anchored: anchored,
+    frequency: frequency,
     nextDate: nextDate,
     run: run,
 };

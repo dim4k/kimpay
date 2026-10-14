@@ -14,6 +14,7 @@
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
+  import { repeatFrequency } from '#lib/repeat.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
@@ -133,7 +134,8 @@
           case 'income':
               return s.income ? $t('expense.type.income') : $t('activity.type.expense');
           case 'repeat':
-              return s.repeat ? $t('common.yes') : $t('common.no');
+              // A yes/no in lines logged before there was a choice (every month then).
+              return s.repeat ? $t(`expense.repeat.${repeatFrequency(s.repeat === true ? 'month' : s.repeat)}`) : $t('expense.repeat.never');
           default:
               return String(s[field]);
       }

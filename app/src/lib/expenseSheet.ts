@@ -4,7 +4,7 @@ import { t } from '#lib/i18n.js';
 import { modals } from '#lib/stores/modals.svelte.js';
 
 /** What the expense sheet shows: the form, or one of its panels. */
-export type ExpenseView = 'main' | 'payer' | 'involved' | 'split' | 'date';
+export type ExpenseView = 'main' | 'payer' | 'involved' | 'split' | 'date' | 'repeat';
 
 /**
  * The expense form, open in a sheet over the group's pages (shallow

@@ -1,13 +1,14 @@
 import { pb } from '#lib/pocketbase.js';
 import { STORAGE_KEYS } from '#lib/constants.js';
 import { prefs } from '#lib/utils/prefs.js';
+import type { RepeatFrequency } from '#lib/repeat.js';
 
 /** What happened (see the `activities` collection). */
 export type ActivityAction =
     | 'expense_created'
     | 'expense_updated'
     | 'expense_deleted'
-    /** A monthly expense copied by the server (no actor) */
+    /** A repeated expense copied by the server (no actor) */
     | 'expense_repeated'
     | 'reimbursement_created'
     | 'reimbursement_deleted'
@@ -38,8 +39,8 @@ export interface ExpenseSnapshot {
     split: string;
     income: boolean;
     photos: number;
-    /** Repeated every month (lines logged since) */
-    repeat?: boolean;
+    /** How often it repeats, "" = not (a yes/no in older lines; lines logged since repetitions exist) */
+    repeat?: RepeatFrequency | '' | boolean;
 }
 
 export interface Activity {

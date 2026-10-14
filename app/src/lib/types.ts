@@ -1,3 +1,5 @@
+import type { RepeatFrequency } from '#lib/repeat.js';
+
 export interface User {
     id: string;
     username: string;
@@ -75,11 +77,13 @@ export interface Expense {
     split?: ExpenseSplit | null;
     icon?: string;
     photos?: string[];
-    /** Repeated every month on this day (1-31, see lib/repeat.ts); 0 = not repeated */
+    /** Repeated on this day of the month (1-31, see lib/repeat.ts); 0 = not repeated */
     repeat_day?: number;
+    /** How often ("" = every month, as before there was a choice) */
+    repeat_every?: RepeatFrequency | '';
     /** Date of the next copy, made by the server ("" = none) */
     repeat_next?: string;
-    /** The expense this one was copied from (the previous month's) */
+    /** The expense this one was copied from (the previous one of the series) */
     repeat_of?: string;
     expand?: {
         payer?: Participant;

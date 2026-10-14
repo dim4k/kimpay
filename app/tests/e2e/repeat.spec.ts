@@ -1,23 +1,28 @@
 import { test, expect, type Page } from '@playwright/test';
 import { createKimpay, dismissInstallPrompt, repeatExpenseNow, waitForServiceWorker } from './test-utils';
 
-async function addExpense(page: Page, description: string, amount: string, repeat = false) {
+/** `repeat`: how often, as the form says it ("Every month"). */
+async function addExpense(page: Page, description: string, amount: string, repeat?: string) {
     await page.getByRole('link', { name: /add expense/i }).click();
     await page.getByPlaceholder('What was it for?').fill(description);
     await page.getByPlaceholder('0.00').fill(amount);
-    if (repeat) await page.getByRole('switch', { name: 'Repeat every month' }).click();
+    if (repeat) {
+        await page.getByRole('button', { name: /^Repeat\s*Never/ }).click();
+        await page.getByRole('radio', { name: repeat }).click();
+        await expect(page.getByRole('button', { name: new RegExp(`^Repeat\\s*${repeat} · next on`) })).toBeVisible();
+    }
     await page.getByRole('button', { name: /save expense/i }).first().click();
     await expect(page.getByText(description).first()).toBeVisible();
 }
 
-test.describe('Expenses repeated every month', () => {
+test.describe('Repeated expenses', () => {
     test.beforeEach(async ({ page }) => {
         await createKimpay(page, 'Flat Share', 'Alice');
         await dismissInstallPrompt(page);
     });
 
     test('a copy is made each month, which takes the repetition over', async ({ page, request }) => {
-        await addExpense(page, 'Rent', '900', true);
+        await addExpense(page, 'Rent', '900', 'Every month');
         const rent = page.locator('[data-expense]', { hasText: 'Rent' });
         await expect(rent.getByRole('img', { name: 'Every month' })).toBeVisible();
 
@@ -39,6 +44,26 @@ test.describe('Expenses repeated every month', () => {
         await page.goto(page.url().replace(/\/?$/, '/settings/activity'));
         await expect(page.locator('[data-activity="expense_repeated"]')).toHaveCount(1);
         await expect(page.getByText(/Added automatically/)).toBeVisible();
+    });
+
+    test('every week: the copy repeats every week too', async ({ page, request }) => {
+        await addExpense(page, 'Basket', '30', 'Every week');
+        const basket = page.locator('[data-expense]', { hasText: 'Basket' });
+        await expect(basket.getByRole('img', { name: 'Every week' })).toBeVisible();
+        const id = await basket.getAttribute('data-expense');
+
+        // Its details say how often.
+        await basket.getByRole('button').first().click();
+        await expect(page.getByText(/Every week · next on/)).toBeVisible();
+
+        await repeatExpenseNow(request, id!);
+        await waitForServiceWorker(page);
+        await page.reload();
+
+        const copies = page.locator('[data-expense]', { hasText: 'Basket' });
+        await expect(copies).toHaveCount(2);
+        await expect(page.getByRole('img', { name: 'Every week' })).toHaveCount(1);
+        await expect(page.getByRole('img', { name: 'Every month' })).toHaveCount(0);
     });
 
     test('an expense not repeated has no icon', async ({ page }) => {

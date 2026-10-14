@@ -3,6 +3,7 @@
     import { pb } from '#lib/pocketbase.js';
     import { t, locale } from '#lib/i18n.js';
     import { parseLocalISODate } from '#lib/utils/date.js';
+    import { repeatFrequency } from '#lib/repeat.js';
     import { DEFAULT_EXPENSE_EMOJI } from '#lib/constants.js';
     import { slide } from 'svelte/transition';
     import { openExpenseSheet } from '#lib/expenseSheet.js';
@@ -66,12 +67,13 @@
         openExpenseSheet(kimpayId, target);
     }
     let hasPhotos = $derived(!!expense.photos && expense.photos.length > 0);
-    // Copied every month by the server (the latest of its series).
+    // Copied by the server this often (the latest of its series).
     let repeats = $derived(!!expense.repeat_day && !expense.is_reimbursement);
+    let frequencyLabel = $derived($t(`expense.repeat.${repeatFrequency(expense.repeat_every)}`));
     // "Every month · next on Nov 14"
     let repeatLine = $derived(
         [
-            $t('expense.list.every_month'),
+            frequencyLabel,
             expense.repeat_next &&
                 $t('expense.list.next_on', { date: parseLocalISODate(expense.repeat_next).toLocaleDateString($locale, { day: 'numeric', month: 'short' }) }),
         ].filter(Boolean).join(' · ')
@@ -219,7 +221,7 @@
             <span class="flex min-w-0 items-center gap-1.5 text-base font-medium">
                 <span class="truncate">{expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}</span>
                 {#if repeats}
-                    <Repeat class="h-3.5 w-3.5 shrink-0 text-muted-foreground" role="img" aria-label={$t('expense.list.every_month')} />
+                    <Repeat class="h-3.5 w-3.5 shrink-0 text-muted-foreground" role="img" aria-label={frequencyLabel} />
                 {/if}
             </span>
             <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
