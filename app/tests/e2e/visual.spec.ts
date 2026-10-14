@@ -127,10 +127,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // The profile: a sheet on phones, a popover on desktop.
             await page.getByRole('button', { name: 'Menu' }).click();
-            await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();
+            // A guest's profile (the switch showing payment links needs an account).
+            const paymentLinks = page.getByRole('button', { name: /my payment links/i });
+            await expect(paymentLinks).toBeVisible();
             await snapshot(page, `profile-${colorScheme}`, [page.getByText(/^Kimpay v/)]);
             await page.keyboard.press('Escape');
-            await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeHidden();
+            await expect(paymentLinks).toBeHidden();
 
             // The group switcher behaves the same way.
             await page.getByRole('button', { name: /Trip to Lisbon/ }).click();

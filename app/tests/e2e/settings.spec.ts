@@ -170,7 +170,9 @@ test.describe('Members & group settings', () => {
      // From my own row of the participants list
      await page.locator('[data-is-me="true"]').click();
      await page.getByRole('dialog').getByRole('button', { name: 'My profile' }).click();
-     await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeVisible();
+     // A guest's profile: who I am here, and my payment links (an account needed).
+     await expect(page.getByRole('button', { name: "That's not me" })).toBeVisible();
+     await expect(page.getByRole('button', { name: /my payment links/i })).toBeVisible();
   });
 
   test('Switch Identity', async ({ page }) => {

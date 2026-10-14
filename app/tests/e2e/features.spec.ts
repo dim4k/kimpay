@@ -89,25 +89,26 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText('No matching expenses.')).toBeVisible();
     });
 
-    test('Payment links stay private until shown in a group', async ({ page, request }) => {
+    test('Payment links need an account, and stay private until shown in a group', async ({ page, request }) => {
         const base = await setupGroup(page, 'Private Links');
+        const needsAccount = page.getByText('Create a free account to show your payment links');
 
-        // Entered in the profile: not shown in the group yet.
+        // A guest is asked for an account first (anyone with the link could
+        // change a guest's links): nothing to show yet.
         await openProfile(page);
+        await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toHaveCount(0);
         await page.getByRole('button', { name: /my payment links/i }).click();
-        await page.getByLabel('Revolut.me').fill('payer.rev');
-        await page.getByRole('button', { name: /^save$/i }).click();
-        await expect(page.getByRole('dialog', { name: 'My payment links' })).toBeHidden();
-        await expect(page.getByRole('switch', { name: 'Show my payment links here' })).not.toBeChecked();
+        await expect(needsAccount).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(needsAccount).toBeHidden();
 
-        // Someone owes me: the card offers to show them. A guest is asked for
-        // an account first (anyone with the link could change a guest's links).
+        // Someone owes me: the card offers the same.
         await addExpense(page, base, 'Groceries', '40');
         await page.goto(`${base}/balance`);
-        await page.getByRole('button', { name: 'Show to this group' }).click();
-        await expect(page.getByText('Create a free account to show your payment links')).toBeVisible();
+        await page.getByRole('button', { name: 'Add a payment link' }).click();
+        await expect(needsAccount).toBeVisible();
         await page.keyboard.press('Escape');
-        await expect(page.getByText('Create a free account to show your payment links')).toBeHidden();
+        await expect(needsAccount).toBeHidden();
 
         // "Later" hides the card for good.
         await page.getByRole('button', { name: 'Later' }).click();
@@ -116,10 +117,17 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText('You are owed')).toBeVisible();
         await expect(page.getByText('Help Other pay you')).toBeHidden();
 
-        // Shown from the profile switch instead, once logged in.
+        // Logged in: entered in the profile, not shown in the group yet; then
+        // shown from the profile switch.
         await loginWithNewAccount(page, request, 'Payer');
         await openProfile(page);
-        await page.getByRole('switch', { name: 'Show my payment links here' }).click();
+        await page.getByRole('button', { name: /my payment links/i }).click();
+        await page.getByLabel('Revolut.me').fill('payer.rev');
+        await page.getByRole('button', { name: /^save$/i }).click();
+        await expect(page.getByRole('dialog', { name: 'My payment links' })).toBeHidden();
+        const showHere = page.getByRole('switch', { name: 'Show my payment links here' });
+        await expect(showHere).not.toBeChecked();
+        await showHere.click();
         await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
     });
 
