@@ -61,14 +61,19 @@
         isPaymentOpen = true;
     }
 
-    async function setShown(show: boolean) {
-        // Only an account can show payment links in a group: anyone with the
-        // link could change a guest's (see the participants' updateRule).
-        if (show && !auth.user) {
+    // Only an account can show payment links in a group: anyone with the
+    // link could change a guest's (see the participants' updateRule). So a
+    // guest has nothing to enter them for.
+    function editPayment() {
+        if (!auth.user) {
             onClose();
             modals.register({ description: $t('profile.payment.needs_account') });
             return;
         }
+        openPayment();
+    }
+
+    async function setShown(show: boolean) {
         if (show && !profileStore.hasHandles) {
             openPayment(true);
             return;
@@ -258,26 +263,23 @@
     {/if}
 
     <!-- Me, in all my groups (and here) -->
-    <div class="space-y-1.5">
-        <ListGroup>
-            {#if me && !offlineStore.isOffline}
-                <ListRow icon={Eye} title={$t('profile.payment.show_here')} subtitle={profileStore.hasHandles ? handlesSummary : $t('profile.payment.add_first')}>
-                    {#snippet trailing()}
-                        <Switch checked={shownHere} label={$t('profile.payment.show_here')} onchange={setShown} disabled={isUpdatingShown} />
-                    {/snippet}
-                </ListRow>
-            {/if}
-            <ListRow icon={Wallet} title={$t('settings.payment.title')} value={handlesSummary || $t('settings.payment.none')} onclick={() => openPayment()} disabled={offlineStore.isOffline} />
-            {#if auth.user}
-                <ListRow icon={Coins} title={$t('user_settings.currency.title')}>
-                    {#snippet trailing()}
-                        <CurrencySelect size="sm" value={auth.user?.preferred_currency || DEFAULT_CURRENCY} onchange={saveCurrency} />
-                    {/snippet}
-                </ListRow>
-            {/if}
-        </ListGroup>
-        <p class="px-1 text-xs text-muted-foreground">{$t('profile.payment.visibility')}</p>
-    </div>
+    <ListGroup>
+        {#if me && auth.user && !offlineStore.isOffline}
+            <ListRow icon={Eye} title={$t('profile.payment.show_here')} subtitle={profileStore.hasHandles ? handlesSummary : $t('profile.payment.add_first')}>
+                {#snippet trailing()}
+                    <Switch checked={shownHere} label={$t('profile.payment.show_here')} onchange={setShown} disabled={isUpdatingShown} />
+                {/snippet}
+            </ListRow>
+        {/if}
+        <ListRow icon={Wallet} title={$t('settings.payment.title')} value={handlesSummary || $t('settings.payment.none')} onclick={editPayment} disabled={offlineStore.isOffline} />
+        {#if auth.user}
+            <ListRow icon={Coins} title={$t('user_settings.currency.title')}>
+                {#snippet trailing()}
+                    <CurrencySelect size="sm" value={auth.user?.preferred_currency || DEFAULT_CURRENCY} onchange={saveCurrency} />
+                {/snippet}
+            </ListRow>
+        {/if}
+    </ListGroup>
 
     <!-- This device -->
     <ListGroup>

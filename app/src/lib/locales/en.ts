@@ -380,7 +380,6 @@ export const en = {
     "profile.payment.show_here": "Show my payment links here",
     "profile.payment.add_first": "Add a link first",
     "profile.payment.add": "Add a payment link",
-    "profile.payment.visibility": "Only visible in the groups where you show them.",
     "profile.payment.shown": "Your payment links are visible in this group",
     "profile.payment.hidden": "Your payment links are hidden in this group",
     "profile.payment.needs_account": "Create a free account to show your payment links: then only you can change them.",

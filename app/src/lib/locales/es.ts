@@ -382,7 +382,6 @@ export const es: Record<TranslationKey, string> = {
     "profile.payment.show_here": "Mostrar mis enlaces aquí",
     "profile.payment.add_first": "Añade primero un enlace",
     "profile.payment.add": "Añadir un enlace de pago",
-    "profile.payment.visibility": "Solo visibles en los grupos donde los muestras.",
     "profile.payment.shown": "Tus enlaces de pago son visibles en este grupo",
     "profile.payment.hidden": "Tus enlaces de pago están ocultos en este grupo",
     "profile.payment.needs_account": "Crea una cuenta gratuita para mostrar tus enlaces de pago: así solo tú podrás cambiarlos.",
