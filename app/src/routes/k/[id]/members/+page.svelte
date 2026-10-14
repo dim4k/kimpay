@@ -160,7 +160,7 @@
                         <button
                             type="button"
                             onclick={() => openedId = p.id}
-                            class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-2 pl-4 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-hidden {canInvite ? 'rounded-r-control pr-2' : 'pr-4'}"
+                            class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-2 pl-4 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset {canInvite ? 'rounded-r-control pr-2' : 'pr-4'}"
                         >
                             <Avatar name={p.name} record={p} class="h-9 w-9 shrink-0 text-xs {p.inactive ? 'opacity-50' : ''}" />
                             <span class="min-w-0 flex-1">
@@ -215,7 +215,7 @@
                     <button
                         type="button"
                         onclick={() => invite(null)}
-                        class="flex w-full min-h-14 items-center gap-3 px-4 py-2 text-left text-base font-semibold text-primary transition-colors duration-150 last:rounded-b-[inherit] hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-hidden"
+                        class="flex w-full min-h-14 items-center gap-3 px-4 py-2 text-left text-base font-semibold text-primary transition-colors duration-150 last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
                     >
                         <IconTile size="sm" tone="primary"><Link /></IconTile>
                         {$t('members.share_link')}

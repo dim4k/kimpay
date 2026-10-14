@@ -5,6 +5,9 @@ import { prefs } from '#lib/utils/prefs.js';
 
 type Theme = 'light' | 'dark';
 
+/** The header's background (--card) in each theme. */
+const THEME_COLORS: Record<Theme, string> = { light: '#ffffff', dark: '#0f172a' };
+
 /** What the user picked: a theme, or follow the system ("Auto"). */
 export type ThemeChoice = Theme | 'system';
 
@@ -19,6 +22,8 @@ function createThemeStore() {
         const resolved: Theme = current === 'system' ? (media?.matches ? 'dark' : 'light') : current;
         set(resolved);
         document.documentElement.classList.toggle('dark', resolved === 'dark');
+        // The browser's bar takes the header's color (--card of each theme).
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[resolved]);
     }
 
     return {

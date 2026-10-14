@@ -64,7 +64,7 @@
     data-sveltekit-preload-data="false"
     onclick={() => { haptic('light'); isSwitcherOpen = false; }}
     aria-current={isCurrent ? 'page' : undefined}
-    class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
+    class="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60 {isCurrent ? 'bg-muted/60' : ''}"
   >
     <IconTile size="sm">{k.icon || DEFAULT_GROUP_ICON}</IconTile>
     <span class="flex-1 truncate text-base font-medium">{k.name}</span>
@@ -127,7 +127,7 @@
       <div class="relative min-w-0 flex-1" {@attach isSwitcherOpen && isDesktop && dismissable(() => (isSwitcherOpen = false))}>
         <button
           onclick={() => isSwitcherOpen = !isSwitcherOpen}
-          class="-ml-1 flex h-11 max-w-full items-center rounded-control px-2 transition-colors hover:bg-muted"
+          class="-ml-1 flex h-11 max-w-full items-center gap-1 rounded-control px-2 transition-colors hover:bg-muted"
           aria-haspopup="dialog"
           aria-expanded={isSwitcherOpen}
           title={$t('header.switch_group')}
@@ -136,6 +136,8 @@
             <span aria-hidden="true">{currentKimpay.icon || DEFAULT_GROUP_ICON}</span>
             {currentKimpay.name}
           </span>
+          <!-- Tells the title opens the other groups. -->
+          <ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 {isSwitcherOpen ? 'rotate-180' : ''}" />
         </button>
 
         {#if isSwitcherOpen && isDesktop}

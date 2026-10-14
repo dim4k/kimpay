@@ -39,6 +39,18 @@
       return pb.files.getURL(record as unknown as RecordModel, filename);
   }
 
+  // A swipe sideways goes to the next or previous photo.
+  let swipeFrom: number | null = null;
+
+  function swipeEnd(e: PointerEvent) {
+      if (swipeFrom === null) return;
+      const dx = e.clientX - swipeFrom;
+      swipeFrom = null;
+      if (Math.abs(dx) < 50) return;
+      if (dx < 0) next();
+      else prev();
+  }
+
   function handleKeydown(e: KeyboardEvent) {
       if (e.key === 'ArrowLeft') {
           e.preventDefault();
@@ -55,6 +67,7 @@
 <Modal 
     {isOpen} 
     onClose={onClose}
+    label={$t('expense.form.photos_label')}
     class="w-full h-full max-w-[95vw] max-h-[85vh] bg-transparent shadow-none border-none p-0 flex items-center justify-center"
     backdropClass="bg-black/90 backdrop-blur-md"
 >
@@ -69,8 +82,11 @@
 
     <!-- Main Image Container -->
     <div 
-        class="relative w-full h-full flex items-center justify-center"
+        class="relative w-full h-full flex items-center justify-center touch-pan-y"
         role="presentation"
+        onpointerdown={(e) => (swipeFrom = e.clientX)}
+        onpointerup={swipeEnd}
+        onpointercancel={() => (swipeFrom = null)}
     >
         {#key currentIndex}
             <img 
@@ -107,13 +123,18 @@
 
     <!-- Indicators -->
     {#if photos.length > 1}
-        <div class="fixed bottom-6 left-0 right-0 flex justify-center gap-2 z-50" aria-hidden="true">
+        <div class="fixed bottom-4 left-0 right-0 flex justify-center z-50">
             {#each photos as _, i (i)}
+                <!-- A small dot in a target big enough for a finger. -->
                 <button 
-                    class={`h-2.5 w-2.5 rounded-full transition-colors ${i === currentIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/60'}`}
+                    type="button"
+                    class="group flex h-8 w-8 items-center justify-center"
                     onclick={(e) => { e.stopPropagation(); currentIndex = i; }}
                     aria-label={$t('gallery.go_to', { n: String(i + 1) })}
-                ></button>
+                    aria-current={i === currentIndex ? 'true' : undefined}
+                >
+                    <span class="h-2.5 w-2.5 rounded-full transition-colors {i === currentIndex ? 'bg-white' : 'bg-white/40 group-hover:bg-white/60'}"></span>
+                </button>
             {/each}
         </div>
     {/if}

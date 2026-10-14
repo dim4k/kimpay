@@ -329,7 +329,7 @@
 
   // A group without expenses yet (just created): who is in comes first. Once
   // it is used, the Members tab takes over (with a dot while I am alone).
-  let isSettingUp = $derived(!isLoading && rawExpenses.length === 0 && !offlineStore.isOffline);
+  let isSettingUp = $derived(!isLoading && !!activeKimpay?.kimpay && rawExpenses.length === 0 && !offlineStore.isOffline);
   let others = $derived(participants.filter(p => p.id !== currentUserId));
   let newMember = $state("");
   let isInviteOpen = $state(false);
@@ -406,8 +406,11 @@
 {#snippet filterOption(label: string, selected: boolean, onclick: () => void)}
     <button
         type="button"
+        role="option"
+        aria-selected={selected}
+        tabindex="-1"
         {onclick}
-        class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted {selected ? 'bg-primary-soft' : ''}"
+        class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted focus-ring-inset {selected ? 'bg-primary-soft' : ''}"
     >
         <span class="whitespace-nowrap text-sm font-medium">{label}</span>
         {#if selected}

@@ -3,6 +3,8 @@ import type { TranslationKey } from "#lib/locales/en.js";
 
 /** Longest name of a participant, the same in every form that asks for one. */
 export const NAME_MAX_LENGTH = 24;
+/** A group's name: room for "Trip to Portugal, summer 2026", short enough for the header. */
+export const GROUP_NAME_MAX_LENGTH = 40;
 
 // Emoji categories (labels are translated)
 export interface EmojiCategory {

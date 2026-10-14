@@ -33,7 +33,12 @@ export class ActiveKimpay {
     expenses = $state<Expense[]>([]);
     participants = $state<Participant[]>([]);
     loading = $state(true);
-    error = $state<string | null>(null);
+    /**
+     * Why the group cannot be shown: `not_found` when it does not exist (a
+     * wrong link, or deleted), `network` when it could not be loaded and no
+     * copy is kept on this device.
+     */
+    error = $state<'not_found' | 'network' | null>(null);
     exchangeRates = $state<Record<string, number>>({});
 
     // Store unsubscribe functions for cleanup
@@ -49,6 +54,9 @@ export class ActiveKimpay {
     // Bookkeeping only (never rendered), hence a plain Set.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     private pendingIds = new Set<string>();
+    // Created offline and not sent yet: the server does not know it (a 404
+    // then means "not yet", not "gone").
+    private createdOffline = false;
 
     // Derived State
     id: string;
@@ -125,6 +133,7 @@ export class ActiveKimpay {
             ) {
                 this.pendingIds.add(action.id);
             } else if (action.type === "CREATE_KIMPAY") {
+                this.createdOffline = true;
                 // The whole group was created offline (see kimpayService).
                 const { creator, participants } = action.payload as {
                     creator?: { id: string };
@@ -202,7 +211,7 @@ export class ActiveKimpay {
                         // Coalesce bursts of child changes into a single refetch.
                         this.scheduleRefetch();
                     } else if (e.action === "delete") {
-                        this.error = "Kimpay deleted";
+                        this.error = "not_found";
                         this.kimpay = null;
                     }
                 });
@@ -236,6 +245,7 @@ export class ActiveKimpay {
         // Also after the offline queue has been replayed. Items the server
         // rejected are no longer pending: the refetch drops them.
         const unsubSynced = offlineStore.onSynced((rejected) => {
+            this.createdOffline = false;
             for (const action of rejected) this.pendingIds.delete(action.id);
             this.scheduleRefetch();
         });
@@ -255,8 +265,11 @@ export class ActiveKimpay {
         }, 300);
     }
 
-    private async refetch() {
-        if (this.destroyed || offlineStore.isOffline) {
+    /** Load the group again (also the "Retry" of a group that could not be loaded). */
+    async refetch() {
+        if (this.destroyed) return;
+        if (offlineStore.isOffline) {
+            if (!this.kimpay) this.error = "network";
             this.loading = false;
             return;
         }
@@ -278,7 +291,15 @@ export class ActiveKimpay {
         } catch (e) {
             if (this.destroyed || seq !== this.fetchSeq) return;
             console.error("Failed to load kimpay", e);
-            if (!this.kimpay) this.error = "Failed to load kimpay";
+            if ((e as { status?: number }).status === 404 && !this.createdOffline) {
+                // Gone (deleted, or a wrong link): the copy kept here is stale.
+                this.error = "not_found";
+                this.kimpay = null;
+                this.expenses = [];
+                this.participants = [];
+            } else if (!this.kimpay) {
+                this.error = "network";
+            }
         } finally {
             if (seq === this.fetchSeq) this.loading = false;
         }

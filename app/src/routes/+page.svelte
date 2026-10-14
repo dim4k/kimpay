@@ -5,6 +5,7 @@
   import RecentKimpaysList from '#lib/components/home/RecentKimpaysList.svelte';
   import MagicLinkForm from '#lib/components/auth/MagicLinkForm.svelte';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
+  import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { auth } from '#lib/stores/auth.svelte.js';
@@ -57,7 +58,11 @@
 
 <div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
     {#if view === null}
-        <!-- Reading the groups saved on this device -->
+        <!-- Reading the groups saved on this device: their place if it takes
+             a while, not a blank page (nothing flashes when it is quick). -->
+        <div class="animate-pop-in [animation-delay:300ms]">
+            <ListSkeleton count={2} />
+        </div>
     {:else if view === 'groups'}
         <RecentKimpaysList />
 

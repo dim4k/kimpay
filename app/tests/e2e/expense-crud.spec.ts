@@ -65,7 +65,7 @@ test.describe('Expense CRUD Operations', () => {
     await page.getByText('Original Expense').click();
     
     // Should show details in expanded state (not navigate away)
-    await expect(page.getByText('Date:')).toBeVisible();
+    await expect(page.locator('dt', { hasText: /^Date$/ })).toBeVisible();
     // Use exact match for buttons inside the accordion
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
@@ -74,7 +74,7 @@ test.describe('Expense CRUD Operations', () => {
     await page.getByText('Original Expense').click();
     
     // Details should be hidden
-    await expect(page.getByText('Date:')).not.toBeVisible();
+    await expect(page.locator('dt', { hasText: /^Date$/ })).not.toBeVisible();
   });
 
 });

@@ -67,8 +67,9 @@
 
     function restLabel(value: number): string {
         const sign = value > 0 ? '+' : '−';
+        // "12,5 %" in French, "12.5%" in English: the language's own way.
         return mode === 'percent'
-            ? `${sign}${formatDecimal(Math.abs(value), $locale)} %`
+            ? `${sign}${new Intl.NumberFormat($locale, { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(value) / 100)}`
             : `${sign}${formatAmount(Math.abs(value), currency, $locale)}`;
     }
 
@@ -126,20 +127,23 @@
             {/each}
         </div>
 
-        {#if mode === 'amounts' && check.remaining !== 0}
-            <p class="text-sm font-medium text-destructive">
-                {check.remaining > 0
-                    ? $t('expense.split.amount_left', { amount: formatAmount(check.remaining, currency, $locale) })
-                    : $t('expense.split.amount_over', { amount: formatAmount(-check.remaining, currency, $locale) })}
-            </p>
-        {:else if mode === 'percent' && check.remaining !== 0}
-            <p class="text-sm font-medium text-destructive">
-                {check.remaining > 0
-                    ? $t('expense.split.percent_left', { percent: String(check.remaining) })
-                    : $t('expense.split.percent_over', { percent: String(-check.remaining) })}
-            </p>
-        {:else if mode === 'shares' && !check.valid}
-            <p class="text-sm font-medium text-destructive">{$t('expense.split.shares_invalid')}</p>
-        {/if}
+        <!-- What is left to split, read out as it changes. -->
+        <div aria-live="polite">
+            {#if mode === 'amounts' && check.remaining !== 0}
+                <p class="text-sm font-medium text-destructive">
+                    {check.remaining > 0
+                        ? $t('expense.split.amount_left', { amount: formatAmount(check.remaining, currency, $locale) })
+                        : $t('expense.split.amount_over', { amount: formatAmount(-check.remaining, currency, $locale) })}
+                </p>
+            {:else if mode === 'percent' && check.remaining !== 0}
+                <p class="text-sm font-medium text-destructive">
+                    {check.remaining > 0
+                        ? $t('expense.split.percent_left', { percent: String(check.remaining) })
+                        : $t('expense.split.percent_over', { percent: String(-check.remaining) })}
+                </p>
+            {:else if mode === 'shares' && !check.valid}
+                <p class="text-sm font-medium text-destructive">{$t('expense.split.shares_invalid')}</p>
+            {/if}
+        </div>
     {/if}
 </div>

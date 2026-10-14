@@ -2,7 +2,9 @@
     import type { Participant } from '#lib/types.js';
     import { t } from '#lib/i18n.js';
     import { Plus } from '@lucide/svelte';
+    import { slide } from 'svelte/transition';
     import Avatar from '#lib/components/ui/Avatar.svelte';
+    import { haptic } from '#lib/utils/haptic.js';
     import { Label } from '#lib/components/ui/label/index.js';
 
     interface Props {
@@ -43,15 +45,28 @@
             selected = [participantId];
         } else {
             if (selected.includes(participantId)) {
-                // Don't allow deselecting last item
-                if (selected.length > 1) {
-                    selected = selected.filter(id => id !== participantId);
+                // The last one stays: said, rather than nothing happening.
+                if (selected.length === 1) {
+                    refuse();
+                    return;
                 }
+                selected = selected.filter(id => id !== participantId);
             } else {
                 selected = [...selected, participantId];
             }
         }
         onSelectionChange(selected);
+    }
+
+    // "At least one person", for a moment, after trying to untick the last one.
+    let refused = $state(false);
+    let refusedTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function refuse() {
+        haptic('error');
+        refused = true;
+        clearTimeout(refusedTimer);
+        refusedTimer = setTimeout(() => (refused = false), 2500);
     }
 
     function toggleAll() {
@@ -116,7 +131,9 @@
         {/if}
     </div>
 
-    {#if mode === 'multi' && selectedCount === 0}
-        <p class="text-sm font-medium text-destructive">{$t('expense.form.error_select_one')}</p>
-    {/if}
+    <div aria-live="polite">
+        {#if mode === 'multi' && (selectedCount === 0 || refused)}
+            <p class="text-sm font-medium text-destructive" transition:slide={{ duration: 150 }}>{$t('expense.form.error_select_one')}</p>
+        {/if}
+    </div>
 </div>

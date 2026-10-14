@@ -85,7 +85,7 @@ test.describe('Members & group settings', () => {
      await page.getByRole('button', { name: 'Edit' }).click();
      const sheet = page.getByRole('dialog');
      await sheet.getByRole('button', { name: 'Currency' }).click();
-     await sheet.getByRole('button', { name: /USD/ }).click();
+     await sheet.getByRole('option', { name: /USD/ }).click();
      await sheet.getByRole('button', { name: 'Save' }).click();
 
      const confirm = page.getByRole('dialog', { name: 'Switch the Kimpay to USD?' });

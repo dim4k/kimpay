@@ -556,4 +556,11 @@ export const pt: Record<TranslationKey, string> = {
     "activity.participant_defaults_changed": "Ajustes das novas despesas alterados",
     "common.yes": "Sim",
     "common.no": "Não",
+    "common.retry": "Tentar novamente",
+    "group.gone.title": "Este grupo não existe mais",
+    "group.gone.desc": "O link pode estar errado, ou o grupo foi excluído.",
+    "group.gone.forget": "Remover dos meus grupos",
+    "group.unreachable.title": "Não foi possível abrir este grupo",
+    "group.unreachable.desc": "Verifique sua conexão e tente novamente.",
+    "expense.delete": "Excluir a despesa",
 };

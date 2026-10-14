@@ -5,7 +5,7 @@
     import { ChevronDown } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { t, locale } from '#lib/i18n.js';
-    import { DEFAULT_KIMPAY_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
+    import { DEFAULT_KIMPAY_EMOJI, GROUP_NAME_MAX_LENGTH, NAME_MAX_LENGTH } from '#lib/constants.js';
     import FieldError from '#lib/components/ui/FieldError.svelte';
     import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
     import { recentsStore } from '#lib/stores/recents.svelte.js';
@@ -113,7 +113,7 @@
         <Label for="groupName">{$t('home.create.name_label')}</Label>
         <div class="flex gap-2">
             <EmojiInput variant="kimpay" bind:value={kimpayIcon} />
-            <Input id="groupName" bind:value={kimpayName} placeholder={$t('home.create.name_placeholder')} />
+            <Input id="groupName" bind:value={kimpayName} maxlength={GROUP_NAME_MAX_LENGTH} placeholder={$t('home.create.name_placeholder')} />
             <CurrencySelect bind:value={selectedCurrency} triggerClass="h-11 shrink-0 gap-1 px-3" />
         </div>
     </div>
@@ -144,10 +144,11 @@
                         bind:value={creatorEmail}
                         oninput={() => emailError = ""}
                         aria-invalid={!!emailError}
+                        aria-describedby={emailError ? 'creatorEmail-error' : undefined}
                         class={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
                         placeholder={$t('home.create.email_placeholder')}
                     />
-                    <FieldError message={emailError} />
+                    <FieldError id="creatorEmail-error" message={emailError} />
                     <button
                         type="button"
                         onclick={() => isEmailHelpOpen = true}
@@ -161,7 +162,7 @@
     {/if}
     {/if}
 
-    <Button onclick={create} class="w-full" size="lg" loading={isLoading} disabled={!kimpayName || !creatorName}>
+    <Button onclick={create} class="w-full" size="lg" loading={isLoading} disabled={!kimpayName.trim() || !creatorName.trim()}>
         {isLoading ? $t('home.create.loading') : $t('home.create.button')}
     </Button>
 </div>

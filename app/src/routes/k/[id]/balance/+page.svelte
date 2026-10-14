@@ -191,6 +191,9 @@
       spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds).length > 1
   );
 
+  // "42 %" in French, "42%" in English: the language's own way.
+  let percent = $derived(new Intl.NumberFormat($locale, { style: 'percent', maximumFractionDigits: 0 }));
+
   let stats = $derived(groupStats(expenses, kimpayDefaultCurrency, exchangeRates));
 </script>
 
@@ -315,12 +318,13 @@
                         {:else}
                             <button
                                 type="button"
-                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 disabled:pointer-events-none"
+                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60 disabled:pointer-events-none"
                                 onclick={() => openSettleModal(tx)}
                                 disabled={!myId}
-                                aria-label={$t('balance.settle.modal.title')}
                             >
+                                <!-- Named by who pays whom and how much, then the action. -->
                                 {@render pair(tx)}
+                                {#if myId}<span class="sr-only">{$t('balance.mark_settled')}</span>{/if}
                                 {#if myId}
                                     <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
                                 {/if}
@@ -362,13 +366,13 @@
                             <a
                                 href="/k/{activeKimpay?.id ?? ''}?category={category.key}"
                                 data-sveltekit-replacestate
-                                class="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60"
+                                class="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60"
                             >
                                 <span class="w-6 shrink-0 text-center text-lg" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
                                 <span class="min-w-0 flex-1 space-y-1.5">
                                     <span class="flex items-baseline gap-2 text-sm">
                                         <span class="truncate font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
-                                        <span class="shrink-0 text-muted-foreground tabular-nums">{Math.round(category.share * 100)} %</span>
+                                        <span class="shrink-0 text-muted-foreground tabular-nums">{percent.format(category.share)}</span>
                                     </span>
                                     <span class="block h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
                                         <span class="block h-full rounded-full bg-primary" style="width: {Math.max(category.share * 100, 2)}%"></span>

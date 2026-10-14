@@ -556,4 +556,11 @@ export const de: Record<TranslationKey, string> = {
     "activity.participant_defaults_changed": "Einstellungen für neue Ausgaben geändert",
     "common.yes": "Ja",
     "common.no": "Nein",
+    "common.retry": "Erneut versuchen",
+    "group.gone.title": "Diese Gruppe gibt es nicht mehr",
+    "group.gone.desc": "Der Link ist vielleicht falsch, oder die Gruppe wurde gelöscht.",
+    "group.gone.forget": "Aus meinen Gruppen entfernen",
+    "group.unreachable.title": "Gruppe konnte nicht geöffnet werden",
+    "group.unreachable.desc": "Prüfe deine Verbindung und versuche es erneut.",
+    "expense.delete": "Ausgabe löschen",
 };

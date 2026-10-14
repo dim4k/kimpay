@@ -43,7 +43,8 @@ test.describe('Expense form', () => {
     test('the date is picked in its panel, which closes once picked', async ({ page }) => {
         await expenseSheet(page).getByRole('button', { name: /^date/i }).click();
         const calendar = page.getByRole('group', { name: 'Date' });
-        await calendar.getByRole('button', { name: '1', exact: true }).first().click();
+        // Each day is named by its full date ("Tuesday, September 1, 2026"): the 1st shown.
+        await calendar.locator('button[data-iso$="-01"]').first().click();
         await expect(calendar).toBeHidden();
         await expect(expenseSheet(page).getByRole('button', { name: /^date/i })).toBeVisible();
     });

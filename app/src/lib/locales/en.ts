@@ -554,6 +554,13 @@ export const en = {
     "activity.participant_defaults_changed": "New expense settings changed",
     "common.yes": "Yes",
     "common.no": "No",
+    "common.retry": "Try again",
+    "group.gone.title": "This group no longer exists",
+    "group.gone.desc": "The link may be wrong, or the group was deleted.",
+    "group.gone.forget": "Remove from my groups",
+    "group.unreachable.title": "Couldn't open this group",
+    "group.unreachable.desc": "Check your connection and try again.",
+    "expense.delete": "Delete this expense",
 } as const;
 
 export type TranslationKey = keyof typeof en;

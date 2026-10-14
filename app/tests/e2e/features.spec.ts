@@ -85,7 +85,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         await page.getByRole('button', { name: 'Filters' }).click();
         await page.getByRole('button', { name: 'Type' }).click();
-        await page.getByRole('button', { name: 'Money received' }).click();
+        await page.getByRole('option', { name: 'Money received' }).click();
         await expect(page.getByText('No matching expenses.')).toBeVisible();
     });
 
@@ -196,7 +196,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByText('Museum')).toBeVisible();
         // The lines open like in the app, without any action.
         await page.getByRole('button', { name: /Museum/ }).click();
-        await expect(page.getByText('Date:')).toBeVisible();
+        await expect(page.locator('dt', { hasText: /^Date$/ })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
         // A summary is for reading: no payment buttons.
         await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveCount(0);

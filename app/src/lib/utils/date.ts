@@ -71,3 +71,19 @@ export function groupByDay<T extends { date: string }>(items: readonly T[]): { k
     }
     return days;
 }
+
+/**
+ * Monday to Sunday in `locale`: the language's own abbreviation (without a
+ * trailing dot: "lun", "seg", "qua") and the full name, for screen readers.
+ * Two-letter cuts are ambiguous in some languages (pt: "se" twice, "qu" twice).
+ */
+export function weekdayLabels(locale: string): { short: string; long: string }[] {
+    return Array.from({ length: 7 }, (_, i) => {
+        // 1 January 2024 was a Monday.
+        const day = new Date(2024, 0, 1 + i);
+        return {
+            short: day.toLocaleDateString(locale, { weekday: 'short' }).replace(/\.$/, ''),
+            long: day.toLocaleDateString(locale, { weekday: 'long' }),
+        };
+    });
+}

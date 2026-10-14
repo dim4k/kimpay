@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dayLabel, groupByDay } from '../../src/lib/utils/date';
+import { dayLabel, groupByDay, weekdayLabels } from '../../src/lib/utils/date';
 
 const words = { today: 'Today', yesterday: 'Yesterday' };
 const now = new Date(2026, 9, 12, 15, 0);
@@ -18,5 +18,11 @@ describe('expense days', () => {
             ['2026-10-12', [1, 2]],
             ['2026-10-10', [3]],
         ]);
+    });
+
+    it.each(['en', 'fr', 'de', 'es', 'pt'])('names the 7 weekdays apart in %s, Monday first', (locale) => {
+        const labels = weekdayLabels(locale);
+        expect(new Set(labels.map((d) => d.short)).size).toBe(7);
+        expect(labels[0]!.long).toBe(new Date(2024, 0, 1).toLocaleDateString(locale, { weekday: 'long' }));
     });
 });

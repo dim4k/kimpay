@@ -151,6 +151,8 @@
                 bind:value={newParticipantName}
                 maxlength={NAME_MAX_LENGTH}
                 id="identity-new"
+                aria-invalid={!!createError}
+                aria-describedby={createError ? 'identity-new-error' : undefined}
                 onkeydown={(e) => e.key === 'Enter' && createAndSelectParticipant()}
             />
             <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
@@ -163,7 +165,7 @@
                 <Button size="sm" onclick={() => selectParticipant(similar!.id)}>{$t('identity.similar_yes')}</Button>
             </div>
         {/if}
-        <FieldError message={createError} />
+        <FieldError id="identity-new-error" message={createError} />
     </div>
     {/if}
 </Modal>

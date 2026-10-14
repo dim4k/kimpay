@@ -126,3 +126,12 @@ test.describe('Navigation & UX', () => {
   });
 
 });
+
+test('a link to a group that does not exist says so', async ({ page }) => {
+  await page.goto('/k/doesnotexist123');
+  await expect(page.getByRole('heading', { name: /no longer exists|n'existe plus/i })).toBeVisible();
+  // Not an empty group to fill in: no tabs, no "add the others".
+  await expect(page.getByRole('link', { name: /balance/i })).toHaveCount(0);
+  await page.getByRole('link', { name: /my kimpays|mes kimpays/i }).last().click();
+  await expect(page).toHaveURL(/\/$/);
+});

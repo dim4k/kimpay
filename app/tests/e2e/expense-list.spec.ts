@@ -47,12 +47,12 @@ test.describe('Expense list', () => {
         const sort = page.getByRole('button', { name: 'Sort' });
         await expect(sort).toHaveText(/Date ↓/);
         await sort.click();
-        await page.getByRole('button', { name: 'Amount', exact: true }).click();
+        await page.getByRole('option', { name: 'Amount', exact: true }).click();
         await expect(sort).toHaveText(/Amount ↓/);
         await expect(page.locator('[data-expense]').first()).toContainText('Big');
 
         await sort.click();
-        await page.getByRole('button', { name: 'Amount ↓' }).click();
+        await page.getByRole('option', { name: 'Amount ↓' }).click();
         await expect(sort).toHaveText(/Amount ↑/);
         await expect(page.locator('[data-expense]').first()).toContainText('Small');
     });

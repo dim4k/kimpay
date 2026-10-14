@@ -160,7 +160,7 @@ export const kimpayService = {
     async leave(
         kimpayId: string,
         participantId: string
-    ): Promise<{ action: 'deleted' | 'unclaimed' | 'none'; success: boolean }> {
+    ): Promise<{ action: 'deleted' | 'unclaimed' | 'none'; success: boolean; error?: unknown }> {
         try {
             // Fetch kimpay with expenses to check involvement
             const kimpay = await kimpayService.getWithData(
@@ -205,7 +205,7 @@ export const kimpayService = {
             }
         } catch (error) {
             console.error('Failed to leave kimpay', error);
-            return { action: 'none', success: false };
+            return { action: 'none', success: false, error };
         }
     },
 };

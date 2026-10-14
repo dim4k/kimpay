@@ -169,7 +169,7 @@
                 href="/k/{k.id}"
                 data-sveltekit-preload-data="false"
                 onclick={() => haptic('light')}
-                class="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 transition-colors duration-150 hover:bg-muted/50"
+                class="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-2 transition-colors duration-150 focus-ring-inset hover:bg-muted/50"
             >
                 <IconTile>{k.icon || DEFAULT_GROUP_ICON}</IconTile>
                 <span class="min-w-0 flex-1">

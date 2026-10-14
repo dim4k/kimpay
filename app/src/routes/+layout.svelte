@@ -144,7 +144,8 @@
     <meta property="twitter:image" content={seo.ogImage} />
     
     <!-- PWA Theme -->
-    <meta name="theme-color" content="#4f46e5" />
+    <!-- The header's color; follows the theme (see lib/theme.ts). -->
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Kimpay" />
 </svelte:head>

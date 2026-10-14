@@ -556,4 +556,11 @@ export const es: Record<TranslationKey, string> = {
     "activity.participant_defaults_changed": "Ajustes de gastos nuevos cambiados",
     "common.yes": "Sí",
     "common.no": "No",
+    "common.retry": "Reintentar",
+    "group.gone.title": "Este grupo ya no existe",
+    "group.gone.desc": "Puede que el enlace sea incorrecto o que el grupo se haya eliminado.",
+    "group.gone.forget": "Quitar de mis grupos",
+    "group.unreachable.title": "No se pudo abrir este grupo",
+    "group.unreachable.desc": "Comprueba tu conexión y vuelve a intentarlo.",
+    "expense.delete": "Eliminar el gasto",
 };

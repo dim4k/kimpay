@@ -17,16 +17,29 @@
         value = option;
         onchange?.(option);
     }
+
+    // A radio group: one Tab stop (the choice), the arrows change it.
+    function onkeydown(e: KeyboardEvent) {
+        const step = ({ ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 } as Record<string, number>)[e.key];
+        if (!step) return;
+        e.preventDefault();
+        const i = options.findIndex((o) => o.value === value);
+        const next = options[(i + step + options.length) % options.length]!;
+        select(next.value);
+        (e.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-value="${next.value}"]`)?.focus();
+    }
 </script>
 
-<div role="radiogroup" aria-label={label} class={cn("grid gap-1 rounded-full bg-muted p-1", className)} style="grid-template-columns: repeat({options.length}, minmax(0, 1fr));">
+<div role="radiogroup" aria-label={label} tabindex="-1" {onkeydown} class={cn("grid gap-1 rounded-full bg-muted p-1", className)} style="grid-template-columns: repeat({options.length}, minmax(0, 1fr));">
     {#each options as option (option.value)}
         <button
             type="button"
             role="radio"
+            data-value={option.value}
             aria-checked={value === option.value}
+            tabindex={value === option.value ? 0 : -1}
             onclick={() => select(option.value)}
-            class="h-9 truncate rounded-full px-3 text-sm font-semibold transition-colors duration-150 {value === option.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+            class="h-9 truncate rounded-full px-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring {value === option.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
         >
             {option.label}
         </button>

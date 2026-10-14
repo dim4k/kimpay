@@ -42,7 +42,7 @@
     let interactive = $derived(!!href || !!onclick);
     let classes = $derived(cn(
         'flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left first:rounded-t-[inherit] last:rounded-b-[inherit]',
-        interactive && 'transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50',
+        interactive && 'transition-colors duration-150 hover:bg-muted/60 focus-ring-inset disabled:pointer-events-none disabled:opacity-50',
         className
     ));
 </script>

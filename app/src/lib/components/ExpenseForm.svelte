@@ -383,9 +383,8 @@
               onSaved();
           }
       } catch (e) {
-          console.error(e);
-          haptic('error');
-          toasts.error($t('error.generic'));
+          // Says whether the connection failed, with error haptics.
+          notifyError(e, "Failed to save the expense");
       } finally {
           isLoading = false;
       }
@@ -564,7 +563,7 @@
             {saveLabel}
         </Button>
         {#if missing && !isOfflineEdit}
-            <p class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
+            <p id="save-missing" class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
                 {$t('expense.form.missing', { fields: missing })}
             </p>
         {:else if !initialData}
@@ -600,11 +599,6 @@
             {#if view === 'main'}
                 {#if showScanButton}
                     <ReceiptScanner onPick={scan} busy={!!scanning} disabled={isLoading} />
-                {/if}
-                {#if onDelete}
-                    <Button variant="ghost-destructive" size="icon" onclick={onDelete} aria-label={$t('common.delete')} title={$t('common.delete')}>
-                        <Trash2 class="size-5!" />
-                    </Button>
                 {/if}
             {/if}
             <button
@@ -663,7 +657,8 @@
                 bind:value={amount}
                 oninput={sanitizeAmount}
                 placeholder={amountPlaceholder}
-                class="w-full rounded-card bg-transparent text-center text-5xl font-bold tracking-tight tabular-nums outline-hidden transition-shadow placeholder:text-muted-foreground/40 {filled.amount ? 'ring-2 ring-primary/40' : ''} {isIncome ? 'text-success' : ''}"
+                aria-describedby={missing && !isOfflineEdit ? 'save-missing' : undefined}
+                class="w-full rounded-card bg-transparent text-center text-5xl font-bold tracking-tight tabular-nums outline-hidden transition-shadow placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/40 {filled.amount ? 'ring-2 ring-primary/40' : ''} {isIncome ? 'text-success' : ''}"
             />
             <div class="flex items-center justify-center gap-2">
                 <CurrencySelect size="sm" position="bottom-left" bind:value={currency} />
@@ -681,6 +676,7 @@
             <EmojiInput bind:value={icon} />
             <Input
                 id="description"
+                aria-describedby={missing && !isOfflineEdit ? 'save-missing' : undefined}
                 bind:value={description}
                 oninput={() => filled.description = false}
                 placeholder={isIncome ? $t('expense.form.income_desc_placeholder') : $t('expense.form.desc_placeholder')}
@@ -745,6 +741,18 @@
                 {/snippet}
             </ListRow>
         </ListGroup>
+
+        {#if onDelete}
+            <!-- Away from the close and save buttons: rare, and asked again. -->
+            <button
+                type="button"
+                onclick={onDelete}
+                class="mx-auto flex min-h-11 items-center gap-2 rounded-control px-4 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+            >
+                <Trash2 class="h-4 w-4" />
+                {$t('expense.delete')}
+            </button>
+        {/if}
     </div>
 
     <!-- The panel open: one setting, changed over the summary. -->

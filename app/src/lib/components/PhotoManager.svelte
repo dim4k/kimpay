@@ -101,7 +101,7 @@
         type="button"
         onclick={() => fileInput.click()}
         disabled={isDisabled}
-        class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+        class="flex w-full min-h-14 items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset disabled:pointer-events-none disabled:opacity-50"
     >
         <IconTile size="sm"><Camera /></IconTile>
         <span class="flex min-w-0 flex-1 flex-col">

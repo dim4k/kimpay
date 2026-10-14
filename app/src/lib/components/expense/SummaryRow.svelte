@@ -31,7 +31,7 @@
 <button
     type="button"
     {onclick}
-    class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-hidden"
+    class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
 >
     {#if lead}
         {@render lead()}

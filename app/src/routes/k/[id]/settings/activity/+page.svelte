@@ -13,6 +13,7 @@
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
@@ -22,12 +23,10 @@
   let activities = $state<Activity[] | null>(null);
   let failed = $state(false);
 
-  // Loaded again whenever the group changes (its `updated` follows every change).
-  $effect(() => {
-      const id = kimpayId;
-      void activeKimpay?.kimpay?.updated;
-      if (!id || offlineStore.isOffline) return;
-      listActivity(id)
+  let isRetrying = $state(false);
+
+  function load(id: string): Promise<void> {
+      return listActivity(id)
           .then((list) => {
               activities = list;
               failed = false;
@@ -36,6 +35,20 @@
               console.error("Failed to load the history", e);
               failed = true;
           });
+  }
+
+  async function retry() {
+      isRetrying = true;
+      await load(kimpayId);
+      isRetrying = false;
+  }
+
+  // Loaded again whenever the group changes (its `updated` follows every change).
+  $effect(() => {
+      const id = kimpayId;
+      void activeKimpay?.kimpay?.updated;
+      if (!id || offlineStore.isOffline) return;
+      load(id);
   });
 
   // Seen: no longer counted as news on the expense list.
@@ -170,6 +183,9 @@
     {:else if failed && !activities}
         <EmptyState title={$t('error.generic.title')} description={$t('error.generic')}>
             {#snippet icon()}<History class="h-12 w-12" />{/snippet}
+            {#snippet action()}
+                <Button variant="outline" onclick={retry} loading={isRetrying}>{$t('common.retry')}</Button>
+            {/snippet}
         </EmptyState>
     {:else if !activities}
         <ListSkeleton count={4} />

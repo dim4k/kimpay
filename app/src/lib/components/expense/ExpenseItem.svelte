@@ -190,7 +190,7 @@
         aria-expanded={isExpanded}
         aria-controls="details-{expense.id}"
         onclick={() => onToggleExpand(expense.id)}
-        class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-hidden {isExpanded ? 'bg-muted/50' : ''}"
+        class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-ring-inset {isExpanded ? 'bg-muted/50' : ''}"
     >
         <IconTile tone={expense.is_reimbursement ? 'success' : 'muted'} class="relative {expense.is_reimbursement ? '' : 'text-foreground'}">
             {#if expense.is_reimbursement}
@@ -264,16 +264,16 @@
         <div id="details-{expense.id}" class="space-y-3 border-t bg-muted/30 px-4 py-3" transition:slide={{ duration: 150 }}>
             <dl class="space-y-1.5 text-sm">
                 <div class="flex items-center justify-between gap-3">
-                    <dt class="text-muted-foreground">{$t('expense.form.date_label')}:</dt>
+                    <dt class="text-muted-foreground">{$t('expense.form.date_label')}</dt>
                     <dd class="font-medium">{parseLocalISODate(expense.date).toLocaleDateString($locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</dd>
                 </div>
                 {#if !expense.is_reimbursement}
                     <div class="flex items-center justify-between gap-3">
-                        <dt class="text-muted-foreground">{expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')}:</dt>
+                        <dt class="text-muted-foreground">{expense.is_income ? $t('expense.list.received_by') : $t('expense.list.paid_by')}</dt>
                         <dd>{@render personChip(expense.payer, expense.expand?.payer?.name)}</dd>
                     </div>
                     <div class="flex items-start justify-between gap-3">
-                        <dt class="text-muted-foreground">{$t('expense.list.for')}:</dt>
+                        <dt class="text-muted-foreground">{$t('expense.list.for')}</dt>
                         <dd class="flex flex-wrap justify-end gap-1">
                             {#if forSummary}
                                 <Badge tone={involvesMe ? 'primary' : 'neutral'}>{forSummary}</Badge>
@@ -288,7 +288,7 @@
                     </div>
                     {#if myShare !== null}
                         <div class="flex items-center justify-between gap-3">
-                            <dt class="text-muted-foreground">{$t('expense.list.your_share')}:</dt>
+                            <dt class="text-muted-foreground">{$t('expense.list.your_share')}</dt>
                             <dd class="font-semibold tabular-nums">
                                 {formatAmount(myShare, currency, $locale)}
                                 {#if approx(myShare)}<span class="font-normal text-muted-foreground">({approx(myShare)})</span>{/if}
@@ -320,7 +320,6 @@
             {:else if expense.is_reimbursement}
                 <Button
                     variant="outline"
-                    size="sm"
                     class="w-full text-destructive"
                     onclick={() => onRequestDelete(expense.id)}
                 >
@@ -331,7 +330,7 @@
                 <div class="grid grid-cols-3 gap-2">
                     <Button
                         variant="outline"
-                        size="sm"
+                        class="px-3"
                         disabled={offlineStore.isOffline}
                         onclick={() => openFolded({ expenseId: expense.id })}
                     >
@@ -341,7 +340,7 @@
                     <!-- The same again (breakfast, fuel...): a new expense, filled in. -->
                     <Button
                         variant="outline"
-                        size="sm"
+                        class="px-3"
                         onclick={() => openFolded({ from: expense.id })}
                     >
                         <Copy />
@@ -349,8 +348,7 @@
                     </Button>
                     <Button
                         variant="outline"
-                        size="sm"
-                        class="text-destructive"
+                        class="px-3 text-destructive"
                         disabled={offlineStore.isOffline}
                         onclick={() => onRequestDelete(expense.id)}
                     >

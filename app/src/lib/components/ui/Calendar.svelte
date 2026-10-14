@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { ChevronLeft, ChevronRight } from "@lucide/svelte";
   import { t, locale } from '#lib/i18n.js';
-  import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
+  import { parseLocalISODate, toLocalISODate, weekdayLabels } from '#lib/utils/date.js';
 
   /** A month to pick a day from. `value`: local calendar date, "YYYY-MM-DD". */
   let { value = $bindable(), label, onselect }: { value: string; label: string; onselect?: (value: string) => void } = $props();
@@ -57,7 +58,7 @@
         });
     }
 
-    return grid;
+    return grid.map((item) => ({ ...item, iso: toLocalISODate(item.date) }));
   });
 
   function select(d: Date) {
@@ -71,12 +72,37 @@
   }
 
   let monthLabel = $derived(viewDate.toLocaleDateString($locale, { month: 'long', year: 'numeric' }));
-  // Monday-first short weekday names (2024-01-01 was a Monday).
-  let WEEKDAYS = $derived(
-      Array.from({ length: 7 }, (_, i) =>
-          new Date(2024, 0, 1 + i).toLocaleDateString($locale, { weekday: 'short' }).slice(0, 2)
-      )
+  let weekdays = $derived(weekdayLabels($locale));
+  const today = toLocalISODate();
+
+  // One day of the grid takes the Tab key (the one moved to with the arrows,
+  // else the date picked, else the 1st of the month), the arrows do the rest.
+  let focusIso = $state<string | null>(null);
+  let tabbable = $derived(
+      [focusIso, value].find((iso) => iso && days.some((d) => d.iso === iso && d.currentMonth)) ??
+          days.find((d) => d.currentMonth)!.iso
   );
+  let grid = $state<HTMLElement>();
+
+  const STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+
+  async function move(e: KeyboardEvent, from: Date) {
+      const step = STEPS[e.key];
+      const months = e.key === 'PageUp' ? -1 : e.key === 'PageDown' ? 1 : 0;
+      if (!step && !months) return;
+      e.preventDefault();
+      const next = step
+          ? new Date(from.getFullYear(), from.getMonth(), from.getDate() + step)
+          : new Date(from.getFullYear(), from.getMonth() + months, Math.min(from.getDate(), getDaysInMonth(from.getFullYear(), from.getMonth() + months)));
+      viewDate = next;
+      focusIso = toLocalISODate(next);
+      await tick();
+      grid?.querySelector<HTMLElement>(`[data-iso="${focusIso}"]`)?.focus();
+  }
+
+  function longDate(d: Date): string {
+      return d.toLocaleDateString($locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
 </script>
 
 <div class="space-y-4" role="group" aria-label={label}>
@@ -84,31 +110,35 @@
         <button type="button" onclick={() => changeMonth(-1)} class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted" aria-label={$t('datepicker.previous')}>
             <ChevronLeft class="h-5 w-5" />
         </button>
-        <span class="text-base font-bold capitalize">{monthLabel}</span>
+        <span class="text-base font-bold capitalize" aria-live="polite">{monthLabel}</span>
         <button type="button" onclick={() => changeMonth(1)} class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted" aria-label={$t('datepicker.next')}>
             <ChevronRight class="h-5 w-5" />
         </button>
     </div>
 
     <div>
-        <div class="mb-2 grid grid-cols-7 gap-1 text-center text-xs">
-            {#each WEEKDAYS as day (day)}
-                <div class="py-1 font-medium text-muted-foreground">{day}</div>
+        <div class="mb-2 grid grid-cols-7 gap-1 text-center text-xs" aria-hidden="true">
+            {#each weekdays as day, i (i)}
+                <div class="py-1 font-medium text-muted-foreground" title={day.long}>{day.short}</div>
             {/each}
         </div>
 
-        <div class="grid grid-cols-7 gap-1 text-center">
-            {#each days as item (item.date.getTime())}
-                {@const iso = toLocalISODate(item.date)}
+        <div bind:this={grid} class="grid grid-cols-7 gap-1 text-center">
+            {#each days as item (item.iso)}
                 <button
                     type="button"
+                    data-iso={item.iso}
+                    tabindex={item.iso === tabbable ? 0 : -1}
                     class="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm transition-colors
-                        {iso === value
+                        {item.iso === value
                             ? 'bg-primary font-bold text-primary-foreground'
-                            : iso === toLocalISODate(new Date())
+                            : item.iso === today
                                 ? 'border-2 border-primary font-semibold text-primary'
                                 : item.currentMonth ? 'hover:bg-muted' : 'text-muted-foreground/50 hover:bg-muted'}"
-                    aria-pressed={iso === value}
+                    aria-label={longDate(item.date)}
+                    aria-pressed={item.iso === value}
+                    aria-current={item.iso === today ? 'date' : undefined}
+                    onkeydown={(e) => move(e, item.date)}
                     onclick={() => select(item.date)}
                 >
                     {item.day}

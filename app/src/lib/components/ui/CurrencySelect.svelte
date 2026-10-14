@@ -43,8 +43,11 @@
         {#each CURRENCY_CODES as code (code)}
             <button
                 type="button"
+                role="option"
+                aria-selected={value === code}
+                tabindex="-1"
                 onclick={() => select(code, close)}
-                class="flex w-full items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-muted {value === code ? 'bg-primary-soft' : ''}"
+                class="flex w-full items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-muted focus-ring-inset {value === code ? 'bg-primary-soft' : ''}"
             >
                 <div class="flex items-center gap-2">
                     <span class="text-base w-5 text-center">{getSymbol(code)}</span>

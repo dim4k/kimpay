@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { afterNavigate, replaceState } from '$app/navigation';
-  import { ChartPie, Plus, Settings, Users, Wallet } from "@lucide/svelte";
+  import { afterNavigate, goto, replaceState } from '$app/navigation';
+  import { ChartPie, Plus, SearchX, Settings, Users, Wallet, WifiOff } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
 
   import { ActiveKimpay, setActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
@@ -18,6 +18,10 @@
   import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { kimpayService } from '#lib/services/kimpay.js';
+  import { recentsStore } from '#lib/stores/recents.svelte.js';
+  import { storageService } from '#lib/services/storage.js';
+  import EmptyState from '#lib/components/ui/EmptyState.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
   
   import { onDestroy, untrack, type Snippet } from 'svelte';
   
@@ -112,6 +116,28 @@
       );
   });
 
+  // A wrong link, a deleted group, or no connection and nothing kept here:
+  // said as such, instead of an empty group.
+  let unavailable = $derived(activeKimpay && !activeKimpay.kimpay ? activeKimpay.error : null);
+  let isRetrying = $state(false);
+
+  async function retry() {
+      isRetrying = true;
+      try {
+          await activeKimpay?.refetch();
+      } finally {
+          isRetrying = false;
+      }
+  }
+
+  /** A group that is gone: out of my list, back to it. */
+  async function forgetGroup() {
+      const id = kimpayId;
+      recentsStore.removeRecentKimpay(id);
+      await goto('/');
+      await storageService.removeRecentKimpay(id);
+  }
+
   // Payment handles used to be entered per group: the first ones found
   // become the profile's (they stay shown in that group).
   $effect(() => {
@@ -122,11 +148,35 @@
   });
 </script>
 
+{#if unavailable}
+<div class="mx-auto w-full max-w-2xl px-4 py-10">
+  <EmptyState
+    title={$t(unavailable === 'not_found' ? 'group.gone.title' : 'group.unreachable.title')}
+    description={$t(unavailable === 'not_found' ? 'group.gone.desc' : 'group.unreachable.desc')}
+    class="animate-pop-in"
+  >
+    {#snippet icon()}
+      {#if unavailable === 'not_found'}<SearchX class="h-12 w-12" />{:else}<WifiOff class="h-12 w-12" />{/if}
+    {/snippet}
+    {#snippet action()}
+      <div class="flex w-64 max-w-full flex-col gap-2">
+        {#if unavailable === 'not_found'}
+          <Button variant="outline" onclick={forgetGroup}>{$t('group.gone.forget')}</Button>
+        {:else}
+          <Button onclick={retry} loading={isRetrying}>{$t('common.retry')}</Button>
+        {/if}
+        <Button variant="ghost" href="/">{$t('my_kimpays.title')}</Button>
+      </div>
+    {/snippet}
+  </EmptyState>
+</div>
+{:else}
 <div class="flex flex-1 flex-col {isFormRoute ? '' : installStore.bannerVisible ? 'pb-48' : 'pb-24'}">
   {@render children()}
 </div>
+{/if}
 
-{#if !isFormRoute}
+{#if !isFormRoute && !unavailable}
 <nav class="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl" aria-label={$t('nav.menu')}>
     <div class="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
         <NavItem

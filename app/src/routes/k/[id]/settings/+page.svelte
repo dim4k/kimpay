@@ -20,7 +20,7 @@
   import { toCsv, toMarkdown, exportFilename, downloadFile, type ExportFormat } from '#lib/utils/export.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
-  import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
+  import { DEFAULT_KIMPAY_EMOJI, GROUP_NAME_MAX_LENGTH } from '#lib/constants.js';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import { DEFAULT_CURRENCY } from '#lib/services/currency.js';
@@ -171,7 +171,8 @@
              if (currentParticipantId) {
                  const result = await kimpayService.leave(kimpayId, currentParticipantId);
                  if (!result.success) {
-                     toasts.error($t('error.generic'));
+                     // A lost connection is said as such.
+                     toasts.error(getErrorMessage(result.error, $t));
                      return;
                  }
              }
@@ -336,7 +337,7 @@
         <Label for="group-name">{$t('home.create.name_label')}</Label>
         <div class="flex gap-2">
             <EmojiInput variant="kimpay" bind:value={editIcon} />
-            <Input id="group-name" bind:value={editName} onkeydown={(e) => e.key === 'Enter' && handleSave()} />
+            <Input id="group-name" bind:value={editName} maxlength={GROUP_NAME_MAX_LENGTH} onkeydown={(e) => e.key === 'Enter' && handleSave()} />
             <CurrencySelect bind:value={editCurrency} triggerClass="h-11 shrink-0 gap-1 px-3" />
         </div>
         {#if editCurrency !== groupCurrency && (activeKimpay?.expenses.length ?? 0) > 0}

@@ -23,7 +23,7 @@
         </div>
     {/if}
     {#if title}
-        <p class="font-semibold">{title}</p>
+        <h2 class="text-base font-semibold">{title}</h2>
     {/if}
     <p class="text-sm text-muted-foreground max-w-xs {title ? 'mt-1' : ''}">{description}</p>
     {#if action}
