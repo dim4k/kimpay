@@ -20,6 +20,8 @@
   import { kimpayService } from '#lib/services/kimpay.js';
   import { recentsStore } from '#lib/stores/recents.svelte.js';
   import { storageService } from '#lib/services/storage.js';
+  import { prefs } from '#lib/utils/prefs.js';
+  import { STORAGE_KEYS } from '#lib/constants.js';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   
@@ -137,6 +139,11 @@
       await goto('/');
       await storageService.removeRecentKimpay(id);
   }
+
+  // The group opened last: where the app icon's shortcuts lead.
+  $effect(() => {
+      if (groupLoaded && kimpayId) prefs.set(STORAGE_KEYS.LAST_GROUP, kimpayId);
+  });
 
   // Payment handles used to be entered per group: the first ones found
   // become the profile's (they stay shown in that group).

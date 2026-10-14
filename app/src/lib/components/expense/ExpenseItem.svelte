@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Pencil, Trash2, Camera, Copy, HandCoins, Undo2 } from "@lucide/svelte";
+    import { Pencil, Trash2, Camera, Copy, HandCoins, Repeat, Undo2 } from "@lucide/svelte";
     import { pb } from '#lib/pocketbase.js';
     import { t, locale } from '#lib/i18n.js';
     import { parseLocalISODate } from '#lib/utils/date.js';
@@ -66,6 +66,16 @@
         openExpenseSheet(kimpayId, target);
     }
     let hasPhotos = $derived(!!expense.photos && expense.photos.length > 0);
+    // Copied every month by the server (the latest of its series).
+    let repeats = $derived(!!expense.repeat_day && !expense.is_reimbursement);
+    // "Every month · next on Nov 14"
+    let repeatLine = $derived(
+        [
+            $t('expense.list.every_month'),
+            expense.repeat_next &&
+                $t('expense.list.next_on', { date: parseLocalISODate(expense.repeat_next).toLocaleDateString($locale, { day: 'numeric', month: 'short' }) }),
+        ].filter(Boolean).join(' · ')
+    );
 
     // Each person's share, shown when the expense is not split equally.
     let shares = $derived(
@@ -206,8 +216,11 @@
         </IconTile>
 
         <span class="min-w-0 flex-1">
-            <span class="block truncate text-base font-medium">
-                {expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}
+            <span class="flex min-w-0 items-center gap-1.5 text-base font-medium">
+                <span class="truncate">{expense.is_reimbursement ? $t('balance.reimbursement') : expense.description}</span>
+                {#if repeats}
+                    <Repeat class="h-3.5 w-3.5 shrink-0 text-muted-foreground" role="img" aria-label={$t('expense.list.every_month')} />
+                {/if}
             </span>
             <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
                 {#if expense.is_reimbursement}
@@ -286,6 +299,14 @@
                             {/if}
                         </dd>
                     </div>
+                    {#if repeats}
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-muted-foreground">{$t('expense.list.repeats')}</dt>
+                            <dd class="text-right font-medium">
+                                {repeatLine}
+                            </dd>
+                        </div>
+                    {/if}
                     {#if myShare !== null}
                         <div class="flex items-center justify-between gap-3">
                             <dt class="text-muted-foreground">{$t('expense.list.your_share')}</dt>

@@ -23,7 +23,7 @@
   import { DEFAULT_EXPENSE_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
 
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { Calendar as CalendarIcon, ChevronLeft, CircleAlert, CircleCheck, HandCoins, Sparkles, Split, Trash2, UserRound, X } from "@lucide/svelte";
+  import { Calendar as CalendarIcon, ChevronLeft, CircleAlert, CircleCheck, HandCoins, Repeat, Sparkles, Split, Trash2, UserRound, X } from "@lucide/svelte";
   import { slide } from 'svelte/transition';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { CURRENCY_CODES, DEFAULT_CURRENCY, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
@@ -36,6 +36,7 @@
   import { parseLocalISODate, toLocalISODate } from '#lib/utils/date.js';
   import { buildSplit, checkSplit, memberWeights, newExpenseDefaults } from '#lib/split.js';
   import { findSimilarExpense } from '#lib/utils/suggest.js';
+  import { nextRepeatDate } from '#lib/repeat.js';
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
   import { sanitizeDecimal } from '#lib/utils/amount.js';
   import { loadKeywords } from '#lib/emoji/search.js';
@@ -46,6 +47,7 @@
       kimpayId,
       initialData = null,
       template = null,
+      scanFirst = false,
       title,
       onDelete,
       onClose,
@@ -55,6 +57,8 @@
       initialData?: Expense | null;
       /** A new expense filled in from this one (duplicate), dated today, without its photos */
       template?: Expense | null;
+      /** Opened to read a receipt (app icon's shortcut): the photo button first */
+      scanFirst?: boolean;
       /** Title of the sheet */
       title: string;
       /** Shows a delete button in the sheet's header (editing) */
@@ -84,6 +88,8 @@
   let isIncome = $state(false);
   let splitMode = $state<SplitMode>('equal');
   let splitValues = $state<Record<string, number>>({});
+  // Repeated every month (rent, subscriptions): copied by the server.
+  let repeats = $state(false);
 
   let participants = $derived(activeKimpay?.participants || []);
   let involvedParticipants = $derived(participants.filter(p => involved.includes(p.id)));
@@ -156,7 +162,7 @@
 
   // What the form held when opened (or last saved): leaving with changes asks first.
   function formState(): string {
-      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length]);
+      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length, repeats]);
   }
   let baseline = $state('');
   let isDirty = $derived(baseline !== '' && formState() !== baseline);
@@ -188,6 +194,8 @@
          if (initialData?.photos && Array.isArray(initialData.photos)) {
              existingPhotos = initialData.photos;
          }
+         // A duplicate does not repeat: the one it comes from already does.
+         repeats = !!initialData?.repeat_day;
       } else {
          // New expense: use Kimpay currency
          currency = defaultCurrency;
@@ -364,7 +372,8 @@
               is_income: isIncome,
               date: new Date(date).toISOString(),
               icon,
-              kimpay: kimpayId
+              kimpay: kimpayId,
+              ...repeatFields(),
           };
 
           if (initialData?.id) {
@@ -390,6 +399,22 @@
       }
   }
 
+  /** Repeated on the day of its date, from the next copy on (none when not repeated). */
+  function repeatFields(): Pick<Expense, 'repeat_day' | 'repeat_next'> {
+      if (!repeats) return { repeat_day: 0, repeat_next: '' };
+      return { repeat_day: Number(date.slice(8, 10)), repeat_next: `${nextRepeat} 00:00:00.000Z` };
+  }
+
+  // The next copy ("YYYY-MM-DD"): the one already planned while neither the
+  // repetition nor the date change, else the first month to come.
+  let nextRepeat = $derived(
+      initialData?.repeat_day && initialData.repeat_next && initialData.date.slice(0, 10) === date
+          ? initialData.repeat_next.slice(0, 10)
+          : nextRepeatDate(date, Number(date.slice(8, 10)), toLocalISODate())
+  );
+  // Copied already: the repetition goes on from the copy (the latest one).
+  let repeatedLater = $derived(!!initialData && (activeKimpay?.expenses ?? []).some((e) => e.repeat_of === initialData!.id));
+
   let amountInput = $state<HTMLInputElement | null>(null);
 
   /** What changes from one expense to the next is cleared; who and when stay. */
@@ -398,6 +423,7 @@
       amount = "";
       icon = autoIcon = DEFAULT_EXPENSE_EMOJI;
       newPhotos = [];
+      repeats = false;
       filled = { amount: false, description: false };
       scanApplied = null;
       scanError = "";
@@ -645,6 +671,14 @@
             </div>
         {/if}
 
+        <!-- Opened to read a receipt: one tap to the camera (a browser opens
+             it only from a tap), until the form is filled one way or another. -->
+        {#if scanFirst && showScanButton && !scanApplied && !scanning && !amount && !description}
+            <div transition:slide={{ duration: 150 }}>
+                <ReceiptScanner variant="action" onPick={scan} />
+            </div>
+        {/if}
+
         <!-- Amount first, big -->
         <div class="space-y-2 text-center">
             <label for="amount" class="sr-only">{$t('expense.form.amount_label')}</label>
@@ -734,6 +768,17 @@
                 bind:photosToDelete
                 record={initialData}
             />
+            {#if !repeatedLater}
+                <ListRow
+                    icon={Repeat}
+                    title={$t('expense.repeat.label')}
+                    subtitle={repeats ? $t('expense.repeat.next', { date: parseLocalISODate(nextRepeat).toLocaleDateString($locale, { day: 'numeric', month: 'long' }) }) : undefined}
+                >
+                    {#snippet trailing()}
+                        <Switch checked={repeats} label={$t('expense.repeat.label')} onchange={(v) => repeats = v} />
+                    {/snippet}
+                </ListRow>
+            {/if}
             <!-- Money received (a deposit back, a sale...): rare, so last. -->
             <ListRow icon={HandCoins} title={$t('expense.type.income')} subtitle={$t('expense.form.income_hint')}>
                 {#snippet trailing()}

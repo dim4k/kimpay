@@ -77,7 +77,7 @@
 {#if shown}
     {#key shown.key}
         {#if !shown.expenseId}
-            <ExpenseForm {kimpayId} {template} title={$t('expense.add.title')} onClose={requestClose} onSaved={close} bind:this={form} />
+            <ExpenseForm {kimpayId} {template} scanFirst={!!shown.scan} title={$t('expense.add.title')} onClose={requestClose} onSaved={close} bind:this={form} />
         {:else if edited}
             <ExpenseForm
                 {kimpayId}

@@ -370,6 +370,7 @@ export const en = {
     "settings.export.as": "Export as {format}",
     "share.qr_desc": "For someone next to you: they scan it with their phone camera.",
     "home.group.swipe_hint": "Swipe a group to the left to archive it.",
+    "expense.list.swipe_hint": "Swipe an expense left to delete it, right to edit it.",
     "home.group.new_one": "1 new",
     "home.group.new_many": "{count} new",
     "profile.title": "Profile",
@@ -561,6 +562,12 @@ export const en = {
     "group.unreachable.title": "Couldn't open this group",
     "group.unreachable.desc": "Check your connection and try again.",
     "expense.delete": "Delete this expense",
+    "expense.repeat.label": "Repeat every month",
+    "expense.repeat.next": "Next on {date}",
+    "expense.list.repeats": "Repeats",
+    "expense.list.every_month": "Every month",
+    "expense.list.next_on": "next on {date}",
+    "activity.expense_repeated": "Added automatically",
 } as const;
 
 export type TranslationKey = keyof typeof en;

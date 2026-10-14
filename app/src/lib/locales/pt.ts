@@ -372,6 +372,7 @@ export const pt: Record<TranslationKey, string> = {
     "settings.export.as": "Exportar em {format}",
     "share.qr_desc": "Para alguém ao seu lado: basta escanear com a câmera do celular.",
     "home.group.swipe_hint": "Deslize um grupo para a esquerda para o arquivar.",
+    "expense.list.swipe_hint": "Deslize uma despesa para a esquerda para excluí-la, para a direita para editá-la.",
     "home.group.new_one": "1 nova",
     "home.group.new_many": "{count} novas",
     "profile.title": "Perfil",
@@ -563,4 +564,10 @@ export const pt: Record<TranslationKey, string> = {
     "group.unreachable.title": "Não foi possível abrir este grupo",
     "group.unreachable.desc": "Verifique sua conexão e tente novamente.",
     "expense.delete": "Excluir a despesa",
+    "expense.repeat.label": "Repetir todo mês",
+    "expense.repeat.next": "Próxima em {date}",
+    "expense.list.repeats": "Repetição",
+    "expense.list.every_month": "Todo mês",
+    "expense.list.next_on": "próxima em {date}",
+    "activity.expense_repeated": "Adicionada automaticamente",
 };

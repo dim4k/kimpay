@@ -382,6 +382,19 @@
       openExpenseSheet(kimpayId);
   }
 
+  // The swipes of an expense (left: delete, right: edit) are explained on the
+  // first two visits with something to swipe, then left to be known (as the
+  // groups' swipe on the home page). Phones only: no swipe with a mouse.
+  const swipeHintShown = Number(prefs.get(STORAGE_KEYS.EXPENSE_SWIPE_HINT_SHOWN) ?? 0);
+  let canSwipe = $derived(!offlineStore.isOffline && rawExpenses.some((e) => !e.is_reimbursement));
+  let showSwipeHint = $derived(swipeHintShown < 2 && canSwipe);
+  let swipeHintCounted = false;
+  $effect(() => {
+      if (swipeHintCounted || !showSwipeHint) return;
+      swipeHintCounted = true;
+      prefs.set(STORAGE_KEYS.EXPENSE_SWIPE_HINT_SHOWN, String(swipeHintShown + 1));
+  });
+
   function requestDelete(id: string) {
       if (activeKimpay) confirmDeleteExpense(activeKimpay, id);
   }
@@ -669,7 +682,7 @@
           {/snippet}
       </EmptyState>
   {:else}
-      {#each sections as section (section.key)}
+      {#each sections as section, i (section.key)}
           <section class="space-y-2 animate-slide-up" data-section={section.key}>
               {#if section.label}
                   <SectionLabel title={section.label}>
@@ -697,6 +710,9 @@
                       />
                   {/each}
               </ListGroup>
+              {#if i === 0 && showSwipeHint}
+                  <p class="px-1 text-xs text-muted-foreground md:hidden">{$t('expense.list.swipe_hint')}</p>
+              {/if}
           </section>
       {/each}
   {/if}

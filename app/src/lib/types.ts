@@ -75,6 +75,12 @@ export interface Expense {
     split?: ExpenseSplit | null;
     icon?: string;
     photos?: string[];
+    /** Repeated every month on this day (1-31, see lib/repeat.ts); 0 = not repeated */
+    repeat_day?: number;
+    /** Date of the next copy, made by the server ("" = none) */
+    repeat_next?: string;
+    /** The expense this one was copied from (the previous month's) */
+    repeat_of?: string;
     expand?: {
         payer?: Participant;
         involved?: Participant[];

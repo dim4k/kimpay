@@ -7,7 +7,7 @@
 
     interface Props {
         title: string;
-        subtitle?: string;
+        subtitle?: string | undefined;
         /** Current value, shown on the right (e.g. "PayPal", "EUR") */
         value?: string;
         icon?: Component<LucideProps>;

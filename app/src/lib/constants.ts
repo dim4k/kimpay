@@ -106,6 +106,10 @@ export const STORAGE_KEYS = {
     HAD_ACCOUNT: 'kimpay_had_account',
     /** Times the "swipe a group" hint was shown (localStorage) */
     SWIPE_HINT_SHOWN: 'kimpay_swipe_hint_shown',
+    /** Visits where the expense list explained its swipes (left: delete, right: edit) */
+    EXPENSE_SWIPE_HINT_SHOWN: 'kimpay_expense_swipe_hint_shown',
+    /** The group opened last on this device: where the app icon's shortcuts lead */
+    LAST_GROUP: 'kimpay_last_group',
     /** Prefix: "archive this settled group?" dismissed (localStorage) */
     ARCHIVE_SUGGESTION_DISMISSED_PREFIX: 'kimpay_archive_suggestion_dismissed_',
     /** Prefix: when the history of a group was last looked at (ms, localStorage) */

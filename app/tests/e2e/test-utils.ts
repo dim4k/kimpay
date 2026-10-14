@@ -82,6 +82,23 @@ async function superuserHeaders(request: APIRequestContext) {
 }
 
 /**
+ * Makes the monthly copies due now, as the hourly cron does (see
+ * pocketbase/pb_hooks/repeat.pb.js), after moving the next copy of an
+ * expense to today (UTC).
+ */
+export async function repeatExpenseNow(request: APIRequestContext, expenseId: string) {
+    const headers = await superuserHeaders(request);
+    const today = new Date().toISOString().slice(0, 10);
+    const moved = await request.patch(`${PB_URL}/api/collections/expenses/records/${expenseId}`, {
+        headers,
+        data: { repeat_next: `${today} 00:00:00.000Z` },
+    });
+    expect(moved.ok(), await moved.text()).toBe(true);
+    const run = await request.post(`${PB_URL}/api/crons/repeat_expenses`, { headers });
+    expect(run.ok(), await run.text()).toBe(true);
+}
+
+/**
  * Logs this device in with a new account named `name`, through a real magic
  * link opened on the current page: like after a real login, the account
  * claims the device's participants (and the groups it created). The email is

@@ -90,6 +90,7 @@ function readExpense(app, record) {
         split: (split && split.mode) || "equal",
         income: record.getBool("is_income"),
         photos: record.getStringSlice("photos").length,
+        repeat: record.getInt("repeat_day") > 0,
     };
 }
 

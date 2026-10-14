@@ -7,6 +7,8 @@ export type ActivityAction =
     | 'expense_created'
     | 'expense_updated'
     | 'expense_deleted'
+    /** A monthly expense copied by the server (no actor) */
+    | 'expense_repeated'
     | 'reimbursement_created'
     | 'reimbursement_deleted'
     | 'participant_added'
@@ -36,6 +38,8 @@ export interface ExpenseSnapshot {
     split: string;
     income: boolean;
     photos: number;
+    /** Repeated every month (lines logged since) */
+    repeat?: boolean;
 }
 
 export interface Activity {

@@ -16,18 +16,21 @@ export interface ExpenseSheetState {
     expenseId?: string;
     /** A new expense filled in from this one (duplicate) */
     from?: string;
+    /** A new expense from a receipt: the photo button first (app icon's shortcut) */
+    scan?: boolean;
     /** A panel of the form, over its summary */
     view?: ExpenseView;
     /** Tells two openings apart: each one gets a fresh form */
     key: number;
 }
 
-type Target = Pick<ExpenseSheetState, 'expenseId' | 'from'>;
+type Target = Pick<ExpenseSheetState, 'expenseId' | 'from' | 'scan'>;
 
 /** The address of the form: still a page of its own on a reload or a link. */
-export function expenseSheetUrl(kimpayId: string, { expenseId, from }: Target): string {
+export function expenseSheetUrl(kimpayId: string, { expenseId, from, scan }: Target): string {
     if (expenseId) return `/k/${kimpayId}/edit/${expenseId}`;
-    return `/k/${kimpayId}/add${from ? `?from=${encodeURIComponent(from)}` : ''}`;
+    if (from) return `/k/${kimpayId}/add?from=${encodeURIComponent(from)}`;
+    return `/k/${kimpayId}/add${scan ? '?scan' : ''}`;
 }
 
 /** Opens the form in a sheet, over the page shown. */
@@ -35,6 +38,7 @@ export function openExpenseSheet(kimpayId: string, target: Target = {}): Promise
     const expenseSheet: ExpenseSheetState = { key: Date.now() };
     if (target.expenseId) expenseSheet.expenseId = target.expenseId;
     if (target.from) expenseSheet.from = target.from;
+    if (target.scan) expenseSheet.scan = true;
     return goto(expenseSheetUrl(kimpayId, target), { shallow: true, state: { expenseSheet } });
 }
 

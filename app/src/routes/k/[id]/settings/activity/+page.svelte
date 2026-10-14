@@ -65,6 +65,7 @@
       expense_created: 'activity.expense_created',
       expense_updated: 'activity.expense_updated',
       expense_deleted: 'activity.expense_deleted',
+      expense_repeated: 'activity.expense_repeated',
       reimbursement_created: 'activity.reimbursement_created',
       reimbursement_deleted: 'activity.reimbursement_deleted',
       participant_added: 'activity.participant_added',
@@ -108,6 +109,7 @@
       income: 'activity.field.type',
       photos: 'expense.form.photos_label',
       icon: 'activity.field.icon',
+      repeat: 'expense.repeat.label',
   };
 
   const SPLIT_KEYS: Record<string, TranslationKey> = {
@@ -130,6 +132,8 @@
               return $t(SPLIT_KEYS[s.split] ?? 'expense.split.equal');
           case 'income':
               return s.income ? $t('expense.type.income') : $t('activity.type.expense');
+          case 'repeat':
+              return s.repeat ? $t('common.yes') : $t('common.no');
           default:
               return String(s[field]);
       }
