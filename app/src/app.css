@@ -146,6 +146,20 @@
         --ring: 243.4 75.4% 58.6%;
 
         --radius: 1rem;
+
+        /* One color per spending category (charts of the balance page), the
+           same wherever it shows. Ten categories are more than colors can
+           tell apart: the emoji and the name always go with them. */
+        --category-food: #eb6834;
+        --category-transport: #2a78d6;
+        --category-lodging: #6250d6;
+        --category-activities: #1baf7a;
+        --category-shopping: #e87ba4;
+        --category-travel: #0e93a8;
+        --category-bills: #008300;
+        --category-health: #e34948;
+        --category-gifts: #eda100;
+        --category-other: #8b95a5;
     }
     .dark {
         --background: 222.2 84% 4.9%; /* Slate 950 */
@@ -185,6 +199,17 @@
         --border: 217.2 32.6% 17.5%;
         --input: 215 25% 27%;
         --ring: 238.7 83.5% 66.7%;
+
+        --category-food: #d95926;
+        --category-transport: #3987e5;
+        --category-lodging: #9085e9;
+        --category-activities: #199e70;
+        --category-shopping: #d55181;
+        --category-travel: #1b9fb5;
+        --category-bills: #008300;
+        --category-health: #e66767;
+        --category-gifts: #c98500;
+        --category-other: #64748b;
     }
 }
 

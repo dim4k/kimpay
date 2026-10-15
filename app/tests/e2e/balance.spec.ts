@@ -133,6 +133,53 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('€30.00').first()).toBeVisible();
   });
 
+  test('Where the money went: a sheet per category, then its expenses', async ({ page }) => {
+    const url = page.url();
+    await page.goto(url.replace(/\/?$/, '/members'));
+    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByRole('button', { name: /add/i }).click();
+    await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
+
+    await page.getByRole('link', { name: /expenses/i }).click();
+    for (const [description, amount] of [['Pizza night', '30'], ['Pizza lunch', '12'], ['Taxi', '20']] as const) {
+      await page.getByRole('link', { name: /add expense/i }).click();
+      await page.getByPlaceholder('What was it for?').fill(description);
+      await page.getByPlaceholder('0.00').fill(amount);
+      await page.getByRole('button', { name: /save expense/i }).first().click();
+      await expect(page.getByText(description)).toBeVisible();
+    }
+
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+    await expect(page.getByTestId('category-bar')).toHaveAttribute('aria-label', 'Food & Drinks 68%, Transport 32%');
+
+    // A row opens the category's sheet, not another page: my part first,
+    // as the page shows it.
+    const food = page.getByRole('button', { name: /^Food & Drinks/ });
+    await food.click();
+    const sheet = page.getByRole('dialog', { name: 'Food & Drinks' });
+    const amounts = sheet.getByTestId('category-amounts');
+    await expect(amounts).toContainText('€21.00');
+    await expect(amounts).toContainText('68% of my share');
+    await expect(amounts).toContainText('Group total: €42.00');
+    await expect(sheet.getByRole('listitem').first()).toContainText('Pizza night');
+    await expect(page).toHaveURL(/\/balance$/);
+
+    // The group's spending: the sheet follows.
+    await sheet.getByRole('button', { name: 'Close' }).first().click();
+    await expect(sheet).toBeHidden();
+    await page.getByRole('radio', { name: 'Total' }).click();
+    await food.click();
+    await expect(amounts).toContainText('€42.00');
+    await expect(amounts).toContainText('68% of spending');
+    await expect(amounts).toContainText('My share: €21.00');
+
+    // Then the list, on that category only.
+    await sheet.getByRole('button', { name: 'See in the list (2)' }).click();
+    await expect(page).not.toHaveURL(/\/balance/);
+    await expect(page.locator('[data-expense]')).toHaveCount(2);
+    await expect(page.getByText('Taxi')).toBeHidden();
+  });
+
   test('The currency menu opens above the blocks below it', async ({ page }) => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));

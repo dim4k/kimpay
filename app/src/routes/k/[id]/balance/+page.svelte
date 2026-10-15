@@ -26,11 +26,12 @@
   import { profileStore, hasHandles } from '#lib/stores/profile.svelte.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
-  import { EMOJI_CATEGORIES, DEFAULT_EXPENSE_EMOJI, STORAGE_KEYS } from '#lib/constants.js';
+  import { EMOJI_CATEGORIES, DEFAULT_EXPENSE_EMOJI, STORAGE_KEYS, categoryColor, type EmojiCategoryKey } from '#lib/constants.js';
   import { groupStats, spendingByCategory } from '#lib/stats.js';
   import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import PaymentHandlesSheet from '#lib/components/profile/PaymentHandlesSheet.svelte';
   import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
+  import CategorySheet from '#lib/components/balance/CategorySheet.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -186,6 +187,16 @@
       const sum = list.reduce((total, c) => total + c.amount, 0);
       return list.map((c) => ({ ...c, share: sum > 0 ? c.amount / sum : 0 }));
   });
+  let categoriesTotal = $derived(categories.reduce((total, c) => total + c.amount, 0));
+
+  // A category opened: its sheet, with its share of what the page shows.
+  let openedCategory = $state<EmojiCategoryKey | null>(null);
+  let openedShare = $derived(categories.find((c) => c.key === openedCategory)?.share ?? 0);
+
+  function openCategory(key: EmojiCategoryKey) {
+      openedCategory = key;
+  }
+
   // Worth a breakdown once the group has more than one category.
   let showCategories = $derived(
       spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds).length > 1
@@ -195,6 +206,11 @@
   let percent = $derived(new Intl.NumberFormat($locale, { style: 'percent', maximumFractionDigits: 0 }));
 
   let stats = $derived(groupStats(expenses, kimpayDefaultCurrency, exchangeRates));
+
+  // The bar in words: "Food 35 %, Lodging 27 %…"
+  let categoriesSummary = $derived(
+      categories.map((c) => `${$t(EMOJI_CATEGORIES[c.key]!.labelKey)} ${percent.format(c.share)}`).join(', ')
+  );
 </script>
 
 {#snippet stat(title: string, value: string, detail: string)}
@@ -360,29 +376,41 @@
                 {#if categories.length === 0}
                     <p class="rounded-card border bg-card px-4 py-3 text-sm text-muted-foreground">{$t('balance.categories.none')}</p>
                 {:else}
-                    <ListGroup>
-                        {#each categories as category (category.key)}
-                            <!-- To the list, filtered on that category. -->
-                            <a
-                                href="/k/{activeKimpay?.id ?? ''}?category={category.key}"
-                                data-sveltekit-replacestate
-                                class="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60"
-                            >
-                                <span class="w-6 shrink-0 text-center text-lg" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
-                                <span class="min-w-0 flex-1 space-y-1.5">
-                                    <span class="flex items-baseline gap-2 text-sm">
-                                        <span class="truncate font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
-                                        <span class="shrink-0 text-muted-foreground tabular-nums">{percent.format(category.share)}</span>
-                                    </span>
-                                    <span class="block h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                                        <span class="block h-full rounded-full bg-primary" style="width: {Math.max(category.share * 100, 2)}%"></span>
-                                    </span>
-                                </span>
-                                <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(category.amount, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
-                                <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
-                            </a>
-                        {/each}
-                    </ListGroup>
+                    <div class="space-y-3 rounded-card border bg-card px-4 pb-2 pt-4">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <span class="text-2xl font-bold tabular-nums">{formatAmount(toDisplayCurrency(categoriesTotal, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
+                            <span class="text-sm text-muted-foreground">
+                                {view === 'me' ? $t('balance.categories.my_share') : $t('expense.list.count', { count: String(stats.expenseCount) })}
+                            </span>
+                        </div>
+                        <!-- The whole at a glance; the rows below say it in words. -->
+                        <div class="flex h-3.5 gap-0.5" role="img" aria-label={categoriesSummary} data-testid="category-bar">
+                            {#each categories as category (category.key)}
+                                <span
+                                    class="min-w-1 first:rounded-l-full last:rounded-r-full"
+                                    style="flex-grow: {category.amount}; background-color: {categoryColor(category.key)}"
+                                ></span>
+                            {/each}
+                        </div>
+                        <ul class="-mx-2">
+                            {#each categories as category (category.key)}
+                                <li>
+                                    <button
+                                        type="button"
+                                        aria-haspopup="dialog"
+                                        onclick={() => openCategory(category.key)}
+                                        class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset"
+                                    >
+                                        <span class="h-2.5 w-2.5 shrink-0 rounded-[3px]" style="background-color: {categoryColor(category.key)}" aria-hidden="true"></span>
+                                        <span class="shrink-0 text-base" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
+                                        <span class="min-w-0 truncate text-sm font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
+                                        <span class="flex-1 text-sm text-muted-foreground tabular-nums">{percent.format(category.share)}</span>
+                                        <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(category.amount, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
+                                    </button>
+                                </li>
+                            {/each}
+                        </ul>
+                    </div>
                 {/if}
             </section>
         {/if}
@@ -439,3 +467,13 @@
         }
     }}
 />
+{#if activeKimpay}
+    <CategorySheet
+        category={openedCategory}
+        share={openedShare}
+        {view}
+        {displayCurrency}
+        {activeKimpay}
+        onClose={() => openedCategory = null}
+    />
+{/if}

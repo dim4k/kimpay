@@ -75,6 +75,11 @@ export function emojiCategory(emoji: string | undefined): EmojiCategoryKey {
 
 export type EmojiCategoryKey = (typeof EMOJI_CATEGORY_ORDER)[number];
 
+/** The color of a category in charts (a CSS variable, see app.css). */
+export function categoryColor(key: EmojiCategoryKey): string {
+    return `var(--category-${key.toLowerCase()})`;
+}
+
 export const DEFAULT_KIMPAY_EMOJI = "✨";
 export const DEFAULT_EXPENSE_EMOJI = "💸";
 export const DEFAULT_GROUP_ICON = "📁";

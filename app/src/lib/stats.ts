@@ -83,3 +83,43 @@ export function groupStats(expenses: Expense[], kimpayCurrency: string, rates: R
         reimbursementCount: expenses.length - items.length,
     };
 }
+
+export interface CategoryDetail {
+    /** Its expenses, as the list filtered on it shows them (money received included) */
+    count: number;
+    /** What the group spent there, in the Kimpay's currency */
+    total: number;
+    /** My part of it (0 without `participantId`) */
+    mine: number;
+    /** The biggest expenses, with their value in the Kimpay's currency */
+    biggest: { expense: Expense; amount: number }[];
+}
+
+/** One category of spending, for its sheet: its sums and its biggest expenses. */
+export function categoryDetail(
+    expenses: Expense[],
+    key: EmojiCategoryKey,
+    kimpayCurrency: string,
+    rates: Record<string, number>,
+    participantIds: string[],
+    participantId?: string,
+    limit = 3,
+): CategoryDetail {
+    const items = spending(expenses).filter((e) => emojiCategory(e.icon) === key);
+    let total = 0;
+    let mine = 0;
+    const spent: { expense: Expense; amount: number }[] = [];
+    for (const e of items) {
+        const value = toKimpayAmount(e, kimpayCurrency, rates);
+        const sign = e.is_income ? -1 : 1;
+        total += sign * value;
+        if (participantId && e.amount > 0) mine += sign * (expenseShare(e, participantId, participantIds) / e.amount) * value;
+        if (!e.is_income) spent.push({ expense: e, amount: value });
+    }
+    return {
+        count: items.length,
+        total,
+        mine,
+        biggest: spent.sort((a, b) => b.amount - a.amount).slice(0, limit),
+    };
+}

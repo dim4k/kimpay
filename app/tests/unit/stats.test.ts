@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupStats, spendingByCategory } from '../../src/lib/stats';
+import { categoryDetail, groupStats, spendingByCategory } from '../../src/lib/stats';
 import type { Expense } from '../../src/lib/types';
 
 function expense(over: Partial<Expense>): Expense {
@@ -51,6 +51,41 @@ describe('spendingByCategory', () => {
     it('converts other currencies with the rate of the expense', () => {
         const usd = [expense({ icon: '🚗', amount: 20, currency: 'USD', exchange_rate: 0.5 })];
         expect(spendingByCategory(usd, 'EUR', {}, ids)).toEqual([{ key: 'TRANSPORT', amount: 10 }]);
+    });
+});
+
+describe('categoryDetail', () => {
+    const expenses = [
+        expense({ icon: '🍝', amount: 30, involved: ['a', 'b', 'c'], description: 'Pasta' }),
+        expense({ icon: '🍕', amount: 12, involved: ['a', 'b'], description: 'Pizza' }),
+        expense({ icon: '🍔', amount: 20, involved: ['b'], description: 'Burger' }),
+        expense({ icon: '🥐', amount: 3, involved: ['a'], description: 'Croissant' }),
+        expense({ icon: '🍕', amount: 6, is_income: true, involved: ['a', 'b', 'c'], description: 'Refund' }),
+        expense({ icon: '🚗', amount: 50, involved: ['b', 'c'] }),
+        expense({ icon: '🍕', amount: 100, is_reimbursement: true, payer: 'b', involved: ['a'] }),
+    ];
+
+    it('sums the category as the list shows it: money received off, never reimbursements', () => {
+        const detail = categoryDetail(expenses, 'FOOD', 'EUR', {}, ids, 'a');
+        expect(detail.count).toBe(5);
+        expect(detail.total).toBe(59);
+        // 10 + 6 + 0 + 3, minus 2 received
+        expect(detail.mine).toBe(17);
+    });
+
+    it('keeps the three biggest expenses, not money received', () => {
+        const detail = categoryDetail(expenses, 'FOOD', 'EUR', {}, ids);
+        expect(detail.biggest.map((b) => [b.expense.description, b.amount])).toEqual([
+            ['Pasta', 30],
+            ['Burger', 20],
+            ['Pizza', 12],
+        ]);
+        expect(detail.mine).toBe(0);
+    });
+
+    it('converts other currencies with the rate of the expense', () => {
+        const usd = [expense({ icon: '🚗', amount: 20, currency: 'USD', exchange_rate: 0.5 })];
+        expect(categoryDetail(usd, 'TRANSPORT', 'EUR', {}, ids).biggest[0]!.amount).toBe(10);
     });
 });
 
