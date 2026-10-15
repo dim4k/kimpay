@@ -118,4 +118,29 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('€30.00').first()).toBeVisible();
   });
 
+  test('The currency menu opens above the blocks below it', async ({ page }) => {
+    const url = page.url();
+    await page.goto(url.replace(/\/?$/, '/members'));
+    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByRole('button', { name: /add/i }).click();
+    await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
+
+    await page.getByRole('link', { name: /expenses/i }).click();
+    await page.getByRole('link', { name: /add expense/i }).click();
+    await page.getByPlaceholder('What was it for?').fill('Dinner');
+    await page.getByPlaceholder('0.00').fill('100');
+    await page.getByRole('button', { name: /save expense/i }).first().click();
+    await expect(page.getByText('Dinner')).toBeVisible();
+
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+    await page.getByRole('button', { name: 'Currency' }).click();
+    // At the bottom of the menu, over the next blocks: the click must reach it.
+    const listbox = page.getByRole('listbox', { name: 'Currency' });
+    await listbox.press('End');
+    const option = listbox.getByRole('option').last();
+    const code = (await option.innerText()).trim().split(/\s+/).pop()!;
+    await option.click({ timeout: 3000 });
+    await expect(page.getByRole('button', { name: 'Currency' })).toContainText(code);
+  });
+
 });
