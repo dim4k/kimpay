@@ -4,8 +4,11 @@
   import { t, locale } from '#lib/i18n.js';
   import { parseLocalISODate, toLocalISODate, weekdayLabels } from '#lib/utils/date.js';
 
-  /** A month to pick a day from. `value`: local calendar date, "YYYY-MM-DD". */
-  let { value = $bindable(), label, onselect }: { value: string; label: string; onselect?: (value: string) => void } = $props();
+  /**
+   * A month to pick a day from. `value`: local calendar date, "YYYY-MM-DD";
+   * `max`: the last day that can be picked, same format.
+   */
+  let { value = $bindable(), label, max, onselect }: { value: string; label: string; max?: string; onselect?: (value: string) => void } = $props();
 
   // The month shown: the one of the date, then wherever the arrows lead.
   let viewDate = $state(new Date());
@@ -58,8 +61,14 @@
         });
     }
 
-    return grid.map((item) => ({ ...item, iso: toLocalISODate(item.date) }));
+    return grid.map((item) => {
+        const iso = toLocalISODate(item.date);
+        return { ...item, iso, disabled: !!max && iso > max };
+    });
   });
+
+  // Nothing to pick after the month of `max`.
+  let lastMonth = $derived(!!max && toLocalISODate(viewDate).slice(0, 7) >= max.slice(0, 7));
 
   function select(d: Date) {
       value = toLocalISODate(d);
@@ -91,9 +100,10 @@
       const months = e.key === 'PageUp' ? -1 : e.key === 'PageDown' ? 1 : 0;
       if (!step && !months) return;
       e.preventDefault();
-      const next = step
+      let next = step
           ? new Date(from.getFullYear(), from.getMonth(), from.getDate() + step)
           : new Date(from.getFullYear(), from.getMonth() + months, Math.min(from.getDate(), getDaysInMonth(from.getFullYear(), from.getMonth() + months)));
+      if (max && toLocalISODate(next) > max) next = parseLocalISODate(max);
       viewDate = next;
       focusIso = toLocalISODate(next);
       await tick();
@@ -111,7 +121,7 @@
             <ChevronLeft class="h-5 w-5" />
         </button>
         <span class="text-base font-bold capitalize" aria-live="polite">{monthLabel}</span>
-        <button type="button" onclick={() => changeMonth(1)} class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted" aria-label={$t('datepicker.next')}>
+        <button type="button" onclick={() => changeMonth(1)} disabled={lastMonth} class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-30" aria-label={$t('datepicker.next')}>
             <ChevronRight class="h-5 w-5" />
         </button>
     </div>
@@ -129,7 +139,8 @@
                     type="button"
                     data-iso={item.iso}
                     tabindex={item.iso === tabbable ? 0 : -1}
-                    class="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm transition-colors
+                    disabled={item.disabled}
+                    class="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm transition-colors disabled:pointer-events-none disabled:opacity-30
                         {item.iso === value
                             ? 'bg-primary font-bold text-primary-foreground'
                             : item.iso === today

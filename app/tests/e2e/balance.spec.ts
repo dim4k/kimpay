@@ -111,6 +111,21 @@ test.describe('Balance & Debts', () => {
     await expect(sheet.getByRole('button', { name: 'Confirm Payment' })).toBeDisabled();
     await amount.fill('20');
     await expect(sheet.getByText('€30.00 will remain to be settled.')).toBeVisible();
+
+    // Paid yesterday, with the app's calendar: nothing after today.
+    const dateRow = sheet.getByRole('button', { name: /^Date/ });
+    await expect(dateRow).toContainText('Today');
+    await dateRow.click();
+    await expect(sheet.getByRole('button', { name: 'Next month' })).toBeDisabled();
+    const now = new Date();
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    if (tomorrow.getMonth() === now.getMonth()) await expect(sheet.locator(`[data-iso="${iso(tomorrow)}"]`)).toBeDisabled();
+    if (yesterday.getMonth() !== now.getMonth()) await sheet.getByRole('button', { name: 'Previous month' }).click();
+    await sheet.locator(`[data-iso="${iso(yesterday)}"]`).click();
+    await expect(dateRow).toContainText('Yesterday');
+
     await sheet.getByRole('button', { name: 'Confirm Payment' }).click();
     await expect(sheet).toBeHidden();
 

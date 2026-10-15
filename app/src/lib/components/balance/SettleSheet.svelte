@@ -1,15 +1,18 @@
 <script lang="ts">
     import { untrack } from "svelte";
-    import { Check } from "@lucide/svelte";
+    import { Calendar as CalendarIcon, Check } from "@lucide/svelte";
     import { t, locale } from '#lib/i18n.js';
     import type { Transaction } from '#lib/balance.js';
     import { convert, formatAmount } from '#lib/services/currency.js';
     import { fromMinor, toMinor } from '#lib/split.js';
     import { formatDecimal, parseDecimal, sanitizeDecimal } from '#lib/utils/amount.js';
-    import { toLocalISODate } from '#lib/utils/date.js';
+    import { dayLabel, toLocalISODate } from '#lib/utils/date.js';
     import { Button } from '#lib/components/ui/button/index.js';
     import { Input } from '#lib/components/ui/input/index.js';
     import { Label } from '#lib/components/ui/label/index.js';
+    import Calendar from '#lib/components/ui/Calendar.svelte';
+    import ListGroup from '#lib/components/ui/ListGroup.svelte';
+    import SummaryRow from '#lib/components/expense/SummaryRow.svelte';
     import Modal from '#lib/components/ui/modals/Modal.svelte';
     import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
     import ModalActions from '#lib/components/ui/modals/ModalActions.svelte';
@@ -43,6 +46,7 @@
         untrack(() => {
             amount = formatDecimal(due, $locale);
             date = toLocalISODate();
+            pickingDate = false;
         });
     });
 
@@ -50,6 +54,9 @@
     let tooMuch = $derived(value > due);
     let remaining = $derived(value > 0 && !tooMuch ? toCent(due - value) : 0);
     let today = $derived(toLocalISODate());
+    // The day, as in the expense form: a row, the calendar when tapped.
+    let pickingDate = $state(false);
+    let dateSummary = $derived(dayLabel(date, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }));
     let isSaving = $state(false);
 
     function sanitize(e: Event) {
@@ -112,10 +119,15 @@
             </p>
         </div>
 
-        <div class="space-y-2">
-            <Label for="settle-date">{$t('expense.form.date_label')}</Label>
-            <Input id="settle-date" type="date" bind:value={date} max={today} />
-        </div>
+        {#if pickingDate}
+            <Calendar bind:value={date} max={today} label={$t('expense.form.date_label')} onselect={() => (pickingDate = false)} />
+        {:else}
+            <ListGroup>
+                <SummaryRow label={$t('expense.form.date_label')} icon={CalendarIcon} onclick={() => (pickingDate = true)}>
+                    <span class="truncate first-letter:uppercase">{dateSummary}</span>
+                </SummaryRow>
+            </ListGroup>
+        {/if}
 
         <ModalActions>
             <Button variant="secondary" onclick={onClose} disabled={isSaving}>
