@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Component } from 'svelte';
+    import type { Component, Snippet } from 'svelte';
     import type { LucideProps } from '@lucide/svelte';
     import { X } from '@lucide/svelte';
     import { t } from '#lib/i18n.js';
@@ -18,6 +18,7 @@
         tone = 'primary',
         align = 'center',
         onClose,
+        actions,
     }: {
         title: string;
         description?: string | undefined;
@@ -27,6 +28,8 @@
         align?: 'center' | 'start';
         /** Shows the close button */
         onClose?: (() => void) | undefined;
+        /** Icon buttons next to the close button (sheets: align start) */
+        actions?: Snippet;
     } = $props();
 
     const tones: Record<Tone, string> = {
@@ -37,7 +40,12 @@
     };
 </script>
 
-<div class={cn('relative flex flex-col gap-3', align === 'center' ? 'items-center text-center' : 'items-start pr-10')}>
+<div class={cn('relative flex flex-col gap-3', align === 'center' ? 'items-center text-center' : actions ? 'items-start pr-20' : 'items-start pr-10')}>
+    {#if actions}
+        <div class="absolute -top-3 right-8 flex">
+            {@render actions()}
+        </div>
+    {/if}
     {#if onClose}
         <button
             type="button"
@@ -54,7 +62,8 @@
             <Icon class="h-6 w-6" />
         </span>
     {/if}
-    <div class="space-y-1">
+    <!-- A long word (an e-mail address) wraps rather than overflows. -->
+    <div class="min-w-0 max-w-full space-y-1 wrap-anywhere">
         <h2 class="text-xl font-bold text-balance">{title}</h2>
         {#if description}
             <p class="whitespace-pre-line text-sm text-muted-foreground">{description}</p>

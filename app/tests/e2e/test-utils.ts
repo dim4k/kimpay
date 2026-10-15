@@ -56,7 +56,7 @@ export async function dismissInstallPrompt(page: Page) {
     }
 }
 
-/** Opens the profile (avatar): a sheet on phones, a popover on desktop. */
+/** Opens the profile (avatar): a sheet, centered on desktop. */
 export async function openProfile(page: Page) {
     await page.getByRole('button', { name: 'Menu' }).click();
 }

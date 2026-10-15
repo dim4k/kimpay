@@ -25,10 +25,11 @@
     import { Button } from '#lib/components/ui/button/index.js';
     import { Input } from '#lib/components/ui/input/index.js';
     import { Label } from '#lib/components/ui/label/index.js';
+    import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
     import PaymentHandlesSheet from './PaymentHandlesSheet.svelte';
 
     interface Props {
-        /** Close the panel (before opening another dialog) */
+        /** Close the sheet (before opening another dialog) */
         onClose: () => void;
     }
 
@@ -182,7 +183,7 @@
 
 <div class="space-y-4">
     <!-- Who I am: the account (one photo, one name), and who I am in this group -->
-    <div class="space-y-3 px-1">
+    <div class="space-y-3">
         <div class="flex items-center gap-3">
             <div class="group relative shrink-0">
                 <Avatar name={name} record={photoRecord} class="h-12 w-12 text-base" />
@@ -203,18 +204,21 @@
                 {/if}
             </div>
             <div class="min-w-0 flex-1">
-                <p class="truncate text-base font-bold">{name}</p>
-                {#if auth.user}
-                    <p class="truncate text-sm text-muted-foreground">{auth.user.email}</p>
-                {:else if !kimpay}
-                    <p class="truncate text-sm text-muted-foreground">{$t('profile.guest_desc')}</p>
-                {/if}
+                <ModalHeader
+                    title={name}
+                    description={auth.user ? auth.user.email : !kimpay ? $t('profile.guest_desc') : undefined}
+                    align="start"
+                    {onClose}
+                >
+                    {#snippet actions()}
+                        {#if auth.user && !isEditingAccount && !offlineStore.isOffline}
+                            <Button variant="ghost" size="icon" class="text-muted-foreground" onclick={editAccount} aria-label={$t('profile.edit_account')} title={$t('profile.edit_account')}>
+                                <Pencil />
+                            </Button>
+                        {/if}
+                    {/snippet}
+                </ModalHeader>
             </div>
-            {#if auth.user && !isEditingAccount && !offlineStore.isOffline}
-                <Button variant="ghost" size="icon" class="text-muted-foreground" onclick={editAccount} aria-label={$t('profile.edit_account')} title={$t('profile.edit_account')}>
-                    <Pencil />
-                </Button>
-            {/if}
         </div>
 
         {#if isEditingAccount}

@@ -78,7 +78,8 @@ test.describe('Navigation & UX', () => {
   test('Bottom sheets close with their handle', async ({ page }) => {
     test.skip(!test.info().project.use.isMobile, 'Sheets only slide up from the bottom on phones');
     const profile = page.getByRole('dialog', { name: 'Profile' });
-    const handle = profile.getByRole('button', { name: 'Close' });
+    // The grab handle: the first "Close" (the header's cross comes after).
+    const handle = profile.getByRole('button', { name: 'Close' }).first();
 
     // Dragged down
     await page.getByRole('button', { name: 'Menu' }).click();

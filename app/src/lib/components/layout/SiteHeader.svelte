@@ -11,6 +11,7 @@
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListRow from '#lib/components/ui/ListRow.svelte';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
+  import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
   import ProfilePanel from '#lib/components/profile/ProfilePanel.svelte';
   import { profileMenu } from '#lib/stores/profileMenu.svelte.js';
 
@@ -20,7 +21,6 @@
   import { auth } from '#lib/stores/auth.svelte.js';
   import { page } from '$app/state';
   import { haptic } from '#lib/utils/haptic.js';
-  import { dismissable } from '#lib/attachments/dismissable.js';
   import { DEFAULT_GROUP_ICON } from '#lib/constants.js';
   import type { RecentKimpay } from '#lib/types.js';
 
@@ -44,16 +44,6 @@
     profileMenu.close();
     isSwitcherOpen = false;
     isArchiveOpen = false;
-  });
-
-  // Phones get bottom sheets, larger screens popovers under the trigger.
-  let isDesktop = $state(false);
-  $effect(() => {
-    const query = window.matchMedia('(min-width: 768px)');
-    isDesktop = query.matches;
-    const onChange = (e: MediaQueryListEvent) => (isDesktop = e.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
   });
 </script>
 
@@ -124,7 +114,7 @@
       >
         <Logo class="h-8 w-8 text-primary" />
       </a>
-      <div class="relative min-w-0 flex-1" {@attach isSwitcherOpen && isDesktop && dismissable(() => (isSwitcherOpen = false))}>
+      <div class="min-w-0 flex-1">
         <button
           onclick={() => isSwitcherOpen = !isSwitcherOpen}
           class="-ml-1 flex h-11 max-w-full items-center gap-1 rounded-control px-2 transition-colors hover:bg-muted"
@@ -140,15 +130,6 @@
           <!-- Tells the title opens the other groups. -->
           <ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 {isSwitcherOpen ? 'rotate-180' : ''}" />
         </button>
-
-        {#if isSwitcherOpen && isDesktop}
-          <div
-            class="absolute left-0 top-full mt-2 max-h-[calc(100dvh-5rem)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-3 text-popover-foreground shadow-xl"
-            transition:slide={{ duration: 150 }}
-          >
-            {@render groupSwitcher(currentKimpay.id)}
-          </div>
-        {/if}
       </div>
     {:else}
       <a href="/" onclick={() => haptic('light')} class="flex items-center gap-2">
@@ -169,7 +150,7 @@
       </button>
     {/if}
 
-    <div class="relative shrink-0" {@attach profileMenu.isOpen && isDesktop && dismissable(() => profileMenu.close())}>
+    <div class="shrink-0">
       <button
         onclick={() => profileMenu.toggle()}
         class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted"
@@ -186,26 +167,18 @@
           <Menu class="h-6 w-6" />
         {/if}
       </button>
-
-      {#if profileMenu.isOpen && isDesktop}
-        <div
-          class="absolute right-0 top-full mt-2 max-h-[calc(100dvh-5rem)] w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border bg-popover p-3 text-popover-foreground shadow-xl"
-          transition:slide={{ duration: 150 }}
-        >
-          <ProfilePanel onClose={() => profileMenu.close()} />
-        </div>
-      {/if}
     </div>
   </div>
 </header>
 
-<!-- On phones, both menus slide up from the bottom (easier to reach). -->
+<!-- Sheets like the app's others: from the bottom on phones, centered on larger screens. -->
 {#if currentKimpay}
-  <Modal isOpen={isSwitcherOpen && !isDesktop} onClose={() => isSwitcherOpen = false} variant="sheet" label={$t('header.switch_group')} class="space-y-0 bg-background">
+  <Modal isOpen={isSwitcherOpen} onClose={() => isSwitcherOpen = false} variant="sheet" label={$t('header.switch_group')}>
+    <ModalHeader title={$t('header.switch_group')} align="start" onClose={() => isSwitcherOpen = false} />
     {@render groupSwitcher(currentKimpay.id)}
   </Modal>
 {/if}
-<Modal isOpen={profileMenu.isOpen && !isDesktop} onClose={() => profileMenu.close()} variant="sheet" label={$t('profile.title')} class="space-y-0 bg-background">
+<Modal isOpen={profileMenu.isOpen} onClose={() => profileMenu.close()} variant="sheet" label={$t('profile.title')}>
   <ProfilePanel onClose={() => profileMenu.close()} />
 </Modal>
 

@@ -125,7 +125,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await page.keyboard.press('Escape');
             await expect(page.getByRole('dialog', { name: 'Edit Kimpay' })).toBeHidden();
 
-            // The profile: a sheet on phones, a popover on desktop.
+            // The profile: a sheet on phones, centered on desktop.
             await page.getByRole('button', { name: 'Menu' }).click();
             // A guest's profile (the switch showing payment links needs an account).
             const paymentLinks = page.getByRole('button', { name: /my payment links/i });
