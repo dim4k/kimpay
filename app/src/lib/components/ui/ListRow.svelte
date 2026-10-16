@@ -56,7 +56,7 @@
     <span class="flex min-w-0 flex-1 flex-col">
         <span class="truncate text-base font-medium {tone === 'danger' ? 'text-destructive' : 'text-foreground'}">{title}</span>
         {#if subtitle}
-            <span class="truncate text-sm text-muted-foreground">{subtitle}</span>
+            <span class="text-sm text-pretty text-muted-foreground">{subtitle}</span>
         {/if}
     </span>
     {#if trailing}

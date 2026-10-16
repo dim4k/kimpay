@@ -142,13 +142,13 @@ export const en = {
     "settings.leave_group": "Leave Kimpay",
     "settings.delete_group": "Delete Kimpay",
     "settings.archive": "Archive Kimpay",
-    "settings.archive_desc": "Fold it at the bottom of your home page. Nothing changes for the other participants.",
+    "settings.archive_desc": "Move it to the bottom of your home page. Nothing changes for others.",
     "settings.unarchive": "Unarchive Kimpay",
     "settings.unarchive_desc": "Put it back with your other Kimpays on the home page.",
     "settings.actions.remove_desc":
-        "Remove this Kimpay from your recent list on this device.",
+        "Remove it from your list on this device.",
     "settings.actions.delete_desc":
-        "Permanently delete this Kimpay and all its data for everyone.",
+        "Delete it for good, for everyone.",
     "settings.actions.delete_warning":
         "WARNING: This will permanently delete the Kimpay, all expenses, and all data for EVERYONE. This action cannot be undone.",
 

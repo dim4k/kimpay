@@ -144,13 +144,13 @@ export const fr: Record<TranslationKey, string> = {
     "settings.leave_group": "Quitter le Kimpay",
     "settings.delete_group": "Supprimer le Kimpay",
     "settings.archive": "Archiver le Kimpay",
-    "settings.archive_desc": "Le ranger en bas de votre accueil. Rien ne change pour les autres participants.",
+    "settings.archive_desc": "Le ranger en bas de votre accueil. Rien ne change pour les autres.",
     "settings.unarchive": "Désarchiver le Kimpay",
     "settings.unarchive_desc": "Le remettre avec vos autres Kimpays sur l'accueil.",
     "settings.actions.remove_desc":
-        "Retirer ce Kimpay de votre liste récente sur cet appareil.",
+        "Le retirer de votre liste, sur cet appareil.",
     "settings.actions.delete_desc":
-        "Supprimer définitivement ce Kimpay et toutes ses données pour tout le monde.",
+        "L'effacer définitivement, pour tout le monde.",
     "settings.actions.delete_warning":
         "ATTENTION : Cela supprimera définitivement le Kimpay, toutes les dépenses et toutes les données pour TOUT LE MONDE. Cette action est irréversible.",
 
@@ -564,7 +564,7 @@ export const fr: Record<TranslationKey, string> = {
     "members.manage": "Gérer",
     "members.defaults.title": "Dans les nouvelles dépenses",
     "members.defaults.include": "Coché par défaut",
-    "members.defaults.include_desc": "Désactivé pour quelqu'un qui est parti : il reste dans l'Équilibre.",
+    "members.defaults.include_desc": "Décochez une personne partie : elle reste dans l'Équilibre.",
     "members.defaults.shares": "Parts",
     "members.defaults.shares_desc": "2 pour un couple qui partage tout",
     "members.defaults.less": "Une part de moins",

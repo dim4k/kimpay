@@ -144,13 +144,13 @@ export const pt: Record<TranslationKey, string> = {
     "settings.leave_group": "Sair do Kimpay",
     "settings.delete_group": "Excluir o Kimpay",
     "settings.archive": "Arquivar o Kimpay",
-    "settings.archive_desc": "Guardá-lo no fim da sua página inicial. Nada muda para os outros participantes.",
+    "settings.archive_desc": "Guardá-lo no fim da sua página inicial. Nada muda para os outros.",
     "settings.unarchive": "Desarquivar o Kimpay",
     "settings.unarchive_desc": "Devolvê-lo aos seus outros Kimpays na página inicial.",
     "settings.actions.remove_desc":
-        "Remover este Kimpay da sua lista neste dispositivo.",
+        "Removê-lo da sua lista neste dispositivo.",
     "settings.actions.delete_desc":
-        "Excluir permanentemente este Kimpay e todos os dados para todos.",
+        "Apagá-lo para sempre, para todos.",
     "settings.actions.delete_warning":
         "AVISO: Isso excluirá permanentemente o Kimpay, todas as despesas e dados para TODOS. Esta ação não pode ser desfeita.",
 
