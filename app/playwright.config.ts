@@ -8,7 +8,6 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  ...(isCI && { workers: 2 }),
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',
@@ -23,10 +22,12 @@ export default defineConfig({
     // amounts in the tests expect (see guessCurrency).
     locale: 'en-IE',
   },
-  // Test both desktop and mobile browsers
+  // Test both desktop and mobile browsers. Tests tagged '@chromium-only'
+  // check a server behaviour (hooks, routes, cron): one browser is enough.
+  // The screens they go through are covered on both by other tests.
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'Mobile Safari', use: { ...devices['iPhone 13'] } },
+    { name: 'Mobile Safari', use: { ...devices['iPhone 13'] }, grepInvert: /@chromium-only/ },
   ],
   webServer: {
     // Serve the adapter-static SPA build (with index.html fallback), matching

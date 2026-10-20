@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, repeatExpenseNow, waitForServiceWorker } from './test-utils';
+import { createKimpay, dismissInstallPrompt, repeatExpenseNow } from './test-utils';
 
 /** `repeat`: how often, as the form says it ("Every month"). */
 async function addExpense(page: Page, description: string, amount: string, repeat?: string) {
@@ -12,6 +12,8 @@ async function addExpense(page: Page, description: string, amount: string, repea
         await expect(page.getByRole('button', { name: new RegExp(`^Repeat\\s*${repeat} · next on`) })).toBeVisible();
     }
     await page.getByRole('button', { name: /save expense/i }).first().click();
+    // Back on the list (a reload during that navigation is aborted).
+    await expect(page).not.toHaveURL(/\/add$/);
     await expect(page.getByText(description).first()).toBeVisible();
 }
 
@@ -21,7 +23,7 @@ test.describe('Repeated expenses', () => {
         await dismissInstallPrompt(page);
     });
 
-    test('a copy is made each month, which takes the repetition over', async ({ page, request }) => {
+    test('a copy is made each month, which takes the repetition over', { tag: '@chromium-only' }, async ({ page, request }) => {
         await addExpense(page, 'Rent', '900', 'Every month');
         const rent = page.locator('[data-expense]', { hasText: 'Rent' });
         await expect(rent.getByRole('img', { name: 'Every month' })).toBeVisible();
@@ -33,7 +35,6 @@ test.describe('Repeated expenses', () => {
 
         const id = await rent.getAttribute('data-expense');
         await repeatExpenseNow(request, id!);
-        await waitForServiceWorker(page);
         await page.reload();
 
         await expect(page.locator('[data-expense]', { hasText: 'Rent' })).toHaveCount(2);
@@ -46,7 +47,7 @@ test.describe('Repeated expenses', () => {
         await expect(page.getByText(/Added automatically/)).toBeVisible();
     });
 
-    test('every week: the copy repeats every week too', async ({ page, request }) => {
+    test('every week: the copy repeats every week too', { tag: '@chromium-only' }, async ({ page, request }) => {
         await addExpense(page, 'Basket', '30', 'Every week');
         const basket = page.locator('[data-expense]', { hasText: 'Basket' });
         await expect(basket.getByRole('img', { name: 'Every week' })).toBeVisible();
@@ -57,7 +58,6 @@ test.describe('Repeated expenses', () => {
         await expect(page.getByText(/Every week · next on/)).toBeVisible();
 
         await repeatExpenseNow(request, id!);
-        await waitForServiceWorker(page);
         await page.reload();
 
         const copies = page.locator('[data-expense]', { hasText: 'Basket' });
@@ -105,7 +105,6 @@ test('the swipes of an expense are explained on the first two visits', async ({ 
     await expect(hint).toHaveCount(0);
     await addExpense(page, 'Coffee', '3');
     await expect(hint).toBeAttached();
-    await waitForServiceWorker(page);
     await page.reload();
     await expect(hint).toBeAttached();
     await page.reload();

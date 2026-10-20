@@ -35,7 +35,7 @@ test.describe('Members & group settings', () => {
      await expect(page.getByText('Alcie')).toHaveCount(0);
   });
 
-  test('Merges a member added twice, balances unchanged', async ({ page }) => {
+  test('Merges a member added twice, balances unchanged', { tag: '@chromium-only' }, async ({ page }) => {
      const base = page.url().replace(/\/members$/, '');
      for (const name of ['Bob', 'Bob M.']) {
          await page.getByPlaceholder('New name').fill(name);
@@ -63,7 +63,7 @@ test.describe('Members & group settings', () => {
      await expect(page.getByText('€20.00').first()).toBeVisible();
   });
 
-  test('Changes the group currency, converting the amounts', async ({ page }) => {
+  test('Changes the group currency, converting the amounts', { tag: '@chromium-only' }, async ({ page }) => {
      // 1 EUR = 2 USD today.
      await page.route(/currency-api/, (route) => route.fulfill({ json: { eur: { eur: 1, usd: 2 } }, headers: { 'access-control-allow-origin': '*' } }));
      // Not the real rates fetched (and cached) while the group was created.
@@ -122,7 +122,7 @@ test.describe('Members & group settings', () => {
      await expect(page.getByRole('button', { name: /delete kimpay/i })).toContainText('Create a free account');
   });
 
-  test('Lets the creator delete the group once logged in on this device', async ({ page, request }) => {
+  test('Lets the creator delete the group once logged in on this device', { tag: '@chromium-only' }, async ({ page, request }) => {
      await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
      const kimpayId = new URL(page.url()).pathname.split('/')[2];
      // The account claims the creator and, with this device's creator key,

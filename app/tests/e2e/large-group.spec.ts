@@ -3,8 +3,7 @@ import { createKimpay, dismissInstallPrompt } from './test-utils';
 
 const PB_URL = process.env.PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
 
-test('A group of more than 1000 expenses is loaded whole', async ({ page, request, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Server behaviour: one browser is enough');
+test('A group of more than 1000 expenses is loaded whole', { tag: '@chromium-only' }, async ({ page, request }) => {
     test.setTimeout(120_000);
 
     await createKimpay(page, 'Big Group', 'Olivia');

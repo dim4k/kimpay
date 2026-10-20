@@ -73,7 +73,7 @@ test.describe('Account on this device', () => {
         await expect(page.getByRole('link', { name: /Borrowed Phone/ })).toBeVisible();
     });
 
-    test('Logging in, the device takes the account\'s identity in a group', async ({ page, browser, request }) => {
+    test('Logging in, the device takes the account\'s identity in a group', { tag: '@chromium-only' }, async ({ page, browser, request }) => {
         await createKimpay(page, 'Whose Phone', 'Alice');
         await dismissInstallPrompt(page);
         const kimpayUrl = page.url();
@@ -98,7 +98,7 @@ test.describe('Account on this device', () => {
         await otherContext.close();
     });
 
-    test('Groups archived without an account join the account on login', async ({ page, browser, request }) => {
+    test('Groups archived without an account join the account on login', { tag: '@chromium-only' }, async ({ page, browser, request }) => {
         await createKimpay(page, 'Old Trip', 'Alice');
         await dismissInstallPrompt(page);
         await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();

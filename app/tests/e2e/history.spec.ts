@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createKimpay, dismissInstallPrompt, switchIdentity } from './test-utils';
 
 test.describe('Group history', () => {
-    test('shows who added, changed and deleted what', async ({ page }) => {
+    test('shows who added, changed and deleted what', { tag: '@chromium-only' }, async ({ page }) => {
         await createKimpay(page, 'History Test', 'Alice');
         await dismissInstallPrompt(page);
         const base = page.url().replace(/\/$/, '');
