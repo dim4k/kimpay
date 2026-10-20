@@ -13,11 +13,6 @@ export const load = async ({ url }: { url: URL }) => {
         keywords:
             "expense sharing, split bills, group expenses, travel expenses, shared costs, tricount alternative, splitwise, expense tracker, debt calculator",
         canonical: `${baseUrl}${currentPath}`,
-        ogImage: `${baseUrl}/og-image.png`,
-        ogType: "website",
-        twitterCard: "summary_large_image",
-        locale: "en_US",
-        alternateLocales: ["fr_FR"],
     };
 
     return {

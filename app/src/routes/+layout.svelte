@@ -47,8 +47,7 @@
     const seo = $derived(data.seo || {
         title: 'Kimpay',
         description: 'Simple expense sharing',
-        canonical: 'https://kimpay.io',
-        ogImage: 'https://kimpay.io/og-image.png'
+        canonical: 'https://kimpay.io'
     });
 
     onMount(async () => {
@@ -126,23 +125,8 @@
     <meta name="author" content="Kimpay" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href={seo.canonical} />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content={seo.ogType} />
-    <meta property="og:url" content={seo.canonical} />
-    <meta property="og:title" content={seo.title} />
-    <meta property="og:description" content={seo.description} />
-    <meta property="og:image" content={seo.ogImage} />
-    <meta property="og:locale" content={seo.locale} />
-    <meta property="og:locale:alternate" content={seo.alternateLocales[0]} />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content={seo.twitterCard} />
-    <meta property="twitter:url" content={seo.canonical} />
-    <meta property="twitter:title" content={seo.title} />
-    <meta property="twitter:description" content={seo.description} />
-    <meta property="twitter:image" content={seo.ogImage} />
-    
+    <!-- Open Graph tags live in app.html: link previews are fetched without running JS. -->
+
     <!-- PWA Theme -->
     <!-- The header's color; follows the theme (see lib/theme.ts). -->
     <meta name="theme-color" content="#ffffff" />

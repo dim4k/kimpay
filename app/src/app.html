@@ -32,6 +32,18 @@
             content="black-translucent"
         />
         <meta name="apple-mobile-web-app-title" content="Kimpay" />
+
+        <!-- Link previews (WhatsApp, Slack...): crawlers don't run JS, so
+             these must be in the static shell, not in <svelte:head>. -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Kimpay" />
+        <meta property="og:title" content="Kimpay - Split expenses, not friendships" />
+        <meta property="og:description" content="You've been invited to a Kimpay. Add your expenses, and Kimpay works out who owes whom, to the cent." />
+        <meta property="og:image" content="https://app.kimpay.io/og-image.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Kimpay: split expenses, not friendships" />
+        <meta name="twitter:card" content="summary_large_image" />
         <link
             rel="preload"
             href="/fonts/Outfit-Regular.woff2"
