@@ -1,130 +1,140 @@
 <div align="center">
-  <img src="app/static/logo.png" alt="Logo Kimpay" width="120" height="120">
 
-  <h1>Kimpay</h1>
+<img src="app/static/logo.png" alt="Kimpay" width="96" height="96">
 
-  <p>
-    <strong>A modern, containerized expense-sharing web application.</strong>
-    <br />
-    <a href="https://kimpay.io"><strong>🌐 https://kimpay.io</strong></a>
-  </p>
+# Kimpay
 
-  <p>
-    <img src="https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="SvelteKit" />
-    <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS" />
-    <img src="https://img.shields.io/badge/PocketBase-B8DBE4?style=for-the-badge&logo=pocketbase&logoColor=black" alt="PocketBase" />
-    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  </p>
-  
-  <p>
-    <a href="#features">Features</a> •
-    <a href="#quick-start">Quick Start</a> •
-    <a href="#tech-stack">Tech Stack</a>
-  </p>
+**Split group expenses, without the hassle.**<br>
+No sign-up, no install: create a Kimpay, share the link, everyone adds what they paid.
+
+[**Open the app →**](https://app.kimpay.io) &nbsp;·&nbsp; [kimpay.io](https://kimpay.io)
+
+![SvelteKit](https://img.shields.io/badge/SvelteKit_3-FF3E00?style=flat-square&logo=svelte&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![PocketBase](https://img.shields.io/badge/PocketBase-B8DBE4?style=flat-square&logo=pocketbase&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript_6-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-7C3AED?style=flat-square)
+
+<br>
+
+<img src="app/static/marketing_final.png" alt="Kimpay: expenses, balance and the expense form" width="100%">
+
 </div>
 
-<br />
+<br>
 
-**Kimpay** is a modern, containerized expense-sharing web application (similar to Tricount/Splitwise) designed to be simple, fast, and delightful to use.
+## ✨ Why Kimpay
 
-![Kimpay Screenshot](app/static/marketing_final.png)
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>⚡ Start in seconds</h3>
+      No account needed. Pick an emoji and a name, then invite with a link or a QR code.
+    </td>
+    <td width="33%" valign="top">
+      <h3>⚖️ Fair splits</h3>
+      Equally, by shares, by amounts or by percentage. Reimbursements and money received included.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🔄 Fewest payments</h3>
+      Who owes whom, to the cent, with PayPal and Revolut links to pay in one tap.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>🧾 Receipt scanner</h3>
+      Snap a receipt: Gemini fills in the amount, date, category and who it was for.
+    </td>
+    <td valign="top">
+      <h3>🌍 Travel-ready</h3>
+      9 currencies with the rate of each expense's day, in 5 languages 🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇵🇹
+    </td>
+    <td valign="top">
+      <h3>📱 Feels native</h3>
+      Installable PWA, works offline, syncs in real time, light and dark themes.
+    </td>
+  </tr>
+</table>
 
-## <a id="features"></a>✨ Features
+<sub>And also: repeated expenses, notes, change history, read-only sharing link, CSV and Markdown export.</sub>
 
--   **No Login Required**: Start immediately—no account creation needed
--   **Cross-Platform**: Optimized for both mobile and desktop browsers
--   **Quick Setup**: Create a group in seconds with an emoji and a name
--   **Easy Sharing**: Invite friends with a link, a QR code or the group code
--   **Read-Only Link**: Share a summary (expenses, balances, payments to make) with people who must not edit the group
--   **Expense Management**: Add expenses specifying who paid and for whom, see what each one changes to your balance, then search and filter them by person, type or category
--   **Flexible Splits**: Split equally, by shares, by exact amounts or by percentage
--   **Money Received**: Record refunds or returned deposits, shared back between the group
--   **Smart Balance**: Intelligent algorithm to minimize reimbursements ("Who owes whom"), with no cent lost to rounding
--   **Pay in One Tap**: PayPal.me and Revolut.me links on the payments you owe, entered once in your profile and shown only in the groups you choose
--   **Real-Time**: Updates align instantly across devices
--   **Multilingual**: Available in English 🇬🇧, French 🇫🇷, German 🇩🇪, Spanish 🇪🇸 and Portuguese 🇵🇹
--   **Multi-Currency**: Support for 9 currencies (EUR, USD, GBP, JPY, AUD, CAD, CHF, CNH, VND); each expense keeps the exchange rate of its date
--   **Export**: CSV and Markdown, with balances and suggested payments
--   **Dark Mode**: Elegant interface in light or dark theme, or following the system
--   **Delightful UX**: Smooth animations, emojis, and polished design
--   **PWA Ready**: Install as a Progressive Web App on any device, usable offline
--   **AI Receipt Scanner**: Scan receipts with Gemini AI to auto-fill expense details, amount, date, and category, and suggest who it was for; the filled fields are highlighted and the scan can be undone (free account required)
+## 🚀 Quick start
 
-## <a id="tech-stack"></a>🛠️ Tech Stack
-
--   **Runtime**: **Node.js 24 (LTS)**
--   **Frontend**: [SvelteKit 3](https://svelte.dev/docs/kit) (static SPA/PWA, Svelte 5) + [Tailwind CSS 4](https://tailwindcss.com/)
--   **Backend**: [PocketBase](https://pocketbase.io/) (Real-time SQLite database + Auth)
--   **Language**: TypeScript 6 (Strict Mode)
--   **Infrastructure**: Docker Compose (Production & CI environments)
-
-## <a id="quick-start"></a>🚀 Quick Start
-
-The entire project is containerized. You only need **Docker** installed.
-
-### 1. Start the application (Production Mode)
-
-```bash
-make start
-```
-
-This builds and runs the application in production mode.
-
--   **Frontend**: [http://localhost:3000](http://localhost:3000)
--   **PocketBase Admin**: [http://localhost:8090/\_/](http://localhost:8090/_/)
-
-### 2. Stop the application
+Everything runs in Docker, nothing else to install.
 
 ```bash
+make start   # build and run in production mode
 make stop
 ```
 
-## 🔧 Development Workflow
+| Service              | URL                                                    |
+| -------------------- | ------------------------------------------------------ |
+| App                  | [localhost:3000](http://localhost:3000)                |
+| PocketBase dashboard | [localhost:8090/\_/](http://localhost:8090/_/)         |
 
-We provide a set of `make` commands to streamline development and ensure consistency across environments.
+For hot reload while coding: `make start-dev`.
 
-### 🏃‍♂️ Running in Development Mode
+## 🧱 Stack
 
-To start the app with hot-reloading (HMR):
+|              |                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| **Frontend** | [SvelteKit 3](https://svelte.dev/docs/kit) + Svelte 5, static SPA / PWA, [Tailwind CSS 4](https://tailwindcss.com/) |
+| **Backend**  | [PocketBase 0.40](https://pocketbase.io/): real-time SQLite, auth, JS hooks and cron jobs           |
+| **Tooling**  | TypeScript 6 (strict), Node.js 24, Vitest, Playwright, Docker Compose                              |
 
-```bash
-make start-dev
-```
+## 🛠️ Development
 
-### 🛡️ Code Quality & Testing
+<details>
+<summary><b>Quality and tests</b></summary>
 
-We use an **isolated CI container** to ensure linting and type-checking run in a consistent Node 24 environment, regardless of your local setup.
+<br>
 
-| Command                   | Description                                                          |
-| ------------------------- | -------------------------------------------------------------------- |
-| `make check`              | Run Svelte check (Type Safety)                                       |
-| `make lint`               | Run ESLint (Code Style)                                              |
-| `make lint-fix`           | Auto-fix ESLint issues                                               |
-| `make test-unit`          | Run Vitest unit tests                                                |
-| `make test-e2e`           | Run Playwright E2E + visual tests (Chromium & WebKit, isolated PB)   |
-| `make test-e2e ARGS=...`  | Same, with extra Playwright args (e.g. `ARGS="tests/e2e/sync.spec.ts"`) |
-| `make test-visual-update` | Regenerate the visual baselines after an intended UI change          |
+Lint and type checks run in an isolated Node 24 container, whatever your local setup.
 
-Visual baselines (`app/tests/e2e/visual.spec.ts-snapshots/`) are rendered in the Playwright Docker image, so they are only compared when the tests run in Docker. After an intended UI change, run `make test-visual-update`, review the updated PNGs and commit them.
+| Command                   | What it does                                                            |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `make check`              | Svelte check (types)                                                    |
+| `make lint` / `lint-fix`  | ESLint, with or without auto-fix                                        |
+| `make test-unit`          | Vitest unit tests                                                       |
+| `make test-e2e`           | Playwright e2e and visual tests (Chromium and Mobile Safari, isolated PocketBase) |
+| `make test-e2e ARGS=...`  | Same, with Playwright args, e.g. `ARGS="tests/e2e/sync.spec.ts"`        |
+| `make test-visual-update` | Regenerate the visual baselines after an intended UI change             |
+| `make ci`                 | Lint, check and unit tests in one go                                   |
 
-### 🌍 Environment Variables
+- Visual baselines (`app/tests/e2e/visual.spec.ts-snapshots/`) are rendered in the Playwright Docker image and only compared there. After a UI change, run `make test-visual-update`, review the PNGs and commit them.
+- Tests tagged `@chromium-only` check a server behaviour (hooks, routes, cron jobs) and only run on Chromium.
 
-Configuration is handled via `docker-compose.yml`.
+</details>
 
--   `PUBLIC_POCKETBASE_URL`: PocketBase API URL (default: `http://localhost:8090`)
--   `GEMINI_API_KEY` (PocketBase): Gemini API key used by the receipt scanner (optional, the scanner is disabled without it)
--   `APP_ORIGINS` (PocketBase): comma-separated app origins allowed in emailed links, the first one being the default (default: `https://app.kimpay.io`)
--   `ORIGIN`: Application origin URL (default: `http://localhost:3000`)
--   `RATE_LIMIT_MULTIPLIER` (PocketBase): scales every rate limit (default: `1`; the e2e stack raises it, all its browsers sharing one IP)
+<details>
+<summary><b>Environment variables</b></summary>
 
-### 🔒 Deployment behind a reverse proxy
+<br>
 
-The rate limits count per client IP. PocketBase reads it from the right-most `X-Forwarded-For` value (set by migration `1740000005_trusted_proxy`, editable in Dashboard > Settings > Application). So PocketBase must only be reachable through the proxy: with port 8090 open to the internet, anyone could send that header and dodge the limits.
+Set in `docker-compose.yml`.
 
-## 📝 License
+| Variable                | Where      | Default                 | Purpose                                                                 |
+| ----------------------- | ---------- | ----------------------- | ----------------------------------------------------------------------- |
+| `PUBLIC_POCKETBASE_URL` | app        | `http://localhost:8090` | PocketBase API URL                                                      |
+| `ORIGIN`                | app        | `http://localhost:3000` | App origin                                                              |
+| `GEMINI_API_KEY`        | PocketBase | –                       | Enables the receipt scanner                                             |
+| `APP_ORIGINS`           | PocketBase | `https://app.kimpay.io` | Comma-separated origins allowed in emailed links, the first is the default |
+| `RATE_LIMIT_MULTIPLIER` | PocketBase | `1`                     | Scales every rate limit (raised by the e2e stack, whose browsers share one IP) |
 
-This project is open source and available under the MIT License.
+</details>
 
----
+<details>
+<summary><b>Deploying behind a reverse proxy</b></summary>
 
-_Made with ❤️ to simplify your group expenses._
+<br>
+
+Rate limits count per client IP, which PocketBase reads from the right-most `X-Forwarded-For` value (migration `1740000005_trusted_proxy`, editable in Dashboard › Settings › Application). PocketBase must therefore only be reachable through the proxy: with port 8090 open to the internet, anyone could forge that header and dodge the limits.
+
+</details>
+
+<br>
+
+<div align="center">
+<sub>MIT License · Made with ❤️ to simplify your group expenses</sub>
+</div>
