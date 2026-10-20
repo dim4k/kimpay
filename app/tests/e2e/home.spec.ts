@@ -6,20 +6,20 @@ test.describe('Home and new group', () => {
         await createKimpay(page, 'Setup Test', 'Alice');
         await dismissInstallPrompt(page);
 
-        const card = page.getByRole('region', { name: "Who's in?" });
+        const card = page.getByRole('region', { name: 'Getting started' });
         await expect(card).toBeVisible();
         await card.getByPlaceholder('New name').fill('Bob');
-        await card.getByRole('button', { name: /add/i }).click();
+        await card.getByRole('button', { name: 'Add', exact: true }).click();
         await expect(card.getByText('Bob')).toBeVisible();
 
-        await card.getByRole('button', { name: 'Send the link' }).click();
-        await expect(page.getByRole('dialog', { name: 'Invite to the group' })).toBeVisible();
+        await card.getByRole('button', { name: 'Invite', exact: true }).click();
+        await expect(page.getByRole('dialog', { name: 'Invite to the Kimpay' })).toBeVisible();
     });
 
     test('joining is a link under the main action', async ({ page }) => {
         await createKimpay(page, 'Join Test', 'Alice');
         await page.goto('/');
-        await expect(page.getByRole('button', { name: 'Create a group' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Create a Kimpay' })).toBeVisible();
         await page.getByRole('button', { name: 'I have a link or a QR code' }).click();
         await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeVisible();
     });
@@ -29,10 +29,10 @@ test.describe('Home and new group', () => {
         test.skip(isMobile, 'Swipe gesture');
         await createKimpay(page, 'Trip A', 'Alice');
         await page.goto('/');
-        await page.getByRole('button', { name: 'Create a group' }).click();
-        await page.getByLabel('Group name', { exact: true }).fill('Trip B');
+        await page.getByRole('button', { name: 'Create a Kimpay' }).click();
+        await page.getByLabel('Kimpay name', { exact: true }).fill('Trip B');
         await page.getByLabel('Your first name').fill('Alice');
-        await page.getByRole('button', { name: 'Create the group' }).click();
+        await page.getByRole('button', { name: 'Create the Kimpay' }).click();
         await expect(page).toHaveURL(/\/k\//);
         await page.goto('/');
 
@@ -54,15 +54,15 @@ test.describe('Home and new group', () => {
         await createKimpay(page, 'Trip A', 'Alice');
         await dismissInstallPrompt(page);
         await page.goto('/');
-        await page.getByRole('button', { name: 'Create a group' }).click();
-        await page.getByLabel('Group name', { exact: true }).fill('Trip B');
+        await page.getByRole('button', { name: 'Create a Kimpay' }).click();
+        await page.getByLabel('Kimpay name', { exact: true }).fill('Trip B');
         await page.getByLabel('Your first name').fill('Alice');
-        await page.getByRole('button', { name: 'Create the group' }).click();
+        await page.getByRole('button', { name: 'Create the Kimpay' }).click();
         await expect(page).toHaveURL(/\/k\//);
         await page.goto('/');
         const tripA = page.getByRole('link', { name: /Trip A/ });
         await tripA.click();
-        await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+        await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
         await page.getByRole('button', { name: /^archive kimpay/i }).click();
         await expect(page).toHaveURL(/\/$/);
 

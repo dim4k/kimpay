@@ -160,9 +160,10 @@
     {@const summary = summaries[k.id]}
     <SwipeableItem
         disabled={offlineStore.isOffline && !!auth.user}
-        onDelete={() => setArchived(k, !archived)}
-        deleteLabel={archived ? $t('home.archive.restore') : $t('home.archive.action')}
-        deleteIcon={archived ? ArchiveRestore : Archive}
+        onAction={() => setArchived(k, !archived)}
+        label={archived ? $t('home.archive.restore') : $t('home.archive.action')}
+        icon={archived ? ArchiveRestore : Archive}
+        tone="neutral"
     >
         <div class="group flex items-center">
             <a

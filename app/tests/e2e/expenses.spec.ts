@@ -44,13 +44,14 @@ test.describe('Expense Management', () => {
   });
 
   test('Empty group offers to add, scan and invite', async ({ page }) => {
-    await expect(page.getByText('No expenses yet')).toBeVisible();
+    // A new Kimpay: its first steps in one card.
+    await expect(page.getByRole('region', { name: 'Getting started' })).toBeVisible();
     await expect(page.getByRole('heading', { name: "Who's in?" })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Add an expense' })).toBeVisible();
 
     // Scanning needs an account: a guest is told how to get one.
     await page.getByRole('main').getByRole('button', { name: 'Scan a receipt' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sign Up' }).getByText(/free account to scan your receipts/)).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Sign up' }).getByText(/free account to scan your receipts/)).toBeVisible();
   });
 
   test('The new expense form offers to scan a receipt', async ({ page }) => {
@@ -58,7 +59,7 @@ test.describe('Expense Management', () => {
     await expect(page.getByRole('button', { name: 'Scan', exact: true })).toBeVisible();
 
     // Not for money received.
-    await page.getByRole('switch', { name: 'Money received' }).click();
+    await page.getByRole('radio', { name: 'Money in' }).click();
     await expect(page.getByRole('button', { name: 'Scan', exact: true })).toBeHidden();
   });
 

@@ -5,10 +5,8 @@
   import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
-  import ListRow from '#lib/components/ui/ListRow.svelte';
-  import Switch from '#lib/components/ui/Switch.svelte';
+  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import EmojiInput from '#lib/components/ui/EmojiInput.svelte';
-  import InputModal from '#lib/components/ui/modals/InputModal.svelte';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
   import Calendar from '#lib/components/ui/Calendar.svelte';
   import IconTile from '#lib/components/ui/IconTile.svelte';
@@ -20,14 +18,17 @@
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import Badge from '#lib/components/ui/Badge.svelte';
   import { t, locale } from '#lib/i18n.js';
-  import { DEFAULT_EXPENSE_EMOJI, NAME_MAX_LENGTH } from '#lib/constants.js';
+  import { DEFAULT_EXPENSE_EMOJI, NOTES_MAX_LENGTH } from '#lib/constants.js';
 
   import { offlineStore } from '#lib/stores/offline.svelte.js';
-  import { Calendar as CalendarIcon, Check, ChevronLeft, CircleAlert, CircleCheck, HandCoins, Repeat, Sparkles, Split, Trash2, UserRound, X } from "@lucide/svelte";
+  import { Calendar as CalendarIcon, Check, ChevronLeft, CircleAlert, CircleCheck, Copy, Repeat, Sparkles, Split, StickyNote, Trash2, UserRound, X } from "@lucide/svelte";
   import { slide } from 'svelte/transition';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-  import { CURRENCY_CODES, DEFAULT_CURRENCY, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
+  import { CURRENCY_CODES, DEFAULT_CURRENCY, convert, formatAmount, getExchangeRateAt } from '#lib/services/currency.js';
+  import { balanceSign } from '#lib/balance.js';
+  import { formatDecimal } from '#lib/utils/amount.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
+  import AmountInput from '#lib/components/ui/AmountInput.svelte';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
   import { haptic } from '#lib/utils/haptic.js';
@@ -38,7 +39,6 @@
   import { findSimilarExpense } from '#lib/utils/suggest.js';
   import { nextRepeatDate, repeatFrequency, REPEAT_FREQUENCIES, type RepeatFrequency } from '#lib/repeat.js';
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
-  import { sanitizeDecimal } from '#lib/utils/amount.js';
   import { loadKeywords } from '#lib/emoji/search.js';
   import { suggestEmoji } from '#lib/emoji/suggest.js';
   import { confirmDiscard, type ExpenseView } from '#lib/expenseSheet.js';
@@ -50,6 +50,7 @@
       scanFirst = false,
       title,
       onDelete,
+      onDuplicate,
       onClose,
       onSaved,
   }: {
@@ -61,8 +62,10 @@
       scanFirst?: boolean;
       /** Title of the sheet */
       title: string;
-      /** Shows a delete button in the sheet's header (editing) */
-      onDelete?: () => void;
+      /** Editing: "Delete this expense", under the summary */
+      onDelete?: (() => void) | undefined;
+      /** Editing: "Duplicate", a new expense filled in from this one */
+      onDuplicate?: () => void;
       /** The close button: the sheet asks first when something was typed (see `hasChanges`) */
       onClose: () => void;
       /** Saved (except "save and add another"): the sheet closes */
@@ -85,9 +88,18 @@
   let payer = $state("");
   let involved = $state<string[]>([]);
   let currency = $state(DEFAULT_CURRENCY);
-  let isIncome = $state(false);
+  // What is recorded: money spent for the group, money received by it, or a
+  // reimbursement from one member to another (see the type control on top).
+  type Kind = 'expense' | 'reimbursement' | 'income';
+  let kind = $state<Kind>('expense');
+  let isIncome = $derived(kind === 'income');
+  let isReimbursement = $derived(kind === 'reimbursement');
+  // A reimbursement: who receives it (`payer` gives it).
+  let to = $state("");
   let splitMode = $state<SplitMode>('equal');
   let splitValues = $state<Record<string, number>>({});
+  // Free text, under the other settings (a deposit, where the receipt is...).
+  let notes = $state("");
   // Repeated (rent, subscriptions): copied by the server this often, "" = not.
   let repeatEvery = $state<RepeatFrequency | ''>('');
 
@@ -104,10 +116,6 @@
   let newPhotos = $state<File[]>([]);
   let existingPhotos = $state<string[]>([]);
   let photosToDelete = $state<string[]>([]);
-
-  // New Participant Modal State
-  let newParticipantSource = $state<string | null>(null);
-  let isAddingParticipant = $state(false);
 
   let payerParticipant = $derived(participants.find(p => p.id === payer));
   let myId = $derived(activeKimpay?.myParticipantId ?? null);
@@ -136,14 +144,60 @@
       node.focus();
   }
 
-  let payerLabel = $derived(isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label'));
+  let payerLabel = $derived(
+      isReimbursement ? $t('expense.form.from_label') : isIncome ? $t('expense.form.received_by_label') : $t('expense.form.paid_by_label')
+  );
+  let toParticipant = $derived(participants.find(p => p.id === to));
+
+  // Editing, an expense can become money received and back (a reimbursement
+  // keeps its read-only sheet).
+  let kindOptions = $derived<{ value: Kind; label: string }[]>([
+      { value: 'expense', label: $t('expense.type.expense') },
+      ...(initialData ? [] : [{ value: 'reimbursement' as const, label: $t('expense.type.reimbursement') }]),
+      { value: 'income', label: $t('expense.type.income_short') },
+  ]);
+
+  // The payment suggested from the payer to someone: who a reimbursement goes
+  // to by default, and its amount, offered.
+  let suggestedTx = $derived(
+      isReimbursement && payer
+          ? (activeKimpay?.transactions ?? []).find((tx) => tx.from === payer && (!to || tx.to === to)) ?? null
+          : null
+  );
+
+  function chooseKind(next: Kind) {
+      kind = next;
+      if (next !== 'reimbursement') return;
+      if (!to || to === payer) to = suggestedTx?.to ?? '';
+  }
+
+  function useSuggested() {
+      if (!suggestedTx) return;
+      to = suggestedTx.to;
+      currency = suggestedTx.currency;
+      amount = formatDecimal(suggestedTx.amount, $locale);
+  }
+
+  // "Balances after: Alice +€8.00 · Bob −€8.00", in the Kimpay currency.
+  let afterLine = $derived.by(() => {
+      if (!isReimbursement || !payer || !to || amountValue <= 0 || !activeKimpay) return '';
+      const value = convert(amountValue, currency, defaultCurrency, activeKimpay.exchangeRates);
+      const show = (id: string, delta: number) => {
+          const balance = (activeKimpay.balances[id] ?? 0) + delta;
+          const name = id === myId ? $t('common.you') : participants.find(p => p.id === id)?.name ?? '';
+          return `${name} ${balanceSign(balance)}${formatAmount(Math.abs(balance), defaultCurrency, $locale)}`;
+      };
+      return $t('expense.reimbursement.after', { from: show(payer, value), to: show(to, -value) });
+  });
   let viewTitle = $derived(
       view === 'payer' ? payerLabel
+      : view === 'to' ? $t('expense.form.to_label')
       : view === 'involved' ? $t('expense.form.for_whom_label')
       : view === 'split' ? $t('expense.split.label')
       : view === 'date' ? $t('expense.form.date_label')
       : view === 'repeat' ? $t('expense.repeat.label')
-      : title
+      : view === 'note' ? $t('expense.note.label')
+      : initialData ? title : $t('expense.add.short')
   );
 
   // The icon follows the description ("Resto" gives 🍽️) until picked by hand
@@ -163,7 +217,7 @@
 
   // What the form held when opened (or last saved): leaving with changes asks first.
   function formState(): string {
-      return JSON.stringify([description, amount, icon, date, payer, involved, currency, isIncome, splitMode, splitValues, newPhotos.length, photosToDelete.length, repeatEvery]);
+      return JSON.stringify([description, amount, icon, date, payer, involved, currency, kind, to, splitMode, splitValues, newPhotos.length, photosToDelete.length, repeatEvery, notes]);
   }
   let baseline = $state('');
   let isDirty = $derived(baseline !== '' && formState() !== baseline);
@@ -186,7 +240,8 @@
          payer = seed.payer || "";
          involved = seed.involved || [];
          currency = seed.currency || defaultCurrency;
-         isIncome = !!seed.is_income;
+         kind = seed.is_income ? 'income' : 'expense';
+         notes = seed.notes || "";
          if (seed.split && seed.split.mode !== 'equal') {
              splitMode = seed.split.mode;
              splitValues = { ...seed.split.values };
@@ -253,12 +308,17 @@
       });
   });
 
-  let isValid = $derived(!!description && amountValue > 0 && !!payer && involved.length > 0 && splitCheck.valid);
+  let isValid = $derived(
+      isReimbursement
+          ? amountValue > 0 && !!payer && !!to && to !== payer
+          : !!description && amountValue > 0 && !!payer && involved.length > 0 && splitCheck.valid
+  );
   // Expenses cannot be edited offline (only created).
   let isOfflineEdit = $derived(!!initialData?.id && offlineStore.isOffline);
 
   let saveLabel = $derived.by(() => {
       if (isOfflineEdit) return $t('common.offline');
+      if (isReimbursement) return $t('expense.reimbursement.save');
       const action = initialData ? $t('expense.form.update_button') : $t('expense.form.save_button');
       return amountValue > 0 ? `${action} · ${formatAmount(amountValue, currency, $locale)}` : action;
   });
@@ -268,12 +328,9 @@
   let missing = $derived(
       [
           amountValue > 0 ? null : $t('expense.form.missing_amount'),
-          description.trim() ? null : $t('expense.form.missing_description'),
+          isReimbursement ? (to ? null : $t('expense.form.missing_to')) : description.trim() ? null : $t('expense.form.missing_description'),
       ].filter(Boolean).join(', ')
   );
-
-  // "0.00" or "0,00": the decimal separator of the language.
-  let amountPlaceholder = $derived((0).toLocaleString($locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
   // What each one pays, when everybody pays the same.
   let perPerson = $derived(
@@ -311,18 +368,15 @@
       parseLocalISODate(date).toLocaleDateString($locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
   );
 
-  /** Digits and one decimal separator, at most 8 digits and 2 decimals. */
-  function sanitizeAmount(e: Event) {
-      const el = e.currentTarget as HTMLInputElement;
-      const clean = sanitizeDecimal(el.value);
-      if (clean !== el.value) el.value = clean;
-      amount = clean;
-      filled.amount = false;
-  }
-
   // One payer: picking them closes the panel.
   function handlePayerChange(selected: string[]) {
       payer = selected[0] || "";
+      if (to === payer) to = "";
+      closeView();
+  }
+
+  function handleToChange(selected: string[]) {
+      to = selected[0] || "";
       closeView();
   }
 
@@ -330,27 +384,24 @@
       involved = selected;
   }
 
-  async function handleNewParticipant(name: string) {
-      isAddingParticipant = true;
+  /** A member added from a panel: chosen there (payer), and ticked among those it is for. */
+  async function addMember(name: string, as: 'payer' | 'involved' | 'to') {
       try {
-          const newP = await activeKimpay.addParticipant(name);
-
-          if (newP) {
-             if (newParticipantSource === 'payer') {
-                 payer = newP.id;
-                 closeView();
-             }
-
-             if (!involved.includes(newP.id)) {
-                 involved = [...involved, newP.id];
-             }
+          const added = await activeKimpay.addParticipant(name);
+          if (!added) return;
+          if (as === 'to') {
+              to = added.id;
+              closeView();
+              return;
           }
-
-          newParticipantSource = null;
+          if (as === 'payer') {
+              payer = added.id;
+              closeView();
+          }
+          if (!involved.includes(added.id)) involved = [...involved, added.id];
       } catch (e) {
           notifyError(e, "Failed to create participant");
-      } finally {
-          isAddingParticipant = false;
+          throw e;
       }
   }
 
@@ -361,7 +412,18 @@
       isLoading = true;
       try {
           const split = buildSplit(splitMode, splitValues, involved);
-          const expenseData = {
+          const expenseData = isReimbursement ? {
+              description: $t('balance.reimbursement'),
+              amount: amountValue,
+              currency,
+              exchange_rate: await exchangeRate(),
+              payer,
+              involved: [to],
+              is_reimbursement: true,
+              date: new Date(date).toISOString(),
+              notes: notes.trim(),
+              kimpay: kimpayId,
+          } : {
               description,
               amount: amountValue,
               currency,
@@ -373,16 +435,20 @@
               is_income: isIncome,
               date: new Date(date).toISOString(),
               icon,
+              notes: notes.trim(),
               kimpay: kimpayId,
+              // Repeated: expenses only (an older repeated income keeps it).
               ...repeatFields(),
           };
+          // A reimbursement has no photo.
+          const photos = isReimbursement ? [] : newPhotos;
 
           if (initialData?.id) {
-               await activeKimpay.updateExpense(initialData.id, expenseData, newPhotos, photosToDelete);
+               await activeKimpay.updateExpense(initialData.id, expenseData, photos, photosToDelete);
                toasts.success($t('toast.expense_updated'));
           } else {
-               await activeKimpay.addExpense(expenseData, newPhotos);
-               toasts.success($t('toast.expense_added'));
+               await activeKimpay.addExpense(expenseData, photos);
+               toasts.success($t(isReimbursement ? 'toast.reimbursement_added' : isIncome ? 'toast.income_added' : 'toast.expense_added'));
           }
 
           haptic('success');
@@ -402,7 +468,7 @@
 
   /** Repeated from its date (the day of the month, or the weekday), from the next copy on. */
   function repeatFields(): Pick<Expense, 'repeat_day' | 'repeat_every' | 'repeat_next'> {
-      if (!repeatEvery) return { repeat_day: 0, repeat_every: '', repeat_next: '' };
+      if (!repeatEvery || !canRepeat) return { repeat_day: 0, repeat_every: '', repeat_next: '' };
       return { repeat_day: Number(date.slice(8, 10)), repeat_every: repeatEvery, repeat_next: `${nextRepeat} 00:00:00.000Z` };
   }
 
@@ -427,6 +493,8 @@
       repeatEvery = every;
       closeView();
   }
+  // Expenses repeat; money received only when it already did (before the type control).
+  let canRepeat = $derived(kind === 'expense' || (isIncome && !!initialData?.repeat_day));
   // Copied already: the repetition goes on from the copy (the latest one).
   let repeatedLater = $derived(!!initialData && (activeKimpay?.expenses ?? []).some((e) => e.repeat_of === initialData!.id));
 
@@ -439,6 +507,7 @@
       icon = autoIcon = DEFAULT_EXPENSE_EMOJI;
       newPhotos = [];
       repeatEvery = '';
+      notes = "";
       filled = { amount: false, description: false };
       scanApplied = null;
       scanError = "";
@@ -500,7 +569,7 @@
   let scanRun = 0;
 
   // A new expense can be read from a receipt (not money received).
-  let showScanButton = $derived(!initialData && !isIncome);
+  let showScanButton = $derived(!initialData && kind === 'expense');
 
   async function scan(file: File) {
       const run = ++scanRun;
@@ -607,7 +676,7 @@
             <p id="save-missing" class="flex min-h-9 items-center justify-center text-center text-sm text-muted-foreground">
                 {$t('expense.form.missing', { fields: missing })}
             </p>
-        {:else if !initialData}
+        {:else if !initialData && !isReimbursement}
             <!-- Several in a row (after a trip): stays on the form. -->
             <button
                 type="button"
@@ -621,7 +690,9 @@
     </div>
 {/snippet}
 
-<Modal isOpen onClose={onClose} variant="sheet" label={title} footer={view === 'main' ? saveFooter : undefined}>
+<!-- Editing, the sheet is first the expense to read: its save button
+     shows once something changed. -->
+<Modal isOpen onClose={onClose} variant="sheet" label={title} footer={view === 'main' && (!initialData || isDirty) ? saveFooter : undefined}>
     {#snippet header()}
         <div class="flex items-center gap-1">
             {#if view !== 'main'}
@@ -656,6 +727,9 @@
 
     <!-- The summary: kept (hidden) under a panel, so nothing typed is lost. -->
     <div class="space-y-5" hidden={view !== 'main'}>
+        <!-- What is recorded, first: the form shows what this type needs. -->
+        <SegmentedControl options={kindOptions} value={kind} label={$t('activity.field.type')} onchange={chooseKind} fit />
+
         {#if scanError}
             <div class="flex items-start gap-3 rounded-control bg-destructive/10 p-3 text-destructive" role="alert" transition:slide={{ duration: 150 }}>
                 <CircleAlert class="mt-0.5 h-5 w-5 shrink-0" />
@@ -670,7 +744,7 @@
         {/if}
 
         {#if scanApplied}
-            <div class="flex items-center gap-3 rounded-control bg-success-soft p-3 text-success" role="status" transition:slide={{ duration: 150 }}>
+            <div class="flex items-center gap-3 rounded-control bg-primary-soft p-3 text-primary-soft-foreground" role="status" transition:slide={{ duration: 150 }}>
                 <CircleCheck class="h-5 w-5 shrink-0" />
                 <div class="min-w-0 flex-1 text-sm">
                     <p class="font-semibold">{$t('expense.form.scan_filled')}</p>
@@ -680,7 +754,7 @@
                             : $t('expense.form.scan_check')}
                     </p>
                 </div>
-                <Button variant="ghost" size="sm" class="shrink-0 text-success hover:bg-success/10" onclick={undoScan}>
+                <Button variant="ghost" size="sm" class="shrink-0 text-primary hover:bg-primary/10" onclick={undoScan}>
                     {$t('common.undo')}
                 </Button>
             </div>
@@ -695,31 +769,24 @@
         {/if}
 
         <!-- Amount first, big -->
-        <div class="space-y-2 text-center">
-            <label for="amount" class="sr-only">{$t('expense.form.amount_label')}</label>
-            <input
-                id="amount"
-                bind:this={amountInput}
-                type="text"
-                inputmode="decimal"
-                autocomplete="off"
-                bind:value={amount}
-                oninput={sanitizeAmount}
-                placeholder={amountPlaceholder}
-                aria-describedby={missing && !isOfflineEdit ? 'save-missing' : undefined}
-                class="w-full rounded-card bg-transparent text-center text-5xl font-bold tracking-tight tabular-nums outline-hidden transition-shadow placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/40 {filled.amount ? 'ring-2 ring-primary/40' : ''} {isIncome ? 'text-success' : ''}"
-            />
-            <div class="flex items-center justify-center gap-2">
-                <CurrencySelect size="sm" position="bottom-left" bind:value={currency} />
-                {#if isIncome}
-                    <Badge tone="success"><HandCoins class="h-3 w-3" />{$t('expense.type.income')}</Badge>
-                {/if}
+        <AmountInput
+            id="amount"
+            label={$t('expense.form.amount_label')}
+            bind:value={amount}
+            bind:ref={amountInput}
+            highlighted={filled.amount}
+            describedby={missing && !isOfflineEdit ? 'save-missing' : undefined}
+            oninput={() => filled.amount = false}
+        >
+            {#snippet below()}
+                <CurrencySelect size="sm" bind:value={currency} />
                 {#if filled.amount}
                     <Badge><Sparkles class="h-3 w-3" />{$t('expense.form.scan_tag')}</Badge>
                 {/if}
-            </div>
-        </div>
+            {/snippet}
+        </AmountInput>
 
+        {#if !isReimbursement}
         <div class="flex gap-2">
             <label for="description" class="sr-only">{$t('expense.form.desc_label')}</label>
             <EmojiInput bind:value={icon} />
@@ -732,6 +799,7 @@
                 class={filled.description ? 'border-primary ring-2 ring-primary/40' : ''}
             />
         </div>
+        {/if}
 
         <!-- Who: each line opens its panel. -->
         <ListGroup>
@@ -752,6 +820,25 @@
                     {$t('expense.form.choose')}
                 {/if}
             </SummaryRow>
+            {#if isReimbursement}
+                <SummaryRow label={$t('expense.form.to_label')} invalid={!toParticipant} onclick={() => openView('to')}>
+                    {#snippet lead()}
+                        {#if toParticipant}
+                            <Avatar name={toParticipant.name} record={toParticipant} class="h-8 w-8 shrink-0 text-[0.6875rem]" />
+                        {:else}
+                            <IconTile size="sm" tone="danger"><UserRound /></IconTile>
+                        {/if}
+                    {/snippet}
+                    {#if toParticipant}
+                        <span class="truncate">{toParticipant.name}</span>
+                        {#if toParticipant.id === myId}
+                            <Badge>{$t('common.you')}</Badge>
+                        {/if}
+                    {:else}
+                        {$t('expense.form.choose')}
+                    {/if}
+                </SummaryRow>
+            {:else}
             <SummaryRow label={$t('expense.form.for_whom_label')} invalid={involved.length === 0} onclick={() => openView('involved')}>
                 {#snippet lead()}
                     {#if involvedParticipants.length > 0}
@@ -771,41 +858,72 @@
                     <span class="truncate">{splitSummary}</span>
                 </SummaryRow>
             {/if}
+            {/if}
         </ListGroup>
+
+        {#if suggestedTx}
+            <!-- A payment suggested between the two: its amount, in one tap. -->
+            {@const amountDue = formatAmount(suggestedTx.amount, suggestedTx.currency, $locale)}
+            <div class="space-y-2 rounded-card bg-primary-soft p-4" data-testid="suggested-reimbursement">
+                <p class="text-sm">
+                    {$t('expense.reimbursement.suggested', {
+                        from: payerParticipant?.id === myId ? $t('common.you') : payerParticipant?.name ?? '',
+                        to: participants.find((p) => p.id === suggestedTx.to)?.name ?? '',
+                        amount: amountDue,
+                    })}
+                </p>
+                {#if amountValue !== suggestedTx.amount || currency !== suggestedTx.currency || to !== suggestedTx.to}
+                    <Button size="sm" variant="outline" onclick={useSuggested}>{$t('expense.reimbursement.use', { amount: amountDue })}</Button>
+                {/if}
+            </div>
+        {/if}
 
         <ListGroup>
             <SummaryRow label={$t('expense.form.date_label')} icon={CalendarIcon} onclick={() => openView('date')}>
                 <span class="truncate capitalize" data-testid="expense-date">{dateSummary}</span>
             </SummaryRow>
-            <PhotoManager
-                bind:newPhotos
-                bind:existingPhotos
-                bind:photosToDelete
-                record={initialData}
-            />
-            {#if !repeatedLater}
+            {#if !isReimbursement}
+                <PhotoManager
+                    bind:newPhotos
+                    bind:existingPhotos
+                    bind:photosToDelete
+                    record={initialData}
+                />
+            {/if}
+            {#if canRepeat && !repeatedLater}
                 <SummaryRow label={$t('expense.repeat.label')} icon={Repeat} onclick={() => openView('repeat')}>
                     <span class="truncate">{repeatSummary}</span>
                 </SummaryRow>
             {/if}
-            <!-- Money received (a deposit back, a sale...): rare, so last. -->
-            <ListRow icon={HandCoins} title={$t('expense.type.income')} subtitle={$t('expense.form.income_hint')}>
-                {#snippet trailing()}
-                    <Switch checked={isIncome} label={$t('expense.type.income')} onchange={(v) => isIncome = v} />
-                {/snippet}
-            </ListRow>
+            <SummaryRow label={$t('expense.note.label')} icon={StickyNote} onclick={() => openView('note')}>
+                {#if notes.trim()}
+                    <span class="truncate">{notes.trim().split('\n')[0]}</span>
+                {:else}
+                    <span class="truncate font-normal text-muted-foreground">{$t('expense.note.none')}</span>
+                {/if}
+            </SummaryRow>
         </ListGroup>
 
-        {#if onDelete}
-            <!-- Away from the close and save buttons: rare, and asked again. -->
-            <button
-                type="button"
-                onclick={onDelete}
-                class="mx-auto flex min-h-11 items-center gap-2 rounded-control px-4 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
-            >
-                <Trash2 class="h-4 w-4" />
-                {$t('expense.delete')}
-            </button>
+        {#if afterLine}
+            <p class="px-1 text-sm text-muted-foreground" aria-live="polite">{afterLine}</p>
+        {/if}
+
+        {#if onDuplicate || onDelete}
+            <!-- Rarer than reading or changing: last, away from the close button. -->
+            <div class="grid grid-cols-2 gap-2">
+                {#if onDuplicate}
+                    <Button variant="outline" onclick={onDuplicate} class={onDelete ? '' : 'col-span-2'}>
+                        <Copy />
+                        {$t('expense.list.duplicate')}
+                    </Button>
+                {/if}
+                {#if onDelete}
+                    <Button variant="ghost-destructive" onclick={onDelete} class={onDuplicate ? '' : 'col-span-2'}>
+                        <Trash2 />
+                        {$t('common.delete')}
+                    </Button>
+                {/if}
+            </div>
         {/if}
     </div>
 
@@ -820,7 +938,17 @@
                     label={payerLabel}
                     hideLabel
                     onSelectionChange={handlePayerChange}
-                    onAddNew={() => newParticipantSource = 'payer'}
+                    onAdd={(name) => addMember(name, 'payer')}
+                />
+            {:else if view === 'to'}
+                <ParticipantSelector
+                    participants={participants.filter((p) => p.id !== payer)}
+                    selected={to ? [to] : []}
+                    mode="single"
+                    label={$t('expense.form.to_label')}
+                    hideLabel
+                    onSelectionChange={handleToChange}
+                    onAdd={(name) => addMember(name, 'to')}
                 />
             {:else if view === 'involved'}
                 <ParticipantSelector
@@ -829,7 +957,7 @@
                     mode="multi"
                     label={$t('expense.form.for_whom_label')}
                     onSelectionChange={handleInvolvedChange}
-                    onAddNew={() => newParticipantSource = 'involved'}
+                    onAdd={(name) => addMember(name, 'involved')}
                     showToggleAll={true}
                 />
             {:else if view === 'split'}
@@ -863,22 +991,23 @@
                     </div>
                 </ListGroup>
                 <p class="mt-3 px-1 text-sm text-muted-foreground">{$t('expense.repeat.hint')}</p>
+            {:else if view === 'note'}
+                <div class="space-y-3">
+                    <label for="expense-notes" class="sr-only">{$t('expense.note.label')}</label>
+                    <textarea
+                        id="expense-notes"
+                        bind:value={notes}
+                        {@attach focused}
+                        maxlength={NOTES_MAX_LENGTH}
+                        rows="5"
+                        placeholder={$t('expense.note.placeholder')}
+                        class="w-full resize-none rounded-control border border-input bg-card px-3 py-2.5 text-base placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                    ></textarea>
+                    <Button class="w-full" onclick={closeView}>{$t('common.ok')}</Button>
+                </div>
             {/if}
         </div>
     {/if}
-
-    <!-- Add Participant Modal -->
-    <InputModal
-        isOpen={!!newParticipantSource}
-        title={$t('modal.add_participant.title')}
-        placeholder={$t('modal.add_participant.placeholder')}
-        confirmText={$t('modal.add_participant.confirm')}
-        cancelText={$t('common.cancel')}
-        maxlength={NAME_MAX_LENGTH}
-        isProcessing={isAddingParticipant}
-        onConfirm={handleNewParticipant}
-        onCancel={() => newParticipantSource = null}
-    />
 
     <!-- Reading a receipt: the photo, full screen, until the result comes back. -->
     {#if scanning}

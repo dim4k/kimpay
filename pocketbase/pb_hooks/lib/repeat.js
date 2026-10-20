@@ -133,7 +133,7 @@ function repeatOne(app, id, today, ratesByDay) {
             var copy = new Record(source.collection());
             [
                 "kimpay", "description", "amount", "currency", "payer", "involved",
-                "is_income", "icon", "created_by",
+                "is_income", "icon", "notes", "created_by",
             ].forEach(function (field) {
                 copy.set(field, source.get(field));
             });

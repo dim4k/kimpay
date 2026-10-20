@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, waitForServiceWorker } from './test-utils';
+import { closeExpenseSheet, createKimpay, dismissInstallPrompt, waitForServiceWorker } from './test-utils';
 
 async function openAddExpense(page: Page) {
     await page.getByRole('link', { name: /add expense/i }).click();
@@ -81,8 +81,9 @@ test.describe('Sync between devices', () => {
         const dots = page.getByRole('img', { name: 'New', exact: true });
         await expect(dots).toHaveCount(2);
 
-        // Opening a new line: seen.
+        // Opening a new line (its sheet): seen.
         await page.getByText('Bob Taxi').click();
+        await closeExpenseSheet(page);
         await expect(page.locator('[data-expense]', { hasText: 'Bob Taxi' }).getByRole('img', { name: 'New', exact: true })).toHaveCount(0);
         await expect(card).toHaveText(/1 new since your last visit/);
 

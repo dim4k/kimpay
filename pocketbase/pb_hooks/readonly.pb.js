@@ -79,6 +79,7 @@ routerAdd("GET", "/api/readonly/{token}", (e) => {
                 exchange_rate: x.getFloat("exchange_rate"),
                 date: x.getString("date"),
                 icon: x.getString("icon"),
+                notes: x.getString("notes"),
                 payer: ref(x.getString("payer")),
                 involved: toArray(x.getStringSlice("involved")).map(ref).filter((r) => r),
                 split: parseSplit(x),

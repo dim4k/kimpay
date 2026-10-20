@@ -5,7 +5,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
-  import { Check, ChevronRight } from "@lucide/svelte";
+  import { Check, ChevronRight, UserPlus } from "@lucide/svelte";
   import { activeKimpayGlobal } from '#lib/stores/activeKimpayGlobal.svelte.js';
   import type { Participant } from '#lib/types.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
@@ -15,6 +15,7 @@
   import Modal from './Modal.svelte';
   import ModalHeader from './ModalHeader.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
+  import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import FieldError from '#lib/components/ui/FieldError.svelte';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
   import { findSimilarName } from '#lib/utils/names.js';
@@ -93,15 +94,16 @@
 </script>
 
 {#if identityState}
-<Modal 
-    {isOpen} 
+<!-- A sheet like the others; mandatory (no handle, no close) until a name is chosen. -->
+<Modal
+    {isOpen}
     onClose={activeKimpayGlobal.myParticipant ? () => modals.closeIdentity() : undefined}
-    class="flex max-h-[90vh] max-w-md flex-col space-y-0 overflow-hidden p-0"
+    variant="sheet"
     backdropClass="bg-background/95"
     label={$t('identity.title')}
 >
     {#if suggested}
-    <div class="flex flex-col items-center gap-4 p-6 text-center" data-testid="identity-suggested">
+    <div class="flex flex-col items-center gap-4 text-center" data-testid="identity-suggested">
         <Avatar name={suggested.name} record={suggested} class="h-16 w-16 text-xl" />
         <ModalHeader
             title={$t('identity.suggested_title', { name: suggested.name })}
@@ -117,22 +119,21 @@
         </div>
     </div>
     {:else}
-    <div class="p-6 pb-2">
-        <ModalHeader
-            title={$t('identity.title')}
-            description={$t('identity.subtitle')}
-            align="start"
-            onClose={activeKimpayGlobal.myParticipant ? () => modals.closeIdentity() : undefined}
-        />
-    </div>
-    
-    <div class="flex-1 overflow-y-auto p-4 space-y-2">
+    <ModalHeader
+        title={$t('identity.title')}
+        description={$t('identity.subtitle')}
+        align="start"
+        onClose={activeKimpayGlobal.myParticipant ? () => modals.closeIdentity() : undefined}
+    />
+
+    <ListGroup>
         {#each selectableParticipants as p (p.id)}
-            <button 
-                class="flex w-full min-h-14 items-center gap-3 rounded-control border px-3 py-2 text-left transition-colors hover:bg-muted {selectedParticipantId === p.id ? 'border-primary bg-primary-soft' : ''}"
+            <button
+                type="button"
+                class="flex w-full min-h-14 items-center gap-3 px-4 py-2 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset {selectedParticipantId === p.id ? 'bg-primary-soft' : ''}"
                 onclick={() => selectParticipant(p.id)}
             >
-                <Avatar name={p.name} record={p} class="w-10 h-10 text-sm" />
+                <Avatar name={p.name} record={p} class="h-10 w-10 text-sm" />
                 <span class="flex-1 truncate text-base font-medium">{p.name}</span>
                 {#if selectedParticipantId === p.id}
                     <Check class="h-5 w-5 text-primary" />
@@ -141,32 +142,33 @@
                 {/if}
             </button>
         {/each}
-    </div>
-
-    <div class="space-y-2 border-t bg-muted/40 p-4">
-        <Label for="identity-new">{$t('identity.new_label')}</Label>
-        <div class="flex gap-2">
-            <Input 
-                placeholder={$t('identity.new_name_placeholder')} 
-                bind:value={newParticipantName}
-                maxlength={NAME_MAX_LENGTH}
-                id="identity-new"
-                aria-invalid={!!createError}
-                aria-describedby={createError ? 'identity-new-error' : undefined}
-                onkeydown={(e) => e.key === 'Enter' && createAndSelectParticipant()}
-            />
-            <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
-                {$t('identity.create_button')}
-            </Button>
-        </div>
-        {#if similar}
-            <div class="flex items-center gap-2 rounded-control bg-primary-soft py-1 pl-3 pr-1 text-sm" role="status">
-                <span class="min-w-0 flex-1">{$t('identity.similar', { name: similar.name })}</span>
-                <Button size="sm" onclick={() => selectParticipant(similar!.id)}>{$t('identity.similar_yes')}</Button>
+        <!-- Not in the list: the last line, as on the Members tab. -->
+        <div class="space-y-2 px-4 py-3">
+            <Label for="identity-new" class="text-muted-foreground">{$t('identity.new_label')}</Label>
+            <div class="flex gap-2">
+                <Input
+                    placeholder={$t('identity.new_name_placeholder')}
+                    bind:value={newParticipantName}
+                    maxlength={NAME_MAX_LENGTH}
+                    id="identity-new"
+                    aria-invalid={!!createError}
+                    aria-describedby={createError ? 'identity-new-error' : undefined}
+                    onkeydown={(e) => e.key === 'Enter' && createAndSelectParticipant()}
+                />
+                <Button onclick={createAndSelectParticipant} disabled={!newParticipantName.trim()}>
+                    <UserPlus />
+                    {$t('identity.create_button')}
+                </Button>
             </div>
-        {/if}
-        <FieldError id="identity-new-error" message={createError} />
-    </div>
+            {#if similar}
+                <div class="flex items-center gap-2 rounded-control bg-primary-soft py-1 pl-3 pr-1 text-sm" role="status">
+                    <span class="min-w-0 flex-1">{$t('identity.similar', { name: similar.name })}</span>
+                    <Button size="sm" onclick={() => selectParticipant(similar!.id)}>{$t('identity.similar_yes')}</Button>
+                </div>
+            {/if}
+            <FieldError id="identity-new-error" message={createError} />
+        </div>
+    </ListGroup>
     {/if}
 </Modal>
 {/if}

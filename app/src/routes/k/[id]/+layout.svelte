@@ -222,7 +222,7 @@
         <NavItem
             href="/k/{kimpayId}/settings"
             icon={Settings}
-            label={$t('nav.group')}
+            label={$t('nav.settings')}
             isActive={page.url.pathname.includes('/settings')}
         />
     </div>

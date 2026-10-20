@@ -118,7 +118,7 @@
             tabindex="-1"
             onkeydown={navigate}
             {@attach focusSelected}
-            class="absolute top-full mt-1 z-50 min-w-[10rem] max-h-64 overflow-y-auto rounded-control border bg-popover py-1 text-popover-foreground shadow-xl {positionClasses[position]}"
+            class="absolute top-full mt-1 z-50 min-w-[10rem] max-h-64 overflow-y-auto rounded-control border bg-card py-1 text-card-foreground shadow-xl {positionClasses[position]}"
             transition:slide={{ duration: 150 }}
         >
             {@render items(close)}

@@ -54,9 +54,9 @@ describe('utils/export', () => {
         const [table] = toCsv(input([expense({}), expense({ amount: 3, currency: 'USD', exchange_rate: 0.9 })])).split('\n\n');
         const lines = table!.split('\n');
 
-        expect(lines[0]).toBe('export.col.date,export.col.desc,export.col.amount,export.col.currency,export.col.payer,export.col.for,export.col.type');
+        expect(lines[0]).toBe('export.col.date,export.col.desc,export.col.amount,export.col.currency,export.col.payer,export.col.for,export.col.type,export.col.note');
         expect(lines).toHaveLength(3);
-        expect(lines[1]).toBe('1/15/2026,Dinner,12.50,EUR,Alice,"Alice; Bob, Jr.",export.type.expense');
+        expect(lines[1]).toBe('1/15/2026,Dinner,12.50,EUR,Alice,"Alice; Bob, Jr.",export.type.expense,');
         expect(lines[2]).toContain(',3.00,USD,');
     });
 
@@ -76,6 +76,12 @@ describe('utils/export', () => {
         expect(sections).toHaveLength(3);
         expect(sections[1]).toBe(['export.meta.balances,EUR', 'export.col.participant,export.col.balance', 'Alice,15.00', '"Bob, Jr.",-15.00'].join('\n'));
         expect(sections[2]).toBe(['export.meta.transfers,EUR', 'export.col.from,export.col.to,export.col.amount', '"Bob, Jr.",Alice,15.00'].join('\n'));
+    });
+
+    it('exports the note, on one line in Markdown', () => {
+        const note = 'Deposit,\nthe rest on arrival';
+        expect(toCsv(input([expense({ notes: note })]))).toContain(',export.type.expense,"Deposit,\nthe rest on arrival"');
+        expect(toMarkdown(input([expense({ notes: note })]))).toContain('| export.type.expense | Deposit, the rest on arrival |');
     });
 
     it('quotes CSV fields containing separators or quotes', () => {

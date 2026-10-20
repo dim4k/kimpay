@@ -1,9 +1,9 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { ArrowRight, Wallet, Check, ChevronRight, Plus } from "@lucide/svelte";
+  import { Wallet, ChevronRight, Plus } from "@lucide/svelte";
 
-  import Avatar from '#lib/components/ui/Avatar.svelte';
-  import PaymentLinks from '#lib/components/PaymentLinks.svelte';
+  import DebtCard from '#lib/components/balance/DebtCard.svelte';
+  import PaymentPair from '#lib/components/balance/PaymentPair.svelte';
   import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
   import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
@@ -119,6 +119,14 @@
   }
 
   let participants = $derived(activeKimpay?.participants || []);
+
+  // My debts first, as cards with their actions; the others' in a list.
+  let myTransactions = $derived(myId ? transactions.filter((tx) => tx.from === myId || tx.to === myId) : []);
+  let otherTransactions = $derived(transactions.filter((tx) => !myTransactions.includes(tx)));
+
+  function shown(tx: Transaction): string {
+      return formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale);
+  }
   let myNet = $derived(toDisplayCurrency(activeKimpay?.myBalance ?? 0, kimpayDefaultCurrency));
   let myTone = $derived(balanceTone(myNet));
   let totalExpenses = $derived(toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency));
@@ -221,22 +229,10 @@
     </div>
 {/snippet}
 
-{#snippet pair(tx: Transaction)}
-    <span class="flex shrink-0" aria-hidden="true">
-        <Avatar name={getName(tx.from)} record={activeKimpay?.participantsById.get(tx.from)} class="h-8 w-8 text-xs ring-2 ring-card" />
-        <Avatar name={getName(tx.to)} record={activeKimpay?.participantsById.get(tx.to)} class="-ml-2 h-8 w-8 text-xs ring-2 ring-card" />
-    </span>
-    <span class="flex min-w-0 flex-1 items-center gap-1.5 text-base font-medium">
-        <span class="truncate">{label(tx.from)}</span>
-        <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={$t('balance.pays')} />
-        <span class="truncate">{label(tx.to)}</span>
-    </span>
-    <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale)}</span>
-{/snippet}
-
-<!-- The amounts of the page, in another currency if needed: on the first heading. -->
+<!-- The amounts of the page, in another currency if needed: always in the
+     balance block, whatever the page shows below it. -->
 {#snippet displayIn()}
-    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+    <div class="flex items-center gap-1.5 text-xs text-foreground/70">
         <span>{$t('balance.display_in')}</span>
         <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
     </div>
@@ -268,9 +264,9 @@
     {:else}
         <!-- Me first: where I stand, then what I should do, then the group. -->
         {#if !myId}
-            <BalanceHero label={$t('balance.total_group')} amount={totalExpenses} currency={displayCurrency} />
+            <BalanceHero label={$t('balance.total_group')} amount={totalExpenses} currency={displayCurrency} action={displayIn} />
         {:else if transactions.length === 0}
-            <BalanceHero label={$t('expense.hero.label')} text={$t('balance.settled.title')} tone="success">
+            <BalanceHero label={$t('expense.hero.label')} text={$t('balance.settled.title')} tone="success" action={displayIn}>
                 <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
             </BalanceHero>
         {:else}
@@ -280,6 +276,7 @@
                 text={$t('balance.settled.title')}
                 currency={displayCurrency}
                 tone={myTone}
+                action={displayIn}
             >
                 <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
                 <span>{$t('balance.hero.share', { amount: formatAmount(myShare, displayCurrency, $locale) })}</span>
@@ -307,52 +304,47 @@
 
         {#if transactions.length > 0}
             <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.suggested.title')} actions={displayIn} />
-                <ListGroup>
-                    {#each transactions as tx, i (i)}
-                        {#if myId && (tx.from === myId || tx.to === myId)}
-                            <!-- My own payments: explicit actions. -->
-                            <div class="space-y-3 px-4 py-3">
-                                <div class="flex items-center gap-3">
-                                    {@render pair(tx)}
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    {#if tx.from === myId}
-                                        <PaymentLinks
-                                            to={activeKimpay?.participantsById.get(tx.to)}
-                                            amount={tx.amount}
-                                            currency={tx.currency}
-                                            onpay={(service) => (opened = { to: tx.to, service, left: false })}
-                                        />
-                                    {/if}
-                                    <Button size="sm" variant="outline" onclick={() => openSettleModal(tx)}>
-                                        <Check />
-                                        {$t('balance.mark_settled')}
-                                    </Button>
-                                </div>
-                            </div>
-                        {:else}
+                <SectionLabel title={$t('balance.suggested.title')} />
+                {#each myTransactions as tx (`${tx.from}-${tx.to}`)}
+                    {@const iOwe = tx.from === myId}
+                    <DebtCard
+                        other={activeKimpay?.participantsById.get(iOwe ? tx.to : tx.from)}
+                        {iOwe}
+                        amount={shown(tx)}
+                        payAmount={tx.amount}
+                        payCurrency={tx.currency}
+                        onSettle={() => openSettleModal(tx)}
+                        onpay={(service) => (opened = { to: tx.to, service, left: false })}
+                    />
+                {/each}
+                {#if otherTransactions.length > 0}
+                    <ListGroup>
+                        {#each otherTransactions as tx (`${tx.from}-${tx.to}`)}
+                            <!-- Between two others: recorded by anyone of the Kimpay. -->
                             <button
                                 type="button"
                                 class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60 disabled:pointer-events-none"
                                 onclick={() => openSettleModal(tx)}
                                 disabled={!myId}
                             >
-                                <!-- Named by who pays whom and how much, then the action. -->
-                                {@render pair(tx)}
-                                {#if myId}<span class="sr-only">{$t('balance.mark_settled')}</span>{/if}
+                                <PaymentPair
+                                    from={{ name: label(tx.from), record: activeKimpay?.participantsById.get(tx.from) }}
+                                    to={{ name: label(tx.to), record: activeKimpay?.participantsById.get(tx.to) }}
+                                    amount={shown(tx)}
+                                />
                                 {#if myId}
+                                    <span class="sr-only">{$t('balance.mark_settled')}</span>
                                     <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
                                 {/if}
                             </button>
-                        {/if}
-                    {/each}
-                </ListGroup>
+                        {/each}
+                    </ListGroup>
+                {/if}
             </section>
         {/if}
 
         <section class="space-y-2 animate-slide-up">
-            <SectionLabel title={$t('readonly.balances')} actions={transactions.length > 0 ? undefined : displayIn} />
+            <SectionLabel title={$t('readonly.balances')} />
             <BalanceBars rows={balanceRows} currency={displayCurrency} />
         </section>
 

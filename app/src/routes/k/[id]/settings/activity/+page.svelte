@@ -111,6 +111,7 @@
       photos: 'expense.form.photos_label',
       icon: 'activity.field.icon',
       repeat: 'expense.repeat.label',
+      notes: 'expense.note.label',
   };
 
   const SPLIT_KEYS: Record<string, TranslationKey> = {
@@ -136,6 +137,8 @@
           case 'repeat':
               // A yes/no in lines logged before there was a choice (every month then).
               return s.repeat ? $t(`expense.repeat.${repeatFrequency(s.repeat === true ? 'month' : s.repeat)}`) : $t('expense.repeat.never');
+          case 'notes':
+              return s.notes || '—';
           default:
               return String(s[field]);
       }
@@ -174,8 +177,8 @@
         <a
             href="/k/{kimpayId}/settings"
             class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={$t('nav.group')}
-            title={$t('nav.group')}
+            aria-label={$t('nav.settings')}
+            title={$t('nav.settings')}
         >
             <ChevronLeft class="h-5 w-5" />
         </a>
@@ -208,7 +211,7 @@
                         {@const deleted = a.action.endsWith('_deleted')}
                         {@const lines = a.action === 'expense_updated' ? changes(a) : a.action === 'participant_payment_changed' ? handleChanges(a) : a.action === 'participant_defaults_changed' ? defaultsChanges(a) : []}
                         <div class="flex items-start gap-3 px-4 py-3" data-activity={a.action}>
-                            <IconTile size="sm" tone={a.action.startsWith('reimbursement_') ? 'success' : 'muted'} class="mt-0.5 text-foreground">
+                            <IconTile size="sm" tone="muted" class="mt-0.5 text-foreground">
                                 {#if isExpense(a) && !a.action.startsWith('reimbursement_')}
                                     {a.data.icon || DEFAULT_EXPENSE_EMOJI}
                                 {:else}

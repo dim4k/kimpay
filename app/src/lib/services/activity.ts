@@ -39,6 +39,8 @@ export interface ExpenseSnapshot {
     split: string;
     income: boolean;
     photos: number;
+    /** The note (lines logged since notes exist) */
+    notes?: string;
     /** How often it repeats, "" = not (a yes/no in older lines; lines logged since repetitions exist) */
     repeat?: RepeatFrequency | '' | boolean;
 }

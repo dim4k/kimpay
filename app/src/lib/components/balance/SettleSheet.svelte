@@ -3,19 +3,17 @@
     import { Calendar as CalendarIcon, Check } from "@lucide/svelte";
     import { t, locale } from '#lib/i18n.js';
     import type { Transaction } from '#lib/balance.js';
-    import { convert, formatAmount } from '#lib/services/currency.js';
+    import { convert, formatAmount, getSymbol } from '#lib/services/currency.js';
     import { fromMinor, toMinor } from '#lib/split.js';
-    import { formatDecimal, parseDecimal, sanitizeDecimal } from '#lib/utils/amount.js';
+    import { formatDecimal, parseDecimal } from '#lib/utils/amount.js';
     import { dayLabel, toLocalISODate } from '#lib/utils/date.js';
     import { Button } from '#lib/components/ui/button/index.js';
-    import { Input } from '#lib/components/ui/input/index.js';
-    import { Label } from '#lib/components/ui/label/index.js';
+    import AmountInput from '#lib/components/ui/AmountInput.svelte';
     import Calendar from '#lib/components/ui/Calendar.svelte';
     import ListGroup from '#lib/components/ui/ListGroup.svelte';
     import SummaryRow from '#lib/components/expense/SummaryRow.svelte';
     import Modal from '#lib/components/ui/modals/Modal.svelte';
     import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
-    import ModalActions from '#lib/components/ui/modals/ModalActions.svelte';
 
     interface Props {
         /** The suggested payment to record (null: closed) */
@@ -59,13 +57,6 @@
     let dateSummary = $derived(dayLabel(date, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }));
     let isSaving = $state(false);
 
-    function sanitize(e: Event) {
-        const el = e.currentTarget as HTMLInputElement;
-        const clean = sanitizeDecimal(el.value);
-        if (clean !== el.value) el.value = clean;
-        amount = clean;
-    }
-
     async function confirm() {
         if (!tx || value <= 0 || tooMuch || isSaving) return;
         isSaving = true;
@@ -81,32 +72,42 @@
     }
 </script>
 
-<Modal isOpen={!!tx} onClose={isSaving ? undefined : onClose} variant="sheet" label={$t('balance.settle.modal.title')}>
-    {#if tx}
+{#snippet footer()}
+    <Button size="lg" class="w-full" onclick={confirm} loading={isSaving} disabled={value <= 0 || tooMuch}>
+        <Check class="size-5!" />
+        {$t('balance.settle.confirm')}
+    </Button>
+{/snippet}
+
+<Modal isOpen={!!tx} onClose={isSaving ? undefined : onClose} variant="sheet" label={$t('balance.settle.modal.title')} footer={tx ? footer : undefined}>
+    {#snippet header()}
         <ModalHeader
             title={$t('balance.settle.modal.title')}
             description={$t('balance.settle.sheet.desc', { from, to })}
             align="start"
             onClose={isSaving ? undefined : onClose}
         />
+    {/snippet}
+    {#if tx}
 
+        <!-- The same amount as an expense's: what was paid, all of it by default. -->
         <div class="space-y-2">
-            <Label for="settle-amount">{$t('balance.settle.amount_label')}</Label>
-            <div class="flex items-center gap-2">
-                <Input
-                    id="settle-amount"
-                    type="text"
-                    inputmode="decimal"
-                    autocomplete="off"
-                    value={amount}
-                    oninput={sanitize}
-                    onkeydown={(e) => e.key === 'Enter' && confirm()}
-                    aria-invalid={tooMuch}
-                    class="text-lg font-semibold tabular-nums"
-                />
-                <span class="shrink-0 text-sm font-semibold text-muted-foreground">{tx.currency}</span>
-            </div>
-            <p class="text-sm {tooMuch ? 'text-destructive' : 'text-muted-foreground'}" aria-live="polite">
+            <AmountInput
+                id="settle-amount"
+                label={$t('balance.settle.amount_label')}
+                bind:value={amount}
+                invalid={tooMuch}
+                describedby="settle-amount-hint"
+                onenter={confirm}
+            >
+                {#snippet below()}
+                    <span class="flex h-8 items-center gap-1.5 rounded-control bg-muted px-2.5 text-xs font-medium">
+                        <span>{getSymbol(tx!.currency)}</span>
+                        <span>{tx!.currency}</span>
+                    </span>
+                {/snippet}
+            </AmountInput>
+            <p id="settle-amount-hint" class="text-center text-sm {tooMuch ? 'text-destructive' : 'text-muted-foreground'}" aria-live="polite">
                 {#if tooMuch}
                     {$t('balance.settle.too_much', { amount: formatAmount(due, tx.currency, $locale) })}
                 {:else if remaining > 0}
@@ -129,14 +130,5 @@
             </ListGroup>
         {/if}
 
-        <ModalActions>
-            <Button variant="secondary" onclick={onClose} disabled={isSaving}>
-                {$t('common.cancel')}
-            </Button>
-            <Button onclick={confirm} loading={isSaving} disabled={value <= 0 || tooMuch}>
-                <Check />
-                {$t('balance.settle.confirm')}
-            </Button>
-        </ModalActions>
     {/if}
 </Modal>

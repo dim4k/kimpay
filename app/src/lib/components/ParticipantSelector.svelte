@@ -1,11 +1,14 @@
 <script lang="ts">
     import type { Participant } from '#lib/types.js';
     import { t } from '#lib/i18n.js';
-    import { Plus } from '@lucide/svelte';
+    import { UserPlus } from '@lucide/svelte';
     import { slide } from 'svelte/transition';
     import Avatar from '#lib/components/ui/Avatar.svelte';
     import { haptic } from '#lib/utils/haptic.js';
+    import { NAME_MAX_LENGTH } from '#lib/constants.js';
     import { Label } from '#lib/components/ui/label/index.js';
+    import { Button } from '#lib/components/ui/button/index.js';
+    import { Input } from '#lib/components/ui/input/index.js';
 
     interface Props {
         /** List of available participants */
@@ -20,8 +23,8 @@
         hint?: string;
         /** Callback when selection changes */
         onSelectionChange: (selected: string[]) => void;
-        /** Callback to add a new participant */
-        onAddNew?: () => void;
+        /** Adds a member by name (the field under the list, as on the Members tab) */
+        onAdd?: (name: string) => Promise<void>;
         /** Show select all/none toggle (only for multi mode) */
         showToggleAll?: boolean;
         /** The label is read out only (the panel holding it says it already) */
@@ -35,7 +38,7 @@
         label,
         hint = '',
         onSelectionChange,
-        onAddNew,
+        onAdd,
         showToggleAll = false,
         hideLabel = false
     }: Props = $props();
@@ -82,6 +85,19 @@
         return selected.includes(participantId);
     }
 
+    // The field is free for the next name at once; the name comes back on failure.
+    let newName = $state('');
+    async function add() {
+        const name = newName.trim();
+        if (!name || !onAdd) return;
+        newName = '';
+        try {
+            await onAdd(name);
+        } catch {
+            if (!newName) newName = name;
+        }
+    }
+
     const selectedCount = $derived(selected.length);
     const allSelected = $derived(selected.length === participants.length);
 </script>
@@ -117,19 +133,22 @@
                 {p.name}
             </button>
         {/each}
-
-        {#if onAddNew}
-            <button
-                type="button"
-                onclick={onAddNew}
-                class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                aria-label={$t('expense.form.paid_by_new')}
-                title={$t('expense.form.paid_by_new')}
-            >
-                <Plus class="h-4 w-4" />
-            </button>
-        {/if}
     </div>
+
+    {#if onAdd}
+        <div class="flex gap-2 pt-2">
+            <Input
+                bind:value={newName}
+                maxlength={NAME_MAX_LENGTH}
+                placeholder={$t('settings.participants.placeholder')}
+                aria-label={$t('settings.participants.placeholder')}
+                onkeydown={(e) => e.key === 'Enter' && add()}
+            />
+            <Button size="icon" class="shrink-0" onclick={add} disabled={!newName.trim()} aria-label={$t('settings.participants.add')}>
+                <UserPlus />
+            </Button>
+        </div>
+    {/if}
 
     <div aria-live="polite">
         {#if mode === 'multi' && (selectedCount === 0 || refused)}

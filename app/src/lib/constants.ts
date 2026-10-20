@@ -5,6 +5,8 @@ import type { TranslationKey } from "#lib/locales/en.js";
 export const NAME_MAX_LENGTH = 24;
 /** A group's name: room for "Trip to Portugal, summer 2026", short enough for the header. */
 export const GROUP_NAME_MAX_LENGTH = 40;
+/** The note of an expense (PocketBase field `notes`) */
+export const NOTES_MAX_LENGTH = 500;
 
 // Emoji categories (labels are translated)
 export interface EmojiCategory {
@@ -103,6 +105,8 @@ export const STORAGE_KEYS = {
     EXPENSE_VIEW: 'kimpay_expense_view',
     /** Payment handles of a guest's profile (localStorage) */
     PAYMENT_HANDLES: 'kimpay_payment_handles',
+    /** Prefix: the "Getting started" card of a Kimpay closed (localStorage) */
+    SETUP_DISMISSED_PREFIX: 'kimpay_setup_dismissed_',
     /** Prefix: "show my payment links" card dismissed in a group (localStorage) */
     PAYMENT_NUDGE_DISMISSED_PREFIX: 'kimpay_payment_nudge_dismissed_',
     /** Groups archived on this device, without an account (localStorage) */
@@ -111,7 +115,7 @@ export const STORAGE_KEYS = {
     HAD_ACCOUNT: 'kimpay_had_account',
     /** Times the "swipe a group" hint was shown (localStorage) */
     SWIPE_HINT_SHOWN: 'kimpay_swipe_hint_shown',
-    /** Visits where the expense list explained its swipes (left: delete, right: edit) */
+    /** Visits where the expense list explained its swipe (left: delete) */
     EXPENSE_SWIPE_HINT_SHOWN: 'kimpay_expense_swipe_hint_shown',
     /** The group opened last on this device: where the app icon's shortcuts lead */
     LAST_GROUP: 'kimpay_last_group',

@@ -5,7 +5,8 @@
     import { LoaderCircle, SearchX } from '@lucide/svelte';
     import { t } from '#lib/i18n.js';
     import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-    import { confirmDiscard, expenseSheetUrl, type ExpenseSheetState } from '#lib/expenseSheet.js';
+    import { confirmDiscard, expenseSheetUrl, openExpenseSheet, type ExpenseSheetState } from '#lib/expenseSheet.js';
+    import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
     import ExpenseForm from '#lib/components/ExpenseForm.svelte';
     import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -72,6 +73,18 @@
         // The sheet leaves first: it would show the expense as missing otherwise.
         confirmDeleteExpense(activeKimpay, edited.id, async () => close());
     }
+
+    /** The same again (breakfast, fuel...): a new expense, filled in, in place of this one. */
+    function duplicateEdited() {
+        if (!edited) return;
+        const from = edited.id;
+        const duplicate = () => {
+            leaving = true;
+            openExpenseSheet(kimpayId, { from }, { replace: true });
+        };
+        if (form?.hasChanges()) confirmDiscard(duplicate);
+        else duplicate();
+    }
 </script>
 
 {#if shown}
@@ -83,7 +96,8 @@
                 {kimpayId}
                 initialData={edited}
                 title={$t('expense.edit.title')}
-                onDelete={deleteEdited}
+                onDelete={offlineStore.isOffline ? undefined : deleteEdited}
+                onDuplicate={duplicateEdited}
                 onClose={requestClose}
                 onSaved={close}
                 bind:this={form}

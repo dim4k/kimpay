@@ -62,12 +62,34 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         await addExpense(page, base, 'Flat', '100');
         await addExpense(page, base, 'Deposit back', '40', async () => {
-            await page.getByRole('switch', { name: 'Money received' }).click();
+            await page.getByRole('radio', { name: 'Money in' }).click();
         });
 
         // Other owes 50 for the flat, minus their 20 of the deposit Payer received.
         await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
         await expect(page.getByText('€30.00').first()).toBeVisible();
+    });
+
+    test('Records a reimbursement from the form, with the suggested amount', async ({ page }) => {
+        const base = await setupGroup(page, 'Payback Test');
+        await addExpense(page, base, 'Hotel', '100');
+
+        // Other owes 50: recorded from the form, as a reimbursement to Payer.
+        await switchIdentity(page, 'Other');
+        await page.getByRole('link', { name: /add expense/i }).click();
+        const sheet = expenseSheet(page);
+        await sheet.getByRole('radio', { name: 'Reimbursement' }).click();
+        await expect(sheet.getByPlaceholder('What was it for?')).toBeHidden();
+        await expect(sheet.getByRole('button', { name: /^From/ })).toContainText('Other');
+        await expect(sheet.getByRole('button', { name: /^To/ })).toContainText('Payer');
+        await sheet.getByRole('button', { name: 'Use €50.00' }).click();
+        await expect(sheet.getByText('Balances after: You €0.00 · Payer €0.00')).toBeVisible();
+        await sheet.getByRole('button', { name: 'Record the reimbursement' }).click();
+        await expect(sheet).toBeHidden();
+
+        await expect(page.getByText('Reimbursement', { exact: true })).toBeVisible();
+        await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+        await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
     test('Searches and filters the expense list', async ({ page }) => {
@@ -78,7 +100,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByPlaceholder('Search').fill('TAXI');
         await expect(page.getByText('Taxi ride')).toBeVisible();
         await expect(page.getByText('Dinner')).toBeHidden();
-        await expect(page.getByText('1 result(s)')).toBeVisible();
+        await expect(page.getByText('1 result')).toBeVisible();
 
         await page.getByRole('button', { name: 'Clear' }).click();
         await expect(page.getByText('Dinner')).toBeVisible();
@@ -128,7 +150,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         const showHere = page.getByRole('switch', { name: 'Show my payment links here' });
         await expect(showHere).not.toBeChecked();
         await showHere.click();
-        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+        await expect(page.getByText('Your payment links are visible in this Kimpay')).toBeVisible();
     });
 
     test('Back from a payment link, asks whether it was paid', async ({ page, request }) => {
@@ -141,7 +163,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByRole('button', { name: 'Add a payment link' }).click();
         await page.getByLabel('PayPal.me').fill('payer.pp');
         await page.getByRole('button', { name: /^save$/i }).click();
-        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+        await expect(page.getByText('Your payment links are visible in this Kimpay')).toBeVisible();
         await switchIdentity(page, 'Other');
         await expect(page.getByText('Show amounts in')).toBeVisible();
 
@@ -160,7 +182,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
 
         const dialog = page.getByRole('dialog');
         await expect(dialog.getByText('Did you pay Payer?')).toBeVisible();
-        await dialog.getByRole('button', { name: 'Yes, mark as settled' }).click();
+        await dialog.getByRole('button', { name: "Yes, it's paid back" }).click();
         await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
@@ -175,7 +197,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByRole('button', { name: 'Add a payment link' }).click();
         await page.getByLabel('PayPal.me').fill('https://paypal.me/payer.pp');
         await page.getByRole('button', { name: /^save$/i }).click();
-        await expect(page.getByText('Your payment links are visible in this group')).toBeVisible();
+        await expect(page.getByText('Your payment links are visible in this Kimpay')).toBeVisible();
         await expect(page.getByText('Help Other pay you')).toBeHidden();
 
         // The profile keeps the link (cleaned up) and shows it in this group.
@@ -183,11 +205,12 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('switch', { name: 'Show my payment links here' })).toBeChecked();
         await page.getByRole('button', { name: /my payment links/i }).click();
         await expect(page.getByLabel('PayPal.me')).toHaveValue('payer.pp');
-        await page.getByRole('dialog', { name: 'My payment links' }).getByRole('button', { name: 'Cancel' }).click();
+        await page.getByRole('dialog', { name: 'My payment links' }).locator('header').getByRole('button', { name: 'Close' }).click();
 
-        // The read-only link is a setting of the group.
+        // The read-only link is a setting of the Kimpay, in its own sheet.
         await page.goto(`${base}/settings`);
-        await page.getByRole('button', { name: 'Create the link' }).click();
+        await page.getByRole('button', { name: /Read-only link/ }).click();
+        await page.getByRole('dialog', { name: 'Read-only link' }).getByRole('button', { name: 'Create the link' }).click();
         const link = page.locator('span.font-mono', { hasText: '/r/' });
         await expect(link).toBeVisible();
         const url = (await link.textContent())!.trim();
@@ -202,17 +225,18 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await expect(page.getByRole('heading', { name: 'Readonly Test' })).toBeVisible();
         await expect(page.getByText('Read only')).toBeVisible();
         await expect(page.getByText('Museum')).toBeVisible();
-        // The lines open like in the app, without any action.
+        // The lines open their details, without any action.
         await page.getByRole('button', { name: /Museum/ }).click();
-        await expect(page.locator('dt', { hasText: /^Date$/ })).toBeVisible();
+        await expect(page.getByRole('dialog', { name: 'Museum' }).locator('dt', { hasText: /^Date$/ })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
         // A summary is for reading: no payment buttons.
         await expect(page.getByRole('link', { name: /pay payer with paypal/i })).toHaveCount(0);
 
         // Once disabled, the link stops working.
         await page.goto(`${base}/settings`);
-        await page.getByRole('button', { name: 'Disable the link' }).click();
-        await page.getByRole('dialog').getByRole('button', { name: 'Disable the link' }).click();
+        await page.getByRole('button', { name: /Read-only link/ }).click();
+        await page.getByRole('dialog', { name: 'Read-only link' }).getByRole('button', { name: 'Disable the link' }).click();
+        await page.getByRole('dialog', { name: 'Disable the read-only link?' }).getByRole('button', { name: 'Disable the link' }).click();
         await page.goto(url);
         await expect(page.getByText('Link unavailable')).toBeVisible();
     });

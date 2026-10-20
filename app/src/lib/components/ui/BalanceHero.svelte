@@ -14,9 +14,11 @@
         tone?: Tone;
         /** Meta line below the amount (details, then an action) */
         children?: Snippet;
+        /** At the top right, next to the label (the currency of the page) */
+        action?: Snippet;
     }
 
-    let { label, amount, currency = 'EUR', text, tone = 'neutral', children }: Props = $props();
+    let { label, amount, currency = 'EUR', text, tone = 'neutral', children, action }: Props = $props();
 
     const surfaces: Record<Tone, string> = {
         success: 'bg-success-soft',
@@ -32,7 +34,10 @@
 
 <section class="rounded-card p-4 space-y-3 animate-pop-in {surfaces[tone]}">
     <div class="space-y-1">
-        <p class="text-sm font-medium text-foreground/70">{label}</p>
+        <div class="flex min-h-7 items-center justify-between gap-3">
+            <p class="text-sm font-medium text-foreground/70">{label}</p>
+            {#if action}{@render action()}{/if}
+        </div>
         <p class="text-display font-bold tracking-tight tabular-nums {inks[tone]}">
             {#if amount !== undefined}
                 <CountUp value={Math.abs(amount)} {currency} />

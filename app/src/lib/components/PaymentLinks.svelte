@@ -12,7 +12,7 @@
         currency: string;
         class?: string;
         /** A link was opened (to ask, back in the app, whether it was paid) */
-        onpay?: (service: string) => void;
+        onpay?: ((service: string) => void) | undefined;
     }
 
     let { to, amount, currency, class: className = '', onpay }: Props = $props();

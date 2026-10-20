@@ -7,10 +7,12 @@
         /** Accessible name of the group */
         label: string;
         onchange?: (value: T) => void;
+        /** Each option at least as wide as its label (long labels), the rest shared */
+        fit?: boolean;
         class?: string;
     }
 
-    let { options, value = $bindable(), label, onchange, class: className = '' }: Props = $props();
+    let { options, value = $bindable(), label, onchange, fit = false, class: className = '' }: Props = $props();
 
     function select(option: T) {
         if (option === value) return;
@@ -30,7 +32,7 @@
     }
 </script>
 
-<div role="radiogroup" aria-label={label} tabindex="-1" {onkeydown} class={cn("grid gap-1 rounded-full bg-muted p-1", className)} style="grid-template-columns: repeat({options.length}, minmax(0, 1fr));">
+<div role="radiogroup" aria-label={label} tabindex="-1" {onkeydown} class={cn("grid gap-1 rounded-full bg-muted p-1", className)} style="grid-template-columns: repeat({options.length}, minmax({fit ? 'max-content' : '0'}, 1fr));">
     {#each options as option (option.value)}
         <button
             type="button"

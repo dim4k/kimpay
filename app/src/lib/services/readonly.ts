@@ -12,6 +12,7 @@ interface ReadonlyResponse {
         exchange_rate: number;
         date: string;
         icon: string;
+        notes: string;
         payer: string;
         involved: string[];
         split: ExpenseSplit | null;

@@ -82,7 +82,7 @@ test.describe('Balance & Debts', () => {
     await expect(page).toHaveURL(/\/balance/);
 
     // 6. Verify I owe money (200/2 = 100) - look for the specific "You owe" text
-    await expect(page.getByText('You owe')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('You owe', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/100[.,]00/).first()).toBeVisible();
   });
 
@@ -102,13 +102,13 @@ test.describe('Balance & Debts', () => {
 
     // Debtor owes 50 and pays 20 of it: 30 left.
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
-    await page.getByRole('button', { name: 'Mark as settled' }).click();
+    await page.getByRole('button', { name: 'Mark as paid back' }).click();
     const sheet = page.getByRole('dialog');
     const amount = sheet.getByLabel('Amount paid');
     await expect(amount).toHaveValue('50');
     await amount.fill('80');
     await expect(sheet.getByText('At most €50.00, the amount due.')).toBeVisible();
-    await expect(sheet.getByRole('button', { name: 'Confirm Payment' })).toBeDisabled();
+    await expect(sheet.getByRole('button', { name: 'Record' })).toBeDisabled();
     await amount.fill('20');
     await expect(sheet.getByText('€30.00 will remain to be settled.')).toBeVisible();
 
@@ -126,7 +126,7 @@ test.describe('Balance & Debts', () => {
     await sheet.locator(`[data-iso="${iso(yesterday)}"]`).click();
     await expect(dateRow).toContainText('Yesterday');
 
-    await sheet.getByRole('button', { name: 'Confirm Payment' }).click();
+    await sheet.getByRole('button', { name: 'Record' }).click();
     await expect(sheet).toBeHidden();
 
     await expect(page.getByText('You are owed')).toBeVisible();
@@ -150,17 +150,17 @@ test.describe('Balance & Debts', () => {
     }
 
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
-    await expect(page.getByTestId('category-bar')).toHaveAttribute('aria-label', 'Food & Drinks 68%, Transport 32%');
+    await expect(page.getByTestId('category-bar')).toHaveAttribute('aria-label', 'Food & drinks 68%, Transport 32%');
 
     // A row opens the category's sheet, not another page: my part first,
     // as the page shows it.
-    const food = page.getByRole('button', { name: /^Food & Drinks/ });
+    const food = page.getByRole('button', { name: /^Food & drinks/ });
     await food.click();
-    const sheet = page.getByRole('dialog', { name: 'Food & Drinks' });
+    const sheet = page.getByRole('dialog', { name: 'Food & drinks' });
     const amounts = sheet.getByTestId('category-amounts');
     await expect(amounts).toContainText('€21.00');
     await expect(amounts).toContainText('68% of my share');
-    await expect(amounts).toContainText('Group total: €42.00');
+    await expect(amounts).toContainText('Kimpay total: €42.00');
     await expect(sheet.getByRole('listitem').first()).toContainText('Pizza night');
     await expect(page).toHaveURL(/\/balance$/);
 
@@ -180,7 +180,7 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Taxi')).toBeHidden();
   });
 
-  test('The currency menu opens above the blocks below it', async ({ page }) => {
+  test('The currency of the page is chosen in a sheet, with a search', async ({ page }) => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
     await page.getByPlaceholder('New name').fill('Debtor');
@@ -195,14 +195,13 @@ test.describe('Balance & Debts', () => {
     await expect(page.getByText('Dinner')).toBeVisible();
 
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
-    await page.getByRole('button', { name: 'Currency' }).click();
-    // At the bottom of the menu, over the next blocks: the click must reach it.
-    const listbox = page.getByRole('listbox', { name: 'Currency' });
-    await listbox.press('End');
-    const option = listbox.getByRole('option').last();
-    const code = (await option.innerText()).trim().split(/\s+/).pop()!;
-    await option.click({ timeout: 3000 });
-    await expect(page.getByRole('button', { name: 'Currency' })).toContainText(code);
+    // The currency of the page, in its own sheet, found by its name.
+    await page.getByRole('button', { name: /^Currency/ }).click();
+    const sheet = page.getByRole('dialog', { name: 'Currency' });
+    await sheet.getByRole('searchbox').fill('dong');
+    await sheet.getByRole('radio', { name: /VND/ }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByRole('button', { name: /^Currency/ })).toContainText('VND');
   });
 
 });

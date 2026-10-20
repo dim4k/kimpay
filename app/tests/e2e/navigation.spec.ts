@@ -21,7 +21,7 @@ test.describe('Navigation & UX', () => {
     await expect(page).toHaveURL(/\/members/);
 
     // Go to the group settings
-    await page.getByRole('navigation').getByRole('link', { name: /^(group|groupe)$/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /^(settings|paramètres)$/i }).click();
     await expect(page).toHaveURL(/\/settings/);
 
     // Go back to Expenses
@@ -107,8 +107,8 @@ test.describe('Navigation & UX', () => {
     await expect(page.locator('[data-is-me="true"]').getByText('Navigator')).toBeVisible();
 
     // Invite: a sheet with the link (copy) and the QR code
-    await page.getByRole('button', { name: 'Invite to the group' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Invite to the group' });
+    await page.getByRole('button', { name: 'Invite', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Invite to the Kimpay' });
     const copyBtn = sheet.getByRole('button', { name: /copy link|copier/i });
     await expect(copyBtn).toBeVisible();
     await expect(copyBtn).toBeEnabled();
@@ -116,7 +116,7 @@ test.describe('Navigation & UX', () => {
   });
 
   test('Group page shows group info', async ({ page }) => {
-    await page.getByRole('navigation').getByRole('link', { name: /^(group|groupe)$/i }).click();
+    await page.getByRole('navigation').getByRole('link', { name: /^(settings|paramètres)$/i }).click();
 
     // Group name should be shown (header and group card), and editable
     await expect(page.getByText('Navigation Test').first()).toBeVisible();

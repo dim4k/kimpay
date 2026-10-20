@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Bug, Camera, Check, Coins, Download, Eye, Languages, LoaderCircle, LogOut, Pencil, Sun, UserPlus, Wallet } from "@lucide/svelte";
+    import { Bug, Camera, Coins, Download, Eye, Languages, LoaderCircle, LogOut, Pencil, Sun, UserPlus, Wallet } from "@lucide/svelte";
     import { slide } from 'svelte/transition';
     import { page } from '$app/state';
     import { t, locale, LOCALE_NAMES } from '#lib/i18n.js';
@@ -27,6 +27,7 @@
     import { Label } from '#lib/components/ui/label/index.js';
     import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
     import PaymentHandlesSheet from './PaymentHandlesSheet.svelte';
+    import ChoiceSheet from '#lib/components/ui/ChoiceSheet.svelte';
 
     interface Props {
         /** Close the sheet (before opening another dialog) */
@@ -292,22 +293,7 @@
                 <SegmentedControl options={themeOptions} value={$themeChoice} label={$t('menu.theme')} onchange={theme.choose} class="w-48" />
             {/snippet}
         </ListRow>
-        <ListRow icon={Languages} title={$t('menu.language')} value={LOCALE_NAMES[$locale] ?? $locale} onclick={() => isLangOpen = !isLangOpen} />
-        {#if isLangOpen}
-            <div class="space-y-0.5 px-2 pb-2" transition:slide={{ duration: 150 }}>
-                {#each Object.entries(LOCALE_NAMES) as [code, label] (code)}
-                    <button
-                        class="flex w-full items-center justify-between rounded-control px-3 py-2 text-sm font-medium transition-colors hover:bg-muted {$locale === code ? 'text-primary' : ''}"
-                        onclick={() => { locale.set(code); isLangOpen = false; }}
-                        aria-pressed={$locale === code}
-                        lang={code}
-                    >
-                        {label}
-                        {#if $locale === code}<Check class="h-4 w-4" />{/if}
-                    </button>
-                {/each}
-            </div>
-        {/if}
+        <ListRow icon={Languages} title={$t('menu.language')} value={LOCALE_NAMES[$locale] ?? $locale} onclick={() => isLangOpen = true} />
         {#if !installStore.isStandalone && (installStore.canInstall || installStore.isIOS)}
             <ListRow icon={Download} title={$t('settings.install.button')} onclick={() => installStore.install()} />
         {/if}
@@ -324,5 +310,14 @@
 
     <p class="text-center text-xs text-muted-foreground">Kimpay v{__APP_VERSION__}</p>
 </div>
+
+<ChoiceSheet
+    isOpen={isLangOpen}
+    title={$t('menu.language')}
+    choices={Object.entries(LOCALE_NAMES).map(([code, label]) => ({ value: code, label, lang: code }))}
+    value={$locale}
+    onselect={(code) => locale.set(code)}
+    onClose={() => isLangOpen = false}
+/>
 
 <PaymentHandlesSheet isOpen={isPaymentOpen} onClose={() => isPaymentOpen = false} onSaved={afterPaymentSaved} />

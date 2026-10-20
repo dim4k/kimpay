@@ -63,6 +63,7 @@ function rows({ expenses, participants, t, locale }: ExportInput) {
             involved: (e.involved || []).map((id) =>
                 shares && shares[id] !== undefined ? `${nameOf(id)} (${fixed(shares[id]!, currency)})` : nameOf(id),
             ),
+            notes: e.notes || '',
         };
     });
 }
@@ -94,11 +95,12 @@ export function toCsv(input: ExportInput): string {
         t('export.col.payer'),
         t('export.col.for'),
         t('export.col.type'),
+        t('export.col.note'),
     ];
     const { currency, balances, transfers } = summary(input);
     return [
         line(header),
-        ...rows(input).map((r) => line([r.date, r.description, r.amount, r.currency, r.payer, r.involved.join('; '), r.type])),
+        ...rows(input).map((r) => line([r.date, r.description, r.amount, r.currency, r.payer, r.involved.join('; '), r.type, r.notes])),
         '',
         line([t('export.meta.balances'), currency]),
         line([t('export.col.participant'), t('export.col.balance')]),
@@ -121,10 +123,10 @@ export function toMarkdown(input: ExportInput, date = new Date()): string {
         '',
         `## ${t('export.meta.expenses')}`,
         '',
-        `| ${t('export.col.icon')} | ${t('export.col.date')} | ${t('export.col.desc')} | ${t('export.col.amount')} | ${t('export.col.payer')} | ${t('export.col.for')} | ${t('export.col.type')} |`,
-        '|:---:|---|---|---|---|---|---|',
+        `| ${t('export.col.icon')} | ${t('export.col.date')} | ${t('export.col.desc')} | ${t('export.col.amount')} | ${t('export.col.payer')} | ${t('export.col.for')} | ${t('export.col.type')} | ${t('export.col.note')} |`,
+        '|:---:|---|---|---|---|---|---|---|',
         ...rows(input).map((r) =>
-            `| ${r.icon} | ${r.date} | ${mdCell(r.description)} | ${r.amount} ${r.currency} | ${mdCell(r.payer)} | ${mdCell(r.involved.join(', '))} | ${r.type} |`,
+            `| ${r.icon} | ${r.date} | ${mdCell(r.description)} | ${r.amount} ${r.currency} | ${mdCell(r.payer)} | ${mdCell(r.involved.join(', '))} | ${r.type} | ${mdCell(r.notes)} |`,
         ),
         '',
         `## ${t('export.meta.balances')} (${currency})`,

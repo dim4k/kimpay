@@ -77,6 +77,8 @@ export interface Expense {
     split?: ExpenseSplit | null;
     icon?: string;
     photos?: string[];
+    /** Free text: a deposit, where the receipt is... */
+    notes?: string;
     /** Repeated on this day of the month (1-31, see lib/repeat.ts); 0 = not repeated */
     repeat_day?: number;
     /** How often ("" = every month, as before there was a choice) */

@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { Wallet, Check, Plus, Search, Share2, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
+  import { Wallet, Check, Plus, Search, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
   import InviteSheet from '#lib/components/members/InviteSheet.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
+  import { hasJoined } from '#lib/utils/members.js';
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import IconTile from '#lib/components/ui/IconTile.svelte';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
   import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
   import { openExpenseSheet, opensExpenseSheet } from '#lib/expenseSheet.js';
@@ -18,9 +18,9 @@
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
-  import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
+  import ExpenseDetailsSheet from '#lib/components/expense/ExpenseDetailsSheet.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -147,6 +147,7 @@
           if (query) {
               const text = [
                   e.is_reimbursement ? $t('balance.reimbursement') : e.description,
+                  e.notes ?? '',
                   e.expand?.payer?.name ?? '',
                   ...(e.expand?.involved?.map(p => p.name) ?? []),
               ].join(' ');
@@ -308,29 +309,40 @@
       document.querySelector(`[data-expense="${first.id}"]`)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
   }
 
-  // Accordion State
-  let expandedId = $state<string | null>(null);
+  // A line touched opens its sheet: the form for an expense, the details for
+  // a reimbursement (only cancelled). Opened, a new line is seen: its dot goes.
+  let reimbursementId = $state<string | null>(null);
+  let openedReimbursement = $derived(reimbursementId ? rawExpenses.find((e) => e.id === reimbursementId) ?? null : null);
 
-  // Opening a new line: seen, its dot goes.
-  function toggleExpand(id: string) {
-      if (expandedId === id) {
-          expandedId = null;
-      } else {
-          expandedId = id;
-          activeKimpay?.markSeen([id]);
-      }
+  function openExpense(expense: Expense) {
+      activeKimpay?.markSeen([expense.id]);
+      if (expense.is_reimbursement) reimbursementId = expense.id;
+      else openExpenseSheet(kimpayId, { expenseId: expense.id });
   }
 
-  function openGallery(expense: Expense, start: number) {
-      if (expense.photos && expense.photos.length > 0) {
-          modals.gallery({ photos: expense.photos, record: expense, start });
-      }
+  function cancelReimbursement(id: string) {
+      reimbursementId = null;
+      requestDelete(id);
   }
 
-  // A group without expenses yet (just created): who is in comes first. Once
-  // it is used, the Members tab takes over (with a dot while I am alone).
-  let isSettingUp = $derived(!isLoading && !!activeKimpay?.kimpay && rawExpenses.length === 0 && !offlineStore.isOffline);
+  // A new Kimpay: its two first steps (who is in, the first expense) in one
+  // card, until both are done or the card is closed. The Members tab then
+  // takes over (with a dot while I am alone).
   let others = $derived(participants.filter(p => p.id !== currentUserId));
+  let joinedCount = $derived(participants.filter(p => hasJoined(p, currentUserId)).length);
+  let membersDone = $derived(others.length > 0);
+  let expenseDone = $derived(rawExpenses.length > 0);
+  let setupKey = $derived(`${STORAGE_KEYS.SETUP_DISMISSED_PREFIX}${kimpayId}`);
+  // Read again for each Kimpay; set right away when closed.
+  let setupDismissed = $derived(prefs.get(setupKey) === 'true');
+  let showSetup = $derived(
+      !isLoading && !!activeKimpay?.kimpay && !offlineStore.isOffline && !setupDismissed && !(membersDone && expenseDone)
+  );
+
+  function dismissSetup() {
+      setupDismissed = true;
+      prefs.set(setupKey, 'true');
+  }
   let newMember = $state("");
   let isInviteOpen = $state(false);
 
@@ -382,7 +394,7 @@
       openExpenseSheet(kimpayId);
   }
 
-  // The swipes of an expense (left: delete, right: edit) are explained on the
+  // The swipe of an expense (left: delete) is explained on the
   // first two visits with something to swipe, then left to be known (as the
   // groups' swipe on the home page). Phones only: no swipe with a mouse.
   const swipeHintShown = Number(prefs.get(STORAGE_KEYS.EXPENSE_SWIPE_HINT_SHOWN) ?? 0);
@@ -437,42 +449,87 @@
 
   <OfflineBanner message={$t('expense.offline_warning')} />
 
-  {#if isSettingUp}
-      <!-- A new group: the names of the others, then the link to send them. -->
-      <section class="space-y-3 rounded-card border bg-card p-4 animate-pop-in" aria-labelledby="setup-title">
-          <div class="flex items-center gap-3">
-              <IconTile tone="primary"><UserPlus /></IconTile>
-              <div class="min-w-0 flex-1">
-                  <h2 id="setup-title" class="text-base font-semibold">{$t('members.setup.title')}</h2>
-                  <p class="text-sm text-muted-foreground">{others.length === 0 ? $t('members.setup.desc') : $t('members.setup.desc_more')}</p>
+  {#snippet step(n: number, done: boolean)}
+      <span
+          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold {done ? 'bg-primary text-primary-foreground' : 'bg-primary-soft text-primary-soft-foreground'}"
+          aria-label={done ? $t('setup.done') : undefined}
+      >
+          {#if done}<Check class="h-3.5 w-3.5" strokeWidth={3} />{:else}{n}{/if}
+      </span>
+  {/snippet}
+
+  {#if showSetup}
+      <!-- A new Kimpay: the names of the others and their link, then the first expense. -->
+      <section class="space-y-4 rounded-card border bg-card p-4 animate-pop-in" aria-labelledby="setup-title" data-testid="setup-card">
+          <div class="flex items-center justify-between gap-2">
+              <h2 id="setup-title" class="text-base font-semibold">{$t('setup.title')}</h2>
+              <button
+                  type="button"
+                  onclick={dismissSetup}
+                  class="-my-2 -mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label={$t('common.close')}
+                  title={$t('common.close')}
+              >
+                  <X class="h-4 w-4" />
+              </button>
+          </div>
+
+          <div class="flex gap-3">
+              {@render step(1, membersDone)}
+              <div class="min-w-0 flex-1 space-y-3">
+                  <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+                      <h3 class="text-base font-medium">{$t('members.setup.title')}</h3>
+                      {#if membersDone}
+                          <span class="text-sm text-muted-foreground">{$t('setup.joined', { joined: String(joinedCount), count: String(participants.length) })}</span>
+                      {/if}
+                  </div>
+                  <p class="text-sm text-muted-foreground">{membersDone ? $t('members.setup.desc_more') : $t('members.setup.desc')}</p>
+                  {#if others.length > 0}
+                      <ul class="flex flex-wrap gap-2" aria-label={$t('nav.members')}>
+                          {#each others as p (p.id)}
+                              <li class="flex h-9 items-center gap-2 rounded-full bg-muted pl-1 pr-3 text-sm font-medium">
+                                  <Avatar name={p.name} record={p} class="h-7 w-7 text-[0.625rem]" />
+                                  {p.name}
+                              </li>
+                          {/each}
+                      </ul>
+                  {/if}
+                  <div class="flex gap-2">
+                      <Input
+                          bind:value={newMember}
+                          maxlength={NAME_MAX_LENGTH}
+                          placeholder={$t('settings.participants.placeholder')}
+                          aria-label={$t('settings.participants.placeholder')}
+                          onkeydown={(e) => e.key === 'Enter' && addMember()}
+                      />
+                      <Button size="icon" class="shrink-0" onclick={addMember} disabled={!newMember.trim()} aria-label={$t('settings.participants.add')}>
+                          <Plus />
+                      </Button>
+                  </div>
+                  <Button variant="soft" class="w-full" onclick={() => isInviteOpen = true}>
+                      <UserPlus />
+                      {$t('members.invite_short')}
+                  </Button>
               </div>
           </div>
-          {#if others.length > 0}
-              <ul class="flex flex-wrap gap-2" aria-label={$t('nav.members')}>
-                  {#each others as p (p.id)}
-                      <li class="flex h-9 items-center gap-2 rounded-full bg-muted pl-1 pr-3 text-sm font-medium">
-                          <Avatar name={p.name} record={p} class="h-7 w-7 text-[0.625rem]" />
-                          {p.name}
-                      </li>
-                  {/each}
-              </ul>
-          {/if}
-          <div class="flex gap-2">
-              <Input
-                  bind:value={newMember}
-                  maxlength={NAME_MAX_LENGTH}
-                  placeholder={$t('settings.participants.placeholder')}
-                  aria-label={$t('settings.participants.placeholder')}
-                  onkeydown={(e) => e.key === 'Enter' && addMember()}
-              />
-              <Button size="icon" class="shrink-0" onclick={addMember} disabled={!newMember.trim()} aria-label={$t('settings.participants.add')}>
-                  <Plus />
-              </Button>
+
+          <div class="border-t"></div>
+
+          <div class="flex gap-3">
+              {@render step(2, expenseDone)}
+              <div class="min-w-0 flex-1 space-y-3">
+                  <h3 class="text-base font-medium">{$t('setup.first_expense')}</h3>
+                  {#if !expenseDone}
+                      <div class="flex flex-col gap-2">
+                          <Button href="/k/{kimpayId}/add" onclick={opensExpenseSheet(kimpayId)} size="lg" class="w-full">
+                              <Plus class="size-5!" />
+                              {$t('expense.list.empty.add')}
+                          </Button>
+                          <ReceiptScanner variant="action" onPick={scanFromList} />
+                      </div>
+                  {/if}
+              </div>
           </div>
-          <Button variant="soft" class="w-full" onclick={() => isInviteOpen = true}>
-              <Share2 />
-              {$t('members.setup.send_link')}
-          </Button>
       </section>
   {/if}
 
@@ -662,7 +719,7 @@
               <Search class="h-12 w-12" />
           {/snippet}
       </EmptyState>
-  {:else if expenses.length === 0}
+  {:else if expenses.length === 0 && !showSetup}
       <EmptyState
           title={$t('expense.list.empty.title')}
           description={$t('expense.list.empty.desc')}
@@ -697,13 +754,9 @@
                           {expense}
                           {currentUserId}
                           {participantIds}
-                          {expandedId}
-                          {kimpayId}
-                          onToggleExpand={toggleExpand}
+                          onOpen={openExpense}
                           onRequestDelete={requestDelete}
-                          onOpenGallery={openGallery}
                           {view}
-                          participantsById={activeKimpay?.participantsById ?? new Map()}
                           kimpayCurrency={kimpayC}
                           {exchangeRates}
                           isNew={newIds.has(expense.id)}
@@ -717,6 +770,17 @@
       {/each}
   {/if}
 </div>
+
+<ExpenseDetailsSheet
+    expense={openedReimbursement}
+    {currentUserId}
+    {participantIds}
+    participantsById={activeKimpay?.participantsById ?? new Map()}
+    kimpayCurrency={kimpayC}
+    {exchangeRates}
+    onClose={() => reimbursementId = null}
+    onCancelReimbursement={offlineStore.isOffline ? undefined : cancelReimbursement}
+/>
 
 <InviteSheet
     isOpen={isInviteOpen}

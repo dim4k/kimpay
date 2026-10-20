@@ -20,7 +20,8 @@ test.describe('Members & group settings', () => {
      await expect(page.getByText('Alice').first()).toBeVisible();
      // Nobody has paid yet: Alice can be removed, from her sheet.
      await page.locator('[data-is-me="false"]', { hasText: 'Alice' }).click();
-     await expect(page.getByRole('dialog').getByRole('button', { name: /delete participant/i })).toBeVisible();
+     await page.getByRole('dialog').getByRole('button', { name: 'Rename, merge or delete' }).click();
+     await expect(page.getByRole('dialog').getByRole('button', { name: 'Delete member?' })).toBeVisible();
   });
 
   test('Renames a member', async ({ page }) => {
@@ -29,6 +30,7 @@ test.describe('Members & group settings', () => {
      await page.locator('[data-participant-id]', { hasText: 'Alcie' }).click();
 
      const sheet = page.getByRole('dialog');
+     await sheet.getByRole('button', { name: 'Rename, merge or delete' }).click();
      await sheet.getByLabel('Name').fill('Alice');
      await sheet.getByRole('button', { name: 'Save' }).click();
      await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toBeVisible();
@@ -53,6 +55,7 @@ test.describe('Members & group settings', () => {
 
      await page.goto(`${base}/members`);
      await page.locator('[data-participant-id]', { hasText: 'Bob M.' }).click();
+     await page.getByRole('dialog').getByRole('button', { name: 'Rename, merge or delete' }).click();
      await page.getByRole('dialog').getByRole('button', { name: 'Bob', exact: true }).click();
      await page.getByRole('dialog').getByRole('button', { name: 'Merge' }).click();
      await expect(page.getByText('Merged into Bob')).toBeVisible();
@@ -81,11 +84,11 @@ test.describe('Members & group settings', () => {
      await page.getByRole('button', { name: /save expense/i }).first().click();
      await expect(page.getByText('Dinner')).toBeVisible();
 
-     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
      await page.getByRole('button', { name: 'Edit' }).click();
-     const sheet = page.getByRole('dialog');
-     await sheet.getByRole('button', { name: 'Currency' }).click();
-     await sheet.getByRole('option', { name: /USD/ }).click();
+     const sheet = page.getByRole('dialog', { name: 'Edit Kimpay' });
+     await sheet.getByRole('button', { name: /Currency/ }).click();
+     await page.getByRole('dialog', { name: 'Currency' }).getByRole('radio', { name: /USD/ }).click();
      await sheet.getByRole('button', { name: 'Save' }).click();
 
      const confirm = page.getByRole('dialog', { name: 'Switch the Kimpay to USD?' });
@@ -118,12 +121,12 @@ test.describe('Members & group settings', () => {
   });
 
   test('Tells a creator without an account how to delete the group', async ({ page }) => {
-     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
      await expect(page.getByRole('button', { name: /delete kimpay/i })).toContainText('Create a free account');
   });
 
   test('Lets the creator delete the group once logged in on this device', { tag: '@chromium-only' }, async ({ page, request }) => {
-     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
      const kimpayId = new URL(page.url()).pathname.split('/')[2];
      // The account claims the creator and, with this device's creator key,
      // becomes the group's owner.
@@ -139,7 +142,7 @@ test.describe('Members & group settings', () => {
   });
 
   test('Archives the Kimpay from its settings, and unarchives it', async ({ page }) => {
-     await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+     await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
      await expect(page).toHaveURL(/\/settings$/);
      const settings = page.url();
      await page.getByRole('button', { name: /^archive kimpay/i }).click();
@@ -155,7 +158,7 @@ test.describe('Members & group settings', () => {
   });
 
   test('Verify Offline Buttons (Online Mode)', async ({ page }) => {
-    await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
     // Ensure critical buttons are enabled when online
     const leaveBtn = page.getByRole('button', { name: /leave kimpay/i });
     await expect(leaveBtn).toBeEnabled();

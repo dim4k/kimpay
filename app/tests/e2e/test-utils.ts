@@ -15,10 +15,10 @@ export async function createKimpay(page: Page, kimpayName: string = 'Test Kimpay
         await page.goto('/');
     }
 
-    await page.getByLabel('Group name', { exact: true }).fill(kimpayName);
+    await page.getByLabel('Kimpay name', { exact: true }).fill(kimpayName);
     await page.getByLabel('Your first name').fill(creatorName);
     
-    await page.getByRole('button', { name: /^(create the group|créer le groupe)$/i }).click();
+    await page.getByRole('button', { name: /^(create the kimpay|créer le kimpay)$/i }).click();
     
     // Wait for redirection to dashboard
     await expect(page).toHaveURL(/\/k\//);

@@ -4,7 +4,7 @@ import { t } from '#lib/i18n.js';
 import { modals } from '#lib/stores/modals.svelte.js';
 
 /** What the expense sheet shows: the form, or one of its panels. */
-export type ExpenseView = 'main' | 'payer' | 'involved' | 'split' | 'date' | 'repeat';
+export type ExpenseView = 'main' | 'payer' | 'involved' | 'split' | 'date' | 'repeat' | 'note' | 'to';
 
 /**
  * The expense form, open in a sheet over the group's pages (shallow
@@ -33,13 +33,16 @@ export function expenseSheetUrl(kimpayId: string, { expenseId, from, scan }: Tar
     return `/k/${kimpayId}/add${scan ? '?scan' : ''}`;
 }
 
-/** Opens the form in a sheet, over the page shown. */
-export function openExpenseSheet(kimpayId: string, target: Target = {}): Promise<void> {
+/**
+ * Opens the form in a sheet, over the page shown. `replace`: in place of the
+ * sheet open (a duplicate, from the expense it copies).
+ */
+export function openExpenseSheet(kimpayId: string, target: Target = {}, { replace = false } = {}): Promise<void> {
     const expenseSheet: ExpenseSheetState = { key: Date.now() };
     if (target.expenseId) expenseSheet.expenseId = target.expenseId;
     if (target.from) expenseSheet.from = target.from;
     if (target.scan) expenseSheet.scan = true;
-    return goto(expenseSheetUrl(kimpayId, target), { shallow: true, state: { expenseSheet } });
+    return goto(expenseSheetUrl(kimpayId, target), { shallow: true, replaceState: replace, state: { expenseSheet } });
 }
 
 /**

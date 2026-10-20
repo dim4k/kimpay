@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt } from './test-utils';
+import { createKimpay, dismissInstallPrompt, expenseSheet } from './test-utils';
 
 async function addExpense(page: Page, description: string, amount: string) {
     await page.getByRole('link', { name: /add expense/i }).click();
@@ -15,21 +15,24 @@ test.describe('Expense list', () => {
         await dismissInstallPrompt(page);
     });
 
-    test('a line is a button that opens its details', async ({ page }) => {
+    test('a line opens its sheet, read first, saved once changed', async ({ page }) => {
         await addExpense(page, 'Museum', '18');
         const line = page.getByRole('button', { name: /Museum/ });
-        await expect(line).toHaveAttribute('aria-expanded', 'false');
+        await expect(line).toHaveAttribute('aria-haspopup', 'dialog');
         await line.click();
-        await expect(line).toHaveAttribute('aria-expanded', 'true');
-        // The actions are next to the line, not inside it.
-        await expect(line.getByRole('button')).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+
+        const sheet = expenseSheet(page);
+        await expect(sheet.getByPlaceholder('What was it for?')).toHaveValue('Museum');
+        await expect(sheet.getByRole('button', { name: /update expense/i })).toHaveCount(0);
+        await sheet.getByPlaceholder('What was it for?').fill('Museum tickets');
+        await sheet.getByRole('button', { name: /update expense/i }).click();
+        await expect(page.getByRole('button', { name: /Museum tickets/ })).toBeVisible();
     });
 
     test('duplicate opens a filled-in new expense', async ({ page }) => {
         await addExpense(page, 'Breakfast', '12');
         await page.getByRole('button', { name: /Breakfast/ }).click();
-        await page.getByRole('button', { name: 'Duplicate' }).click();
+        await expenseSheet(page).getByRole('button', { name: 'Duplicate' }).click();
 
         await expect(page).toHaveURL(/\/add\?from=/);
         await expect(page.getByPlaceholder('What was it for?')).toHaveValue('Breakfast');
@@ -37,6 +40,26 @@ test.describe('Expense list', () => {
         await page.getByRole('button', { name: /save/i }).first().click();
 
         await expect(page.getByRole('button', { name: /Breakfast/ })).toHaveCount(2);
+    });
+
+    test('a note is kept, and found by the search', async ({ page }) => {
+        await page.getByRole('link', { name: /add expense/i }).click();
+        const sheet = expenseSheet(page);
+        await sheet.getByPlaceholder('What was it for?').fill('Hotel');
+        await sheet.getByPlaceholder('0.00').fill('120');
+        await sheet.getByRole('button', { name: /^Note/ }).click();
+        await sheet.getByRole('textbox', { name: 'Note' }).fill('Deposit, the rest on arrival');
+        await sheet.getByRole('button', { name: 'OK' }).click();
+        await expect(sheet.getByText('Deposit, the rest on arrival')).toBeVisible();
+        await sheet.getByRole('button', { name: /save/i }).first().click();
+        await expect(sheet).toBeHidden();
+        await expect(page.getByRole('button', { name: /Hotel/ })).toBeVisible();
+
+        const search = page.getByRole('searchbox', { name: 'Search' });
+        await search.fill('arrival');
+        await expect(search).toHaveValue('arrival');
+        await expect(page.getByRole('button', { name: /Hotel/ })).toBeVisible();
+        await expect(page.getByText('1 result')).toBeVisible();
     });
 
     test('three sorts, a second tap reverses', async ({ page }) => {

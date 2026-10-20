@@ -5,7 +5,6 @@
     import FieldError from '#lib/components/ui/FieldError.svelte';
     import Modal from '#lib/components/ui/modals/Modal.svelte';
     import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
-    import ModalActions from '#lib/components/ui/modals/ModalActions.svelte';
     import { toasts } from '#lib/stores/toasts.svelte.js';
     import { profileStore, type PaymentHandles } from '#lib/stores/profile.svelte.js';
     import { getErrorMessage } from '#lib/utils/errors.js';
@@ -76,14 +75,16 @@
     </div>
 {/snippet}
 
-<Modal {isOpen} {onClose} variant="sheet" label={$t('settings.payment.title')}>
-    <ModalHeader title={$t('settings.payment.title')} description={$t('settings.payment.desc')} align="start" />
+{#snippet footer()}
+    <Button size="lg" class="w-full" onclick={save} loading={isSaving}>{$t('common.save')}</Button>
+{/snippet}
+
+<Modal {isOpen} {onClose} variant="sheet" label={$t('settings.payment.title')} {footer}>
+    {#snippet header()}
+        <ModalHeader title={$t('settings.payment.title')} description={$t('settings.payment.desc')} align="start" {onClose} />
+    {/snippet}
     <div class="space-y-4">
         {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}
         {@render handleInput('revolut', 'Revolut.me', 'revolut.me/')}
     </div>
-    <ModalActions>
-        <Button variant="secondary" onclick={onClose}>{$t('common.cancel')}</Button>
-        <Button onclick={save} loading={isSaving}>{$t('common.save')}</Button>
-    </ModalActions>
 </Modal>

@@ -4,7 +4,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { Archive, ArchiveRestore, Copy, FileText, History, Link, LogOut, Pencil, Share2, Table, Trash2 } from "@lucide/svelte";
+  import { Archive, ArchiveRestore, Eye, FileText, History, Link, LogOut, Pencil, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { t, locale } from '#lib/i18n.js';
   import { auth } from '#lib/stores/auth.svelte.js';
@@ -16,7 +16,6 @@
   import { toasts } from '#lib/stores/toasts.svelte.js';
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { generateUUID } from '#lib/utils/id.js';
-  import { haptic } from '#lib/utils/haptic.js';
   import { toCsv, toMarkdown, exportFilename, downloadFile, type ExportFormat } from '#lib/utils/export.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
 
@@ -30,7 +29,7 @@
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import Modal from '#lib/components/ui/modals/Modal.svelte';
   import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
-  import ModalActions from '#lib/components/ui/modals/ModalActions.svelte';
+  import LinkShare from '#lib/components/LinkShare.svelte';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -129,6 +128,7 @@
   }
 
   function requestDisableReadonlyLink() {
+      isReadonlyOpen = false;
       modals.confirm({
           title: $t('settings.readonly.disable_title'),
           description: $t('settings.readonly.disable_desc'),
@@ -138,25 +138,8 @@
       });
   }
 
-  async function copyReadonlyLink() {
-      try {
-          await navigator.clipboard.writeText(readonlyLink);
-          haptic('light');
-          toasts.success($t('share.copy_success'));
-      } catch (err) {
-          console.error('Failed to copy', err);
-          toasts.error($t('share.copy_error'));
-      }
-  }
-
-  async function shareReadonlyLink() {
-      if (!navigator.share) return copyReadonlyLink();
-      try {
-          await navigator.share({ title: kimpay?.name ?? 'Kimpay', url: readonlyLink });
-      } catch {
-          // Share sheet dismissed.
-      }
-  }
+  // The read-only link: one line here, its sheet to give it or turn it off.
+  let isReadonlyOpen = $state(false);
 
   function requestLeave() {
       if (offlineStore.isOffline) return;
@@ -243,7 +226,7 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
-    <h1 class="sr-only">{$t('nav.group')}</h1>
+    <h1 class="sr-only">{$t('nav.settings')}</h1>
 
     <!-- The group -->
     <section class="flex items-center gap-3 rounded-card border bg-card p-4 animate-pop-in">
@@ -262,44 +245,18 @@
         {/if}
     </section>
 
-    {#if !offlineStore.isOffline}
-        <section class="space-y-2 animate-slide-up">
-            <SectionLabel title={$t('settings.readonly.title')} />
-            <div class="space-y-3 rounded-card border bg-card p-4">
-                <p class="text-sm text-muted-foreground">{$t('settings.readonly.desc')}</p>
-                {#if readonlyLink}
-                    <div class="flex items-center gap-2 rounded-control bg-muted px-3 py-2.5">
-                        <Link class="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span class="min-w-0 flex-1 truncate font-mono text-sm text-muted-foreground">{readonlyLink}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <Button variant="outline" onclick={copyReadonlyLink}>
-                            <Copy />
-                            {$t('share.copy_button')}
-                        </Button>
-                        <Button variant="outline" onclick={shareReadonlyLink}>
-                            <Share2 />
-                            {$t('nav.share')}
-                        </Button>
-                    </div>
-                    <Button variant="ghost-destructive" class="w-full" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
-                        <Trash2 />
-                        {$t('settings.readonly.disable')}
-                    </Button>
-                {:else}
-                    <Button variant="outline" class="w-full" onclick={() => setReadonlyLink(true)} loading={isUpdatingLink}>
-                        {#if !isUpdatingLink}<Link />{/if}
-                        {$t('settings.readonly.create')}
-                    </Button>
-                {/if}
-            </div>
-        </section>
-    {/if}
-
     <section class="space-y-2">
         <SectionLabel title={$t('settings.section.data')} />
         <ListGroup>
             <ListRow icon={History} title={$t('activity.title')} subtitle={$t('activity.desc')} href="/k/{kimpayId}/settings/activity" />
+            {#if !offlineStore.isOffline}
+                <ListRow
+                    icon={Eye}
+                    title={$t('settings.readonly.title')}
+                    value={readonlyLink ? $t('settings.readonly.on') : $t('settings.readonly.off')}
+                    onclick={() => isReadonlyOpen = true}
+                />
+            {/if}
             <ListRow icon={Table} title={$t('settings.export.as', { format: $t('settings.export.csv') })} onclick={() => handleExport('csv')} />
             <ListRow icon={FileText} title={$t('settings.export.as', { format: $t('settings.export.md') })} onclick={() => handleExport('md')} />
         </ListGroup>
@@ -331,8 +288,16 @@
     </section>
 </div>
 
-<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')}>
-    <ModalHeader title={$t('settings.edit_group')} align="start" />
+{#snippet editFooter()}
+    <Button size="lg" class="w-full" onclick={handleSave} loading={isSavingGroup} disabled={!editName.trim()}>
+        {$t('common.save')}
+    </Button>
+{/snippet}
+
+<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} footer={editFooter}>
+    {#snippet header()}
+        <ModalHeader title={$t('settings.edit_group')} align="start" onClose={() => isEditOpen = false} />
+    {/snippet}
     <div class="space-y-2">
         <Label for="group-name">{$t('home.create.name_label')}</Label>
         <div class="flex gap-2">
@@ -344,10 +309,20 @@
             <p class="text-sm text-muted-foreground">{$t('settings.currency.hint', { to: editCurrency })}</p>
         {/if}
     </div>
-    <ModalActions>
-        <Button variant="secondary" onclick={() => isEditOpen = false}>{$t('common.cancel')}</Button>
-        <Button onclick={handleSave} loading={isSavingGroup} disabled={!editName.trim()}>
-            {$t('common.save')}
+</Modal>
+
+<Modal isOpen={isReadonlyOpen} onClose={() => isReadonlyOpen = false} variant="sheet" label={$t('settings.readonly.title')}>
+    <ModalHeader title={$t('settings.readonly.title')} description={$t('settings.readonly.desc')} icon={Eye} align="start" onClose={() => isReadonlyOpen = false} />
+    {#if readonlyLink}
+        <LinkShare link={readonlyLink} shareTitle={kimpay?.name ?? 'Kimpay'} qrAlt={$t('settings.readonly.qr_alt')} />
+        <Button variant="ghost-destructive" class="w-full" onclick={requestDisableReadonlyLink} disabled={isUpdatingLink}>
+            <Trash2 />
+            {$t('settings.readonly.disable')}
         </Button>
-    </ModalActions>
+    {:else}
+        <Button size="lg" class="w-full" onclick={() => setReadonlyLink(true)} loading={isUpdatingLink}>
+            {#if !isUpdatingLink}<Link />{/if}
+            {$t('settings.readonly.create')}
+        </Button>
+    {/if}
 </Modal>

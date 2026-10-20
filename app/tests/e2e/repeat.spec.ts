@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, repeatExpenseNow } from './test-utils';
+import { closeExpenseSheet, createKimpay, dismissInstallPrompt, expenseSheet, repeatExpenseNow } from './test-utils';
 
 /** `repeat`: how often, as the form says it ("Every month"). */
 async function addExpense(page: Page, description: string, amount: string, repeat?: string) {
@@ -28,10 +28,10 @@ test.describe('Repeated expenses', () => {
         const rent = page.locator('[data-expense]', { hasText: 'Rent' });
         await expect(rent.getByRole('img', { name: 'Every month' })).toBeVisible();
 
-        // Its details say when the next one comes.
+        // Its sheet says when the next one comes.
         await rent.getByRole('button').first().click();
-        await expect(page.locator('dt', { hasText: /^Repeats$/ })).toBeVisible();
-        await expect(page.getByText(/Every month · next on/)).toBeVisible();
+        await expect(expenseSheet(page).getByText(/Every month · next on/)).toBeVisible();
+        await closeExpenseSheet(page);
 
         const id = await rent.getAttribute('data-expense');
         await repeatExpenseNow(request, id!);
@@ -53,9 +53,10 @@ test.describe('Repeated expenses', () => {
         await expect(basket.getByRole('img', { name: 'Every week' })).toBeVisible();
         const id = await basket.getAttribute('data-expense');
 
-        // Its details say how often.
+        // Its sheet says how often.
         await basket.getByRole('button').first().click();
-        await expect(page.getByText(/Every week · next on/)).toBeVisible();
+        await expect(expenseSheet(page).getByText(/Every week · next on/)).toBeVisible();
+        await closeExpenseSheet(page);
 
         await repeatExpenseNow(request, id!);
         await page.reload();
@@ -96,10 +97,10 @@ test.describe("App icon's shortcuts", () => {
     });
 });
 
-test('the swipes of an expense are explained on the first two visits', async ({ page }) => {
+test('the swipe of an expense is explained on the first two visits', async ({ page }) => {
     await createKimpay(page, 'Hint Group', 'Alice');
     await dismissInstallPrompt(page);
-    const hint = page.getByText('Swipe an expense left to delete it, right to edit it.');
+    const hint = page.getByText('Swipe an expense to the left to delete it.');
 
     // Nothing to swipe yet: not explained, not counted.
     await expect(hint).toHaveCount(0);

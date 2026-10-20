@@ -90,6 +90,7 @@ function readExpense(app, record) {
         split: (split && split.mode) || "equal",
         income: record.getBool("is_income"),
         photos: record.getStringSlice("photos").length,
+        notes: record.getString("notes"),
         // How often ("" = not repeated). A yes/no in lines logged before there was a choice.
         repeat: record.getInt("repeat_day") > 0 ? record.getString("repeat_every") || "month" : "",
     };

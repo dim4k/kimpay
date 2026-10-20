@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, Link, UserPlus } from "@lucide/svelte";
+  import { Check, ChevronRight, UserPlus } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
@@ -132,7 +132,7 @@
     {#if isAlone}
         <Button size="lg" class="w-full animate-pop-in" onclick={() => invite(null)}>
             <UserPlus class="size-5!" />
-            {$t('members.invite')}
+            {$t('members.invite_short')}
         </Button>
     {/if}
 
@@ -175,11 +175,15 @@
                                         {#if p.inactive}
                                             <span>{$t('members.inactive')}</span>
                                         {:else if !isMe}
-                                            <span class={joined ? 'text-success' : ''}>{joined ? $t('members.joined') : $t('members.not_joined')}</span>
+                                            {#if joined}
+                                                <span class="flex items-center gap-1"><Check class="h-3.5 w-3.5" aria-hidden="true" />{$t('members.joined')}</span>
+                                            {:else}
+                                                <span>{$t('members.not_joined')}</span>
+                                            {/if}
                                         {/if}
                                         {#if shares > 1}
                                             {#if p.inactive || !isMe}<span aria-hidden="true">·</span>{/if}
-                                            <span class="font-medium text-primary">{$t('members.shares', { count: String(shares) })}</span>
+                                            <span class="font-medium text-foreground">{$t('members.shares', { count: String(shares) })}</span>
                                         {/if}
                                     </span>
                                 {/if}
@@ -217,8 +221,8 @@
                         onclick={() => invite(null)}
                         class="flex w-full min-h-14 items-center gap-3 px-4 py-2 text-left text-base font-semibold text-primary transition-colors duration-150 last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
                     >
-                        <IconTile size="sm" tone="primary"><Link /></IconTile>
-                        {$t('members.share_link')}
+                        <IconTile size="sm" tone="primary"><UserPlus /></IconTile>
+                        {$t('members.invite_short')}
                     </button>
                 {/if}
             </ListGroup>

@@ -39,9 +39,8 @@ test.describe('Members', () => {
         await expect(bob.getByText('Not here yet')).toBeVisible();
         await expect(page.getByText('2 members · 1 joined')).toBeVisible();
 
-        // More than one member: inviting is a row of the list.
-        await expect(page.getByRole('button', { name: 'Invite to the group' })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Share the invite link' })).toBeVisible();
+        // More than one member: inviting is a row of the list, the big button is gone.
+        await expect(page.getByRole('button', { name: 'Invite', exact: true })).toHaveCount(1);
 
         await bob.getByRole('button', { name: 'Invite Bob' }).click();
         const sheet = page.getByRole('dialog', { name: 'Invite Bob' });
@@ -61,7 +60,7 @@ test.describe('Members', () => {
         // Alice sees him joined.
         await expect(bob).toHaveAttribute('data-joined', 'true', { timeout: 10000 });
         await expect(bob.getByText('Joined')).toBeVisible();
-        await expect(page.getByText('2 member(s)')).toBeVisible();
+        await expect(page.getByText('2 members')).toBeVisible();
     });
 
     test('someone else than the name suggested picks theirs', async ({ page, browser }) => {
@@ -90,16 +89,17 @@ test.describe('Members', () => {
         await expect(stats.getByText('€0.00', { exact: true })).toBeVisible();
         await expect(stats.getByText('€15.00', { exact: true })).toBeVisible();
         await expect(stats.getByText('−€15.00', { exact: true })).toBeVisible();
-        await expect(sheet.getByText('Bob owes you €15.00')).toBeVisible();
+        await expect(sheet.getByTestId('debt-card')).toContainText('Bob owes you');
+        await expect(sheet.getByTestId('debt-card')).toContainText('€15.00');
 
         // Recorded from here: settled.
-        await sheet.getByRole('button', { name: 'Mark as settled' }).click();
-        const settle = page.getByRole('dialog', { name: 'Settle Debt?' });
-        await settle.getByRole('button', { name: 'Confirm Payment' }).click();
+        await sheet.getByRole('button', { name: 'Mark as paid back' }).click();
+        const settle = page.getByRole('dialog', { name: 'Record a reimbursement' });
+        await settle.getByRole('button', { name: 'Record' }).click();
         await expect(settle).toBeHidden();
 
         await row(page, 'Bob').click();
-        await expect(sheet.getByTestId('member-settle')).toHaveCount(0);
+        await expect(sheet.getByTestId('debt-card')).toHaveCount(0);
         await sheet.getByRole('button', { name: 'See their expenses (2)' }).click();
         await expect(page).toHaveURL(/\/k\/[a-zA-Z0-9]+$/);
         await expect(page.getByRole('button', { name: 'Person' })).toContainText('Bob');
@@ -111,6 +111,7 @@ test.describe('Members', () => {
         await addMember(page, 'Carol');
         await row(page, 'Carol').click();
         const sheet = page.getByRole('dialog', { name: 'Carol' });
+        await sheet.getByRole('button', { name: /^In new expenses/ }).click();
         const include = sheet.getByRole('switch', { name: 'Ticked by default' });
         await include.click();
         await expect(include).toHaveAttribute('aria-checked', 'false');
@@ -128,6 +129,7 @@ test.describe('Members', () => {
         await addMember(page, 'Bob');
         await row(page, 'Bob').click();
         const sheet = page.getByRole('dialog', { name: 'Bob' });
+        await sheet.getByRole('button', { name: /^In new expenses/ }).click();
         await sheet.getByRole('button', { name: 'One share more' }).click();
         await expect(sheet.getByTestId('member-shares')).toHaveText('2');
         await page.keyboard.press('Escape');

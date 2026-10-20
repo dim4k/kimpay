@@ -3,7 +3,7 @@ import { createKimpay, dismissInstallPrompt, loginWithNewAccount, openMagicLink,
 
 async function logout(page: Page, { forgetDevice = false } = {}) {
     await openProfile(page);
-    await page.getByRole('button', { name: 'Logout' }).click();
+    await page.getByRole('button', { name: 'Log out' }).click();
     const dialog = page.getByRole('dialog', { name: 'Log out?' });
     if (forgetDevice) await dialog.getByRole('switch', { name: 'Remove my Kimpays from this device' }).click();
     await dialog.getByRole('button', { name: 'Log out' }).click();
@@ -30,9 +30,9 @@ test.describe('Account on this device', () => {
         await dismissInstallPrompt(page);
         await page.getByRole('button', { name: 'Find your Kimpays' }).click();
 
-        const dialog = page.getByRole('dialog', { name: 'Login / Recover' });
+        const dialog = page.getByRole('dialog', { name: 'Log in or recover' });
         await dialog.getByPlaceholder('name@example.com').fill('nobody@kimpay.test');
-        await dialog.getByRole('button', { name: 'Send Magic Link' }).click();
+        await dialog.getByRole('button', { name: 'Send magic link' }).click();
         await expect(dialog.getByText('If a Kimpay account exists for this address')).toBeVisible();
         await expect(dialog.getByText('No account? Then your Kimpays open again from their invite link.')).toBeVisible();
     });
@@ -65,7 +65,7 @@ test.describe('Account on this device', () => {
         await logout(page, { forgetDevice: true });
         await expect(page.getByRole('link', { name: /Borrowed Phone/ })).toBeHidden();
         // Nothing tells the next person an account was used here.
-        await expect(page.getByLabel('Group name', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('Kimpay name', { exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Welcome back!' })).toBeHidden();
 
         // Back with the next login.
@@ -85,7 +85,7 @@ test.describe('Account on this device', () => {
         await other.goto(kimpayUrl);
         const identity = other.getByRole('dialog');
         await identity.getByPlaceholder('Your name').fill('Bob');
-        await identity.getByRole('button', { name: 'Join as new' }).click();
+        await identity.getByRole('button', { name: 'Join' }).click();
         await expect(identity).toBeHidden();
         await dismissInstallPrompt(other);
 
@@ -101,7 +101,7 @@ test.describe('Account on this device', () => {
     test('Groups archived without an account join the account on login', { tag: '@chromium-only' }, async ({ page, browser, request }) => {
         await createKimpay(page, 'Old Trip', 'Alice');
         await dismissInstallPrompt(page);
-        await page.getByRole('navigation').getByRole('link', { name: 'Group', exact: true }).click();
+        await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
         await page.getByRole('button', { name: /^archive kimpay/i }).click();
         await expect(page).toHaveURL(/\/$/);
 

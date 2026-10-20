@@ -75,7 +75,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
         test('Home', async ({ page }) => {
             await setup(page);
-            await expect(page.getByLabel('Group name', { exact: true })).toBeVisible();
+            await expect(page.getByLabel('Kimpay name', { exact: true })).toBeVisible();
             await snapshot(page, `home-${colorScheme}`);
         });
 
@@ -84,7 +84,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await createKimpay(page, 'Trip to Lisbon', 'Alice');
             const kimpayUrl = page.url();
 
-            await expect(page.getByText('No expenses yet')).toBeVisible();
+            await expect(page.getByRole('region', { name: 'Getting started' })).toBeVisible();
             await snapshot(page, `expenses-empty-${colorScheme}`);
 
             // Second participant, from the members.
@@ -101,14 +101,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // Inviting: a sheet with the link and the QR code (both contain
             // the random group id).
-            await page.getByRole('button', { name: 'Share the invite link' }).click();
-            const invite = page.getByRole('dialog', { name: 'Invite to the group' });
+            await page.getByRole('button', { name: 'Invite', exact: true }).click();
+            const invite = page.getByRole('dialog', { name: 'Invite to the Kimpay' });
             await expect(invite.getByAltText(/QR code/i)).toBeVisible();
             await snapshot(page, `invite-${colorScheme}`, [invite.getByAltText(/QR code/i), invite.locator('.font-mono')]);
             await page.keyboard.press('Escape');
             await expect(invite).toBeHidden();
 
-            await navTo(page, /^group$/i);
+            await navTo(page, /^settings$/i);
             await expect(page.getByRole('button', { name: /leave kimpay/i })).toBeVisible();
             await snapshot(page, `group-settings-${colorScheme}`);
 
@@ -157,7 +157,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await expect(page.getByText('Bob').first()).toBeVisible();
             // The balance card shows its final amount.
             await expect(page.locator('section', { hasText: 'You are owed' }).getByText('€42.00', { exact: true })).toBeVisible();
-            await expect(page.getByText('Group total €84.00')).toBeVisible();
+            await expect(page.getByText('Kimpay total €84.00')).toBeVisible();
             await snapshot(page, `balance-${colorScheme}`);
 
 

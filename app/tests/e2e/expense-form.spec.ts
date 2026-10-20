@@ -65,9 +65,16 @@ test.describe('Expense form', () => {
         await expect(page).toHaveURL(/\/add$/);
     });
 
-    test('money received is a switch at the bottom', async ({ page }) => {
-        await page.getByRole('switch', { name: 'Money received' }).click();
+    test('the type comes first: money in is received by someone', async ({ page }) => {
+        await page.getByRole('radio', { name: 'Money in' }).click();
         await expect(page.getByRole('button', { name: /^received by/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^repeat/i })).toHaveCount(0);
+
+        // A reimbursement: from one member to another, nothing else to say.
+        await page.getByRole('radio', { name: 'Reimbursement' }).click();
+        await expect(page.getByRole('button', { name: /^from/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^for whom/i })).toHaveCount(0);
+        await expect(page.getByText(/^Missing: amount, who it goes to/)).toBeVisible();
     });
 
     test('save and add another stays on an empty form', async ({ page }) => {

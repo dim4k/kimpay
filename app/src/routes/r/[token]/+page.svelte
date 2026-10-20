@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { onMount } from 'svelte';
-    import { ArrowRight, CircleCheck, Eye, Link } from '@lucide/svelte';
+    import { CircleCheck, Eye, Link, Plus } from '@lucide/svelte';
     import { t, locale } from '#lib/i18n.js';
     import { fetchReadonlyKimpay, type ReadonlyKimpay } from '#lib/services/readonly.js';
     import { getExchangeRates, formatAmount } from '#lib/services/currency.js';
@@ -9,6 +9,10 @@
     import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
     import { dayLabel, groupByDay } from '#lib/utils/date.js';
     import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
+    import ExpenseDetailsSheet from '#lib/components/expense/ExpenseDetailsSheet.svelte';
+    import PaymentPair from '#lib/components/balance/PaymentPair.svelte';
+    import { Button } from '#lib/components/ui/button/index.js';
+    import type { Expense } from '#lib/types.js';
     import Badge from '#lib/components/ui/Badge.svelte';
     import IconTile from '#lib/components/ui/IconTile.svelte';
     import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
@@ -43,12 +47,13 @@
 
     const nameOf = (id: string) => byId.get(id)?.name ?? $t('common.unknown');
 
-    // The latest day first, as in the app; one line opened at a time.
+    // The latest day first, as in the app.
     let days = $derived(
         groupByDay([...(data?.expenses ?? [])].sort((a, b) => b.date.slice(0, 10).localeCompare(a.date.slice(0, 10))))
     );
     let participantIds = $derived((data?.participants ?? []).map((p) => p.id));
-    let expandedId = $state<string | null>(null);
+    // A line touched: its details, in a sheet.
+    let opened = $state<Expense | null>(null);
 </script>
 
 <svelte:head>
@@ -92,13 +97,12 @@
             {:else}
                 <ListGroup>
                     {#each transactions as tx, i (i)}
-                        <div class="flex items-center gap-3 px-4 py-3">
-                            <span class="flex min-w-0 flex-1 items-center gap-1.5 text-base font-medium">
-                                <span class="truncate">{nameOf(tx.from)}</span>
-                                <ArrowRight class="h-4 w-4 shrink-0 text-muted-foreground" aria-label={$t('balance.pays')} />
-                                <span class="truncate">{nameOf(tx.to)}</span>
-                            </span>
-                            <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(tx.amount, tx.currency, $locale)}</span>
+                        <div class="flex min-h-14 items-center gap-3 px-4 py-3">
+                            <PaymentPair
+                                from={{ name: nameOf(tx.from), record: byId.get(tx.from) }}
+                                to={{ name: nameOf(tx.to), record: byId.get(tx.to) }}
+                                amount={formatAmount(tx.amount, tx.currency, $locale)}
+                            />
                         </div>
                     {/each}
                 </ListGroup>
@@ -127,12 +131,7 @@
                                     readonly
                                     currentUserId={null}
                                     {participantIds}
-                                    {expandedId}
-                                    kimpayId=""
-                                    onToggleExpand={(id) => (expandedId = expandedId === id ? null : id)}
-                                    onRequestDelete={() => {}}
-                                    onOpenGallery={() => {}}
-                                    participantsById={byId}
+                                    onOpen={(expense) => (opened = expense)}
                                     kimpayCurrency={currency}
                                     exchangeRates={rates}
                                 />
@@ -143,8 +142,26 @@
             {/if}
         </section>
 
-        <p class="text-center text-xs text-muted-foreground">
-            {$t('readonly.footer')} <a href="/" class="font-semibold text-primary hover:underline">Kimpay</a>
-        </p>
+        <!-- Seen by someone outside the Kimpay: the app, in one tap. -->
+        <section class="space-y-3 rounded-card bg-primary-soft p-5 text-center">
+            <div class="space-y-1">
+                <h2 class="text-lg font-bold text-balance">{$t('readonly.cta.title')}</h2>
+                <p class="text-sm text-muted-foreground">{$t('readonly.cta.desc')}</p>
+            </div>
+            <Button href="/" class="w-full sm:w-auto">
+                <Plus />
+                {$t('home.tile.create')}
+            </Button>
+        </section>
     {/if}
 </div>
+
+<ExpenseDetailsSheet
+    expense={opened}
+    currentUserId={null}
+    {participantIds}
+    participantsById={byId}
+    kimpayCurrency={currency}
+    exchangeRates={rates}
+    onClose={() => (opened = null)}
+/>

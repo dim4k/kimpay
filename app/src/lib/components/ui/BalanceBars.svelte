@@ -40,7 +40,7 @@
             <span class="relative h-2.5" aria-hidden="true">
                 <span class="absolute -inset-y-1 left-1/2 w-px bg-border"></span>
                 {#if owed || owes}
-                    <span class="absolute inset-y-0 rounded-sm {owed ? 'left-1/2 bg-success' : 'right-1/2 bg-warning'}" style="width: {width(row.amount)}%"></span>
+                    <span class="absolute inset-y-0 rounded-[4px] {owed ? 'left-1/2 bg-success' : 'right-1/2 bg-warning'}" style="width: {width(row.amount)}%"></span>
                 {/if}
             </span>
             <span class="text-right font-semibold tabular-nums {owed ? 'text-success' : owes ? 'text-warning' : 'text-muted-foreground'}">
