@@ -112,7 +112,7 @@
     </Badge>
 {/snippet}
 
-<Modal isOpen={!!expense} {onClose} variant="sheet" label={title}>
+<Modal isOpen={!!expense} {onClose} variant="sheet" panel label={title}>
     {#if expense}
         <div class="flex items-center gap-3">
             <IconTile size="lg" tone="muted" class="text-foreground">

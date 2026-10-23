@@ -12,7 +12,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import ReceiptScanner from '#lib/components/ReceiptScanner.svelte';
   import { pendingReceipt } from '#lib/stores/pendingReceipt.js';
-  import { openExpenseSheet, opensExpenseSheet } from '#lib/expenseSheet.js';
+  import { confirmDiscard, expenseSheet, openExpenseSheet, opensExpenseSheet, showExpenseSheet } from '#lib/expenseSheet.js';
+  import { layout } from '#lib/stores/layout.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
   import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
   import Dropdown from '#lib/components/ui/Dropdown.svelte';
@@ -91,6 +92,8 @@
 
   let search = $state('');
   let showFilters = $state(false);
+  // Computers: the filters always in view (no button to show them).
+  let filtersShown = $derived(showFilters || layout.wide);
   // A member opened from the Members tab ("?person=ID"), applied once.
   const linkedPerson = page.url.searchParams.get('person');
   let personFilter = $state<string | null>(linkedPerson);
@@ -261,7 +264,8 @@
           frame = 0;
           const barBox = stuck.getBoundingClientRect();
           // The line right above the bar went up while the bar stayed: stuck.
-          isCompact = top.getBoundingClientRect().top < barBox.top - 1;
+          // Computers have the height for the full bar.
+          isCompact = !layout.wide && top.getBoundingClientRect().top < barBox.top - 1;
           if (!isCompact) return;
           let key: string | null = null;
           for (const section of scroller.querySelectorAll<HTMLElement>('[data-section]')) {
@@ -316,8 +320,25 @@
 
   function openExpense(expense: Expense) {
       activeKimpay?.markSeen([expense.id]);
-      if (expense.is_reimbursement) reimbursementId = expense.id;
-      else openExpenseSheet(kimpayId, { expenseId: expense.id });
+      if (!expense.is_reimbursement) {
+          reimbursementId = null;
+          showExpenseSheet(kimpayId, { expenseId: expense.id });
+          return;
+      }
+      // Beside the list (computers): in place of the expense open.
+      const open = expenseSheet.controls;
+      const show = () => {
+          open?.close();
+          reimbursementId = expense.id;
+      };
+      if (open?.hasChanges()) confirmDiscard(show);
+      else show();
+  }
+
+  /** The same again, from the line's hover actions (computers). */
+  function duplicateExpense(expense: Expense) {
+      reimbursementId = null;
+      showExpenseSheet(kimpayId, { from: expense.id });
   }
 
   function cancelReimbursement(id: string) {
@@ -444,7 +465,9 @@
     </button>
 {/snippet}
 
-<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4">
+<!-- Computers: wider, and once wide enough (no panel beside it), the
+     expenses in columns (see ExpenseItem). -->
+<div class="@container mx-auto w-full max-w-2xl space-y-5 px-4 py-4 lg:max-w-5xl">
   <h1 class="sr-only">{$t('nav.expenses')}</h1>
 
   <OfflineBanner message={$t('expense.offline_warning')} />
@@ -460,7 +483,7 @@
 
   {#if showSetup}
       <!-- A new Kimpay: the names of the others and their link, then the first expense. -->
-      <section class="space-y-4 rounded-card border bg-card p-4 animate-pop-in" aria-labelledby="setup-title" data-testid="setup-card">
+      <section class="space-y-4 rounded-card border bg-card p-4 animate-pop-in lg:mx-auto lg:max-w-2xl" aria-labelledby="setup-title" data-testid="setup-card">
           <div class="flex items-center justify-between gap-2">
               <h2 id="setup-title" class="text-base font-semibold">{$t('setup.title')}</h2>
               <button
@@ -595,6 +618,7 @@
                       <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                           type="search"
+                          id="expense-search"
                           bind:ref={searchInput}
                           bind:value={search}
                           placeholder={$t('filter.search_placeholder')}
@@ -607,7 +631,7 @@
                       onclick={() => showFilters = !showFilters}
                       aria-expanded={showFilters}
                       aria-label={$t('filter.toggle')}
-                      class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {showFilters || activeFilterCount > 0 ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
+                      class="relative flex h-11 w-11 shrink-0 md:hidden items-center justify-center rounded-control border bg-card transition-colors hover:bg-muted {showFilters || activeFilterCount > 0 ? 'border-primary/50 text-primary' : 'border-input text-muted-foreground'}"
                   >
                       <SlidersHorizontal class="h-4 w-4" />
                       {#if activeFilterCount > 0}
@@ -630,9 +654,9 @@
           </div>
       </div>
 
-      {#if showFilters || isFiltering}
+      {#if filtersShown || isFiltering}
       <div class="-mt-3 space-y-2">
-          {#if showFilters}
+          {#if filtersShown}
               <div class="flex flex-wrap gap-2">
                   <Dropdown position="bottom-left" label={$t('filter.person')} triggerClass={chipClass(!!personFilter)}>
                       {#snippet trigger()}
@@ -739,6 +763,25 @@
           {/snippet}
       </EmptyState>
   {:else}
+      <!-- A wide list: the columns' headings, the amount's sorting by amount. -->
+      {#if expenses.length > 0}
+      <div class="hidden items-center gap-3 border-b px-4 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground @3xl:flex">
+          <span class="w-10 shrink-0"></span>
+          <span class="min-w-0 flex-1">{$t('expense.list.col.expense')}</span>
+          <span class="w-40 shrink-0">{$t('expense.form.paid_by_label')}</span>
+          <span class="w-44 shrink-0">{$t('expense.list.col.for')}</span>
+          <!-- Over the room of the lines' hover actions. -->
+          <span class="hidden w-[4.75rem] shrink-0 pointer-fine:@3xl:block"></span>
+          <button
+              type="button"
+              onclick={() => chooseSort('amount')}
+              class="-my-1 w-32 shrink-0 rounded-md py-1 text-right uppercase transition-colors hover:text-foreground {sortKey === 'amount' ? 'text-primary' : ''}"
+              title={$t('sort.label')}
+          >
+              {sortLabel('amount')}
+          </button>
+      </div>
+      {/if}
       {#each sections as section, i (section.key)}
           <section class="space-y-2 animate-slide-up" data-section={section.key}>
               {#if section.label}
@@ -756,6 +799,8 @@
                           {participantIds}
                           onOpen={openExpense}
                           onRequestDelete={requestDelete}
+                          onDuplicate={duplicateExpense}
+                          selected={layout.wide && (page.state.expenseSheet?.expenseId === expense.id || reimbursementId === expense.id)}
                           {view}
                           kimpayCurrency={kimpayC}
                           {exchangeRates}

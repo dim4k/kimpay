@@ -24,7 +24,7 @@
      and above the install banner when it shows. Always in the page, so screen
      readers announce each toast added to it. -->
 <div
-    class="pointer-events-none fixed inset-x-4 z-200 flex flex-col items-center gap-2 {installStore.bannerVisible ? 'bottom-[calc(11rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]'}"
+    class="pointer-events-none fixed inset-x-4 z-200 flex flex-col items-center gap-2 {installStore.bannerVisible ? 'bottom-[calc(11rem+env(safe-area-inset-bottom))] md:bottom-32' : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] md:bottom-6'}"
     role="status"
     aria-live="polite"
 >

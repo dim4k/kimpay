@@ -42,6 +42,7 @@
   import { loadKeywords } from '#lib/emoji/search.js';
   import { suggestEmoji } from '#lib/emoji/suggest.js';
   import { confirmDiscard, type ExpenseView } from '#lib/expenseSheet.js';
+  import { layout } from '#lib/stores/layout.svelte.js';
 
   let {
       kimpayId,
@@ -129,6 +130,10 @@
       if (!sheet) return;
       goto(window.location.href, { shallow: true, state: { expenseSheet: { ...sheet, view: next } } });
   }
+
+  // Computers, a new expense (a window over the page): what is paid on the
+  // left, who and when on the right, a setting opened in place of the right.
+  let twoColumns = $derived(!initialData && layout.wide);
 
   function closeView() {
       if (view !== 'main') history.back();
@@ -665,6 +670,13 @@
   }
 </script>
 
+<!-- Ctrl+Enter (⌘ on Mac): saved; a new one stays open for the next. -->
+<svelte:window onkeydown={(e) => {
+    if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey) || e.defaultPrevented || view !== 'main' || isLoading || (initialData && !isDirty)) return;
+    e.preventDefault();
+    save(!initialData && !isReimbursement);
+}} />
+
 <!-- Only on the summary: a panel goes back with its chevron. -->
 {#snippet saveFooter()}
     <!-- The one save button, always in reach -->
@@ -690,12 +702,94 @@
     </div>
 {/snippet}
 
+<!-- One setting, changed in its panel (over the summary, or in place of
+     its right column). -->
+{#snippet setting()}
+        {#if view === 'payer'}
+            <ParticipantSelector
+                {participants}
+                selected={payer ? [payer] : []}
+                mode="single"
+                label={payerLabel}
+                hideLabel
+                onSelectionChange={handlePayerChange}
+                onAdd={(name) => addMember(name, 'payer')}
+            />
+        {:else if view === 'to'}
+            <ParticipantSelector
+                participants={participants.filter((p) => p.id !== payer)}
+                selected={to ? [to] : []}
+                mode="single"
+                label={$t('expense.form.to_label')}
+                hideLabel
+                onSelectionChange={handleToChange}
+                onAdd={(name) => addMember(name, 'to')}
+            />
+        {:else if view === 'involved'}
+            <ParticipantSelector
+                {participants}
+                selected={involved}
+                mode="multi"
+                label={$t('expense.form.for_whom_label')}
+                onSelectionChange={handleInvolvedChange}
+                onAdd={(name) => addMember(name, 'involved')}
+                showToggleAll={true}
+            />
+        {:else if view === 'split'}
+            <SplitEditor
+                involved={involvedParticipants}
+                bind:mode={splitMode}
+                bind:values={splitValues}
+                amount={amountValue}
+                {currency}
+                {weights}
+            />
+        {:else if view === 'date'}
+            <Calendar bind:value={date} label={$t('expense.form.date_label')} onselect={closeView} />
+        {:else if view === 'repeat'}
+            <ListGroup>
+                <div role="radiogroup" aria-label={$t('expense.repeat.label')} class="divide-y divide-border">
+                    {#each REPEAT_CHOICES as every (every)}
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={repeatEvery === every}
+                            onclick={() => chooseRepeat(every)}
+                            class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left text-base font-medium transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
+                        >
+                            <span class="flex-1">{$t(every ? `expense.repeat.${every}` : 'expense.repeat.never')}</span>
+                            {#if repeatEvery === every}
+                                <Check class="h-5 w-5 shrink-0 text-primary" />
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            </ListGroup>
+            <p class="mt-3 px-1 text-sm text-muted-foreground">{$t('expense.repeat.hint')}</p>
+        {:else if view === 'note'}
+            <div class="space-y-3">
+                <label for="expense-notes" class="sr-only">{$t('expense.note.label')}</label>
+                <textarea
+                    id="expense-notes"
+                    bind:value={notes}
+                    {@attach focused}
+                    maxlength={NOTES_MAX_LENGTH}
+                    rows="5"
+                    placeholder={$t('expense.note.placeholder')}
+                    class="w-full resize-none rounded-control border border-input bg-card px-3 py-2.5 text-base placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                ></textarea>
+                <Button class="w-full" onclick={closeView}>{$t('common.ok')}</Button>
+            </div>
+        {/if}
+{/snippet}
+
 <!-- Editing, the sheet is first the expense to read: its save button
-     shows once something changed. -->
-<Modal isOpen onClose={onClose} variant="sheet" label={title} footer={view === 'main' && (!initialData || isDirty) ? saveFooter : undefined}>
+     shows once something changed. On computers, an expense open is a panel
+     beside the list; a new one (or a copy) a window over the page. -->
+<Modal isOpen onClose={onClose} variant="sheet" panel={!!initialData} label={title} class={twoColumns ? 'md:min-h-[min(40rem,90dvh)] md:max-w-3xl' : ''} footer={(view === 'main' || twoColumns) && (!initialData || isDirty) ? saveFooter : undefined}>
     {#snippet header()}
         <div class="flex items-center gap-1">
-            {#if view !== 'main'}
+            {#if view !== 'main' && !twoColumns}
                 <button
                     type="button"
                     onclick={closeView}
@@ -707,8 +801,8 @@
                     <ChevronLeft class="h-5 w-5" />
                 </button>
             {/if}
-            <h2 class="min-w-0 flex-1 truncate text-xl font-bold">{viewTitle}</h2>
-            {#if view === 'main'}
+            <h2 class="min-w-0 flex-1 truncate text-xl font-bold">{twoColumns ? $t('expense.add.short') : viewTitle}</h2>
+            {#if view === 'main' || twoColumns}
                 {#if showScanButton}
                     <ReceiptScanner onPick={scan} busy={!!scanning} disabled={isLoading} />
                 {/if}
@@ -725,8 +819,10 @@
         </div>
     {/snippet}
 
-    <!-- The summary: kept (hidden) under a panel, so nothing typed is lost. -->
-    <div class="space-y-5" hidden={view !== 'main'}>
+    <!-- The summary: kept (hidden) under a panel, so nothing typed is lost.
+         In two columns, only its right column gives way to the panel. -->
+    <div class={twoColumns ? 'grid grid-cols-2 items-start gap-8' : 'space-y-5'} hidden={view !== 'main' && !twoColumns}>
+      <div class="space-y-5">
         <!-- What is recorded, first: the form shows what this type needs. -->
         <SegmentedControl options={kindOptions} value={kind} label={$t('activity.field.type')} onchange={chooseKind} fit />
 
@@ -800,7 +896,27 @@
             />
         </div>
         {/if}
+      </div>
 
+      {#if twoColumns && view !== 'main'}
+        <div class="space-y-4">
+            <div class="flex items-center gap-1">
+                <button
+                    type="button"
+                    onclick={closeView}
+                    {@attach focused}
+                    class="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-primary transition-colors hover:bg-primary-soft"
+                    aria-label={$t('common.back')}
+                    title={$t('common.back')}
+                >
+                    <ChevronLeft class="h-5 w-5" />
+                </button>
+                <h3 class="min-w-0 flex-1 truncate text-base font-semibold">{viewTitle}</h3>
+            </div>
+            {@render setting()}
+        </div>
+      {/if}
+      <div class="space-y-5" hidden={view !== 'main'}>
         <!-- Who: each line opens its panel. -->
         <ListGroup>
             <SummaryRow label={payerLabel} invalid={!payerParticipant} onclick={() => openView('payer')}>
@@ -925,89 +1041,16 @@
                 {/if}
             </div>
         {/if}
+      </div>
     </div>
 
     <!-- The panel open: one setting, changed over the summary. -->
-    {#if view !== 'main'}
+    {#if view !== 'main' && !twoColumns}
         <div {@attach scrolledToTop}>
-            {#if view === 'payer'}
-                <ParticipantSelector
-                    {participants}
-                    selected={payer ? [payer] : []}
-                    mode="single"
-                    label={payerLabel}
-                    hideLabel
-                    onSelectionChange={handlePayerChange}
-                    onAdd={(name) => addMember(name, 'payer')}
-                />
-            {:else if view === 'to'}
-                <ParticipantSelector
-                    participants={participants.filter((p) => p.id !== payer)}
-                    selected={to ? [to] : []}
-                    mode="single"
-                    label={$t('expense.form.to_label')}
-                    hideLabel
-                    onSelectionChange={handleToChange}
-                    onAdd={(name) => addMember(name, 'to')}
-                />
-            {:else if view === 'involved'}
-                <ParticipantSelector
-                    {participants}
-                    selected={involved}
-                    mode="multi"
-                    label={$t('expense.form.for_whom_label')}
-                    onSelectionChange={handleInvolvedChange}
-                    onAdd={(name) => addMember(name, 'involved')}
-                    showToggleAll={true}
-                />
-            {:else if view === 'split'}
-                <SplitEditor
-                    involved={involvedParticipants}
-                    bind:mode={splitMode}
-                    bind:values={splitValues}
-                    amount={amountValue}
-                    {currency}
-                    {weights}
-                />
-            {:else if view === 'date'}
-                <Calendar bind:value={date} label={$t('expense.form.date_label')} onselect={closeView} />
-            {:else if view === 'repeat'}
-                <ListGroup>
-                    <div role="radiogroup" aria-label={$t('expense.repeat.label')} class="divide-y divide-border">
-                        {#each REPEAT_CHOICES as every (every)}
-                            <button
-                                type="button"
-                                role="radio"
-                                aria-checked={repeatEvery === every}
-                                onclick={() => chooseRepeat(every)}
-                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left text-base font-medium transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
-                            >
-                                <span class="flex-1">{$t(every ? `expense.repeat.${every}` : 'expense.repeat.never')}</span>
-                                {#if repeatEvery === every}
-                                    <Check class="h-5 w-5 shrink-0 text-primary" />
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
-                </ListGroup>
-                <p class="mt-3 px-1 text-sm text-muted-foreground">{$t('expense.repeat.hint')}</p>
-            {:else if view === 'note'}
-                <div class="space-y-3">
-                    <label for="expense-notes" class="sr-only">{$t('expense.note.label')}</label>
-                    <textarea
-                        id="expense-notes"
-                        bind:value={notes}
-                        {@attach focused}
-                        maxlength={NOTES_MAX_LENGTH}
-                        rows="5"
-                        placeholder={$t('expense.note.placeholder')}
-                        class="w-full resize-none rounded-control border border-input bg-card px-3 py-2.5 text-base placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-                    ></textarea>
-                    <Button class="w-full" onclick={closeView}>{$t('common.ok')}</Button>
-                </div>
-            {/if}
+            {@render setting()}
         </div>
     {/if}
+
 
     <!-- Reading a receipt: the photo, full screen, until the result comes back. -->
     {#if scanning}

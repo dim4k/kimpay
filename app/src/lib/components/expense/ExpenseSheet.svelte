@@ -5,7 +5,7 @@
     import { LoaderCircle, SearchX } from '@lucide/svelte';
     import { t } from '#lib/i18n.js';
     import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-    import { confirmDiscard, expenseSheetUrl, openExpenseSheet, type ExpenseSheetState } from '#lib/expenseSheet.js';
+    import { confirmDiscard, expenseSheet, expenseSheetUrl, openExpenseSheet, sheetDepth, type ExpenseSheetState } from '#lib/expenseSheet.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
     import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
     import ExpenseForm from '#lib/components/ExpenseForm.svelte';
@@ -51,7 +51,7 @@
     function close() {
         leaving = true;
         const sheet = page.state.expenseSheet;
-        if (sheet) history.go(sheet.view && sheet.view !== 'main' ? -2 : -1);
+        if (sheet) history.go(-sheetDepth(sheet));
         else shown = null;
     }
 
@@ -85,6 +85,22 @@
         if (form?.hasChanges()) confirmDiscard(duplicate);
         else duplicate();
     }
+
+    // Beside the list (computers), the list and the keyboard act on it too.
+    $effect(() => {
+        if (!shown) return;
+        const controls = {
+            expenseId: shown.expenseId,
+            hasChanges: () => !!form?.hasChanges(),
+            requestClose,
+            close,
+            deleteShown: edited && !offlineStore.isOffline ? deleteEdited : undefined,
+        };
+        expenseSheet.controls = controls;
+        return () => {
+            if (expenseSheet.controls === controls) expenseSheet.controls = null;
+        };
+    });
 </script>
 
 {#if shown}
@@ -103,7 +119,7 @@
                 bind:this={form}
             />
         {:else}
-            <Modal isOpen onClose={close} variant="sheet" label={$t('expense.edit.title')}>
+            <Modal isOpen onClose={close} variant="sheet" panel label={$t('expense.edit.title')}>
                 <ModalHeader title={$t('expense.edit.title')} align="start" onClose={close} />
                 {#if isLoading}
                     <div class="flex justify-center py-8">

@@ -70,7 +70,7 @@
     }
 </script>
 
-<Modal isOpen={!!category} {onClose} variant="sheet" label={title}>
+<Modal isOpen={!!category} {onClose} variant="sheet" panel label={title}>
     {#if category && detail}
         <div class="flex items-center gap-3">
             <IconTile size="lg">{EMOJI_CATEGORIES[category]!.emojis[0]}</IconTile>

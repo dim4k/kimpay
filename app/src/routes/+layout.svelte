@@ -34,6 +34,17 @@
         mainEl?.scrollTo({ top: 0 });
     });
 
+    // The scrollbar's width: a panel on the right (computers) covers it, the
+    // page under it makes room for the rest.
+    $effect(() => {
+        const main = mainEl;
+        if (!main) return;
+        const measure = () => document.documentElement.style.setProperty('--scrollbar-width', `${main.offsetWidth - main.clientWidth}px`);
+        const observer = new ResizeObserver(measure);
+        observer.observe(main);
+        return () => observer.disconnect();
+    });
+
     // A new version was deployed: turn the next navigation into a full page
     // load so the old client never mixes stale chunks with the new build.
     beforeNavigate(({ willUnload, to, shallow, type }) => {

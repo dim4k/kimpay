@@ -79,7 +79,8 @@ test.describe('Expense Management', () => {
     await expect(picker.getByText('No emoji for “zzzz”')).toBeVisible();
   });
 
-  test('The bar shrinks to the day in view when the list scrolls', async ({ page }) => {
+  test('The bar shrinks to the day in view when the list scrolls', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Computers have the height for the full bar');
     for (let i = 1; i <= 10; i++) {
       await page.getByRole('link', { name: /add expense/i }).click();
       await page.getByPlaceholder('What was it for?').fill(`Item ${i}`);
@@ -116,7 +117,7 @@ test.describe('Expense Management', () => {
   // but we can check the UI toggle if present or just the type of expense.
   // For now, let's stick to basic expense.
 
-  test('Balance Verification: You are owed money', async ({ page }) => {
+  test('Balance Verification: You are owed money', async ({ page, isMobile }) => {
     // 1. Add another participant so we can share costs
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
@@ -152,8 +153,8 @@ test.describe('Expense Management', () => {
     await page.getByRole('radio', { name: 'Total' }).click();
     await expect(line.getByText('€50.00', { exact: true })).toBeVisible();
     await expect(line.getByText('owed to you')).toBeHidden();
-    // I am one of the 2 people: the count is a pill.
-    await expect(line.locator('.rounded-full', { hasText: '2 people' })).toBeVisible();
+    // I am one of the 2 people: the count is a pill (computers: "Everyone", in its column).
+    await expect(line.locator('.rounded-full:visible', { hasText: isMobile ? '2 people' : 'Everyone' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('radio', { name: 'Total' })).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('radio', { name: 'For me' }).click();

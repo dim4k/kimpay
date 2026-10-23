@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { createKimpay, dismissInstallPrompt, switchIdentity } from './test-utils';
+import { createKimpay, dismissInstallPrompt, expenseSheet, switchIdentity } from './test-utils';
 
 test.describe('Group history', () => {
-    test('shows who added, changed and deleted what', { tag: '@chromium-only' }, async ({ page }) => {
+    test('shows who added, changed and deleted what', { tag: '@chromium-only' }, async ({ page, isMobile }) => {
         await createKimpay(page, 'History Test', 'Alice');
         await dismissInstallPrompt(page);
         const base = page.url().replace(/\/$/, '');
@@ -25,7 +25,7 @@ test.describe('Group history', () => {
         // Bob deletes it, from this device.
         await switchIdentity(page, 'Bob');
         await page.getByRole('button', { name: /Taxi/ }).click();
-        await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        await expenseSheet(page).getByRole('button', { name: 'Delete', exact: true }).click();
         await page.getByRole('dialog', { name: 'Delete expense?' }).getByRole('button', { name: 'Delete' }).click();
         await expect(page.getByRole('button', { name: /Taxi/ })).toHaveCount(0);
 
@@ -48,9 +48,9 @@ test.describe('Group history', () => {
         await page.goto(base);
         await expect(page.getByRole('link', { name: /by others/ })).toHaveCount(0);
 
-        // Also reached from the Group tab.
+        // Also reached from the Settings tab (computers: beside the settings).
         await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
-        await page.getByRole('link', { name: /History/ }).click();
+        if (isMobile) await page.getByRole('link', { name: /History/ }).click();
         await expect(page.getByRole('heading', { name: 'History' })).toBeVisible();
     });
 });

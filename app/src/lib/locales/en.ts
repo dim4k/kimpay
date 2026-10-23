@@ -98,7 +98,6 @@ export const en = {
     "expense.list.items": "items",
     "expense.list.paid_by": "Paid by",
     "expense.list.for": "For",
-    "expense.list.reimbursement": "From {from} to {to}",
     "expense.list.empty.title": "No expenses yet",
     "expense.list.empty.desc": "Add the first one, or photograph a receipt.",
     "expense.list.empty.add": "Add an expense",
@@ -620,6 +619,20 @@ export const en = {
     "expense.reimbursement.save": "Record the reimbursement",
     "toast.reimbursement_added": "Reimbursement recorded!",
     "toast.income_added": "Money received added!",
+    "nav.add": "Add",
+    "shortcuts.title": "Keyboard shortcuts",
+    "shortcuts.search": "Search the expenses",
+    "shortcuts.move": "Previous or next expense",
+    "shortcuts.open": "Open the expense",
+    "shortcuts.delete": "Delete the expense",
+    "shortcuts.close": "Close the panel",
+    "shortcuts.help": "Show these shortcuts",
+    "shortcuts.key.enter": "Enter",
+    "shortcuts.key.delete": "Delete",
+    "shortcuts.key.escape": "Esc",
+    "shortcuts.drop_receipt": "Drop a receipt photo to read it",
+    "expense.list.col.expense": "Expense",
+    "expense.list.col.for": "For whom",
 } as const;
 
 export type TranslationKey = keyof typeof en;

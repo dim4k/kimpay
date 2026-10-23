@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { layout } from '#lib/stores/layout.svelte.js';
+  import ActivityFeed from '#lib/components/activity/ActivityFeed.svelte';
 
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
@@ -223,9 +225,13 @@
       }
   }
 
+  // Computers (lg): the history in a column of its own, instead of a page.
+  let historyBeside = $derived(layout.large);
+
 </script>
 
-<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
+<div class="mx-auto w-full max-w-2xl px-4 py-4 lg:grid lg:max-w-5xl lg:grid-cols-2 lg:items-start lg:gap-x-8">
+  <div class="space-y-6">
     <h1 class="sr-only">{$t('nav.settings')}</h1>
 
     <!-- The group -->
@@ -248,7 +254,9 @@
     <section class="space-y-2">
         <SectionLabel title={$t('settings.section.data')} />
         <ListGroup>
-            <ListRow icon={History} title={$t('activity.title')} subtitle={$t('activity.desc')} href="/k/{kimpayId}/settings/activity" />
+            {#if !historyBeside}
+                <ListRow icon={History} title={$t('activity.title')} subtitle={$t('activity.desc')} href="/k/{kimpayId}/settings/activity" />
+            {/if}
             {#if !offlineStore.isOffline}
                 <ListRow
                     icon={Eye}
@@ -286,6 +294,14 @@
             {/if}
         </ListGroup>
     </section>
+  </div>
+
+  {#if historyBeside}
+      <section class="space-y-2" aria-labelledby="history-title">
+          <h2 id="history-title" class="px-1 pt-1 text-xl font-bold">{$t('activity.title')}</h2>
+          <ActivityFeed />
+      </section>
+  {/if}
 </div>
 
 {#snippet editFooter()}

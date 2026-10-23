@@ -172,7 +172,7 @@
     </div>
 {/snippet}
 
-<Modal isOpen={!!participant} {onClose} variant="sheet" label={participant?.name ?? ''}>
+<Modal isOpen={!!participant} {onClose} variant="sheet" panel={true} label={participant?.name ?? ''}>
     {#if participant && panel !== 'main'}
         <div class="flex items-center gap-1">
             <button

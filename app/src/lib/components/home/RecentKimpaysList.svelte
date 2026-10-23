@@ -23,6 +23,7 @@
     import { prefs } from '#lib/utils/prefs.js';
     import { calculateBalances, isSettled } from '#lib/balance.js';
     import { DEFAULT_GROUP_ICON, STORAGE_KEYS } from '#lib/constants.js';
+    import { layout } from '#lib/stores/layout.svelte.js';
     import type { Expense, Kimpay, RecentKimpay } from '#lib/types.js';
 
     // Offline, only list the Kimpays whose data is cached (they can be opened).
@@ -205,6 +206,48 @@
     </SwipeableItem>
 {/snippet}
 
+<!-- Computers (lg): a card per group, the archive button on hover. -->
+{#snippet groupCard(k: RecentKimpay, archived: boolean)}
+    {@const summary = summaries[k.id]}
+    <div class="group relative">
+        <a
+            href="/k/{k.id}"
+            data-sveltekit-preload-data="false"
+            class="flex h-full flex-col gap-3 rounded-card border bg-card p-4 transition-colors duration-150 hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+            <span class="flex min-w-0 items-center gap-3 pr-8">
+                <IconTile size="lg">{k.icon || DEFAULT_GROUP_ICON}</IconTile>
+                <span class="min-w-0 flex-1">
+                    <span class="block truncate text-base {summary?.news ? 'font-semibold' : 'font-medium'}">{k.name}</span>
+                    {#if summary}
+                        <span class="block truncate text-sm text-muted-foreground">
+                            {[
+                                $t('expense.list.people', { count: String(summary.members) }),
+                                summary.lastActivity && relativeDay(summary.lastActivity, $locale),
+                            ].filter(Boolean).join(' · ')}
+                        </span>
+                    {/if}
+                </span>
+            </span>
+            {#if summary?.news}
+                <Badge tone="solid" class="self-start">
+                    {summary.news === 1 ? $t('home.group.new_one') : $t('home.group.new_many', { count: String(summary.news) })}
+                </Badge>
+            {/if}
+        </a>
+        <button
+            type="button"
+            class="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-control text-muted-foreground opacity-0 transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:hidden"
+            onclick={() => setArchived(k, !archived)}
+            disabled={offlineStore.isOffline && !!auth.user}
+            title={archived ? $t('home.archive.restore') : $t('home.archive.action')}
+            aria-label={archived ? $t('home.archive.restore') : $t('home.archive.action')}
+        >
+            {#if archived}<ArchiveRestore class="h-4 w-4" />{:else}<Archive class="h-4 w-4" />{/if}
+        </button>
+    </div>
+{/snippet}
+
 <!-- Only show for logged users OR non-logged users with Kimpays -->
 {#if auth.user || kimpaysToDisplay.length > 0}
 <section class="space-y-3">
@@ -231,7 +274,13 @@
             </div>
         {/if}
 
-        {#if activeGroups.length > 0}
+        {#if activeGroups.length > 0 && layout.large}
+            <div class="grid grid-cols-3 gap-3">
+                {#each activeGroups as k (k.id)}
+                    {@render groupCard(k, false)}
+                {/each}
+            </div>
+        {:else if activeGroups.length > 0}
             <ListGroup>
                 {#each activeGroups as k (k.id)}
                     {@render groupRow(k, false)}
@@ -257,11 +306,19 @@
                 </button>
                 {#if isArchiveOpen}
                     <div transition:slide={{ duration: 150 }}>
-                        <ListGroup>
-                            {#each archivedGroups as k (k.id)}
-                                {@render groupRow(k, true)}
-                            {/each}
-                        </ListGroup>
+                        {#if layout.large}
+                            <div class="grid grid-cols-3 gap-3">
+                                {#each archivedGroups as k (k.id)}
+                                    {@render groupCard(k, true)}
+                                {/each}
+                            </div>
+                        {:else}
+                            <ListGroup>
+                                {#each archivedGroups as k (k.id)}
+                                    {@render groupRow(k, true)}
+                                {/each}
+                            </ListGroup>
+                        {/if}
                     </div>
                 {/if}
             </div>

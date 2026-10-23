@@ -62,10 +62,11 @@ test.describe('Expense list', () => {
         await expect(page.getByText('1 result')).toBeVisible();
     });
 
-    test('three sorts, a second tap reverses', async ({ page }) => {
+    test('three sorts, a second tap reverses', async ({ page, isMobile }) => {
         await addExpense(page, 'Small', '5');
         await addExpense(page, 'Big', '50');
-        await page.getByRole('button', { name: 'Filters' }).click();
+        // Computers show the filters without asking.
+        if (isMobile) await page.getByRole('button', { name: 'Filters' }).click();
 
         const sort = page.getByRole('button', { name: 'Sort' });
         await expect(sort).toHaveText(/Date ↓/);

@@ -25,6 +25,9 @@
   import type { RecentKimpay } from '#lib/types.js';
 
   let isSwitcherOpen = $state(false);
+  // Computers: the switcher and the profile open as menus under their button.
+  let switcherButton = $state<HTMLElement>();
+  let profileButton = $state<HTMLElement>();
   let showOfflineHelp = $state(false);
 
   // Only show Kimpay context if we are actually on a /k/[id] route
@@ -101,7 +104,8 @@
   class="sticky top-0 z-40 border-b bg-card/90 backdrop-blur-md"
   style="margin-right: calc(100% - 100vw); padding-right: calc(100vw - 100%);"
 >
-  <div class="mx-auto flex h-14 max-w-2xl items-center gap-2 px-4">
+  <!-- Computers: across the window, the logo over the rail of tabs. -->
+  <div class="mx-auto flex h-14 max-w-2xl items-center gap-2 px-4 md:max-w-none md:pl-6 md:pr-5">
     {#if currentKimpay}
       <!-- Inside a group: the logo leads home, the title switches groups.
            No back chevron: the group's pages are tabs, not a history. -->
@@ -116,6 +120,7 @@
       </a>
       <div class="min-w-0 flex-1">
         <button
+          bind:this={switcherButton}
           onclick={() => isSwitcherOpen = !isSwitcherOpen}
           class="-ml-1 flex h-11 max-w-full items-center gap-1 rounded-control px-2 transition-colors hover:bg-muted"
           aria-haspopup="dialog"
@@ -152,6 +157,7 @@
 
     <div class="shrink-0">
       <button
+        bind:this={profileButton}
         onclick={() => profileMenu.toggle()}
         class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted"
         title={$t('nav.menu')}
@@ -171,14 +177,14 @@
   </div>
 </header>
 
-<!-- Sheets like the app's others: from the bottom on phones, centered on larger screens. -->
+<!-- Sheets like the app's others on phones (from the bottom), menus under their button on computers. -->
 {#if currentKimpay}
-  <Modal isOpen={isSwitcherOpen} onClose={() => isSwitcherOpen = false} variant="sheet" label={$t('header.switch_group')}>
+  <Modal isOpen={isSwitcherOpen} onClose={() => isSwitcherOpen = false} variant="sheet" anchor={switcherButton} label={$t('header.switch_group')}>
     <ModalHeader title={$t('header.switch_group')} align="start" onClose={() => isSwitcherOpen = false} />
     {@render groupSwitcher(currentKimpay.id)}
   </Modal>
 {/if}
-<Modal isOpen={profileMenu.isOpen} onClose={() => profileMenu.close()} variant="sheet" label={$t('profile.title')}>
+<Modal isOpen={profileMenu.isOpen} onClose={() => profileMenu.close()} variant="sheet" anchor={profileButton} align="end" label={$t('profile.title')}>
   <ProfilePanel onClose={() => profileMenu.close()} />
 </Modal>
 

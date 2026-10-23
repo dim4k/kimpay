@@ -67,7 +67,7 @@
 {#if visible}
   <div 
     transition:fly={{ y: 50, duration: 500 }}
-    class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-card border bg-card/95 p-4 text-card-foreground shadow-2xl backdrop-blur-md"
+    class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 md:bottom-6 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-card border bg-card/95 p-4 text-card-foreground shadow-2xl backdrop-blur-md"
   >
     <div class="flex items-center gap-3">
         <IconTile tone="primary"><Download /></IconTile>

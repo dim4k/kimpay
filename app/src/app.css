@@ -113,6 +113,10 @@
         --input: 220 13% 86%;
         --ring: 243.4 75.4% 58.6%;
 
+        /* Computers: the width of every panel on the right (an expense, a
+           member, a category), growing with the window. See Modal's `panel`. */
+        --panel-width: clamp(25rem, 28vw, 36rem);
+
         /* One color per spending category (charts of the balance page), the
            same wherever it shows. Ten categories are more than colors can
            tell apart: the emoji and the name always go with them. */

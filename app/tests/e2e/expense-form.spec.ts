@@ -18,7 +18,7 @@ test.describe('Expense form', () => {
         await expect(icon).toHaveText('🚆');
     });
 
-    test('each setting is a line of the summary, changed in its panel', async ({ page }) => {
+    test('each setting is a line of the summary, changed in its panel', async ({ page, isMobile }) => {
         await page.getByPlaceholder('0.00').fill('30');
         const summary = page.getByRole('button', { name: /split equally/i });
         await expect(summary).toBeVisible();
@@ -27,8 +27,9 @@ test.describe('Expense form', () => {
         await expect(expenseSheet(page).getByRole('heading', { name: 'Split' })).toBeVisible();
 
         // A panel has no footer (not the expense's Save): its chevron goes back.
+        // Computers: the panel takes the right column only, Save stays.
         const sheet = expenseSheet(page);
-        await expect(sheet.getByRole('button', { name: /save expense/i })).toHaveCount(0);
+        await expect(sheet.getByRole('button', { name: /save expense/i })).toHaveCount(isMobile ? 0 : 1);
         await sheet.getByRole('button', { name: 'Back' }).click();
         await expect(summary).toBeVisible();
         await expect(sheet.getByRole('button', { name: /save expense/i })).toBeVisible();

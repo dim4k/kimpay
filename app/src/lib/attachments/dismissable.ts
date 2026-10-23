@@ -13,7 +13,11 @@ export function dismissable(onDismiss: () => void): Attachment<HTMLElement> {
             if (!node.contains(event.target as Node)) onDismiss();
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onDismiss();
+            // Handled: a panel under the popover stays open.
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onDismiss();
+            }
         };
         // Capture phase: runs even if a handler below stops propagation.
         document.addEventListener('pointerdown', onPointerDown, true);

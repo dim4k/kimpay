@@ -64,6 +64,9 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await addExpense(page, base, 'Deposit back', '40', async () => {
             await page.getByRole('radio', { name: 'Money in' }).click();
         });
+        // The line says what it is.
+        await expect(page.locator('[data-expense]', { hasText: 'Deposit back' }).getByText('Money in', { exact: true })).toBeVisible();
+        await expect(page.locator('[data-expense]', { hasText: 'Flat' }).getByText('Money in', { exact: true })).toHaveCount(0);
 
         // Other owes 50 for the flat, minus their 20 of the deposit Payer received.
         await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
@@ -87,12 +90,14 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await sheet.getByRole('button', { name: 'Record the reimbursement' }).click();
         await expect(sheet).toBeHidden();
 
-        await expect(page.getByText('Reimbursement', { exact: true })).toBeVisible();
+        // Titled by who paid whom, its type under it.
+        const line = page.locator('[data-expense]', { hasText: 'You → Payer' });
+        await expect(line.getByText('Reimbursement', { exact: true })).toBeVisible();
         await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
         await expect(page.getByText(/all settled/i).first()).toBeVisible();
     });
 
-    test('Searches and filters the expense list', async ({ page }) => {
+    test('Searches and filters the expense list', async ({ page, isMobile }) => {
         const base = await setupGroup(page, 'Filter Test');
         await addExpense(page, base, 'Taxi ride', '12');
         await addExpense(page, base, 'Dinner', '40');
@@ -105,7 +110,8 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByRole('button', { name: 'Clear' }).click();
         await expect(page.getByText('Dinner')).toBeVisible();
 
-        await page.getByRole('button', { name: 'Filters' }).click();
+        // Computers show the filters without asking.
+        if (isMobile) await page.getByRole('button', { name: 'Filters' }).click();
         await page.getByRole('button', { name: 'Type' }).click();
         await page.getByRole('option', { name: 'Money received' }).click();
         await expect(page.getByText('No matching expenses.')).toBeVisible();

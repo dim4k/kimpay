@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { layout } from '#lib/stores/layout.svelte.js';
     import { page } from '$app/state';
     import { onMount } from 'svelte';
     import { CircleCheck, Eye, Link, Plus } from '@lucide/svelte';
@@ -61,7 +62,10 @@
     <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4 pb-12">
+<!-- Computers: the balances on the left, the expenses on the right (making
+     room for an expense's panel). -->
+<div class="{layout.panels > 0 ? 'lg:pr-[calc(var(--panel-width)-var(--scrollbar-width,0px))]' : ''}">
+<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4 pb-12 lg:max-w-5xl">
     {#if error}
         <EmptyState
             title={error === 'not_found' ? $t('readonly.not_found.title') : $t('error.generic.title')}
@@ -75,6 +79,8 @@
     {:else if !data}
         <ListSkeleton count={4} />
     {:else}
+      <div class="space-y-5 lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:space-y-0">
+      <div class="space-y-5 lg:col-start-1">
         <header class="flex items-center gap-3">
             <IconTile size="lg" tone="card">{data.icon || DEFAULT_KIMPAY_EMOJI}</IconTile>
             <div class="min-w-0 space-y-1">
@@ -113,8 +119,9 @@
             <SectionLabel title={$t('readonly.balances')} />
             <BalanceBars rows={ranked.map((p) => ({ id: p.id, name: p.name, amount: balances[p.id] ?? 0 }))} {currency} />
         </section>
+      </div>
 
-        <section class="space-y-2">
+        <section class="space-y-2 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <SectionLabel title={$t('nav.expenses')} />
             {#if data.expenses.length === 0}
                 <p class="px-1 text-sm text-muted-foreground">{$t('expense.list.empty.title')}</p>
@@ -143,7 +150,7 @@
         </section>
 
         <!-- Seen by someone outside the Kimpay: the app, in one tap. -->
-        <section class="space-y-3 rounded-card bg-primary-soft p-5 text-center">
+        <section class="space-y-3 rounded-card bg-primary-soft p-5 text-center lg:col-start-1 lg:mt-5">
             <div class="space-y-1">
                 <h2 class="text-lg font-bold text-balance">{$t('readonly.cta.title')}</h2>
                 <p class="text-sm text-muted-foreground">{$t('readonly.cta.desc')}</p>
@@ -153,7 +160,9 @@
                 {$t('home.tile.create')}
             </Button>
         </section>
+      </div>
     {/if}
+</div>
 </div>
 
 <ExpenseDetailsSheet

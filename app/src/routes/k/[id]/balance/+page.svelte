@@ -238,7 +238,8 @@
     </div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-2xl space-y-5 px-4 py-4">
+<!-- Computers: as wide as the expense list. -->
+<div class="@container mx-auto w-full max-w-2xl space-y-5 px-4 py-4 lg:max-w-5xl">
     <h1 class="sr-only">{$t('balance.title')}</h1>
 
     <OfflineBanner message={$t('balance.offline_warning')} />
@@ -410,7 +411,7 @@
         {#if stats.expenseCount >= 3}
             <section class="space-y-2 animate-slide-up">
                 <SectionLabel title={$t('balance.stats.title')} />
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 @3xl:grid-cols-4">
                     {@render stat(
                         $t('balance.stats.per_day'),
                         formatAmount(toDisplayCurrency(stats.perDay, kimpayDefaultCurrency), displayCurrency, $locale),

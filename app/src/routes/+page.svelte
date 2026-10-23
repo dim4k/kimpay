@@ -64,7 +64,8 @@
 {#if isNewcomerForm}
     <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-brand-glow" aria-hidden="true"></div>
 {/if}
-<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 {isNewcomerForm ? 'md:max-w-4xl md:py-14' : ''}">
+<!-- Computers: the groups in cards, three by row. -->
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 {isNewcomerForm ? 'md:max-w-4xl md:py-14' : view === 'groups' ? 'lg:max-w-5xl' : ''}">
     {#if view === null}
         <!-- Reading the groups saved on this device: their place if it takes
              a while, not a blank page (nothing flashes when it is quick). -->
@@ -77,8 +78,8 @@
         {#if offlineStore.isOffline}
             {@render offlineNotice()}
         {:else}
-            <div class="space-y-1">
-                <Button size="lg" class="w-full" onclick={() => toggleFlow('create')} aria-expanded={openFlow === 'create'}>
+            <div class="space-y-1 lg:flex lg:items-center lg:gap-3 lg:space-y-0">
+                <Button size="lg" class="w-full lg:w-auto lg:px-6" onclick={() => toggleFlow('create')} aria-expanded={openFlow === 'create'}>
                     <Plus class="size-5!" />
                     {$t('home.tile.create')}
                 </Button>
@@ -86,7 +87,7 @@
                     type="button"
                     onclick={() => toggleFlow('join')}
                     aria-expanded={openFlow === 'join'}
-                    class="flex min-h-11 w-full items-center justify-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft"
+                    class="flex min-h-11 w-full items-center justify-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft lg:w-auto lg:px-4"
                 >
                     <QrCode class="h-4 w-4" />
                     {$t('home.join.have_link')}
@@ -94,7 +95,7 @@
             </div>
 
             {#if openFlow}
-                <div class="rounded-card border bg-card p-4 animate-pop-in">
+                <div class="rounded-card border bg-card p-4 animate-pop-in lg:max-w-xl">
                     {#if openFlow === 'create'}
                         <CreateKimpayForm />
                     {:else}

@@ -23,6 +23,7 @@
   import InviteSheet from '#lib/components/members/InviteSheet.svelte';
   import MemberSheet from '#lib/components/members/MemberSheet.svelte';
   import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
+  import { layout } from '#lib/stores/layout.svelte.js';
 
   const ctx = getActiveKimpayContext();
   let activeKimpay = $derived(ctx.value);
@@ -126,7 +127,8 @@
   }
 </script>
 
-<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4">
+<!-- Computers: as wide as the expense list. -->
+<div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4 lg:max-w-5xl">
     <h1 class="sr-only">{$t('nav.members')}</h1>
 
     {#if isAlone}
@@ -152,7 +154,7 @@
                     {@const canInvite = !joined && !p.inactive}
                     <!-- People only: the balances are in the Balance tab. -->
                     <div
-                        class="flex min-h-14 items-center first:rounded-t-[inherit] {canInvite ? 'pr-4' : ''}"
+                        class="flex min-h-14 items-center overflow-hidden first:rounded-t-[inherit] last:rounded-b-[inherit] {canInvite ? 'pr-4' : ''}"
                         data-participant-id={p.id}
                         data-is-me={isMe}
                         data-joined={joined}
@@ -160,7 +162,8 @@
                         <button
                             type="button"
                             onclick={() => openedId = p.id}
-                            class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-2 pl-4 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset {canInvite ? 'rounded-r-control pr-2' : 'pr-4'}"
+                            aria-current={layout.wide && openedId === p.id ? 'true' : undefined}
+                            class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-2 pl-4 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset md:aria-[current]:bg-primary-soft/60 {canInvite ? 'rounded-r-control pr-2' : 'pr-4'}"
                         >
                             <Avatar name={p.name} record={p} class="h-9 w-9 shrink-0 text-xs {p.inactive ? 'opacity-50' : ''}" />
                             <span class="min-w-0 flex-1">
