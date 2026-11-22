@@ -79,7 +79,7 @@ test.describe('Computer layout', () => {
         await page.getByRole('button', { name: /Taxi/ }).click();
         await expenseSheet(page).getByPlaceholder('What was it for?').fill('Taxi home');
         await page.getByRole('button', { name: /Museum/ }).click();
-        await expect(page.getByRole('dialog', { name: 'Discard this expense?' })).toBeVisible();
+        await expect(page.getByRole('dialog', { name: 'Save your changes?' })).toBeVisible();
         await page.getByRole('button', { name: 'Keep editing' }).click();
         await expect(expenseSheet(page).getByPlaceholder('What was it for?')).toHaveValue('Taxi home');
     });

@@ -129,8 +129,11 @@
     const speed = distance / Math.max(1, e.timeStamp - dragFrom.time);
     dragFrom = null;
     // Far enough, or flicked: close (the panel leaves from where it is).
-    if (distance > 80 || speed > 0.5) onClose?.();
-    else dragY = 0;
+    if (distance > 80 || speed > 0.5) {
+      onClose?.();
+      // Still there (asked first, or back to its summary): put back in place.
+      setTimeout(() => (dragY = 0), 250);
+    } else dragY = 0;
   }
 
   // With a header or a footer, only the content in between scrolls: what is

@@ -9,6 +9,7 @@
     import { profileStore, type PaymentHandles } from '#lib/stores/profile.svelte.js';
     import { getErrorMessage } from '#lib/utils/errors.js';
     import { normalizeHandle } from '#lib/utils/payment.js';
+    import { confirmUnsaved } from '#lib/unsaved.js';
 
     interface Props {
         isOpen: boolean;
@@ -29,6 +30,16 @@
         inputs = { paypal: profileStore.handles.paypal, revolut: profileStore.handles.revolut };
         errors = { paypal: '', revolut: '' };
     });
+
+    // Closed with a link typed or changed: asked first.
+    let changed = $derived(
+        inputs.paypal.trim() !== profileStore.handles.paypal || inputs.revolut.trim() !== profileStore.handles.revolut
+    );
+
+    function requestClose() {
+        if (!changed || isSaving) onClose();
+        else confirmUnsaved({ save, discard: onClose });
+    }
 
     async function save() {
         const paypal = normalizeHandle(inputs.paypal);
@@ -79,9 +90,9 @@
     <Button size="lg" class="w-full" onclick={save} loading={isSaving}>{$t('common.save')}</Button>
 {/snippet}
 
-<Modal {isOpen} {onClose} variant="sheet" label={$t('settings.payment.title')} {footer}>
+<Modal {isOpen} onClose={requestClose} variant="sheet" label={$t('settings.payment.title')} {footer}>
     {#snippet header()}
-        <ModalHeader title={$t('settings.payment.title')} description={$t('settings.payment.desc')} align="start" {onClose} />
+        <ModalHeader title={$t('settings.payment.title')} description={$t('settings.payment.desc')} align="start" onClose={requestClose} />
     {/snippet}
     <div class="space-y-4">
         {@render handleInput('paypal', 'PayPal.me', 'paypal.me/')}

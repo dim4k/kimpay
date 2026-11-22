@@ -105,7 +105,8 @@
         try {
             await activeKimpay.renameParticipant(participant.id, next);
             toasts.success($t('common.saved'));
-            onClose();
+            // Back to their sheet, under their new name.
+            panel = 'main';
         } catch (e) {
             console.error("Failed to rename participant", e);
             toasts.error(getErrorMessage(e, $t));

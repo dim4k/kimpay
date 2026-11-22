@@ -5,6 +5,8 @@ export interface Toast {
     message: string;
     type: 'success' | 'error' | 'info' | 'warning';
     duration?: number;
+    /** One thing to do about it ("Undo"), in the toast */
+    action?: { label: string; run: () => void };
 }
 
 /** At most this many on screen: the oldest goes first. */
@@ -22,9 +24,9 @@ function createToastStore() {
         timers.set(id, { left: ms, started: Date.now(), handle: setTimeout(() => remove(id), ms) });
     }
 
-    function add(message: string, type: Toast['type'] = 'info', duration = 4000) {
+    function add(message: string, type: Toast['type'] = 'info', duration = 4000, action?: Toast['action']) {
         const id = crypto.randomUUID();
-        const toast: Toast = { id, message, type, duration };
+        const toast: Toast = action ? { id, message, type, duration, action } : { id, message, type, duration };
 
         update(toasts => {
             const next = [...toasts, toast];
@@ -69,6 +71,11 @@ function createToastStore() {
         return add(message, 'success', duration);
     }
 
+    /** Done, with a way back ("Undo"): stays a little longer. */
+    function undoable(message: string, label: string, run: () => void) {
+        return add(message, 'success', 7000, { label, run });
+    }
+
     function error(message: string, duration = 8000) {
         return add(message, 'error', duration);
     }
@@ -88,6 +95,7 @@ function createToastStore() {
         pause,
         resume,
         success,
+        undoable,
         error,
         warning,
         info

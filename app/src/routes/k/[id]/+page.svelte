@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Wallet, Check, Plus, Search, SlidersHorizontal, UserPlus, X } from "@lucide/svelte";
   import InviteSheet from '#lib/components/members/InviteSheet.svelte';
+  import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import { NAME_MAX_LENGTH } from '#lib/constants.js';
   import { hasJoined } from '#lib/utils/members.js';
@@ -331,7 +332,7 @@
           open?.close();
           reimbursementId = expense.id;
       };
-      if (open?.hasChanges()) confirmDiscard(show);
+      if (open?.hasChanges()) confirmDiscard(show, open.discardOptions());
       else show();
   }
 
@@ -344,6 +345,38 @@
   function cancelReimbursement(id: string) {
       reimbursementId = null;
       requestDelete(id);
+  }
+
+  // A reimbursement recorded with the wrong amount or day: corrected in the
+  // sheet it was recorded with, rather than cancelled and recorded again.
+  let correctedId = $state<string | null>(null);
+  let corrected = $derived(correctedId ? rawExpenses.find((e) => e.id === correctedId && e.is_reimbursement) ?? null : null);
+  let correctedTx = $derived(
+      corrected
+          ? { from: corrected.payer, to: corrected.involved?.[0] ?? '', amount: corrected.amount, currency: corrected.currency || DEFAULT_CURRENCY }
+          : null
+  );
+
+  function personLabel(id: string | undefined): string {
+      if (id && id === currentUserId) return $t('common.you');
+      return (id && activeKimpay?.participantsById.get(id)?.name) || $t('common.unknown');
+  }
+
+  function correctReimbursement(expense: Expense) {
+      reimbursementId = null;
+      correctedId = expense.id;
+  }
+
+  async function saveCorrection(amount: number, date: string) {
+      if (!correctedId || !activeKimpay) return;
+      try {
+          await activeKimpay.updateExpense(correctedId, { amount, date });
+          toasts.success($t('common.saved'));
+      } catch (e) {
+          console.error("Failed to correct the reimbursement", e);
+          toasts.error(getErrorMessage(e, $t));
+          throw e;
+      }
   }
 
   // A new Kimpay: its two first steps (who is in, the first expense) in one
@@ -825,6 +858,18 @@
     {exchangeRates}
     onClose={() => reimbursementId = null}
     onCancelReimbursement={offlineStore.isOffline ? undefined : cancelReimbursement}
+    onEditReimbursement={offlineStore.isOffline ? undefined : correctReimbursement}
+/>
+
+<SettleSheet
+    tx={correctedTx}
+    edit={corrected ? { date: corrected.date } : null}
+    from={personLabel(correctedTx?.from)}
+    to={personLabel(correctedTx?.to)}
+    displayCurrency={kimpayC}
+    {exchangeRates}
+    onClose={() => correctedId = null}
+    onConfirm={saveCorrection}
 />
 
 <InviteSheet

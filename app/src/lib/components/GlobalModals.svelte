@@ -12,11 +12,13 @@
   let isProcessing = $state(false);
 
   async function handleConfirm() {
-    if (confirmState?.onConfirm) {
+    const asked = confirmState;
+    if (asked?.onConfirm) {
         isProcessing = true;
         try {
-            await confirmState.onConfirm();
-            modals.closeConfirm();
+            await asked.onConfirm();
+            // Unless the answer asked another question in turn.
+            if (modals.confirmState === asked) modals.closeConfirm();
         } catch (e) {
             // The modal stays open so the user can retry or cancel.
             notifyError(e, "Confirmed action failed");
@@ -29,6 +31,12 @@
   function handleCancel() {
     confirmState?.onCancel?.();
     modals.closeConfirm();
+  }
+
+  function handleAlt() {
+    const asked = confirmState;
+    modals.closeConfirm();
+    asked?.onAlt?.();
   }
 </script>
 
@@ -43,6 +51,8 @@
         variant={confirmState.variant ?? "default"}
         isProcessing={isProcessing}
         onConfirm={handleConfirm}
+        altText={confirmState.altText}
+        onAlt={confirmState.onAlt ? handleAlt : undefined}
         onCancel={handleCancel}
     />
     {/await}

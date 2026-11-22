@@ -5,8 +5,9 @@
     import { LoaderCircle, SearchX } from '@lucide/svelte';
     import { t } from '#lib/i18n.js';
     import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
-    import { confirmDiscard, expenseSheet, expenseSheetUrl, openExpenseSheet, sheetDepth, type ExpenseSheetState } from '#lib/expenseSheet.js';
+    import { confirmDiscard, expenseSheet, expenseSheetUrl, openExpenseSheet, sheetDepth, type DiscardOptions, type ExpenseSheetState } from '#lib/expenseSheet.js';
     import { offlineStore } from '#lib/stores/offline.svelte.js';
+    import { layout } from '#lib/stores/layout.svelte.js';
     import { confirmDeleteExpense } from '#lib/components/expense/deleteExpense.js';
     import ExpenseForm from '#lib/components/ExpenseForm.svelte';
     import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -26,7 +27,7 @@
     // The sheet on screen: kept when Back leaves its history entry with
     // something typed, while asking whether to discard it.
     let shown = $state<ExpenseSheetState | null>(null);
-    let form = $state<{ hasChanges(): boolean }>();
+    let form = $state<{ hasChanges(): boolean; discardOptions(): DiscardOptions }>();
     // Saved, deleted or discarded: closes without asking.
     let leaving = $state(false);
 
@@ -40,7 +41,7 @@
                 // Back with something typed: the entry is put back, then the question.
                 const kept: ExpenseSheetState = { ...shown, view: 'main' };
                 goto(expenseSheetUrl(kimpayId, kept), { shallow: true, state: { expenseSheet: kept } });
-                confirmDiscard(close);
+                confirmDiscard(close, form.discardOptions());
             } else {
                 shown = null;
             }
@@ -56,7 +57,7 @@
     }
 
     function requestClose() {
-        if (form?.hasChanges()) confirmDiscard(close);
+        if (form?.hasChanges()) confirmDiscard(close, form.discardOptions());
         else close();
     }
 
@@ -82,7 +83,7 @@
             leaving = true;
             openExpenseSheet(kimpayId, { from }, { replace: true });
         };
-        if (form?.hasChanges()) confirmDiscard(duplicate);
+        if (form?.hasChanges()) confirmDiscard(duplicate, form.discardOptions());
         else duplicate();
     }
 
@@ -92,6 +93,7 @@
         const controls = {
             expenseId: shown.expenseId,
             hasChanges: () => !!form?.hasChanges(),
+            discardOptions: () => form?.discardOptions() ?? {},
             requestClose,
             close,
             deleteShown: edited && !offlineStore.isOffline ? deleteEdited : undefined,
@@ -116,6 +118,7 @@
                 onDuplicate={duplicateEdited}
                 onClose={requestClose}
                 onSaved={close}
+                stayOpen={layout.large}
                 bind:this={form}
             />
         {:else}

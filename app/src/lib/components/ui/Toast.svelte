@@ -48,6 +48,16 @@
                 <Icon class="h-3 w-3 text-background" strokeWidth={3} />
             </div>
             <p class="font-medium">{toast.message}</p>
+            {#if toast.action}
+                {@const action = toast.action}
+                <button
+                    type="button"
+                    onclick={() => { toasts.remove(toast.id); action.run(); }}
+                    class="-my-1 -mr-2.5 flex h-8 shrink-0 items-center rounded-full px-2.5 font-semibold underline underline-offset-2 transition-colors hover:bg-background/15"
+                >
+                    {action.label}
+                </button>
+            {/if}
             {#if toast.type === 'error'}
                 <button
                     type="button"

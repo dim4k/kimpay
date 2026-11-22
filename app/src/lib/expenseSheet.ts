@@ -3,6 +3,7 @@ import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import { t } from '#lib/i18n.js';
 import { modals } from '#lib/stores/modals.svelte.js';
+import { confirmUnsaved } from '#lib/unsaved.js';
 
 /** What the expense sheet shows: the form, or one of its panels. */
 export type ExpenseView = 'main' | 'payer' | 'involved' | 'split' | 'date' | 'repeat' | 'note' | 'to';
@@ -35,6 +36,8 @@ export interface ExpenseSheetState {
 export interface ExpenseSheetControls {
     expenseId: string | undefined;
     hasChanges(): boolean;
+    /** How to ask before leaving it (see confirmDiscard) */
+    discardOptions(): DiscardOptions;
     /** Closes it, asking first if something is typed */
     requestClose(): void;
     /** Closes it, whatever is typed */
@@ -85,7 +88,7 @@ export function openExpenseSheet(kimpayId: string, target: Target = {}, { replac
 export function showExpenseSheet(kimpayId: string, target: Target): void {
     const controls = expenseSheet.controls;
     if (controls && target.expenseId && controls.expenseId === target.expenseId) return;
-    if (controls?.hasChanges()) confirmDiscard(() => openExpenseSheet(kimpayId, target));
+    if (controls?.hasChanges()) confirmDiscard(() => openExpenseSheet(kimpayId, target), controls.discardOptions());
     else openExpenseSheet(kimpayId, target);
 }
 
@@ -110,8 +113,27 @@ export async function reopenExpenseSheet(kimpayId: string, target: Target): Prom
     await openExpenseSheet(kimpayId, target);
 }
 
-/** Leaving the form with something typed: ask first. */
-export function confirmDiscard(discard: () => void): void {
+export interface DiscardOptions {
+    /** An expense that exists already: its changes are lost, not the expense */
+    editing?: boolean;
+    /** Saves the changes (false: not saved, said why); none when they cannot be saved as they are */
+    save?: (() => Promise<boolean>) | undefined;
+}
+
+/**
+ * Leaving the form with something typed: ask first. `then` is what was
+ * asked for (closing, another expense...), done once dropped or saved.
+ */
+export function confirmDiscard(then: () => void, { editing = false, save }: DiscardOptions = {}): void {
+    if (editing) {
+        confirmUnsaved({
+            save: save && (async () => {
+                if (await save()) then();
+            }),
+            discard: then,
+        });
+        return;
+    }
     const translate = get(t);
     modals.confirm({
         title: translate('expense.form.discard_title'),
@@ -119,6 +141,6 @@ export function confirmDiscard(discard: () => void): void {
         confirmText: translate('expense.form.discard'),
         cancelText: translate('expense.form.keep_editing'),
         variant: 'destructive',
-        onConfirm: discard,
+        onConfirm: then,
     });
 }

@@ -8,6 +8,7 @@
   import { goto } from '$app/navigation';
   import { Archive, ArchiveRestore, Eye, FileText, History, Link, LogOut, Pencil, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
+  import { confirmUnsaved } from '#lib/unsaved.js';
   import { t, locale } from '#lib/i18n.js';
   import { auth } from '#lib/stores/auth.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
@@ -68,6 +69,19 @@
       isEditOpen = true;
   }
 
+  // Closed with something changed: asked first (saved from the question, if it can be).
+  let editChanged = $derived(
+      editName.trim() !== (kimpay?.name ?? '') || editIcon !== (kimpay?.icon || DEFAULT_KIMPAY_EMOJI) || editCurrency !== groupCurrency
+  );
+
+  function closeEdit() {
+      if (!editChanged || isSavingGroup) {
+          isEditOpen = false;
+          return;
+      }
+      confirmUnsaved({ save: editName.trim() ? handleSave : undefined, discard: () => (isEditOpen = false) });
+  }
+
   // Another currency: online only. Expenses in other currencies are
   // converted at today's rate, after a confirmation saying so.
   function handleSave() {
@@ -85,7 +99,7 @@
           toasts.error($t('settings.currency.no_rate'));
           return;
       }
-      isEditOpen = false;
+      // The sheet stays under the question: refused, nothing typed is lost.
       modals.confirm({
           title: $t('settings.currency.confirm_title', { to }),
           description: $t('settings.currency.confirm_desc', {
@@ -310,9 +324,9 @@
     </Button>
 {/snippet}
 
-<Modal isOpen={isEditOpen} onClose={() => isEditOpen = false} variant="sheet" label={$t('settings.edit_group')} footer={editFooter}>
+<Modal isOpen={isEditOpen} onClose={closeEdit} variant="sheet" label={$t('settings.edit_group')} footer={editFooter}>
     {#snippet header()}
-        <ModalHeader title={$t('settings.edit_group')} align="start" onClose={() => isEditOpen = false} />
+        <ModalHeader title={$t('settings.edit_group')} align="start" onClose={closeEdit} />
     {/snippet}
     <div class="space-y-2">
         <Label for="group-name">{$t('home.create.name_label')}</Label>

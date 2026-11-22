@@ -6,6 +6,12 @@ export type ConfirmOptions = {
     variant?: "default" | "destructive";
     onConfirm: () => void | Promise<void>;
     onCancel?: () => void;
+    /**
+     * A third answer, between the two ("Don't save"): the dialog then stacks
+     * its three buttons.
+     */
+    altText?: string;
+    onAlt?: () => void;
 };
 
 export type AlertOptions = {

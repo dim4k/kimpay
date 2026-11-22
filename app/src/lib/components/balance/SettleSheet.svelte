@@ -18,6 +18,11 @@
     interface Props {
         /** The suggested payment to record (null: closed) */
         tx: Transaction | null;
+        /**
+         * A reimbursement already recorded, corrected (`tx` is then that one):
+         * its date, as saved. Any amount then, what was paid is known.
+         */
+        edit?: { date: string } | null;
         /** "You" or the names of the two people */
         from: string;
         to: string;
@@ -29,7 +34,7 @@
         onConfirm: (amount: number, date: string) => Promise<void>;
     }
 
-    let { tx, from, to, displayCurrency, exchangeRates, onClose, onConfirm }: Props = $props();
+    let { tx, edit = null, from, to, displayCurrency, exchangeRates, onClose, onConfirm }: Props = $props();
 
     // All of it by default, to the cent: paying part of it is a change of the
     // amount. Reset for each payment opened.
@@ -38,31 +43,35 @@
     let due = $derived(tx ? toCent(tx.amount) : 0);
     let amount = $state('');
     let date = $state(toLocalISODate());
-    let opened = $derived(tx ? `${tx.from}>${tx.to}>${due}` : null);
+    let savedDay = $derived(edit ? edit.date.slice(0, 10) : '');
+    let opened = $derived(tx ? `${tx.from}>${tx.to}>${due}>${savedDay}` : null);
     $effect(() => {
         if (!opened) return;
         untrack(() => {
             amount = formatDecimal(due, $locale);
-            date = toLocalISODate();
+            date = savedDay || toLocalISODate();
             pickingDate = false;
         });
     });
 
     let value = $derived(toCent(parseDecimal(amount)));
-    let tooMuch = $derived(value > due);
-    let remaining = $derived(value > 0 && !tooMuch ? toCent(due - value) : 0);
+    let tooMuch = $derived(!edit && value > due);
+    let remaining = $derived(!edit && value > 0 && !tooMuch ? toCent(due - value) : 0);
     let today = $derived(toLocalISODate());
     // The day, as in the expense form: a row, the calendar when tapped.
     let pickingDate = $state(false);
     let dateSummary = $derived(dayLabel(date, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }));
     let isSaving = $state(false);
+    let title = $derived(edit ? $t('expense.reimbursement.edit') : $t('balance.settle.modal.title'));
 
     async function confirm() {
         if (!tx || value <= 0 || tooMuch || isSaving) return;
         isSaving = true;
         try {
             // Today: now, to keep the order of the day. Another day: that day.
-            await onConfirm(value, date === today || !date ? new Date().toISOString() : new Date(date).toISOString());
+            // Corrected, the same day: its date as saved.
+            const when = edit && date === savedDay ? edit.date : date === today || !date ? new Date().toISOString() : new Date(date).toISOString();
+            await onConfirm(value, when);
             onClose();
         } catch {
             // Not recorded: the caller said why, the sheet stays open.
@@ -75,15 +84,15 @@
 {#snippet footer()}
     <Button size="lg" class="w-full" onclick={confirm} loading={isSaving} disabled={value <= 0 || tooMuch}>
         <Check class="size-5!" />
-        {$t('balance.settle.confirm')}
+        {edit ? $t('common.save') : $t('balance.settle.confirm')}
     </Button>
 {/snippet}
 
-<Modal isOpen={!!tx} onClose={isSaving ? undefined : onClose} variant="sheet" label={$t('balance.settle.modal.title')} footer={tx ? footer : undefined}>
+<Modal isOpen={!!tx} onClose={isSaving ? undefined : onClose} variant="sheet" label={title} footer={tx ? footer : undefined}>
     {#snippet header()}
         <ModalHeader
-            title={$t('balance.settle.modal.title')}
-            description={$t('balance.settle.sheet.desc', { from, to })}
+            {title}
+            description={edit ? `${from} → ${to}` : $t('balance.settle.sheet.desc', { from, to })}
             align="start"
             onClose={isSaving ? undefined : onClose}
         />
@@ -114,7 +123,7 @@
                     {$t('balance.settle.remaining', { amount: formatAmount(remaining, tx.currency, $locale) })}
                 {:else if displayCurrency && displayCurrency !== tx.currency && value > 0}
                     ≈ {formatAmount(convert(value, tx.currency, displayCurrency, exchangeRates), displayCurrency, $locale)}
-                {:else}
+                {:else if !edit}
                     {$t('balance.settle.partial_hint')}
                 {/if}
             </p>

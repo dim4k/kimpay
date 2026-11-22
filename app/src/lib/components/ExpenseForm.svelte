@@ -41,7 +41,7 @@
   import { readReceipt, scanErrorKey, type OcrResult } from '#lib/services/ocr.js';
   import { loadKeywords } from '#lib/emoji/search.js';
   import { suggestEmoji } from '#lib/emoji/suggest.js';
-  import { confirmDiscard, type ExpenseView } from '#lib/expenseSheet.js';
+  import { confirmDiscard, type DiscardOptions, type ExpenseView } from '#lib/expenseSheet.js';
   import { layout } from '#lib/stores/layout.svelte.js';
 
   let {
@@ -54,6 +54,7 @@
       onDuplicate,
       onClose,
       onSaved,
+      stayOpen = false,
   }: {
       kimpayId: string;
       initialData?: Expense | null;
@@ -71,6 +72,8 @@
       onClose: () => void;
       /** Saved (except "save and add another"): the sheet closes */
       onSaved: () => void;
+      /** Editing beside the list (computers): saved, the expense stays open, to read */
+      stayOpen?: boolean;
   } = $props();
 
   // Get ActiveKimpay
@@ -138,6 +141,12 @@
   function closeView() {
       if (view !== 'main') history.back();
   }
+
+  // A setting open over the summary (phones, and the panel beside the list):
+  // closing the sheet from there (Escape, a tap outside, the handle pulled)
+  // goes back to the summary, as its chevron does. Leaving the form is asked
+  // from the summary only.
+  let inPanel = $derived(view !== 'main' && !twoColumns);
 
   // A panel opens at its top (the summary may have been scrolled), with the
   // focus on its way back.
@@ -234,22 +243,58 @@
   // Saved or discarded: leave without asking.
   let leaving = false;
 
-  onMount(() => {
-      // Seed state from the expense edited, or the one duplicated
-      const seed = initialData ?? template;
-      if (seed) {
-         description = seed.description || "";
-         amount = seed.amount ? String(seed.amount) : "";
-         icon = seed.icon || DEFAULT_EXPENSE_EMOJI;
+  // What each setting held when the form was filled in from the expense
+  // edited: the lines changed since are marked.
+  function settings() {
+      return {
+          payer,
+          involved: [...involved].sort().join(),
+          split: JSON.stringify([splitMode, splitValues]),
+          date,
+          repeat: repeatEvery as string,
+          notes: notes.trim(),
+      };
+  }
+  let seeded = $state.raw<ReturnType<typeof settings> | null>(null);
+  let changed = $derived.by(() => {
+      if (!seeded) return null;
+      const now = settings();
+      return {
+          payer: now.payer !== seeded.payer,
+          involved: now.involved !== seeded.involved,
+          split: now.split !== seeded.split,
+          date: now.date !== seeded.date,
+          repeat: now.repeat !== seeded.repeat,
+          notes: now.notes !== seeded.notes,
+          photos: newPhotos.length > 0 || photosToDelete.length > 0,
+      };
+  });
+
+  /**
+   * Fills the form in from the expense edited, or the one duplicated (or
+   * the defaults of a new one). Again to drop the changes, and once saved
+   * or undone while the expense stays open.
+   */
+  function seed() {
+      const source = initialData ?? template;
+      splitMode = 'equal';
+      splitValues = {};
+      newPhotos = [];
+      photosToDelete = [];
+      existingPhotos = [];
+      if (source) {
+         description = source.description || "";
+         amount = source.amount ? String(source.amount) : "";
+         icon = source.icon || DEFAULT_EXPENSE_EMOJI;
          date = initialData?.date ? initialData.date.slice(0, 10) : toLocalISODate();
-         payer = seed.payer || "";
-         involved = seed.involved || [];
-         currency = seed.currency || defaultCurrency;
-         kind = seed.is_income ? 'income' : 'expense';
-         notes = seed.notes || "";
-         if (seed.split && seed.split.mode !== 'equal') {
-             splitMode = seed.split.mode;
-             splitValues = { ...seed.split.values };
+         payer = source.payer || "";
+         involved = source.involved || [];
+         currency = source.currency || defaultCurrency;
+         kind = source.is_income ? 'income' : 'expense';
+         notes = source.notes || "";
+         if (source.split && source.split.mode !== 'equal') {
+             splitMode = source.split.mode;
+             splitValues = { ...source.split.values };
          }
 
          if (initialData?.photos && Array.isArray(initialData.photos)) {
@@ -283,14 +328,19 @@
           payer = activeKimpay.myParticipantId;
       }
 
-      if (icon === DEFAULT_EXPENSE_EMOJI) {
-          autoIcon = icon;
+      autoIcon = icon === DEFAULT_EXPENSE_EMOJI ? icon : null;
+      baseline = formState();
+      seeded = initialData ? settings() : null;
+  }
+
+  onMount(() => {
+      seed();
+
+      if (autoIcon !== null) {
           const lang = $locale;
           Promise.all([loadKeywords(lang), lang === 'en' ? Promise.resolve({}) : loadKeywords('en')])
               .then((k) => (iconKeywords = k));
       }
-
-      baseline = formState();
 
       // A receipt picked from the expense list: read it right away.
       const receipt = initialData ? null : pendingReceipt.take();
@@ -310,7 +360,7 @@
           leaving = true;
           if (nav.type === 'popstate') history.go(nav.delta ?? -1);
           else if (to) goto(to);
-      });
+      }, discardOptions());
   });
 
   let isValid = $derived(
@@ -410,9 +460,32 @@
       }
   }
 
-  /** `andNew`: stay on an empty form, for the next one (same people, same day). */
-  async function save(andNew = false) {
-      if (!isValid || isOfflineEdit) return;
+  /** What the form sets of an expense, as saved: to put it back (the toast's "Undo"). */
+  function savedSettings(e: Expense): Partial<Expense> {
+      return {
+          description: e.description,
+          amount: e.amount,
+          currency: e.currency,
+          exchange_rate: e.exchange_rate ?? 0,
+          payer: e.payer,
+          involved: e.involved,
+          split: e.split ?? { mode: 'equal' },
+          is_income: !!e.is_income,
+          date: e.date,
+          icon: e.icon ?? DEFAULT_EXPENSE_EMOJI,
+          notes: e.notes ?? '',
+          repeat_day: e.repeat_day ?? 0,
+          repeat_every: e.repeat_every ?? '',
+          repeat_next: e.repeat_next ?? '',
+      };
+  }
+
+  // The form is still on screen (an "Undo" may come after it closed).
+  let alive = true;
+
+  /** Saves the expense, and says so (or why not): true once saved. */
+  async function persist(): Promise<boolean> {
+      if (!isValid || isOfflineEdit) return false;
 
       isLoading = true;
       try {
@@ -449,26 +522,67 @@
           const photos = isReimbursement ? [] : newPhotos;
 
           if (initialData?.id) {
-               await activeKimpay.updateExpense(initialData.id, expenseData, photos, photosToDelete);
-               toasts.success($t('toast.expense_updated'));
+               const id = initialData.id;
+               const before = savedSettings(initialData);
+               const group = activeKimpay;
+               // Photos added or removed cannot be put back: no "Undo" then.
+               const undoable = photos.length === 0 && photosToDelete.length === 0 && !offlineStore.isOffline;
+               await group.updateExpense(id, expenseData, photos, photosToDelete);
+               if (undoable) {
+                   const restored = $t('toast.expense_restored');
+                   toasts.undoable($t('toast.expense_updated'), $t('common.undo'), async () => {
+                       try {
+                           await group.updateExpense(id, before);
+                           toasts.success(restored);
+                           // Still open beside the list, untouched since: as it was.
+                           if (alive && !isDirty) seed();
+                       } catch (e) {
+                           notifyError(e, "Failed to undo the change");
+                       }
+                   });
+               } else {
+                   toasts.success($t('toast.expense_updated'));
+               }
           } else {
                await activeKimpay.addExpense(expenseData, photos);
                toasts.success($t(isReimbursement ? 'toast.reimbursement_added' : isIncome ? 'toast.income_added' : 'toast.expense_added'));
           }
 
           haptic('success');
-          if (andNew) {
-              resetForNext();
-          } else {
-              leaving = true;
-              onSaved();
-          }
+          return true;
       } catch (e) {
           // Says whether the connection failed, with error haptics.
           notifyError(e, "Failed to save the expense");
+          return false;
       } finally {
           isLoading = false;
       }
+  }
+
+  /** `andNew`: stay on an empty form, for the next one (same people, same day). */
+  async function save(andNew = false) {
+      if (!(await persist())) return;
+      if (andNew) {
+          resetForNext();
+      } else if (initialData && stayOpen) {
+          // Beside the list: the expense as saved, still there to read.
+          seed();
+      } else {
+          leaving = true;
+          onSaved();
+      }
+  }
+
+  /** Saved from the question asked when leaving: what was asked for goes on then. */
+  async function saveChanges(): Promise<boolean> {
+      const saved = await persist();
+      if (saved) baseline = formState();
+      return saved;
+  }
+
+  /** How to ask before leaving the form: an expense edited can be saved from the question. */
+  export function discardOptions(): DiscardOptions {
+      return { editing: !!initialData, save: initialData && isValid && !isOfflineEdit ? saveChanges : undefined };
   }
 
   /** Repeated from its date (the day of the month, or the weekday), from the next copy on. */
@@ -606,6 +720,7 @@
   }
 
   onDestroy(() => {
+      alive = false;
       if (scanning) URL.revokeObjectURL(scanning.url);
   });
 
@@ -699,7 +814,24 @@
                 {$t('expense.form.save_and_new')}
             </button>
         {/if}
+        {#if initialData}
+            <!-- Editing: back to the expense as it was, without a question. -->
+            <button
+                type="button"
+                onclick={() => seed()}
+                disabled={isLoading}
+                class="flex min-h-9 w-full items-center justify-center rounded-control text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:opacity-50"
+            >
+                {$t('expense.form.revert')}
+            </button>
+        {/if}
     </div>
+{/snippet}
+
+<!-- A setting that does not close by itself once picked (several people,
+     figures, a text): its way back to the summary, where the form is saved. -->
+{#snippet done(disabled = false)}
+    <Button class="mt-4 w-full" onclick={closeView} {disabled}>{$t('common.ok')}</Button>
 {/snippet}
 
 <!-- One setting, changed in its panel (over the summary, or in place of
@@ -734,7 +866,9 @@
                 onSelectionChange={handleInvolvedChange}
                 onAdd={(name) => addMember(name, 'involved')}
                 showToggleAll={true}
+                meId={myId}
             />
+            {@render done(involved.length === 0)}
         {:else if view === 'split'}
             <SplitEditor
                 involved={involvedParticipants}
@@ -744,6 +878,7 @@
                 {currency}
                 {weights}
             />
+            {@render done(!splitCheck.valid)}
         {:else if view === 'date'}
             <Calendar bind:value={date} label={$t('expense.form.date_label')} onselect={closeView} />
         {:else if view === 'repeat'}
@@ -778,7 +913,7 @@
                     placeholder={$t('expense.note.placeholder')}
                     class="w-full resize-none rounded-control border border-input bg-card px-3 py-2.5 text-base placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 ></textarea>
-                <Button class="w-full" onclick={closeView}>{$t('common.ok')}</Button>
+                {@render done()}
             </div>
         {/if}
 {/snippet}
@@ -786,7 +921,7 @@
 <!-- Editing, the sheet is first the expense to read: its save button
      shows once something changed. On computers, an expense open is a panel
      beside the list; a new one (or a copy) a window over the page. -->
-<Modal isOpen onClose={onClose} variant="sheet" panel={!!initialData} label={title} class={twoColumns ? 'md:min-h-[min(40rem,90dvh)] md:max-w-3xl' : ''} footer={(view === 'main' || twoColumns) && (!initialData || isDirty) ? saveFooter : undefined}>
+<Modal isOpen onClose={inPanel ? closeView : onClose} variant="sheet" panel={!!initialData} label={title} class={twoColumns ? 'md:min-h-[min(40rem,90dvh)] md:max-w-3xl' : ''} footer={(view === 'main' || twoColumns) && (!initialData || isDirty) ? saveFooter : undefined}>
     {#snippet header()}
         <div class="flex items-center gap-1">
             {#if view !== 'main' && !twoColumns}
@@ -801,12 +936,14 @@
                     <ChevronLeft class="h-5 w-5" />
                 </button>
             {/if}
-            <h2 class="min-w-0 flex-1 truncate text-xl font-bold">{twoColumns ? $t('expense.add.short') : viewTitle}</h2>
+            <h2 class="min-w-0 flex-1 truncate text-xl font-bold {inPanel ? 'min-h-11 content-center' : ''}">{twoColumns ? $t('expense.add.short') : viewTitle}</h2>
             {#if view === 'main' || twoColumns}
                 {#if showScanButton}
                     <ReceiptScanner onPick={scan} busy={!!scanning} disabled={isLoading} />
                 {/if}
             {/if}
+            <!-- Not over a setting: closing would leave the whole form. -->
+            {#if !inPanel}
             <button
                 type="button"
                 onclick={onClose}
@@ -816,6 +953,7 @@
             >
                 <X class="h-5 w-5" />
             </button>
+            {/if}
         </div>
     {/snippet}
 
@@ -919,7 +1057,7 @@
       <div class="space-y-5" hidden={view !== 'main'}>
         <!-- Who: each line opens its panel. -->
         <ListGroup>
-            <SummaryRow label={payerLabel} invalid={!payerParticipant} onclick={() => openView('payer')}>
+            <SummaryRow label={payerLabel} invalid={!payerParticipant} changed={changed?.payer} onclick={() => openView('payer')}>
                 {#snippet lead()}
                     {#if payerParticipant}
                         <Avatar name={payerParticipant.name} record={payerParticipant} class="h-8 w-8 shrink-0 text-[0.6875rem]" />
@@ -955,7 +1093,7 @@
                     {/if}
                 </SummaryRow>
             {:else}
-            <SummaryRow label={$t('expense.form.for_whom_label')} invalid={involved.length === 0} onclick={() => openView('involved')}>
+            <SummaryRow label={$t('expense.form.for_whom_label')} invalid={involved.length === 0} changed={changed?.involved} onclick={() => openView('involved')}>
                 {#snippet lead()}
                     {#if involvedParticipants.length > 0}
                         <span class="flex shrink-0 -space-x-2.5">
@@ -970,7 +1108,7 @@
                 <span class="truncate">{involvedSummary}</span>
             </SummaryRow>
             {#if involved.length > 0}
-                <SummaryRow label={$t('expense.split.label')} icon={Split} invalid={!splitCheck.valid} onclick={() => openView('split')}>
+                <SummaryRow label={$t('expense.split.label')} icon={Split} invalid={!splitCheck.valid} changed={changed?.split} onclick={() => openView('split')}>
                     <span class="truncate">{splitSummary}</span>
                 </SummaryRow>
             {/if}
@@ -995,7 +1133,7 @@
         {/if}
 
         <ListGroup>
-            <SummaryRow label={$t('expense.form.date_label')} icon={CalendarIcon} onclick={() => openView('date')}>
+            <SummaryRow label={$t('expense.form.date_label')} icon={CalendarIcon} changed={changed?.date} onclick={() => openView('date')}>
                 <span class="truncate capitalize" data-testid="expense-date">{dateSummary}</span>
             </SummaryRow>
             {#if !isReimbursement}
@@ -1004,14 +1142,15 @@
                     bind:existingPhotos
                     bind:photosToDelete
                     record={initialData}
+                    changed={changed?.photos}
                 />
             {/if}
             {#if canRepeat && !repeatedLater}
-                <SummaryRow label={$t('expense.repeat.label')} icon={Repeat} onclick={() => openView('repeat')}>
+                <SummaryRow label={$t('expense.repeat.label')} icon={Repeat} changed={changed?.repeat} onclick={() => openView('repeat')}>
                     <span class="truncate">{repeatSummary}</span>
                 </SummaryRow>
             {/if}
-            <SummaryRow label={$t('expense.note.label')} icon={StickyNote} onclick={() => openView('note')}>
+            <SummaryRow label={$t('expense.note.label')} icon={StickyNote} changed={changed?.notes} onclick={() => openView('note')}>
                 {#if notes.trim()}
                     <span class="truncate">{notes.trim().split('\n')[0]}</span>
                 {:else}

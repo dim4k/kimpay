@@ -29,6 +29,41 @@ test.describe('Expense list', () => {
         await expect(page.getByRole('button', { name: /Museum tickets/ })).toBeVisible();
     });
 
+    test('editing marks what changed, drops it, or saves it when leaving', async ({ page }) => {
+        await addExpense(page, 'Museum', '18');
+        await page.getByRole('button', { name: /Museum/ }).click();
+        const sheet = expenseSheet(page);
+
+        // A setting changed in its panel: marked on the summary, not saved yet.
+        await sheet.getByRole('button', { name: /^Note/ }).click();
+        await sheet.getByRole('textbox', { name: 'Note' }).fill('Guided tour');
+        await sheet.getByRole('button', { name: 'OK' }).click();
+        await expect(sheet.getByTestId('changed')).toHaveCount(1);
+        await expect(sheet.getByRole('button', { name: /^Note/ })).toContainText('changed');
+
+        // Back to the expense as it was, without a question.
+        await sheet.getByRole('button', { name: 'Undo my changes' }).click();
+        await expect(sheet.getByTestId('changed')).toHaveCount(0);
+        await expect(sheet.getByRole('button', { name: /update expense/i })).toHaveCount(0);
+
+        // Leaving with a change: saved from the question.
+        await sheet.getByPlaceholder('What was it for?').fill('Museum tickets');
+        await sheet.locator('header').getByRole('button', { name: 'Close' }).click();
+        const question = page.getByRole('dialog', { name: 'Save your changes?' });
+        await question.getByRole('button', { name: 'Keep editing' }).click();
+        await expect(sheet.getByPlaceholder('What was it for?')).toHaveValue('Museum tickets');
+        await sheet.locator('header').getByRole('button', { name: 'Close' }).click();
+        await question.getByRole('button', { name: 'Save', exact: true }).click();
+        await expect(sheet).toBeHidden();
+        await expect(page.getByRole('button', { name: /Museum tickets/ })).toBeVisible();
+
+        // Saved by mistake: undone from the message.
+        await page.locator('[data-toast]').getByRole('button', { name: 'Undo' }).click();
+        await expect(page.getByText('Change undone')).toBeVisible();
+        await expect(page.getByRole('button', { name: /Museum tickets/ })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /Museum/ })).toBeVisible();
+    });
+
     test('duplicate opens a filled-in new expense', async ({ page }) => {
         await addExpense(page, 'Breakfast', '12');
         await page.getByRole('button', { name: /Breakfast/ }).click();

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ArrowRight, HandCoins, Undo2 } from '@lucide/svelte';
+    import { ArrowRight, HandCoins, Pencil, Undo2 } from '@lucide/svelte';
     import { pb } from '#lib/pocketbase.js';
     import { t, locale } from '#lib/i18n.js';
     import { modals } from '#lib/stores/modals.svelte.js';
@@ -29,6 +29,7 @@
         exchangeRates,
         onClose,
         onCancelReimbursement,
+        onEditReimbursement,
     }: {
         expense: Expense | null;
         currentUserId: string | null;
@@ -40,6 +41,8 @@
         onClose: () => void;
         /** A reimbursement in the app: it can be cancelled */
         onCancelReimbursement?: ((expenseId: string) => void) | undefined;
+        /** ... and corrected (its amount, its date) */
+        onEditReimbursement?: ((expense: Expense) => void) | undefined;
     } = $props();
 
     let currency = $derived(expense?.currency || DEFAULT_CURRENCY);
@@ -207,11 +210,21 @@
             </ul>
         {/if}
 
-        {#if expense.is_reimbursement && onCancelReimbursement}
-            <Button variant="ghost-destructive" class="w-full" onclick={() => onCancelReimbursement(expense!.id)}>
-                <Undo2 />
-                {$t('expense.reimbursement.undo')}
-            </Button>
+        {#if expense.is_reimbursement && (onEditReimbursement || onCancelReimbursement)}
+            <div class="flex flex-col gap-2">
+                {#if onEditReimbursement}
+                    <Button variant="outline" class="w-full" onclick={() => onEditReimbursement(expense!)}>
+                        <Pencil />
+                        {$t('expense.reimbursement.edit')}
+                    </Button>
+                {/if}
+                {#if onCancelReimbursement}
+                    <Button variant="ghost-destructive" class="w-full" onclick={() => onCancelReimbursement(expense!.id)}>
+                        <Undo2 />
+                        {$t('expense.reimbursement.undo')}
+                    </Button>
+                {/if}
+            </div>
         {/if}
     {/if}
 </Modal>

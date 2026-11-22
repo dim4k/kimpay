@@ -39,6 +39,20 @@ test.describe('Expense form', () => {
         await page.goBack();
         await expect(summary).toBeVisible();
         await expect(page).toHaveURL(/\/add$/);
+
+        // So does its OK button, and Escape. Over the summary (phones), the
+        // panel has no close button: that one leaves the whole form.
+        await summary.click();
+        await expect(sheet.locator('header').getByRole('button', { name: 'Close' })).toHaveCount(isMobile ? 0 : 1);
+        await sheet.getByRole('button', { name: 'OK' }).click();
+        await expect(summary).toBeVisible();
+        if (isMobile) {
+            await summary.click();
+            await expect(sheet.getByRole('radio', { name: 'Amounts' })).toBeVisible();
+            await page.keyboard.press('Escape');
+            await expect(summary).toBeVisible();
+            await expect(page).toHaveURL(/\/add$/);
+        }
     });
 
     test('the date is picked in its panel, which closes once picked', async ({ page }) => {

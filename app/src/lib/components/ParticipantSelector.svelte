@@ -25,8 +25,10 @@
         onSelectionChange: (selected: string[]) => void;
         /** Adds a member by name (the field under the list, as on the Members tab) */
         onAdd?: (name: string) => Promise<void>;
-        /** Show select all/none toggle (only for multi mode) */
+        /** Shortcuts over the list (multi mode): everyone, or only me once everyone is ticked */
         showToggleAll?: boolean;
+        /** Who I am in the group, for "Only me" */
+        meId?: string | null;
         /** The label is read out only (the panel holding it says it already) */
         hideLabel?: boolean;
     }
@@ -40,6 +42,7 @@
         onSelectionChange,
         onAdd,
         showToggleAll = false,
+        meId = null,
         hideLabel = false
     }: Props = $props();
 
@@ -72,14 +75,20 @@
         refusedTimer = setTimeout(() => (refused = false), 2500);
     }
 
-    function toggleAll() {
-        if (selected.length === participants.length) {
-            selected = [];
-        } else {
-            selected = participants.map(p => p.id);
-        }
+    // Never nobody (unticking the last one is refused too): everyone, or,
+    // once everyone is ticked, only me.
+    function selectAll() {
+        selected = participants.map(p => p.id);
         onSelectionChange(selected);
     }
+
+    function selectOnlyMe() {
+        if (!meId) return;
+        selected = [meId];
+        onSelectionChange(selected);
+    }
+
+    const canSelectOnlyMe = $derived(!!meId && participants.length > 1 && participants.some(p => p.id === meId));
 
     function isSelected(participantId: string): boolean {
         return selected.includes(participantId);
@@ -115,9 +124,15 @@
         </Label>
 
         {#if showToggleAll && mode === 'multi'}
-            <button type="button" onclick={toggleAll} class="text-sm font-semibold text-primary hover:underline">
-                {allSelected ? $t('expense.form.select_none') : $t('expense.form.select_all')}
-            </button>
+            {#if !allSelected}
+                <button type="button" onclick={selectAll} class="text-sm font-semibold text-primary hover:underline">
+                    {$t('expense.form.select_all')}
+                </button>
+            {:else if canSelectOnlyMe}
+                <button type="button" onclick={selectOnlyMe} class="text-sm font-semibold text-primary hover:underline">
+                    {$t('expense.form.only_me')}
+                </button>
+            {/if}
         {/if}
     </div>
 
@@ -136,7 +151,9 @@
     </div>
 
     {#if onAdd}
-        <div class="flex gap-2 pt-2">
+        <!-- Not a search: a new member of the group, added at once. -->
+        <p class="pt-3 text-sm font-medium text-muted-foreground">{$t('expense.form.add_member')}</p>
+        <div class="flex gap-2">
             <Input
                 bind:value={newName}
                 maxlength={NAME_MAX_LENGTH}

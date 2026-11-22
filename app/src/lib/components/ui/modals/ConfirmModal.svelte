@@ -16,6 +16,9 @@
     isProcessing?: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    /** A third answer ("Don't save"): the three buttons are then stacked. */
+    altText?: string | undefined;
+    onAlt?: (() => void) | undefined;
   }
 
   let {
@@ -27,7 +30,9 @@
     variant = "default",
     isProcessing = false,
     onConfirm,
-    onCancel
+    onCancel,
+    altText,
+    onAlt
   }: Props = $props();
 </script>
 
@@ -39,6 +44,14 @@
         tone={variant === 'destructive' ? 'destructive' : 'primary'}
     />
 
+    {#if altText && onAlt}
+        <!-- Three answers: the main one first, the way out of the question last. -->
+        <div class="flex flex-col gap-2">
+            <Button onclick={onConfirm} loading={isProcessing}>{confirmText}</Button>
+            <Button variant="secondary" onclick={onAlt} disabled={isProcessing}>{altText}</Button>
+            <Button variant="ghost" class="text-primary" onclick={onCancel} disabled={isProcessing}>{cancelText}</Button>
+        </div>
+    {:else}
     <ModalActions>
         <Button variant="secondary" onclick={onCancel} disabled={isProcessing}>
             {cancelText}
@@ -51,4 +64,5 @@
             {confirmText}
         </Button>
     </ModalActions>
+    {/if}
 </Modal>

@@ -131,6 +131,18 @@ test.describe('Balance & Debts', () => {
 
     await expect(page.getByText('You are owed')).toBeVisible();
     await expect(page.getByText('€30.00').first()).toBeVisible();
+
+    // Recorded with the wrong amount: corrected from its line, not cancelled.
+    await page.getByRole('navigation').getByRole('link', { name: /expenses/i }).click();
+    await page.locator('[data-expense]', { hasText: 'Reimbursement' }).getByRole('button').first().click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Edit this reimbursement' }).click();
+    const correction = page.getByRole('dialog', { name: 'Edit this reimbursement' });
+    await expect(correction.getByLabel('Amount paid')).toHaveValue('20');
+    await correction.getByLabel('Amount paid').fill('35');
+    await correction.getByRole('button', { name: 'Save' }).click();
+    await expect(correction).toBeHidden();
+    await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
+    await expect(page.getByText('€15.00').first()).toBeVisible();
   });
 
   test('Where the money went: a sheet per category, then its expenses', async ({ page }) => {

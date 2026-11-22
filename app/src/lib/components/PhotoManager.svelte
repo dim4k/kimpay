@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Camera, ChevronRight, X } from "@lucide/svelte";
+    import { Camera, Plus, X } from "@lucide/svelte";
     import { onDestroy } from 'svelte';
     import { pb } from '#lib/pocketbase.js';
     import { t } from '#lib/i18n.js';
@@ -18,6 +18,8 @@
         record?: RecordModel | null;
         /** Whether to disable the input (e.g., when offline) */
         disabled?: boolean;
+        /** An expense edited: photos added or removed, not saved yet */
+        changed?: boolean | undefined;
     }
 
     let {
@@ -25,7 +27,8 @@
         existingPhotos = $bindable([]),
         photosToDelete = $bindable([]),
         record = null,
-        disabled = false
+        disabled = false,
+        changed = false
     }: Props = $props();
 
     let fileInput: HTMLInputElement;
@@ -105,7 +108,15 @@
     >
         <IconTile size="sm"><Camera /></IconTile>
         <span class="flex min-w-0 flex-1 flex-col">
-            <span class="text-sm text-muted-foreground">{$t('expense.form.photos_label')}</span>
+            <span class="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                <span class="truncate">{$t('expense.form.photos_label')}</span>
+                {#if changed}
+                    <span class="flex shrink-0 items-center gap-1 font-medium text-primary" data-testid="changed">
+                        <span class="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true"></span>
+                        {$t('expense.form.changed')}
+                    </span>
+                {/if}
+            </span>
             <span class="truncate text-base font-medium">
                 {#if isDisabled}
                     {$t('expense.form.photos_disabled_offline')}
@@ -116,7 +127,8 @@
                 {/if}
             </span>
         </span>
-        <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
+        <!-- Adds right away (the file picker), no panel behind: not a chevron. -->
+        <Plus class="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
 
     {#if count > 0}
