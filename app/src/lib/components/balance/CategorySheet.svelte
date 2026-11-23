@@ -16,16 +16,14 @@
     interface Props {
         /** The category shown (null: closed) */
         category: EmojiCategoryKey | null;
-        /** Its part of the spending shown on the page (the group's, or mine) */
+        /** Its part of the group's spending */
         share: number;
-        /** The group's spending, or my part of it: as on the page */
-        view: 'total' | 'me';
         displayCurrency: string;
         activeKimpay: ActiveKimpay;
         onClose: () => void;
     }
 
-    let { category, share, view, displayCurrency, activeKimpay, onClose }: Props = $props();
+    let { category, share, displayCurrency, activeKimpay, onClose }: Props = $props();
 
     let myId = $derived(activeKimpay.myParticipantId);
     let currency = $derived(activeKimpay.kimpay?.currency || DEFAULT_CURRENCY);
@@ -86,17 +84,15 @@
 
         <div class="space-y-2" data-testid="category-amounts">
             <div class="flex items-baseline justify-between gap-3">
-                <span class="text-display font-bold tabular-nums">{money(view === 'me' ? detail.mine : detail.total)}</span>
+                <span class="text-display font-bold tabular-nums">{money(detail.total)}</span>
                 <span class="text-sm text-muted-foreground">
-                    {$t(view === 'me' ? 'balance.category.of_mine' : 'balance.category.of_total', { percent: percent.format(share) })}
+                    {$t('balance.category.of_total', { percent: percent.format(share) })}
                 </span>
             </div>
             <span class="block h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
                 <span class="block h-full rounded-full" style="width: {Math.max(share * 100, 2)}%; background-color: {categoryColor(category)}"></span>
             </span>
-            {#if view === 'me'}
-                <p class="text-sm text-muted-foreground">{$t('balance.category.group_total', { amount: money(detail.total) })}</p>
-            {:else if myId}
+            {#if myId}
                 <p class="text-sm text-muted-foreground">{$t('balance.category.my_share', { amount: money(detail.mine) })}</p>
             {/if}
         </div>

@@ -142,7 +142,7 @@ test.describe('Splits, money received, filters, read-only link', () => {
         await page.getByRole('button', { name: 'Later' }).click();
         await expect(page.getByText('Help Other pay you')).toBeHidden();
         await page.reload();
-        await expect(page.getByText('You are owed')).toBeVisible();
+        await expect(page.getByTestId('debt-card')).toContainText('Other owes you');
         await expect(page.getByText('Help Other pay you')).toBeHidden();
 
         // Logged in: entered in the profile, not shown in the group yet; then

@@ -155,9 +155,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             await navTo(page, /balance/i);
             await expect(page.getByText('Bob').first()).toBeVisible();
-            // The balance card shows its final amount.
-            await expect(page.locator('section', { hasText: 'You are owed' }).getByText('€42.00', { exact: true })).toBeVisible();
-            await expect(page.getByText('Kimpay total €84.00')).toBeVisible();
+            await expect(page.getByTestId('debt-card')).toContainText('€42.00');
             await snapshot(page, `balance-${colorScheme}`);
 
 

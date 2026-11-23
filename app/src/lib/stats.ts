@@ -6,25 +6,20 @@ import { EMOJI_CATEGORY_ORDER, emojiCategory, type EmojiCategoryKey } from './co
 const spending = (expenses: Expense[]) => expenses.filter((e) => !e.is_reimbursement);
 
 /**
- * What the group spent per category, or my part of it when `participantId`
- * is given, in the Kimpay's currency. Biggest first; categories that end up
- * at zero or below (money received) are left out.
+ * What the group spent per category, in the Kimpay's currency. Biggest
+ * first; categories that end up at zero or below (money received) are left out.
  */
 export function spendingByCategory(
     expenses: Expense[],
     kimpayCurrency: string,
     rates: Record<string, number>,
-    participantIds: string[],
-    participantId?: string,
 ): { key: EmojiCategoryKey; amount: number }[] {
     const totals = new Map<EmojiCategoryKey, number>();
     for (const e of spending(expenses)) {
         if (e.amount <= 0) continue;
         const value = toKimpayAmount(e, kimpayCurrency, rates);
-        const part = participantId ? (expenseShare(e, participantId, participantIds) / e.amount) * value : value;
-        if (!part) continue;
         const key = emojiCategory(e.icon);
-        totals.set(key, (totals.get(key) ?? 0) + (e.is_income ? -part : part));
+        totals.set(key, (totals.get(key) ?? 0) + (e.is_income ? -value : value));
     }
     return [...totals]
         .map(([key, amount]) => ({ key, amount }))

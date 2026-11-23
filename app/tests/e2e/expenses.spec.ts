@@ -94,7 +94,6 @@ test.describe('Expense Management', () => {
     const search = page.getByRole('button', { name: 'Search' });
     await expect(search).toBeVisible();
     await expect(page.getByPlaceholder('Search')).toBeHidden();
-    await expect(page.getByRole('radio', { name: 'For me' })).toBeVisible();
 
     // The search button brings the field back, ready to type.
     await search.click();
@@ -143,28 +142,19 @@ test.describe('Expense Management', () => {
     // Verify we are back on dashboard and expense is visible
     await expect(page).toHaveURL(/\/?$/);
     await expect(page.getByText('Shared Dinner')).toBeVisible();
-    // "For me" (default): each line tells what it changes for me, I advanced Alice's half.
+    // Each line: who paid and the amount (no "for me" view any more).
     const line = page.locator('.expense-item', { hasText: 'Shared Dinner' });
-    await expect(line.getByText('You paid €50.00')).toBeVisible();
-    await expect(line.getByText('owed to you')).toBeVisible();
-    await expect(line.getByText('€25.00', { exact: true })).toBeVisible();
-
-    // "Total": who paid and the amount, remembered on this device.
-    await page.getByRole('radio', { name: 'Total' }).click();
     await expect(line.getByText('€50.00', { exact: true })).toBeVisible();
-    await expect(line.getByText('owed to you')).toBeHidden();
+    await expect(page.getByRole('radio', { name: 'For me' })).toHaveCount(0);
     // I am one of the 2 people: the count is a pill (computers: "Everyone", in its column).
     await expect(line.locator('.rounded-full:visible', { hasText: isMobile ? '2 people' : 'Everyone' })).toBeVisible();
-    await page.reload();
-    await expect(page.getByRole('radio', { name: 'Total' })).toHaveAttribute('aria-checked', 'true');
-    await page.getByRole('radio', { name: 'For me' }).click();
 
     // 4. Go to Balance Page using UI link
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
 
-    // 5. Verify "You are owed" (balance card, then the payment and balances)
-    await expect(page.getByText('You are owed')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('25.00').first()).toBeVisible();
+    // 5. The payment to expect: Alice owes me her half.
+    await expect(page.getByTestId('debt-card')).toContainText('Alice owes you', { timeout: 10000 });
+    await expect(page.getByTestId('debt-card')).toContainText('€25.00');
   });
 
 });

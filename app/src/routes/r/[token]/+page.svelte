@@ -9,6 +9,7 @@
     import { calculateBalances, calculateDebts, totalSpent } from '#lib/balance.js';
     import { DEFAULT_KIMPAY_EMOJI } from '#lib/constants.js';
     import { dayLabel, groupByDay } from '#lib/utils/date.js';
+    import { expenseRuns } from '#lib/utils/runs.js';
     import ExpenseItem from '#lib/components/expense/ExpenseItem.svelte';
     import ExpenseDetailsSheet from '#lib/components/expense/ExpenseDetailsSheet.svelte';
     import PaymentPair from '#lib/components/balance/PaymentPair.svelte';
@@ -56,6 +57,18 @@
     // A line touched: its details, in a sheet.
     let opened = $state<Expense | null>(null);
 </script>
+
+{#snippet line(e: Expense)}
+    <ExpenseItem
+        expense={e}
+        readonly
+        currentUserId={null}
+        {participantIds}
+        onOpen={(expense) => (opened = expense)}
+        kimpayCurrency={currency}
+        exchangeRates={rates}
+    />
+{/snippet}
 
 <svelte:head>
     <title>{data ? `${data.name} - Kimpay` : 'Kimpay'}</title>
@@ -131,19 +144,20 @@
                         <h3 class="px-1 text-sm font-semibold text-muted-foreground">
                             {dayLabel(day.key, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') })}
                         </h3>
-                        <ListGroup>
-                            {#each day.items as e (e.id)}
-                                <ExpenseItem
-                                    expense={e}
-                                    readonly
-                                    currentUserId={null}
-                                    {participantIds}
-                                    onOpen={(expense) => (opened = expense)}
-                                    kimpayCurrency={currency}
-                                    exchangeRates={rates}
-                                />
-                            {/each}
-                        </ListGroup>
+                        <!-- The expenses in a card; each reimbursement in its own. -->
+                        {#each expenseRuns(day.items) as run (run.key)}
+                            {#if run.reimbursement}
+                                {#each run.items as e (e.id)}
+                                    {@render line(e)}
+                                {/each}
+                            {:else}
+                                <ListGroup>
+                                    {#each run.items as e (e.id)}
+                                        {@render line(e)}
+                                    {/each}
+                                </ListGroup>
+                            {/if}
+                        {/each}
                     </div>
                 {/each}
             {/if}

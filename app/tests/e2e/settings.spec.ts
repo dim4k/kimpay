@@ -62,7 +62,7 @@ test.describe('Members & group settings', () => {
      await expect(page.locator('[data-participant-id]', { hasText: 'Bob M.' })).toHaveCount(0);
 
      await page.goto(`${base}/balance`);
-     await expect(page.getByText('You are owed')).toBeVisible();
+     await expect(page.getByTestId('debt-card')).toContainText('Bob owes you');
      await expect(page.getByText('€20.00').first()).toBeVisible();
   });
 
@@ -101,7 +101,7 @@ test.describe('Members & group settings', () => {
 
      // Owed 15 EUR, now 30 USD; the expense keeps its 30 EUR.
      await page.goto(`${base}/balance`);
-     await expect(page.getByText('You are owed')).toBeVisible();
+     await expect(page.getByTestId('debt-card')).toContainText('Bob owes you');
      await expect(page.getByText('$30.00').first()).toBeVisible();
   });
 

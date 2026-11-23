@@ -27,16 +27,15 @@
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Input } from '#lib/components/ui/input/index.js';
   import { dayLabel, groupByDay } from '#lib/utils/date.js';
+  import { expenseRuns } from '#lib/utils/runs.js';
   import type { Expense } from '#lib/types.js';
   import type { TranslationKey } from '#lib/locales/en.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import OfflineBanner from '#lib/components/ui/OfflineBanner.svelte';
   import { DEFAULT_CURRENCY, formatAmount } from '#lib/services/currency.js';
-  import { balanceSign, balanceTone, expenseImpact, isSettled, toKimpayAmount } from '#lib/balance.js';
-  import { expenseView } from '#lib/stores/expenseView.svelte.js';
+  import { toKimpayAmount } from '#lib/balance.js';
   import { prefs } from '#lib/utils/prefs.js';
   import { activitySeenAt, changesSince, listActivity, markActivitySeen, type Activity } from '#lib/services/activity.js';
-  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import { EMOJI_CATEGORIES, EMOJI_CATEGORY_ORDER, STORAGE_KEYS, emojiCategory, type EmojiCategoryKey } from '#lib/constants.js';
 
   // Get ActiveKimpay from context
@@ -207,22 +206,15 @@
       return dayLabel(key, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }, short);
   }
 
-  /**
-   * What the group spent (reimbursements are not spending), and what it
-   * changed to my balance, in the Kimpay currency.
-   */
-  function amounts(items: Expense[]): { total: number; mine: number; reimbursements: number } {
+  /** What the group spent (reimbursements are not spending), in the Kimpay currency. */
+  function amounts(items: Expense[]): { total: number; reimbursements: number } {
       let total = 0;
-      let mine = 0;
       // Only reimbursements: their count says more than a 0 total.
       const reimbursements = items.every(e => e.is_reimbursement) ? items.length : 0;
       for (const e of items) {
-          const value = toKimpayCurrency(e);
-          if (!e.is_reimbursement) total += (e.is_income ? -1 : 1) * value;
-          const impact = currentUserId ? expenseImpact(e, currentUserId, participantIds) : null;
-          if (typeof impact === 'number' && e.amount > 0) mine += impact * (value / e.amount);
+          if (!e.is_reimbursement) total += (e.is_income ? -1 : 1) * toKimpayCurrency(e);
       }
-      return { total, mine, reimbursements };
+      return { total, reimbursements };
   }
 
   // Sorted by date: one list per day. Other sorts: a single list.
@@ -239,14 +231,9 @@
       }));
   });
 
-  // Total or "for me": what the amounts of the list say (shared with the
-  // balance page). "For me" needs an identity in the group.
-  let canChooseView = $derived(!!currentUserId);
-  let view = $derived(canChooseView ? expenseView.choice : 'total');
-
   // The search bar sticks under the header. Once the list scrolls under it,
-  // it shrinks to one line: the day in view and its amount, the search
-  // button and the view switch.
+  // it shrinks to one line: the day in view and its amount, and the search
+  // button.
   let sentinel = $state<HTMLElement>();
   let bar = $state<HTMLElement>();
   let searchInput = $state<HTMLInputElement | null>(null);
@@ -466,20 +453,28 @@
   }
 </script>
 
-<!-- A day's (or the list's) amount: what the group spent, or what it changed for me. -->
-{#snippet sectionAmount(section: { total: number; mine: number; reimbursements: number })}
-    {#if view === 'me' && isSettled(section.mine)}
-        <!-- Nothing changed for me that day (reimbursements between others...). -->
-        <span>—</span>
-    {:else if view === 'me'}
-        <span class="whitespace-nowrap tabular-nums {balanceTone(section.mine) === 'success' ? 'text-success' : 'text-warning'}">
-            {balanceSign(section.mine)}{formatAmount(Math.abs(section.mine), kimpayC, $locale)}
-        </span>
-    {:else if section.reimbursements > 0}
+<!-- A day's (or the list's) amount: what the group spent. -->
+{#snippet sectionAmount(section: { total: number; reimbursements: number })}
+    {#if section.reimbursements > 0}
         <span class="whitespace-nowrap">{$t('expense.list.reimbursements_count', { count: String(section.reimbursements) })}</span>
     {:else}
         <span class="whitespace-nowrap tabular-nums">{formatAmount(section.total, kimpayC, $locale)}</span>
     {/if}
+{/snippet}
+
+{#snippet line(expense: Expense)}
+    <ExpenseItem
+        {expense}
+        {currentUserId}
+        {participantIds}
+        onOpen={openExpense}
+        onRequestDelete={requestDelete}
+        onDuplicate={duplicateExpense}
+        selected={layout.wide && (page.state.expenseSheet?.expenseId === expense.id || reimbursementId === expense.id)}
+        kimpayCurrency={kimpayC}
+        {exchangeRates}
+        isNew={newIds.has(expense.id)}
+    />
 {/snippet}
 
 {#snippet filterOption(label: string, selected: boolean, onclick: () => void)}
@@ -672,18 +667,6 @@
                       {/if}
                   </button>
               {/if}
-              {#if canChooseView}
-                  <SegmentedControl
-                      options={[
-                          { value: 'total', label: $t('expense.view.total') },
-                          { value: 'me', label: $t('expense.view.me') },
-                      ]}
-                      value={view}
-                      label={$t('expense.view.label')}
-                      onchange={(v) => expenseView.set(v)}
-                      class="shrink-0"
-                  />
-              {/if}
           </div>
       </div>
 
@@ -824,23 +807,20 @@
                       {/snippet}
                   </SectionLabel>
               {/if}
-              <ListGroup>
-                  {#each section.items as expense (expense.id)}
-                      <ExpenseItem
-                          {expense}
-                          {currentUserId}
-                          {participantIds}
-                          onOpen={openExpense}
-                          onRequestDelete={requestDelete}
-                          onDuplicate={duplicateExpense}
-                          selected={layout.wide && (page.state.expenseSheet?.expenseId === expense.id || reimbursementId === expense.id)}
-                          {view}
-                          kimpayCurrency={kimpayC}
-                          {exchangeRates}
-                          isNew={newIds.has(expense.id)}
-                      />
-                  {/each}
-              </ListGroup>
+              <!-- The expenses in a card; each reimbursement in its own. -->
+              {#each expenseRuns(section.items) as run (run.key)}
+                  {#if run.reimbursement}
+                      {#each run.items as expense (expense.id)}
+                          {@render line(expense)}
+                      {/each}
+                  {:else}
+                      <ListGroup>
+                          {#each run.items as expense (expense.id)}
+                              {@render line(expense)}
+                          {/each}
+                      </ListGroup>
+                  {/if}
+              {/each}
               {#if i === 0 && showSwipeHint}
                   <p class="px-1 text-xs text-muted-foreground md:hidden">{$t('expense.list.swipe_hint')}</p>
               {/if}

@@ -1,16 +1,12 @@
 <script lang="ts">
   import { type Transaction } from '#lib/balance.js';
-  import { Wallet, ChevronRight, Plus } from "@lucide/svelte";
+  import { Wallet, ChevronDown, ChevronRight, Plus, CircleCheck } from "@lucide/svelte";
 
   import DebtCard from '#lib/components/balance/DebtCard.svelte';
   import PaymentPair from '#lib/components/balance/PaymentPair.svelte';
-  import BalanceHero from '#lib/components/ui/BalanceHero.svelte';
-  import BalanceBars from '#lib/components/ui/BalanceBars.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import { balanceTone, shareOf } from '#lib/balance.js';
-  import { expenseView } from '#lib/stores/expenseView.svelte.js';
   import { prefs } from '#lib/utils/prefs.js';
   import CurrencySelect from '#lib/components/ui/CurrencySelect.svelte';
   import EmptyState from '#lib/components/ui/EmptyState.svelte';
@@ -28,7 +24,6 @@
   import { getErrorMessage } from '#lib/utils/errors.js';
   import { EMOJI_CATEGORIES, DEFAULT_EXPENSE_EMOJI, STORAGE_KEYS, categoryColor, type EmojiCategoryKey } from '#lib/constants.js';
   import { groupStats, spendingByCategory } from '#lib/stats.js';
-  import SegmentedControl from '#lib/components/ui/SegmentedControl.svelte';
   import PaymentHandlesSheet from '#lib/components/profile/PaymentHandlesSheet.svelte';
   import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
   import CategorySheet from '#lib/components/balance/CategorySheet.svelte';
@@ -42,20 +37,20 @@
   let kimpay = $derived(activeKimpay?.kimpay);
   let kimpayDefaultCurrency = $derived(kimpay?.currency || DEFAULT_CURRENCY);
   let exchangeRates = $derived(activeKimpay?.exchangeRates || {});
-  
+
   // Display currency: the group's (which follows it once loaded, or when it
   // changes), until another one is picked here.
   let chosenCurrency = $state('');
   let displayCurrency = $derived(chosenCurrency || kimpayDefaultCurrency);
-  
+
   // Helper: convert amount to display currency
   function toDisplayCurrency(amount: number, fromCurrency: string): number {
     return convert(amount, fromCurrency, displayCurrency || DEFAULT_CURRENCY, exchangeRates);
   }
-  
+
   // Reactive transactions calculation
   let transactions = $derived(activeKimpay?.transactions || []);
-  
+
   let isLoading = $derived(activeKimpay?.loading ?? true);
 
   // Recording a payment: the amount due, or part of it, on a chosen day.
@@ -127,12 +122,6 @@
   function shown(tx: Transaction): string {
       return formatAmount(toDisplayCurrency(tx.amount, tx.currency), displayCurrency, $locale);
   }
-  let myNet = $derived(toDisplayCurrency(activeKimpay?.myBalance ?? 0, kimpayDefaultCurrency));
-  let myTone = $derived(balanceTone(myNet));
-  let totalExpenses = $derived(toDisplayCurrency(activeKimpay?.totalAmount ?? 0, kimpayDefaultCurrency));
-  let myShare = $derived(
-      myId ? toDisplayCurrency(shareOf(expenses, participants, myId, kimpayDefaultCurrency, exchangeRates), kimpayDefaultCurrency) : 0
-  );
 
   // Someone owes me and cannot pay me in one tap: offer to show my payment
   // links here (they are private until shown in a group).
@@ -174,30 +163,22 @@
       prefs.set(nudgeKey, 'true');
   }
 
-  // Everyone's net balance, the biggest creditor first.
-  let balanceRows = $derived(
-      participants
-          .map((p) => ({
-              id: p.id,
-              name: label(p.id),
-              amount: toDisplayCurrency(activeKimpay?.balances[p.id] ?? 0, kimpayDefaultCurrency),
-          }))
-          .sort((a, b) => b.amount - a.amount)
-  );
-
-  // Where the money went: the group's spending or my part, the same choice
-  // as on the expense list.
-  let view = $derived(myId ? expenseView.choice : 'total');
-
-  let participantIds = $derived(participants.map((p) => p.id));
+  // Where the money went: the group's spending, per category.
   let categories = $derived.by(() => {
-      const list = spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds, view === 'me' ? myId ?? undefined : undefined);
+      const list = spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates);
       const sum = list.reduce((total, c) => total + c.amount, 0);
       return list.map((c) => ({ ...c, share: sum > 0 ? c.amount / sum : 0 }));
   });
   let categoriesTotal = $derived(categories.reduce((total, c) => total + c.amount, 0));
+  // A few figures more, folded until asked for.
+  let stats = $derived(groupStats(expenses, kimpayDefaultCurrency, exchangeRates));
+  let showStats = $state(false);
 
-  // A category opened: its sheet, with its share of what the page shows.
+  function money(amount: number): string {
+      return formatAmount(toDisplayCurrency(amount, kimpayDefaultCurrency), displayCurrency, $locale);
+  }
+
+  // A category opened: its sheet, with its share of the spending.
   let openedCategory = $state<EmojiCategoryKey | null>(null);
   let openedShare = $derived(categories.find((c) => c.key === openedCategory)?.share ?? 0);
 
@@ -205,15 +186,8 @@
       openedCategory = key;
   }
 
-  // Worth a breakdown once the group has more than one category.
-  let showCategories = $derived(
-      spendingByCategory(expenses, kimpayDefaultCurrency, exchangeRates, participantIds).length > 1
-  );
-
   // "42 %" in French, "42%" in English: the language's own way.
   let percent = $derived(new Intl.NumberFormat($locale, { style: 'percent', maximumFractionDigits: 0 }));
-
-  let stats = $derived(groupStats(expenses, kimpayDefaultCurrency, exchangeRates));
 
   // The bar in words: "Food 35 %, Lodging 27 %…"
   let categoriesSummary = $derived(
@@ -222,20 +196,13 @@
 </script>
 
 {#snippet stat(title: string, value: string, detail: string)}
-    <div class="min-w-0 rounded-card border bg-card px-4 py-3">
-        <p class="text-xs text-muted-foreground">{title}</p>
-        <p class="truncate text-lg font-semibold tabular-nums">{value}</p>
-        <p class="truncate text-xs text-muted-foreground">{detail}</p>
-    </div>
-{/snippet}
-
-<!-- The amounts of the page, in another currency if needed: always in the
-     balance block, whatever the page shows below it. -->
-{#snippet displayIn()}
-    <div class="flex items-center gap-1.5 text-xs text-foreground/70">
-        <span>{$t('balance.display_in')}</span>
-        <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
-    </div>
+    <li class="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5">
+        <span class="min-w-0">
+            <span class="block text-sm font-medium">{title}</span>
+            <span class="block truncate text-xs text-muted-foreground">{detail}</span>
+        </span>
+        <span class="shrink-0 text-base font-semibold tabular-nums">{value}</span>
+    </li>
 {/snippet}
 
 <!-- Computers: as wide as the expense list. -->
@@ -263,27 +230,8 @@
             {/snippet}
          </EmptyState>
     {:else}
-        <!-- Me first: where I stand, then what I should do, then the group. -->
-        {#if !myId}
-            <BalanceHero label={$t('balance.total_group')} amount={totalExpenses} currency={displayCurrency} action={displayIn} />
-        {:else if transactions.length === 0}
-            <BalanceHero label={$t('expense.hero.label')} text={$t('balance.settled.title')} tone="success" action={displayIn}>
-                <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
-            </BalanceHero>
-        {:else}
-            <BalanceHero
-                label={myTone === 'warning' ? $t('balance.you_owe') : myTone === 'success' ? $t('balance.owed_to_you') : $t('expense.hero.label')}
-                amount={myTone !== 'neutral' ? myNet : undefined}
-                text={$t('balance.settled.title')}
-                currency={displayCurrency}
-                tone={myTone}
-                action={displayIn}
-            >
-                <span>{$t('expense.hero.total', { amount: formatAmount(totalExpenses, displayCurrency, $locale) })}</span>
-                <span>{$t('balance.hero.share', { amount: formatAmount(myShare, displayCurrency, $locale) })}</span>
-            </BalanceHero>
-        {/if}
-
+        <!-- What to do first (the payments), then where the money went;
+             a few figures more on demand. -->
         {#if showNudge}
             <section class="space-y-3 rounded-card bg-primary-soft p-4 animate-pop-in">
                 <div class="space-y-1">
@@ -303,80 +251,71 @@
             </section>
         {/if}
 
-        {#if transactions.length > 0}
-            <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.suggested.title')} />
-                {#each myTransactions as tx (`${tx.from}-${tx.to}`)}
-                    {@const iOwe = tx.from === myId}
-                    <DebtCard
-                        other={activeKimpay?.participantsById.get(iOwe ? tx.to : tx.from)}
-                        {iOwe}
-                        amount={shown(tx)}
-                        payAmount={tx.amount}
-                        payCurrency={tx.currency}
-                        onSettle={() => openSettleModal(tx)}
-                        onpay={(service) => (opened = { to: tx.to, service, left: false })}
-                    />
-                {/each}
-                {#if otherTransactions.length > 0}
-                    <ListGroup>
-                        {#each otherTransactions as tx (`${tx.from}-${tx.to}`)}
-                            <!-- Between two others: recorded by anyone of the Kimpay. -->
-                            <button
-                                type="button"
-                                class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60 disabled:pointer-events-none"
-                                onclick={() => openSettleModal(tx)}
-                                disabled={!myId}
-                            >
-                                <PaymentPair
-                                    from={{ name: label(tx.from), record: activeKimpay?.participantsById.get(tx.from) }}
-                                    to={{ name: label(tx.to), record: activeKimpay?.participantsById.get(tx.to) }}
-                                    amount={shown(tx)}
-                                />
-                                {#if myId}
-                                    <span class="sr-only">{$t('balance.mark_settled')}</span>
-                                    <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
-                                {/if}
-                            </button>
-                        {/each}
-                    </ListGroup>
-                {/if}
-            </section>
-        {/if}
-
         <section class="space-y-2 animate-slide-up">
-            <SectionLabel title={$t('readonly.balances')} />
-            <BalanceBars rows={balanceRows} currency={displayCurrency} />
+            <!-- The amounts of the page, in another currency if needed. -->
+            <SectionLabel title={$t('balance.suggested.title')}>
+                {#snippet actions()}
+                    <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>{$t('balance.display_in')}</span>
+                        <CurrencySelect size="sm" value={displayCurrency} onchange={(code) => chosenCurrency = code} />
+                    </div>
+                {/snippet}
+            </SectionLabel>
+            {#if transactions.length === 0}
+                <!-- Nobody owes anybody. -->
+                <p class="flex items-center gap-2.5 rounded-card bg-success-soft px-4 py-3 text-base font-semibold text-success" data-testid="settled">
+                    <CircleCheck class="h-5 w-5 shrink-0" />
+                    {$t('balance.settled.title')}
+                </p>
+            {/if}
+            {#each myTransactions as tx (`${tx.from}-${tx.to}`)}
+                {@const iOwe = tx.from === myId}
+                <DebtCard
+                    other={activeKimpay?.participantsById.get(iOwe ? tx.to : tx.from)}
+                    {iOwe}
+                    amount={shown(tx)}
+                    payAmount={tx.amount}
+                    payCurrency={tx.currency}
+                    onSettle={() => openSettleModal(tx)}
+                    onpay={(service) => (opened = { to: tx.to, service, left: false })}
+                />
+            {/each}
+            {#if otherTransactions.length > 0}
+                <ListGroup>
+                    {#each otherTransactions as tx (`${tx.from}-${tx.to}`)}
+                        <!-- Between two others: recorded by anyone of the Kimpay. -->
+                        <button
+                            type="button"
+                            class="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 first:rounded-t-[inherit] last:rounded-b-[inherit] focus-ring-inset hover:bg-muted/60 disabled:pointer-events-none"
+                            onclick={() => openSettleModal(tx)}
+                            disabled={!myId}
+                        >
+                            <PaymentPair
+                                from={{ name: label(tx.from), record: activeKimpay?.participantsById.get(tx.from) }}
+                                to={{ name: label(tx.to), record: activeKimpay?.participantsById.get(tx.to) }}
+                                amount={shown(tx)}
+                            />
+                            {#if myId}
+                                <span class="sr-only">{$t('balance.mark_settled')}</span>
+                                <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
+                            {/if}
+                        </button>
+                    {/each}
+                </ListGroup>
+            {/if}
         </section>
 
-        {#if showCategories}
+        {#if categories.length > 0}
             <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.categories.title')}>
-                    {#snippet actions()}
-                        {#if myId}
-                            <SegmentedControl
-                                options={[
-                                    { value: 'total', label: $t('expense.view.total') },
-                                    { value: 'me', label: $t('expense.view.me') },
-                                ]}
-                                value={view}
-                                label={$t('expense.view.label')}
-                                onchange={(v) => expenseView.set(v)}
-                            />
-                        {/if}
-                    {/snippet}
-                </SectionLabel>
-                {#if categories.length === 0}
-                    <p class="rounded-card border bg-card px-4 py-3 text-sm text-muted-foreground">{$t('balance.categories.none')}</p>
-                {:else}
-                    <div class="space-y-3 rounded-card border bg-card px-4 pb-2 pt-4">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <span class="text-2xl font-bold tabular-nums">{formatAmount(toDisplayCurrency(categoriesTotal, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
-                            <span class="text-sm text-muted-foreground">
-                                {view === 'me' ? $t('balance.categories.my_share') : $t('expense.list.count', { count: String(stats.expenseCount) })}
-                            </span>
-                        </div>
-                        <!-- The whole at a glance; the rows below say it in words. -->
+                <SectionLabel title={$t('balance.categories.title')} />
+                <div class="space-y-3 rounded-card border bg-card px-4 pb-2 pt-4">
+                    <div class="flex items-baseline justify-between gap-3">
+                        <span class="text-2xl font-bold tabular-nums">{formatAmount(toDisplayCurrency(categoriesTotal, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
+                        <span class="text-sm text-muted-foreground">{$t('expense.list.count', { count: String(stats.expenseCount) })}</span>
+                    </div>
+                    <!-- The whole at a glance, once there is more than one
+                         category; the rows below say it in words. -->
+                    {#if categories.length > 1}
                         <div class="flex h-3.5 gap-0.5" role="img" aria-label={categoriesSummary} data-testid="category-bar">
                             {#each categories as category (category.key)}
                                 <span
@@ -385,58 +324,57 @@
                                 ></span>
                             {/each}
                         </div>
-                        <ul class="-mx-2">
-                            {#each categories as category (category.key)}
-                                <li>
-                                    <button
-                                        type="button"
-                                        aria-haspopup="dialog"
-                                        onclick={() => openCategory(category.key)}
-                                        class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset"
-                                    >
-                                        <span class="h-2.5 w-2.5 shrink-0 rounded-[3px]" style="background-color: {categoryColor(category.key)}" aria-hidden="true"></span>
-                                        <span class="shrink-0 text-base" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
-                                        <span class="min-w-0 truncate text-sm font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
-                                        <span class="flex-1 text-sm text-muted-foreground tabular-nums">{percent.format(category.share)}</span>
-                                        <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(category.amount, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
-                                    </button>
-                                </li>
-                            {/each}
-                        </ul>
-                    </div>
-                {/if}
+                    {/if}
+                    <ul class="-mx-2">
+                        {#each categories as category (category.key)}
+                            <li>
+                                <button
+                                    type="button"
+                                    aria-haspopup="dialog"
+                                    onclick={() => openCategory(category.key)}
+                                    class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset"
+                                >
+                                    <span class="h-2.5 w-2.5 shrink-0 rounded-[3px]" style="background-color: {categoryColor(category.key)}" aria-hidden="true"></span>
+                                    <span class="shrink-0 text-base" aria-hidden="true">{EMOJI_CATEGORIES[category.key]!.emojis[0]}</span>
+                                    <span class="min-w-0 truncate text-sm font-medium">{$t(EMOJI_CATEGORIES[category.key]!.labelKey)}</span>
+                                    <span class="flex-1 text-sm text-muted-foreground tabular-nums">{percent.format(category.share)}</span>
+                                    <span class="shrink-0 text-base font-semibold tabular-nums">{formatAmount(toDisplayCurrency(category.amount, kimpayDefaultCurrency), displayCurrency, $locale)}</span>
+                                </button>
+                            </li>
+                        {/each}
+                    </ul>
+                </div>
             </section>
         {/if}
 
         {#if stats.expenseCount >= 3}
-            <section class="space-y-2 animate-slide-up">
-                <SectionLabel title={$t('balance.stats.title')} />
-                <div class="grid grid-cols-2 gap-2 @3xl:grid-cols-4">
-                    {@render stat(
-                        $t('balance.stats.per_day'),
-                        formatAmount(toDisplayCurrency(stats.perDay, kimpayDefaultCurrency), displayCurrency, $locale),
-                        $t('balance.stats.days', { count: String(stats.days) }),
-                    )}
-                    {#if stats.biggest}
+            <section class="space-y-2">
+                <button
+                    type="button"
+                    onclick={() => showStats = !showStats}
+                    aria-expanded={showStats}
+                    aria-controls="balance-stats"
+                    class="-mx-2 flex min-h-11 items-center gap-1.5 rounded-control px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-ring-inset"
+                >
+                    {$t('balance.more')}
+                    <ChevronDown class="h-4 w-4 transition-transform duration-200 {showStats ? 'rotate-180' : ''}" />
+                </button>
+                {#if showStats}
+                    <ul id="balance-stats" class="divide-y divide-border rounded-card border bg-card animate-pop-in" aria-label={$t('balance.stats.title')}>
+                        {@render stat($t('balance.stats.per_day'), money(stats.perDay), $t('balance.stats.days', { count: String(stats.days) }))}
+                        {#if stats.biggest}
+                            {@render stat($t('balance.stats.biggest'), money(stats.biggestAmount), `${stats.biggest.icon || DEFAULT_EXPENSE_EMOJI} ${stats.biggest.description}`)}
+                        {/if}
+                        {#if stats.topPayer}
+                            {@render stat($t('balance.stats.top_payer'), label(stats.topPayer.id), money(stats.topPayer.amount))}
+                        {/if}
                         {@render stat(
-                            $t('balance.stats.biggest'),
-                            formatAmount(toDisplayCurrency(stats.biggestAmount, kimpayDefaultCurrency), displayCurrency, $locale),
-                            `${stats.biggest.icon || DEFAULT_EXPENSE_EMOJI} ${stats.biggest.description}`,
+                            $t('balance.stats.count'),
+                            String(stats.expenseCount),
+                            stats.reimbursementCount > 0 ? $t('balance.stats.reimbursements', { count: String(stats.reimbursementCount) }) : '',
                         )}
-                    {/if}
-                    {#if stats.topPayer}
-                        {@render stat(
-                            $t('balance.stats.top_payer'),
-                            label(stats.topPayer.id),
-                            formatAmount(toDisplayCurrency(stats.topPayer.amount, kimpayDefaultCurrency), displayCurrency, $locale),
-                        )}
-                    {/if}
-                    {@render stat(
-                        $t('balance.stats.count'),
-                        String(stats.expenseCount),
-                        stats.reimbursementCount > 0 ? $t('balance.stats.reimbursements', { count: String(stats.reimbursementCount) }) : '',
-                    )}
-                </div>
+                    </ul>
+                {/if}
             </section>
         {/if}
     {/if}
@@ -464,7 +402,6 @@
     <CategorySheet
         category={openedCategory}
         share={openedShare}
-        {view}
         {displayCurrency}
         {activeKimpay}
         onClose={() => openedCategory = null}

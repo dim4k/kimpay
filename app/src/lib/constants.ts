@@ -102,7 +102,6 @@ export const STORAGE_KEYS = {
     /** Sort order of the expense list (localStorage) */
     EXPENSE_SORT: 'kimpay_expense_sort',
     /** Amounts of the expense list: "total" or "me" (localStorage) */
-    EXPENSE_VIEW: 'kimpay_expense_view',
     /** Payment handles of a guest's profile (localStorage) */
     PAYMENT_HANDLES: 'kimpay_payment_handles',
     /** Prefix: the "Getting started" card of a Kimpay closed (localStorage) */

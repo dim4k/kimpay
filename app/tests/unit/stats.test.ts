@@ -33,24 +33,20 @@ describe('spendingByCategory', () => {
     ];
 
     it('adds up the group spending per category, biggest first, without reimbursements', () => {
-        expect(spendingByCategory(expenses, 'EUR', {}, ids)).toEqual([
+        expect(spendingByCategory(expenses, 'EUR', {})).toEqual([
             { key: 'TRANSPORT', amount: 50 },
             { key: 'FOOD', amount: 42 },
         ]);
     });
 
-    it('counts only my part for me', () => {
-        expect(spendingByCategory(expenses, 'EUR', {}, ids, 'a')).toEqual([{ key: 'FOOD', amount: 16 }]);
-    });
-
     it('takes money received off its category', () => {
         const withIncome = [...expenses, expense({ icon: '🍕', amount: 42, is_income: true, involved: ['a', 'b', 'c'] })];
-        expect(spendingByCategory(withIncome, 'EUR', {}, ids)).toEqual([{ key: 'TRANSPORT', amount: 50 }]);
+        expect(spendingByCategory(withIncome, 'EUR', {})).toEqual([{ key: 'TRANSPORT', amount: 50 }]);
     });
 
     it('converts other currencies with the rate of the expense', () => {
         const usd = [expense({ icon: '🚗', amount: 20, currency: 'USD', exchange_rate: 0.5 })];
-        expect(spendingByCategory(usd, 'EUR', {}, ids)).toEqual([{ key: 'TRANSPORT', amount: 10 }]);
+        expect(spendingByCategory(usd, 'EUR', {})).toEqual([{ key: 'TRANSPORT', amount: 10 }]);
     });
 });
 

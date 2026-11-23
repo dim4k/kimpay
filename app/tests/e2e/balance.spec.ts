@@ -48,9 +48,8 @@ test.describe('Balance & Debts', () => {
 
     // 4. Verify I am owed money (100/2 = 50) - look for transaction showing debt
     // Wait for balance to load and show debt summary
-    await page.waitForTimeout(500);
-    await expect(page.getByText('You are owed')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/50[.,]00/).first()).toBeVisible();
+    await expect(page.getByTestId('debt-card')).toContainText('Debtor owes you', { timeout: 10000 });
+    await expect(page.getByTestId('debt-card')).toContainText(/50[.,]00/);
   });
 
   test('Shows debt when I owe money', async ({ page }) => {
@@ -82,8 +81,8 @@ test.describe('Balance & Debts', () => {
     await expect(page).toHaveURL(/\/balance/);
 
     // 6. Verify I owe money (200/2 = 100) - look for the specific "You owe" text
-    await expect(page.getByText('You owe', { exact: true })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/100[.,]00/).first()).toBeVisible();
+    await expect(page.getByTestId('debt-card')).toContainText('You owe Rich Person', { timeout: 10000 });
+    await expect(page.getByTestId('debt-card')).toContainText(/100[.,]00/);
   });
 
   test('Records part of what is owed', async ({ page }) => {
@@ -129,8 +128,7 @@ test.describe('Balance & Debts', () => {
     await sheet.getByRole('button', { name: 'Record' }).click();
     await expect(sheet).toBeHidden();
 
-    await expect(page.getByText('You are owed')).toBeVisible();
-    await expect(page.getByText('€30.00').first()).toBeVisible();
+    await expect(page.getByTestId('debt-card')).toContainText('€30.00');
 
     // Recorded with the wrong amount: corrected from its line, not cancelled.
     await page.getByRole('navigation').getByRole('link', { name: /expenses/i }).click();
@@ -164,23 +162,14 @@ test.describe('Balance & Debts', () => {
     await page.getByRole('navigation').getByRole('link', { name: /balance/i }).click();
     await expect(page.getByTestId('category-bar')).toHaveAttribute('aria-label', 'Food & drinks 68%, Transport 32%');
 
-    // A row opens the category's sheet, not another page: my part first,
-    // as the page shows it.
+    // A row opens the category's sheet, not another page: the group's
+    // spending, then my part of it.
     const food = page.getByRole('button', { name: /^Food & drinks/ });
     await food.click();
     const sheet = page.getByRole('dialog', { name: 'Food & drinks' });
     const amounts = sheet.getByTestId('category-amounts');
-    await expect(amounts).toContainText('€21.00');
-    await expect(amounts).toContainText('68% of my share');
-    await expect(amounts).toContainText('Kimpay total: €42.00');
     await expect(sheet.getByRole('listitem').first()).toContainText('Pizza night');
     await expect(page).toHaveURL(/\/balance$/);
-
-    // The group's spending: the sheet follows.
-    await sheet.getByRole('button', { name: 'Close' }).first().click();
-    await expect(sheet).toBeHidden();
-    await page.getByRole('radio', { name: 'Total' }).click();
-    await food.click();
     await expect(amounts).toContainText('€42.00');
     await expect(amounts).toContainText('68% of spending');
     await expect(amounts).toContainText('My share: €21.00');
