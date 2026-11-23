@@ -113,8 +113,6 @@
       return id === myId ? $t('common.you') : getName(id);
   }
 
-  let participants = $derived(activeKimpay?.participants || []);
-
   // My debts first, as cards with their actions; the others' in a list.
   let myTransactions = $derived(myId ? transactions.filter((tx) => tx.from === myId || tx.to === myId) : []);
   let otherTransactions = $derived(transactions.filter((tx) => !myTransactions.includes(tx)));
