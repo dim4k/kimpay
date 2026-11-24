@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Participant } from '#lib/types.js';
     import { t } from '#lib/i18n.js';
-    import { UserPlus } from '@lucide/svelte';
+    import { Plus } from '@lucide/svelte';
     import { slide } from 'svelte/transition';
     import Avatar from '#lib/components/ui/Avatar.svelte';
     import { haptic } from '#lib/utils/haptic.js';
@@ -162,7 +162,7 @@
                 onkeydown={(e) => e.key === 'Enter' && add()}
             />
             <Button size="icon" class="shrink-0" onclick={add} disabled={!newName.trim()} aria-label={$t('settings.participants.add')}>
-                <UserPlus />
+                <Plus />
             </Button>
         </div>
     {/if}

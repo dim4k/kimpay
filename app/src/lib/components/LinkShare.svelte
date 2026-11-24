@@ -4,7 +4,7 @@
     import { t } from '#lib/i18n.js';
     import { Button } from '#lib/components/ui/button/index.js';
     import { toasts } from '#lib/stores/toasts.svelte.js';
-    import { haptic } from '#lib/utils/haptic.js';
+    import { canShareNatively, copyLink as copy, shareNatively } from '#lib/utils/share.js';
 
     /**
      * A link to give: the phone's share sheet, the link to copy, and its QR
@@ -22,7 +22,7 @@
 
     let copied = $state(false);
     let qrDataUrl = $state<string | null>(null);
-    let canShare = typeof navigator !== 'undefined' && !!navigator.share;
+    let canShare = canShareNatively();
 
     // Dark modules on white: drawn on a white tile in both themes, which
     // is what phone cameras read best.
@@ -34,24 +34,17 @@
     });
 
     async function copyLink() {
-        try {
-            await navigator.clipboard.writeText(link);
-            haptic('light');
-            toasts.success($t('share.copy_success'));
-            copied = true;
-            setTimeout(() => (copied = false), 2000);
-        } catch (err) {
-            console.error('Failed to copy', err);
+        if (!(await copy(link))) {
             toasts.error($t('share.copy_error'));
+            return;
         }
+        toasts.success($t('share.copy_success'));
+        copied = true;
+        setTimeout(() => (copied = false), 2000);
     }
 
-    async function shareNative() {
-        try {
-            await navigator.share({ title: shareTitle, ...(shareText && { text: shareText }), url: link });
-        } catch {
-            // Share sheet dismissed.
-        }
+    function shareNative() {
+        return shareNatively({ title: shareTitle, ...(shareText && { text: shareText }), url: link });
     }
 </script>
 

@@ -9,7 +9,7 @@ test.describe('Group history', () => {
 
         // A member, then an expense: added, edited, deleted.
         const card = page.getByRole('region', { name: 'Getting started' });
-        await card.getByPlaceholder('New name').fill('Bob');
+        await card.getByPlaceholder('Add a name').fill('Bob');
         await card.getByRole('button', { name: 'Add', exact: true }).click();
         await expect(card.getByText('Bob')).toBeVisible();
 

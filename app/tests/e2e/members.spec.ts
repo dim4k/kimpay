@@ -7,7 +7,7 @@ async function openMembers(page: Page) {
 }
 
 async function addMember(page: Page, name: string) {
-    await page.getByPlaceholder('New name').fill(name);
+    await page.getByPlaceholder('Add a name').fill(name);
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.getByText(`${name} added`)).toBeVisible();
 }
@@ -39,8 +39,9 @@ test.describe('Members', () => {
         await expect(bob.getByText('Not here yet')).toBeVisible();
         await expect(page.getByText('2 members · 1 joined')).toBeVisible();
 
-        // More than one member: inviting is a row of the list, the big button is gone.
-        await expect(page.getByRole('button', { name: 'Invite', exact: true })).toHaveCount(1);
+        // The group link stays in sight at the top; Bob's row has his own.
+        await expect(page.getByTestId('group-link')).toBeVisible();
+        await expect(bob.getByRole('button', { name: 'Invite Bob' })).toContainText('Their link');
 
         await bob.getByRole('button', { name: 'Invite Bob' }).click();
         const sheet = page.getByRole('dialog', { name: 'Invite Bob' });
@@ -64,8 +65,9 @@ test.describe('Members', () => {
     });
 
     test('someone else than the name suggested picks theirs', async ({ page, browser }) => {
+        // Right after adding a name, the toast sends their link.
         await addMember(page, 'Bob');
-        await row(page, 'Bob').getByRole('button', { name: 'Invite Bob' }).click();
+        await page.getByRole('button', { name: 'Send their link' }).click();
         const link = (await page.getByRole('dialog', { name: 'Invite Bob' }).locator('.font-mono').textContent())!;
 
         const other = await (await browser.newContext()).newPage();

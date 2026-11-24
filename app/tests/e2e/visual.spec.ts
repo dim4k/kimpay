@@ -89,19 +89,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // Second participant, from the members.
             await navTo(page, /members/i);
-            // The empty list has a "New name" field too: wait for the members.
+            // The empty list has a "Add a name" field too: wait for the members.
             await expect(page).toHaveURL(/\/members$/);
-            await page.getByPlaceholder('New name').fill('Bob');
+            await page.getByPlaceholder('Add a name').fill('Bob');
             await page.getByRole('button', { name: /add/i }).click();
             await expect(page.locator('[data-is-me="false"]').getByText('Bob')).toBeVisible();
             // Shown at once, confirmed by a toast once saved: wait for it (the
             // snapshot then waits for it to go).
             await expect(page.getByText('Bob added')).toBeVisible();
-            await snapshot(page, `members-${colorScheme}`);
+            // The group link holds the random group id.
+            await snapshot(page, `members-${colorScheme}`, [page.getByTestId('group-link').locator('.font-mono')]);
 
             // Inviting: a sheet with the link and the QR code (both contain
             // the random group id).
-            await page.getByRole('button', { name: 'Invite', exact: true }).click();
+            await page.getByRole('button', { name: 'Link QR code' }).click();
             const invite = page.getByRole('dialog', { name: 'Invite to the Kimpay' });
             await expect(invite.getByAltText(/QR code/i)).toBeVisible();
             await snapshot(page, `invite-${colorScheme}`, [invite.getByAltText(/QR code/i), invite.locator('.font-mono')]);
@@ -114,7 +115,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
             // The emoji picker, from the sheet editing the group: a sheet of
             // its own, on top, with a search field.
-            await page.getByRole('button', { name: 'Edit', exact: true }).click();
+            await page.getByTestId('group-row').getByRole('button').click();
             await page.getByRole('dialog', { name: 'Edit Kimpay' }).getByRole('button', { name: 'Choose an emoji' }).click();
             const picker = page.getByRole('dialog', { name: 'Choose an emoji' });
             await picker.getByRole('searchbox').fill('beach');
@@ -135,7 +136,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
             await expect(paymentLinks).toBeHidden();
 
             // The group switcher behaves the same way.
-            await page.getByRole('button', { name: /Trip to Lisbon/ }).click();
+            await page.getByRole('button', { name: 'Trip to Lisbon', exact: true }).click();
             await expect(page.getByRole('link', { name: /Trip to Lisbon/ })).toBeVisible();
             await snapshot(page, `group-switcher-${colorScheme}`);
             await page.keyboard.press('Escape');

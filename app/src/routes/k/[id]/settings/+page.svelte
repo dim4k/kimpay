@@ -6,7 +6,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import { goto } from '$app/navigation';
-  import { Archive, ArchiveRestore, Eye, FileText, History, Link, LogOut, Pencil, Table, Trash2 } from "@lucide/svelte";
+  import { Archive, ArchiveRestore, Copy, Eye, FileText, History, Link, LogOut, Table, Trash2 } from "@lucide/svelte";
   import { modals } from '#lib/stores/modals.svelte.js';
   import { confirmUnsaved } from '#lib/unsaved.js';
   import { t, locale } from '#lib/i18n.js';
@@ -33,6 +33,8 @@
   import Modal from '#lib/components/ui/modals/Modal.svelte';
   import ModalHeader from '#lib/components/ui/modals/ModalHeader.svelte';
   import LinkShare from '#lib/components/LinkShare.svelte';
+  import InviteSheet from '#lib/components/members/InviteSheet.svelte';
+  import { copyLink } from '#lib/utils/share.js';
 
   // Get ActiveKimpay from context
   const ctx = getActiveKimpayContext();
@@ -125,6 +127,16 @@
       } finally {
           isSavingGroup = false;
       }
+  }
+
+  // The group's link (to invite), as in the members: copied from its row,
+  // or shared from the invitation sheet (QR code).
+  let inviteLink = $derived(kimpayId ? `${window.location.origin}/k/${kimpayId}` : '');
+  let isInviteOpen = $state(false);
+
+  async function copyInviteLink() {
+      if (await copyLink(inviteLink)) toasts.success($t('share.copy_success'));
+      else toasts.error($t('share.copy_error'));
   }
 
   // Read-only summary link
@@ -248,21 +260,52 @@
   <div class="space-y-6">
     <h1 class="sr-only">{$t('nav.settings')}</h1>
 
-    <!-- The group -->
-    <section class="flex items-center gap-3 rounded-card border bg-card p-4 animate-pop-in">
-        <IconTile size="lg" class="text-foreground">{kimpay?.icon || DEFAULT_KIMPAY_EMOJI}</IconTile>
-        <div class="min-w-0 flex-1">
-            <p class="truncate text-xl font-bold">{kimpay?.name ?? ''}</p>
-            <p class="truncate text-sm text-muted-foreground">
-                {kimpay?.currency}{creatorName ? ` · ${$t('settings.created_by', { name: creatorName })}` : ''}
-            </p>
-        </div>
-        {#if !offlineStore.isOffline}
-            <Button variant="outline" size="sm" onclick={openEdit}>
-                <Pencil />
-                {$t('common.edit')}
-            </Button>
-        {/if}
+    <!-- The group: a row like the others, opening its edit sheet. -->
+    <section class="animate-pop-in" data-testid="group-row">
+        <ListGroup>
+            <ListRow
+                title={kimpay?.name ?? ''}
+                subtitle={`${kimpay?.currency ?? ''}${creatorName ? ` · ${$t('settings.created_by', { name: creatorName })}` : ''}`}
+                onclick={offlineStore.isOffline ? undefined : openEdit}
+            >
+                {#snippet lead()}
+                    <IconTile size="sm" class="text-foreground">{kimpay?.icon || DEFAULT_KIMPAY_EMOJI}</IconTile>
+                {/snippet}
+            </ListRow>
+        </ListGroup>
+    </section>
+
+    <!-- The links to give: to invite, or to show without editing. -->
+    <section class="space-y-2">
+        <SectionLabel title={$t('settings.section.share')} />
+        <ListGroup>
+            <div class="flex min-h-14 items-center pr-4 first:rounded-t-[inherit] last:rounded-b-[inherit]">
+                <button
+                    type="button"
+                    onclick={() => isInviteOpen = true}
+                    class="flex min-w-0 flex-1 items-center gap-3 self-stretch rounded-r-control py-3 pl-4 pr-2 text-left transition-colors duration-150 hover:bg-muted/60 focus-ring-inset"
+                >
+                    <IconTile size="sm" tone="primary"><Link /></IconTile>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="truncate text-base font-medium">{$t('members.group_link')}</span>
+                        <span class="text-sm text-pretty text-muted-foreground">{$t('settings.group_link_desc')}</span>
+                    </span>
+                </button>
+                <Button size="sm" variant="soft" class="shrink-0" onclick={copyInviteLink}>
+                    <Copy />
+                    {$t('share.copy_short')}
+                </Button>
+            </div>
+            {#if !offlineStore.isOffline}
+                <ListRow
+                    icon={Eye}
+                    title={$t('settings.readonly.title')}
+                    subtitle={$t('settings.readonly.subtitle')}
+                    value={readonlyLink ? $t('settings.readonly.on') : $t('settings.readonly.off')}
+                    onclick={() => isReadonlyOpen = true}
+                />
+            {/if}
+        </ListGroup>
     </section>
 
     <section class="space-y-2">
@@ -270,14 +313,6 @@
         <ListGroup>
             {#if !historyBeside}
                 <ListRow icon={History} title={$t('activity.title')} subtitle={$t('activity.desc')} href="/k/{kimpayId}/settings/activity" />
-            {/if}
-            {#if !offlineStore.isOffline}
-                <ListRow
-                    icon={Eye}
-                    title={$t('settings.readonly.title')}
-                    value={readonlyLink ? $t('settings.readonly.on') : $t('settings.readonly.off')}
-                    onclick={() => isReadonlyOpen = true}
-                />
             {/if}
             <ListRow icon={Table} title={$t('settings.export.as', { format: $t('settings.export.csv') })} onclick={() => handleExport('csv')} />
             <ListRow icon={FileText} title={$t('settings.export.as', { format: $t('settings.export.md') })} onclick={() => handleExport('md')} />
@@ -340,6 +375,13 @@
         {/if}
     </div>
 </Modal>
+
+<InviteSheet
+    isOpen={isInviteOpen}
+    onClose={() => isInviteOpen = false}
+    link={inviteLink}
+    groupName={kimpay?.name ?? 'Kimpay'}
+/>
 
 <Modal isOpen={isReadonlyOpen} onClose={() => isReadonlyOpen = false} variant="sheet" label={$t('settings.readonly.title')}>
     <ModalHeader title={$t('settings.readonly.title')} description={$t('settings.readonly.desc')} icon={Eye} align="start" onClose={() => isReadonlyOpen = false} />

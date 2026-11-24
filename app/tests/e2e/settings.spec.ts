@@ -10,11 +10,11 @@ test.describe('Members & group settings', () => {
     await dismissInstallPrompt(page);
     // Go to the members
     await page.goto(page.url().replace(/\/?$/, '/members'));
-    await expect(page.getByPlaceholder('New name')).toBeVisible();
+    await expect(page.getByPlaceholder('Add a name')).toBeVisible();
   });
 
   test('Add Participant', async ({ page }) => {
-     await page.getByPlaceholder('New name').fill('Alice');
+     await page.getByPlaceholder('Add a name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click(); // The '+' button typically has 'Add' or icon, check label
 
      await expect(page.getByText('Alice').first()).toBeVisible();
@@ -25,7 +25,7 @@ test.describe('Members & group settings', () => {
   });
 
   test('Renames a member', async ({ page }) => {
-     await page.getByPlaceholder('New name').fill('Alcie');
+     await page.getByPlaceholder('Add a name').fill('Alcie');
      await page.getByRole('button', { name: /add/i }).click();
      await page.locator('[data-participant-id]', { hasText: 'Alcie' }).click();
 
@@ -34,13 +34,13 @@ test.describe('Members & group settings', () => {
      await sheet.getByLabel('Name').fill('Alice');
      await sheet.getByRole('button', { name: 'Save' }).click();
      await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toBeVisible();
-     await expect(page.getByText('Alcie')).toHaveCount(0);
+     await expect(page.locator('[data-participant-id]', { hasText: 'Alcie' })).toHaveCount(0);
   });
 
   test('Merges a member added twice, balances unchanged', { tag: '@chromium-only' }, async ({ page }) => {
      const base = page.url().replace(/\/members$/, '');
      for (const name of ['Bob', 'Bob M.']) {
-         await page.getByPlaceholder('New name').fill(name);
+         await page.getByPlaceholder('Add a name').fill(name);
          await page.getByRole('button', { name: /add/i }).click();
          await expect(page.locator('[data-participant-id]', { hasText: name })).toBeVisible();
      }
@@ -73,7 +73,7 @@ test.describe('Members & group settings', () => {
      await page.addInitScript(() => Object.keys(localStorage).filter((k) => k.startsWith('kimpay_rates_')).forEach((k) => localStorage.removeItem(k)));
      await page.reload();
      const base = page.url().replace(/\/members$/, '');
-     await page.getByPlaceholder('New name').fill('Bob');
+     await page.getByPlaceholder('Add a name').fill('Bob');
      await page.getByRole('button', { name: /add/i }).click();
      await expect(page.locator('[data-participant-id]', { hasText: 'Bob' })).toBeVisible();
 
@@ -85,7 +85,7 @@ test.describe('Members & group settings', () => {
      await expect(page.getByText('Dinner')).toBeVisible();
 
      await page.getByRole('navigation').getByRole('link', { name: 'Settings', exact: true }).click();
-     await page.getByRole('button', { name: 'Edit' }).click();
+     await page.getByTestId('group-row').getByRole('button').click();
      const sheet = page.getByRole('dialog', { name: 'Edit Kimpay' });
      await sheet.getByRole('button', { name: /Currency/ }).click();
      await page.getByRole('dialog', { name: 'Currency' }).getByRole('radio', { name: /USD/ }).click();
@@ -106,7 +106,7 @@ test.describe('Members & group settings', () => {
   });
 
   test('Offers an existing member with the same first name', async ({ page }) => {
-     await page.getByPlaceholder('New name').fill('Alice');
+     await page.getByPlaceholder('Add a name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click();
      await expect(page.locator('[data-participant-id]', { hasText: 'Alice' })).toBeVisible();
 
@@ -180,7 +180,7 @@ test.describe('Members & group settings', () => {
 
   test('Switch Identity', async ({ page }) => {
      // 1. Add Alice
-     await page.getByPlaceholder('New name').fill('Alice');
+     await page.getByPlaceholder('Add a name').fill('Alice');
      await page.getByRole('button', { name: /add/i }).click();
      await expect(page.getByText('Alice').first()).toBeVisible();
 

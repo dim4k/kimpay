@@ -206,28 +206,16 @@
       return dayLabel(key, $locale, { today: $t('datepicker.today'), yesterday: $t('date.yesterday') }, short);
   }
 
-  /** What the group spent (reimbursements are not spending), in the Kimpay currency. */
-  function amounts(items: Expense[]): { total: number; reimbursements: number } {
-      let total = 0;
-      // Only reimbursements: their count says more than a 0 total.
-      const reimbursements = items.every(e => e.is_reimbursement) ? items.length : 0;
-      for (const e of items) {
-          if (!e.is_reimbursement) total += (e.is_income ? -1 : 1) * toKimpayCurrency(e);
-      }
-      return { total, reimbursements };
-  }
-
   // Sorted by date: one list per day. Other sorts: a single list.
   let sections = $derived.by(() => {
       if (sortOption !== 'date_desc' && sortOption !== 'date_asc') {
           const shortLabel = $t('expense.list.count', { count: String(expenses.length) });
-          return [{ key: 'all', label: '', shortLabel, items: expenses, ...amounts(expenses) }];
+          return [{ key: 'all', label: '', shortLabel, items: expenses }];
       }
       return groupByDay(expenses).map((day) => ({
           ...day,
           label: dayTitle(day.key),
           shortLabel: dayTitle(day.key, true),
-          ...amounts(day.items),
       }));
   });
 
@@ -453,15 +441,6 @@
   }
 </script>
 
-<!-- A day's (or the list's) amount: what the group spent. -->
-{#snippet sectionAmount(section: { total: number; reimbursements: number })}
-    {#if section.reimbursements > 0}
-        <span class="whitespace-nowrap">{$t('expense.list.reimbursements_count', { count: String(section.reimbursements) })}</span>
-    {:else}
-        <span class="whitespace-nowrap tabular-nums">{formatAmount(section.total, kimpayC, $locale)}</span>
-    {/if}
-{/snippet}
-
 {#snippet line(expense: Expense)}
     <ExpenseItem
         {expense}
@@ -624,12 +603,7 @@
       >
           <div class="flex items-center gap-2">
               {#if isCompact}
-                  <p class="flex min-w-0 flex-1 items-center justify-between gap-2 text-sm font-semibold text-muted-foreground">
-                      <span class="truncate">{current?.shortLabel}</span>
-                      {#if current}
-                          <span class="shrink-0">{@render sectionAmount(current)}</span>
-                      {/if}
-                  </p>
+                  <p class="min-w-0 flex-1 truncate text-sm font-semibold text-muted-foreground">{current?.shortLabel}</p>
                   <button
                       type="button"
                       onclick={openSearch}
@@ -801,11 +775,7 @@
       {#each sections as section, i (section.key)}
           <section class="space-y-2 animate-slide-up" data-section={section.key}>
               {#if section.label}
-                  <SectionLabel title={section.label}>
-                      {#snippet actions()}
-                          <span class="text-sm font-semibold text-muted-foreground">{@render sectionAmount(section)}</span>
-                      {/snippet}
-                  </SectionLabel>
+                  <SectionLabel title={section.label} />
               {/if}
               <!-- The expenses in a card; each reimbursement in its own. -->
               {#each expenseRuns(section.items) as run (run.key)}

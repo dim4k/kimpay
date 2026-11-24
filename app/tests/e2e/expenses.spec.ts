@@ -121,7 +121,7 @@ test.describe('Expense Management', () => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
 
-    await page.getByPlaceholder('New name').fill('Alice');
+    await page.getByPlaceholder('Add a name').fill('Alice');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Alice', { exact: true })).toBeVisible();
 

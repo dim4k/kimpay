@@ -12,7 +12,7 @@ test.describe('Balance & Debts', () => {
     // Add another participant (required to have someone to owe/be owed by)
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
-    await page.getByPlaceholder('New name').fill('Other');
+    await page.getByPlaceholder('Add a name').fill('Other');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Other', { exact: true })).toBeVisible();
 
@@ -28,7 +28,7 @@ test.describe('Balance & Debts', () => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
 
-    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByPlaceholder('Add a name').fill('Debtor');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
 
@@ -57,7 +57,7 @@ test.describe('Balance & Debts', () => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
 
-    await page.getByPlaceholder('New name').fill('Rich Person');
+    await page.getByPlaceholder('Add a name').fill('Rich Person');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Rich Person', { exact: true })).toBeVisible();
 
@@ -88,7 +88,7 @@ test.describe('Balance & Debts', () => {
   test('Records part of what is owed', async ({ page }) => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
-    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByPlaceholder('Add a name').fill('Debtor');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
 
@@ -146,7 +146,7 @@ test.describe('Balance & Debts', () => {
   test('Where the money went: a sheet per category, then its expenses', async ({ page }) => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
-    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByPlaceholder('Add a name').fill('Debtor');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
 
@@ -184,7 +184,7 @@ test.describe('Balance & Debts', () => {
   test('The currency of the page is chosen in a sheet, with a search', async ({ page }) => {
     const url = page.url();
     await page.goto(url.replace(/\/?$/, '/members'));
-    await page.getByPlaceholder('New name').fill('Debtor');
+    await page.getByPlaceholder('Add a name').fill('Debtor');
     await page.getByRole('button', { name: /add/i }).click();
     await expect(page.getByText('Debtor', { exact: true })).toBeVisible();
 

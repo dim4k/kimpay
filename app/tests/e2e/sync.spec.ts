@@ -42,7 +42,7 @@ test.describe('Sync between devices', () => {
         await dismissInstallPrompt(page);
         const kimpayUrl = page.url();
         await page.goto(kimpayUrl.replace(/\/?$/, '/members'));
-        await page.getByPlaceholder('New name').fill('Bob');
+        await page.getByPlaceholder('Add a name').fill('Bob');
         await page.getByRole('button', { name: /add/i }).click();
         await expect(page.getByText('Bob', { exact: true })).toBeVisible();
 

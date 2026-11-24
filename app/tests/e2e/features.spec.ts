@@ -7,7 +7,7 @@ async function setupGroup(page: Page, name: string) {
     await dismissInstallPrompt(page);
     const base = page.url().replace(/\/$/, '');
     await page.goto(`${base}/members`);
-    await page.getByPlaceholder('New name').fill('Other');
+    await page.getByPlaceholder('Add a name').fill('Other');
     await page.getByRole('button', { name: /^add$/i }).click();
     await expect(page.getByText('Other', { exact: true })).toBeVisible();
     return base;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, ChevronRight, UserPlus } from "@lucide/svelte";
+  import { Check, ChevronRight, Plus, Send } from "@lucide/svelte";
   import { t } from '#lib/i18n.js';
   import { getActiveKimpayContext } from '#lib/stores/activeKimpay.svelte.js';
   import { offlineStore } from '#lib/stores/offline.svelte.js';
@@ -16,10 +16,10 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import Avatar from '#lib/components/ui/Avatar.svelte';
   import Badge from '#lib/components/ui/Badge.svelte';
-  import IconTile from '#lib/components/ui/IconTile.svelte';
   import ListGroup from '#lib/components/ui/ListGroup.svelte';
   import ListSkeleton from '#lib/components/ui/ListSkeleton.svelte';
   import SectionLabel from '#lib/components/ui/SectionLabel.svelte';
+  import GroupLinkCard from '#lib/components/members/GroupLinkCard.svelte';
   import InviteSheet from '#lib/components/members/InviteSheet.svelte';
   import MemberSheet from '#lib/components/members/MemberSheet.svelte';
   import SettleSheet from '#lib/components/balance/SettleSheet.svelte';
@@ -45,10 +45,6 @@
       invitee = participant;
       isInviteOpen = true;
   }
-
-  // Alone in the group: inviting is the next step, at the top. Then it is a
-  // row of the list.
-  let isAlone = $derived(participants.length <= 1);
 
   // Who takes part first, then the names not here yet, then those who left
   // (in the order they were added).
@@ -87,8 +83,12 @@
       if (!name) return;
       newParticipantName = "";
       try {
-          await activeKimpay.addParticipant(name);
-          toasts.success($t('members.added', { name }));
+          const added = await activeKimpay.addParticipant(name);
+          // Next step: sending them their own link.
+          toasts.add($t('members.added', { name }), 'success', 7000, {
+              label: $t('members.send_link'),
+              run: () => invite(added),
+          });
       } catch (e) {
           console.error(e);
           if (!newParticipantName) newParticipantName = name;
@@ -131,11 +131,8 @@
 <div class="mx-auto w-full max-w-2xl space-y-6 px-4 py-4 lg:max-w-5xl">
     <h1 class="sr-only">{$t('nav.members')}</h1>
 
-    {#if isAlone}
-        <Button size="lg" class="w-full animate-pop-in" onclick={() => invite(null)}>
-            <UserPlus class="size-5!" />
-            {$t('members.invite_short')}
-        </Button>
+    {#if inviteLink}
+        <GroupLinkCard link={inviteLink} groupName={kimpay?.name ?? 'Kimpay'} onOpen={() => invite(null)} />
     {/if}
 
     <section class="space-y-2 animate-slide-up">
@@ -197,7 +194,8 @@
                         </button>
                         {#if canInvite}
                             <Button size="sm" variant="soft" class="shrink-0" onclick={() => invite(p)} aria-label={$t('members.invite_named', { name: p.name })}>
-                                {$t('members.invite_short')}
+                                <Send />
+                                {$t('members.their_link')}
                             </Button>
                         {/if}
                     </div>
@@ -213,20 +211,9 @@
                             onkeydown={(e) => e.key === 'Enter' && handleAddParticipant()}
                         />
                         <Button size="icon" class="shrink-0" onclick={handleAddParticipant} disabled={!newParticipantName.trim()} aria-label={$t('settings.participants.add')}>
-                            <UserPlus />
+                            <Plus />
                         </Button>
                     </div>
-                {/if}
-
-                {#if !isAlone}
-                    <button
-                        type="button"
-                        onclick={() => invite(null)}
-                        class="flex w-full min-h-14 items-center gap-3 px-4 py-2 text-left text-base font-semibold text-primary transition-colors duration-150 last:rounded-b-[inherit] hover:bg-muted/60 focus-ring-inset"
-                    >
-                        <IconTile size="sm" tone="primary"><UserPlus /></IconTile>
-                        {$t('members.invite_short')}
-                    </button>
                 {/if}
             </ListGroup>
         {/if}

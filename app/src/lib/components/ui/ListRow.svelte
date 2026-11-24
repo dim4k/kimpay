@@ -18,7 +18,7 @@
         href?: string;
         /** Opens in a new tab, with an outgoing arrow instead of the chevron */
         external?: boolean;
-        onclick?: () => void;
+        onclick?: (() => void) | undefined;
         disabled?: boolean;
         tone?: 'default' | 'danger';
         class?: string;

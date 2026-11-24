@@ -106,21 +106,28 @@ test.describe('Navigation & UX', () => {
     // (scoped: the header also shows the identity name)
     await expect(page.locator('[data-is-me="true"]').getByText('Navigator')).toBeVisible();
 
-    // Invite: a sheet with the link (copy) and the QR code
-    await page.getByRole('button', { name: 'Invite', exact: true }).click();
+    // The group link, in sight: copied from the card, its QR code in the
+    // invitation sheet
+    const card = page.getByTestId('group-link');
+    await expect(card.getByText(/\/k\//)).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Copy', exact: true })).toBeEnabled();
+    await card.getByRole('button', { name: 'Link QR code' }).click();
     const sheet = page.getByRole('dialog', { name: 'Invite to the Kimpay' });
-    const copyBtn = sheet.getByRole('button', { name: /copy link|copier/i });
-    await expect(copyBtn).toBeVisible();
-    await expect(copyBtn).toBeEnabled();
+    await expect(sheet.getByRole('button', { name: /copy link|copier/i })).toBeEnabled();
     await expect(sheet.getByAltText(/QR code/i)).toBeVisible();
   });
 
   test('Group page shows group info', async ({ page }) => {
     await page.getByRole('navigation').getByRole('link', { name: /^(settings|paramètres)$/i }).click();
 
-    // Group name should be shown (header and group card), and editable
+    // Group name should be shown (header and group row), and editable
     await expect(page.getByText('Navigation Test').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await page.getByTestId('group-row').getByRole('button', { name: /Navigation Test/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Edit Kimpay' })).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // The group link, to copy or share, from here too
+    await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible();
 
     // Leave/Delete buttons should exist
     await expect(page.getByRole('button', { name: /leave|quitter/i })).toBeVisible();
